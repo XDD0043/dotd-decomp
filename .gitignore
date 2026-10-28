@@ -45,6 +45,9 @@ compile_commands.json
 *.7z
 *.gz
 
+# Explicitly included README demo recording.
+!/docs/media/demo.mp4
+
 # FFmpeg is fetched separately; SDL is a Git submodule.
 /thirdparty/ffmpeg/
 

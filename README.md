@@ -1,4 +1,8 @@
+**Approximately 29% ported** — based on tracked engine/game functions; some implementations still contain stubs (2026-10-28).
+
 # Dawn of the Dragon remake (work in progress)
+
+![Dawn of the Dragon remake gameplay demo](docs/media/demo.mp4)
 
 A behaviour-exact reimplementation of *The Legend of Spyro: Dawn of the Dragon*
 (PS3, BLUS30205). This repository contains the `dotd` source, tests, build
@@ -16,6 +20,7 @@ cmake --build --preset windows-msvc-release
 ```
 
 The executable is `build/windows-msvc/Release/dotd.exe`.
+Use `launch.cmd` to start it with a fixed console title that hides the executable's local path. The launcher can also sit next to `dotd.exe`.
 For a debug build and tests:
 
 ```sh
