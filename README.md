@@ -55,3 +55,14 @@ are kept separately.
 - `src/crt/`: math, random-number and PPC instruction helpers.
 - `src/platform/`: platform replacements for the PS3 imports.
 - `tests/`: native tests; `docs/`: implementation plans and coding rules.
+
+## Credits and acknowledgements
+
+- **Étranges Libellules** for the original game and its **K/Kal engine**, and **Sierra Entertainment** for publishing it.
+- **AdrienTD** for [XXL-Editor](https://github.com/AdrienTD/XXL-Editor) and [elbtools](https://github.com/AdrienTD/elbtools), which helped explain the engine's classes and file formats.
+- **Criterion Software** for **RenderWare 3.7.0.2**, the [SIGMA source archive](https://github.com/sigmaco/rwsrc-v3.7.0.2) maintainers, and **aap and contributors** for [librw](https://github.com/aap/librw).
+- **OSome Studio / Microids** and the original **Étranges Libellules** developers for the *Asterix & Obelix XXL 2* Mac debug symbols used to recover original engine names.
+- **clienthax** for [Ps3GhidraScripts](https://github.com/clienthax/Ps3GhidraScripts), and **ps3dev / PSL1GHT contributors** for the [open PS3 SDK references](https://github.com/ps3dev/PSL1GHT).
+- **SDL** and **FFmpeg** contributors for the native platform, video, and audio dependencies.
+
+See [the full credits](docs/CREDITS.md) for RPCS3, Ghidra and its MCP bridge, ReClass.NET and its MCP bridge, NVIDIA Cg, PS3 SDK references, the overlay/mod projects, and the build/analysis tools, with links and details of their use.
