@@ -1,0 +1,21 @@
+# dotd.ini: copy to dotd.ini (next to dotd.exe or in the working directory) and edit.
+# Command-line options override these; DOTD_USRDIR also sets usrdir when it is not set here.
+
+# Your own copy of the disc's PS3_GAME/USRDIR. It is only ever read.
+usrdir = C:/path/to/PS3_GAME/USRDIR
+
+# CELL_SYSUTIL_SYSTEMPARAM_ID_LANG (1 = English US) and ENTER_BUTTON_ASSIGN (1 = cross, 0 = circle)
+language = 1
+enter_button = 1
+pad_rumble = 1
+
+window_width = 1280
+window_height = 720
+fullscreen = 0
+
+# Frames per second the game runs at. The original runs at 60 and its menu animations step once per
+# frame, so anything else changes behaviour. 0 = uncapped (experiments only).
+frame_rate = 60
+# Used for pacing only when the display refresh is a multiple of frame_rate (60/120/240 Hz);
+# otherwise a timer paces the frames with vsync off.
+vsync = 1

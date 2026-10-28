@@ -1,0 +1,62 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "windows-msvc",
+      "displayName": "Windows MSVC x64 (default; Ninja, any Visual Studio version)",
+      "generator": "Ninja Multi-Config",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "architecture": { "value": "x64", "strategy": "external" },
+      "cacheVariables": { "CMAKE_C_COMPILER": "cl", "CMAKE_CXX_COMPILER": "cl" },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+    },
+    {
+      "name": "windows-msvc-x86-parity",
+      "displayName": "Windows MSVC x86 (32-bit pointers: PS3 struct layout checks)",
+      "inherits": "windows-msvc",
+      "architecture": { "value": "x86", "strategy": "external" }
+    },
+    {
+      "name": "windows-msvc-asan",
+      "displayName": "Windows MSVC x64 with AddressSanitizer (opt-in; run from a VS developer prompt so the ASan runtime DLL is on PATH)",
+      "inherits": "windows-msvc",
+      "cacheVariables": {
+        "CMAKE_C_FLAGS_DEBUG": "/Zi /Od /MDd /fsanitize=address",
+        "CMAKE_CXX_FLAGS_DEBUG": "/Zi /Od /MDd /fsanitize=address",
+        "CMAKE_EXE_LINKER_FLAGS_DEBUG": "/debug /INCREMENTAL:NO"
+      }
+    },
+    {
+      "name": "windows-vs2022",
+      "displayName": "Visual Studio 2022 solution",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+    },
+    {
+      "name": "linux-clang",
+      "generator": "Ninja Multi-Config",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": { "CMAKE_C_COMPILER": "clang", "CMAKE_CXX_COMPILER": "clang++" }
+    },
+    {
+      "name": "wasm",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "toolchainFile": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "windows-msvc-debug", "configurePreset": "windows-msvc", "configuration": "Debug" },
+    { "name": "windows-msvc-release", "configurePreset": "windows-msvc", "configuration": "Release" },
+    { "name": "windows-msvc-x86-parity-debug", "configurePreset": "windows-msvc-x86-parity", "configuration": "Debug" },
+    { "name": "windows-msvc-asan-debug", "configurePreset": "windows-msvc-asan", "configuration": "Debug" }
+  ],
+  "testPresets": [
+    { "name": "windows-msvc-debug", "configurePreset": "windows-msvc", "configuration": "Debug", "output": { "outputOnFailure": true } },
+    { "name": "windows-msvc-x86-parity-debug", "configurePreset": "windows-msvc-x86-parity", "configuration": "Debug", "output": { "outputOnFailure": true } },
+    { "name": "windows-msvc-asan-debug", "configurePreset": "windows-msvc-asan", "configuration": "Debug", "output": { "outputOnFailure": true }, "environment": { "ASAN_OPTIONS": "halt_on_error=1:detect_leaks=0" } }
+  ]
+}

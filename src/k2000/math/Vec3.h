@@ -1,0 +1,24 @@
+// Vec3.h - the game's 3-vector helpers (original unit Vec3.cpp, 0x243ff0-0x244a08) over CVector3.
+#pragma once
+#include <cstdint>
+
+#include "k2000/math/CMatrix34.h"
+
+// 0x00244638 Vec3_GetYawAngleFromX: the yaw of the vector's (x, z) part measured from +x, in [0, 2*pi].
+float Vec3_GetYawAngleFromX(const CVector3* v);
+// 0x00244528 Vec3_GetYawAngleFromZ: the yaw of the vector's (x, z) part measured from +z (step 5, the shared helpers).
+float Vec3_GetYawAngleFromZ(const CVector3* v);
+// 0x00244320 Vec3_IsWithinDistance: the points are at most `distance` apart (the x, z and y differences against it
+// first, then the squared length, y first, fused, against distance squared).
+uint8_t Vec3_IsWithinDistance(float distance, const CVector3* a, const CVector3* b);
+// 0x002443d8 Vec3_GetAngleInXYPlane / 0x00244748 Vec3_GetAngleInYZPlane: the angle of the (x, y) part from +x / of the
+// (y, z) part from +y, in [0, 2*pi].
+float Vec3_GetAngleInXYPlane(const CVector3* v);
+float Vec3_GetAngleInYZPlane(const CVector3* v);
+// 0x00010fc0 Vec3_CubicBezier (k2000/misc/Str.cpp): the cubic Bezier curve through p0 .. p3 at t, as the original's
+// fused sums: (1-t)^3 p0 + 3(1-t)^2 t p1, then + 3(1-t) t^2 p2, then + t^3 p3.
+void Vec3_CubicBezier(float t, CVector3* out, const CVector3* p0, const CVector3* p1, const CVector3* p2,
+                      const CVector3* p3);
+// 0x00010eb0 Bezier2D_EvaluateDeCasteljau_maybe (k2000/misc/Str.cpp): the point at `t` of the Bezier curve with
+// `count` control points (x, y float pairs) into out[0..1].
+void Bezier2D_EvaluateDeCasteljau(int32_t count, const float* points, float t, float* out);
