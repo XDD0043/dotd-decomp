@@ -4,22 +4,22 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x36e2d0  CKS08HeroBlow_GetAnimId
-//   [ ] 0x36e2e0  CKS08HeroBlow_GetDamageAmount
-//   [ ] 0x36e330  CKS08HeroBlow_GetReleaseDelay
-//   [ ] 0x36e350  CKS08HeroBlow_EvalTimeScale
+//   [x] 0x36e2d0  CKS08HeroBlow_GetAnimId
+//   [x] 0x36e2e0  CKS08HeroBlow_GetDamageAmount
+//   [x] 0x36e330  CKS08HeroBlow_GetReleaseDelay
+//   [x] 0x36e350  CKS08HeroBlow_EvalTimeScale
 //   [x] 0x36e3a0  CKS08HeroBlow_DeleteArray
 //   [x] 0x36e440  CKS08HeroBlow_Create
 //   [ ] 0x36e478  RegisterCKS08HeroBlowClass
 //   [ ] 0x36e500  _GLOBAL__D_36e500
 //   [ ] 0x36e510  _GLOBAL__I_36e510
 //   [x] 0x36e520  CKS08HeroBlow_CreateArray
-//   [ ] 0x36e5b0  CKS08HeroBlow_RecursiveRegistration
-//   [ ] 0x36e650  CKS08HeroBlow_PostLoad
-//   [ ] 0x36e670  CKS08HeroBlow_Destroy
+//   [x] 0x36e5b0  CKS08HeroBlow_RecursiveRegistration
+//   [x] 0x36e650  CKS08HeroBlow_PostLoad
+//   [x] 0x36e670  CKS08HeroBlow_Destroy
 //   [x] 0x36e6b8  CKS08HeroBlow_Load
 //   [ ] 0x36ee10  CKS08HeroBlow_Save
-//   [ ] 0x36f520  CKS08HeroCombo_Delete
+//   [x] 0x36f520  CKS08HeroCombo_Delete  (the registry Delete of CKS08HeroCombo: DOTD_DECLARE_FACTORIES, CKS08HeroCombo.h)
 //   [ ] 0x36f570  KStub_Nop_36f570  [dead]
 //
 //   [ ] 0x9beb88  CKS08HeroBlow_GetClassType  [inline]
@@ -53,6 +53,8 @@
 //   [ ] 0x9becd0  CKS08HeroBlow_Destructor  [inline]
 //   [ ] 0x9bece8  CKS08HeroBlow_DeletingDestructor  [inline]
 #include "Spyro2008/logic/CKS08HeroBlow.h"
+
+#include "k2000/components/CKCurve2DCpnt.h"
 
 #include "k2000/io/IKFile.h"
 
@@ -93,3 +95,26 @@ int32_t CKS08HeroBlow::Load(IKFile* file, int32_t type) {
     ReadF32LE(file, &m_unk44);
     return 1;
 }
+
+// 0x0036e350 CKS08HeroBlow_EvalTimeScale (vt+0xc0)
+float CKS08HeroBlow::EvalTimeScale(float x) const {
+    if (m_unk48 == 0) return 1.0f;  // TOC +0x2f58
+    return static_cast<const CKCurve2DCpnt*>(m_unk4c)->Evaluate(x);  // 0x00249ea8
+}
+
+// vt+0x24 0x0036e5b0 CKS08HeroBlow_RecursiveRegistration: the time-scale curve's (when there is one), then the camera
+// data's (vt+0x24), with the same type.
+void CKS08HeroBlow::RecursiveRegistration(int32_t type) {
+    if (m_unk4c != nullptr) m_unk4c->RecursiveRegistration(type);
+    m_unk3c->RecursiveRegistration(type);
+}
+
+// vt+0x30 0x0036e650 CKS08HeroBlow_PostLoad: for type 0 the timer (+0x18) back to its reset value (+0x0c).
+int32_t CKS08HeroBlow::PostLoad(int32_t type) {
+    if (type != 0) return 1;
+    m_unk18 = m_unk0c;
+    return 1;
+}
+
+// vt+0x10 0x0036e670 CKS08HeroBlow_Destroy: the camera data's Destroy (vt+0x10).
+void CKS08HeroBlow::Destroy() { m_unk3c->Destroy(); }

@@ -36,6 +36,10 @@ public:
     // 0x0056daa8 CKS08MenuBonus_UpdateVideoPlayback_maybe: the bonus video ended or skipped (vt+0x1e4: then
     // stopped), the interface video replayed and the input given back.
     void UpdateVideoPlayback();
+    // 0x0056dc28 CKS08MenuBonus_LaunchItem_maybe: item `item`'s bonus video (state 4's first video, playing) taken over,
+    // the menu's input blocked (flags bit 4), player 0 inactive, the input cleared. No caller in the original (its
+    // descriptor is referenced nowhere; OnMenuState inlines the same body per item).
+    void LaunchItem(uint32_t item);
 
     WidgetSlot m_aWidgetSlots[2];                // +0x94
     IKSerializable* m_apMessageIns[6];           // +0xa4

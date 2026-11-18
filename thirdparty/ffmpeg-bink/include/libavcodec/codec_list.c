@@ -5,4 +5,6 @@ static const FFCodec * const codec_list[] = {
     &ff_binkaudio_rdft_decoder,
     &ff_atrac3_decoder,
     &ff_atrac3al_decoder,
+    &ff_vp9_decoder,
+    &ff_vorbis_decoder,
     NULL };

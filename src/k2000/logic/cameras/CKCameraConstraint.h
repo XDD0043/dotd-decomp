@@ -12,7 +12,10 @@ struct CVector3;
 class CKCameraConstraint : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x1fc)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x7f0c || key == 0xc; }  // vt+0x08 0x9917c0
     DOTD_DECLARE_FACTORIES(CKCameraConstraint)
+    // vt+0x40 0x00154008 CKCameraConstraint_GetInfo: the trigger values 6 (the camera service's active constraint).
+    int32_t GetInfo(IKInfo* info, int32_t request) override;
 
     // 0x00153e18 CKCameraConstraint_Create: the vtable only.
     CKCameraConstraint() {}
@@ -25,6 +28,9 @@ public:
     int32_t PostLoad(int32_t type) override;            // vt+0x30 0x00154070 CKCameraConstraint_PostLoad
     void SetDefaultState(int32_t flag) override;        // vt+0x38 0x00153b10 CKCameraConstraint_SetDefaultState
     int32_t SetGameState(const SApplyGameState* state) override;  // vt+0x3c 0x00153ea0 CKCameraConstraint_SetGameState
+    // vt+0x24 0x00153bc0 CKCameraConstraint_RecursiveRegistration: type 0 registers it with the saving manager; then
+    // by the mode (+0x38) the references +0x3c (modes 1 and 2) and +0x40 (mode 3, with +0x3c) register (when set).
+    void RecursiveRegistration(int32_t type) override;
 
     // 0x00153f00 CKCameraConstraint_IsEnabledFor_maybe: the constraint is switched on (m_unk1c bit 2), belongs to
     // the current sector (or to none: +0x24 is 0) and its mask (+0x8c) holds bit `sectorMode`.

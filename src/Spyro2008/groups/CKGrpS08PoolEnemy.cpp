@@ -4,11 +4,11 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x26ad40  CKGrpS08PoolEnemy_Delete
-//   [ ] 0x26ad90  CKGrpS08PoolEnemy_vfB8
-//   [ ] 0x26adb8  CKGrpS08PoolEnemy_PostLoad
+//   [x] 0x26ad90  CKGrpS08PoolEnemy_vfB8  (CKGrpPoolSquad's answer: undeclared slot, see CKGrpS08PoolEnemy.h)
+//   [x] 0x26adb8  CKGrpS08PoolEnemy_PostLoad  (= CKGrpPoolSquad::PostLoad, inherited)
 //   [ ] 0x26ade0  CKGrpS08PoolEnemy_Save
-//   [ ] 0x26ae08  CKGrpS08PoolEnemy_RecursiveRegistration
-//   [ ] 0x26ae30  CKGrpS08PoolEnemy_Destroy
+//   [x] 0x26ae08  CKGrpS08PoolEnemy_RecursiveRegistration  (CKGrpPoolSquad's RecursiveRegistration: inherited)
+//   [x] 0x26ae30  CKGrpS08PoolEnemy_Destroy  (CKGrpPoolSquad::Destroy)
 //   [x] 0x26ae58  CKGrpS08PoolEnemy_DeleteArray
 //   [x] 0x26af00  CKGrpS08PoolEnemy_Create
 //   [ ] 0x26afb8  RegisterCKGrpS08PoolEnemyClass

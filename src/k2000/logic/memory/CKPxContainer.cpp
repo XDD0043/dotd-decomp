@@ -7,13 +7,13 @@
 //   [ ] 0x21cb88  RegisterCKPxContainerClass
 //   [ ] 0x21cc00  _GLOBAL__I_21cc00
 //   [ ] 0x21cc10  CKPxContainer_Save
-//   [ ] 0x21cc38  CKPxContainer_RecursiveRegistration
-//   [ ] 0x21cc60  CKPxContainer_Destroy
-//   [ ] 0x21cc88  CKPxContainer_DeletingDestructor
-//   [ ] 0x21ccd0  CKPxContainer_Destructor
-//   [ ] 0x21cd00  CKPxContainer_DestructBody
+//   [x] 0x21cc38  CKPxContainer_RecursiveRegistration  (KBase468C's vf24 0x218068: returns 1, nothing)
+//   [x] 0x21cc60  CKPxContainer_Destroy  (inherited: CKPxObject_ClearReferences_BaseNop_maybe)
+//   [x] 0x21cc88  CKPxContainer_DeletingDestructor  (the destructor; delete)
+//   [x] 0x21ccd0  CKPxContainer_Destructor  (C++ destructor chain: vtable stores only)
+//   [x] 0x21cd00  CKPxContainer_DestructBody  (C++ destructor chain: vtable stores only)
 //   [x] 0x21cd30  CKPxContainer_Construct
-//   [ ] 0x21cd68  CKPxContainer_Construct_2
+//   [x] 0x21cd68  CKPxContainer_Construct_2  (the same as 0x21cd30 CKPxContainer_Construct)
 //   [x] 0x21cda0  CKPxContainer_DeleteArray
 //   [x] 0x21ce48  CKPxContainer_Create
 //   [x] 0x21cea0  CKPxContainer_CreateArray

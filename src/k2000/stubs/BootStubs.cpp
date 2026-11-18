@@ -44,15 +44,12 @@ struct ParticleUpdateScheduler;
 
 // ==== C1.4: graphics ============================================================================
 
-CKGraphic::~CKGraphic() {}
 IKBaseClass* CKGraphic::Create() { return new CKGraphic(); }
 void CKGraphic::Delete(IKBaseClass* object) { delete object; }
 void CKGraphic::Start() {}
 void CKGraphic::Update(IKTime*) {}
 void CKGraphic::PreUpdate(IKTime*) {}
 void CKGraphic::PostUpdate(IKTime*) {}
-void CKGraphic::DestroyModule() {}
-void CKGraphic::UpdateSceneWorldMatrices() {}
 
 // CKGraphic_InitializeModule: RwEngineInit/Open/Start on the PSGL device, the RW plugins, then the shader
 // manager (key 0x124d), the TextureBank and CAnimationManager (key 0x20d).
@@ -87,26 +84,26 @@ int32_t CKGraphic::InitializeModule(void*) {
     return 1;
 }
 
-CRenderer* CKGraphic::CreateRenderer(void* startupContext) {
-    m_renderer = static_cast<CRenderer*>(ClassRegistry_CreateObjectByKey(0x4d));
-    if (m_renderer != nullptr) m_renderer->InitializeStages(startupContext);
-    return m_renderer;
-}
+// CKGraphic::CreateRenderer 0x599c0: k2000/managers/CKGraphic.cpp (C2.8 port-all P21).
 
 // CRenderer (constructor, InitializeStages, RenderGameFrame, RenderFallbackFrame): k2000/render/CRenderer.cpp (C1.4).
 
 
 CShaderManagerPSGL* g_pShaderManager = nullptr;  // 0x00c685e0
-CShaderManagerPSGL::~CShaderManagerPSGL() {}
+// 0x000ffc40 CShaderManagerPSGL_Destructor -> CShaderManagerPSGL_DestructMembers_maybe 0xfa4c0: the global cleared (the
+// rest of it, the pipelines +0x04 / +0x60, the request queue +0x8508, the request +0x90 and the caches, are members the
+// remake's stand-in class does not have: C1.4).
+CShaderManagerPSGL::~CShaderManagerPSGL() {
+    if (g_pShaderManager == this) g_pShaderManager = nullptr;  // g_ShaderManagerPSGL = 0
+}
 IKBaseClass* CShaderManagerPSGL::Create() { return new CShaderManagerPSGL(); }
 void CShaderManagerPSGL::Delete(IKBaseClass* object) { delete object; }
 void CShaderManagerPSGL::Start() { dotd::trace::Boot("CShaderManagerPSGL::Start (Cg context: stand-in)"); }
+// 0x000f39a0 ShaderUniforms_ReleaseBuiltinRecords_maybe: the 0x28 built-in uniform records (g_BuiltinShaderUniformRecords,
+// ShaderUniformRecord_Reset_maybe 0xf31b8 each) and their buffers (ShaderUniforms_FreeBuiltinBuffers_maybe 0xf3338)
+// released. STUB(C1.4): the records are InitializeBuiltinShaderUniformRecords' (0xf3488, not ported: the remake's uniform
+// values are bound per GL program by CShaderManagerPSGL_2.cpp), so there is nothing to release.
 void ShaderUniforms_ReleaseBuiltinRecords() {}
-
-
-// ==== audio =======================================================================================
-
-void RwaSetExitFlag(int32_t) {}
 
 // ==== C1.6 / M1: services ========================================================================
 
@@ -116,18 +113,20 @@ void CKServiceManager::Delete(IKBaseClass* object) { delete object; }
 
 // ==== C1.2: files, loading, the object database ===================================================
 
-KFileSystem::KFileSystem() : m_executablePath(), m_dataRoot(), m_saveDevice(nullptr), m_parkedStream(nullptr), m_pad30c() {
-    dotd::trace::Boot("create KFileSystem (core singleton)");
-}
-KFileSystem::~KFileSystem() {}
-void KFileSystem::SetExecutablePath(const char* path) {
-    std::strncpy(m_executablePath, path, sizeof(m_executablePath) - 1);
-}
-void KFileSystem::SetDataRoot(const char* root) { std::strncpy(m_dataRoot, root, sizeof(m_dataRoot) - 1); }
+// KFileSystem::SetExecutablePath (0x49770 CopyString4Offset) / SetDataRoot (0x496c8): k2000/memory/KMemBuffer.cpp
+// (C2.8 port-all P21).
 void KFileSystem::InitSaveDevice() { dotd::trace::Boot("KFileSystem_InitSaveDevice (stand-in)"); }
 
-KHostFS::KHostFS() {}
+namespace {
+KHostFS* s_pHostFS = nullptr;  // 0x00c5b840
+}  // namespace
+// KHostFS_Construct 0x50248: KHostFS_ConstructBase_maybe registers the instance; the request queue (+0x20) is the
+// member's constructor (CKFileSystemRequestQueue_Construct 0x4f3e8); the rest is the stand-in's (KHostFS.h).
+KHostFS::KHostFS() { s_pHostFS = this; }
+// KHostFS_Destructor 0x515c0: the request queue's destructor is the member's; the rest is the stand-in's.
 KHostFS::~KHostFS() {}
+// 0x00051990 KHostFS_GetInstance
+KHostFS* KHostFS_GetInstance() { return s_pHostFS; }
 void KHostFS::Init() { dotd::trace::Boot("KHostFS::Init (RtFS, ELB:, request thread: stand-in)"); }
 void KHostFS::PreopenRwsFiles() {}
 void KHostFS::PollDevice() {}
@@ -139,27 +138,21 @@ KHostFS* KHostFS_Create() {
     return new KHostFS();
 }
 
-CKSavingManager::CKSavingManager() {}
-CKSavingManager::~CKSavingManager() {}
-IKBaseClass* CKSavingManager::Create() { return new CKSavingManager(); }
-void CKSavingManager::Delete(IKBaseClass* object) { delete object; }
+// CKSavingManager: k2000/logic/CKSavingManager.cpp.
 
-CKLevel::~CKLevel() {}
 IKBaseClass* CKLevel::Create() { return new CKLevel(); }
 void CKLevel::Delete(IKBaseClass* object) { delete object; }
 
-CLocManager::~CLocManager() {}
-IKBaseClass* CLocManager::Create() { return new CLocManager(); }
-void CLocManager::Delete(IKBaseClass* object) { delete object; }
-
-void CKCoreManager::ShutdownParticleUpdateScheduler() {}
-
+// CLocManager's destructor and factories: k2000/logic/ui/CLocManager.cpp.
 
 // The texture registry (FindTextureByName, TextureRef_AddRef/Release): k2000/render/Texture.cpp (C1.4).
-void ShutdownParticleUpdateScheduler(ParticleUpdateScheduler*) {}
 
+void SaveData_InitDirNamePrefix();  // k2000/io/SaveData.cpp
 void BootLoadRequest::Execute() {
     dotd::trace::Boot("boot load: pre-open RWS, save data, Shader/ps3/shfct.bin (stand-in)");
+    // BootLoad_InitSaveData_maybe 0x14698 (C2.8 port-rest R05, CDefaultGameManager.cpp): the save device's vt+0x00 (the
+    // default device's KStub_Return1), then the save folders' prefix.
+    BootLoad_InitSaveData();
 }
 
 void Uuid_ParseHexString(uint8_t* uuid, const char*) { std::memset(uuid, 0, 16); }
@@ -212,20 +205,12 @@ CDefaultGameManager::CDefaultGameManager()
     m_unk254[2] = 0;
 }
 CDefaultGameManager::~CDefaultGameManager() {}
-bool CDefaultGameManager::IsSaveDataBusy() { return false; }
 
 IKBaseClass* CKS08GameManager::Create() { return new CKS08GameManager(); }
 void CKS08GameManager::Delete(IKBaseClass* object) { delete object; }
 
 // ==== system message boxes and the job queue (save data) ==========================================
 
-JobQueue::JobQueue() { dotd::trace::Boot("create JobQueue"); }
-JobQueue::~JobQueue() {}
-void JobQueue::ProcessCallbacks() {}
-bool JobQueue::HasPending() { return false; }
-uint32_t JobQueue::PeekId() { return 0; }
-void JobQueue::PurgeWithoutCallback() {}
-void JobQueue::PostAndWait(int32_t, uint32_t, void*, const void*, void*) {}
 
 // ==== C1.6 gm: other families' functions the options and the language switch call ===================
 // (minimal bodies until their families port them; the merge deletes these)
@@ -243,13 +228,9 @@ void SoundOutput_SetOutputMode(CKSoundOutput* /*output*/, int32_t /*mode*/) {}
 // 0x000a4be8 Camera_SetFovAndAspectFromRaster_maybe: ported in k2000/cameras/CameraContext.cpp.
 
 
-void MessageBox_ClearJobMessageEntries() {}
-void MessageBox_PushJobMessageEntry(float, uint32_t) {}
-int32_t MessageBox_GetJobMessageCount() { return 0; }
+// MessageBox_ClearJobMessageEntries / PushJobMessageEntry / GetJobMessageCount: k2000/misc/MessageBox.cpp.
 
-CKErrorTable::CKErrorTable() { dotd::trace::Boot("create CKErrorTable"); }
-CKErrorTable::~CKErrorTable() {}
-void CKErrorTable::CreateErrorObjects() {}
+// CKErrorTable: k2000/misc/CKErrorTable.cpp.
 
 // ==== runtime pieces ===============================================================================
 

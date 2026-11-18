@@ -7,17 +7,31 @@
 
 #include "k2000/core/IKSerializable.h"
 #include "k2000/core/Layout.h"
+#include "k2000/memory/Mem.h"
 
 struct RwaWaveDict;
 
 class CKSoundDictionary : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryDictionary, 0x3)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0xc9 || key == 0xc; }  // vt+0x08 0x9a6a90
     DOTD_DECLARE_FACTORIES(CKSoundDictionary)
 
     CKSoundDictionary();                                // 0x00112578 CKSoundDictionary_Create (inlined)
-    ~CKSoundDictionary() override {}                    // STUB(C1.6): 0x9a6b30
+    // 0x009a6b30 CKSoundDictionary_Destructor (0x9a6ab0 the deleting one): the wave reference array freed, the
+    // count and the array cleared (the capacity +0x10 is left).
+    ~CKSoundDictionary() override {
+        if (m_apKWave != nullptr) Mem_FreeAligned16(m_apKWave);
+        m_ui32NbSound = 0;
+        m_apKWave = nullptr;
+    }
+    // vt+0x10 0x001125d0 CKSoundDictionary_Destroy: the Rwa dictionary and its waves destroyed, the wave references freed.
+    void Destroy() override;
+    // vt+0x24 0x00112358 CKSoundDictionary_RecursiveRegistration: type 0 only: this registered, then each wave reference's
+    // RecursiveRegistration(0). Returns 1.
+    void RecursiveRegistration(int32_t type) override;
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001126e0 CKSoundDictionary_Load
+    // vt+0x30 0x00112350 CKSoundDictionary_PostLoad: 1 (IKSerializable's default).
 
     // +0x04 the Rwa wave dictionary (RwaWaveDict_StreamRead_maybe; platform/audio/rwa.h)
     RwaWaveDict* m_pRwSoundDictionary;

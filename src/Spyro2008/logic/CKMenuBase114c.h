@@ -44,7 +44,7 @@ public:
         float m_fUnk44;              // +0x44 FloatApproach target (scale_maybe); not read
         float m_fUnk48;              // +0x48 FloatApproach speed
         float m_fUnk4c;              // +0x4c FloatApproach current; not read
-        uint32_t m_unk50;            // +0x50
+        float m_fUnk50;              // +0x50 the scale factor (x the second ramp; z negated)
     };
 
     // A 2D element animation (+0x28, 0x50 bytes): oscillation of an element's position (0x519130
@@ -59,8 +59,8 @@ public:
         float m_vUnk0c[2];           // +0x0c amplitude_maybe (one 8-byte read, both words swapped)
         float m_vUnk14[2];           // +0x14 frequency_maybe
         float m_vUnk1c[2];           // +0x1c phase_maybe
-        float m_fTime;               // +0x24 runtime; not read
-        uint32_t m_unk28;            // +0x28 not read
+        float m_fTime;               // +0x24 runtime
+        float m_fUnk28;              // +0x28 the base scale (ResetWidgets sets 1.0)
         float m_fUnk2c;              // +0x2c FloatApproach target; not read
         float m_fUnk30;              // +0x30 FloatApproach speed
         float m_fUnk34;              // +0x34 FloatApproach current; not read
@@ -72,8 +72,9 @@ public:
         float m_fUnk4c;              // +0x4c speed used while +0x0a is set (0x519130)
     };
 
-    // A delayed show (+0x34, 0x18 bytes): MessageProc 0x515b78 shows m_pElement when m_pShowSender sends
-    // message 0x2300 and sets m_fEndTime = m_fDelay + the menu time; m_pHideSender hides it.
+    // A delayed show (+0x34, 0x18 bytes; m_pElement a CParticlesNodeFx): MessageProc 0x515b78 starts the
+    // particles when m_pShowSender sends message 0x2300 and sets m_fEndTime = m_fDelay + the menu time;
+    // m_pHideSender stops them, and 0x519130 stops them at m_fEndTime.
     struct DelayedShow {
         IKSerializable* m_pBinding;     // +0x00 FlashWidgetBinding
         IKSerializable* m_pElement;     // +0x04
@@ -110,6 +111,12 @@ public:
 
     CKMenuBase114c();            // inlined into every leaf's Create (e.g. 0x56e0f0 CKS08MenuBonus_Create)
     ~CKMenuBase114c() override;  // vt+0x00 0x9c7388 CKMenuBase_114c_maybe_Destructor
+    // vt+0x10 0x00513c60 CKMenuBase_114c_maybe_Destroy: KBase730C's (KStub_Nop_67eb8), the tables freed (named objects,
+    // node and element animations, delayed shows, buttons), the flags cleared, then the video triggers freed.
+    void Destroy() override;
+    // vt+0x24 0x00513c38 CKMenuBase_114c_maybe_RecursiveRegistration (checklist: _LevelReset): KBase730C's (0x67eb0,
+    // registers nothing); the leaves register their own references around it.
+    void RecursiveRegistration(int32_t type) override { KBase730C::RecursiveRegistration(type); }
 
     int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9c7240
         return key == 0x114c || key == 0x730c || key == 0xc;
@@ -127,6 +134,42 @@ public:
     void Vf64(uint32_t flag) override { m_ui32Flags = (m_ui32Flags & ~1u) | flag; }  // vt+0x64 0x9c72c0
     uint32_t GetWidgetSlotCount() override { return 0; }                              // vt+0x68 0x9c7280
     WidgetSlot* GetWidgetSlots() override { return nullptr; }                         // vt+0x6c 0x9c7288
+    float GetElementX(uint32_t slot) override;         // vt+0x70 0x00512830 KBase730C_GetElementX_maybe
+    float GetElementY(uint32_t slot) override;         // vt+0x74 0x00514e10 KBase730C_GetElementY_maybe
+    void SetElementX(float x, uint32_t slot) override;  // vt+0x7c 0x00512510 KBase730C_SetElementX_maybe
+    void SetElementY(float y, uint32_t slot) override;  // vt+0x80 0x005126a0 KBase730C_SetElementY_maybe
+    // vt+0x78 0x00512370 KBase730C_SetElementPosition_maybe: the slot's element offset (2D list for a 2D node 0x24d, 3D
+    // list for a scene node 0xcb, searched from the last) set to position[0..1]; nothing without the hot spot, the
+    // element or the entry.
+    void Vf78(uint32_t slot, const float* position) override;
+    // Helpers of the menus (no vtable slot). Names ours from Ghidra's.
+    // 0x005122f8 KBase730C_CallOwnerVfDCObjectVf80_maybe: the interface video (manager vt+0xdc) resumed (vt+0x80).
+    void ResumeInterfaceVideo();
+    // 0x00514668 KBase730C_CallOwnerVfDCObjectVf78AfterVf308_maybe: the interface video stopped (vt+0x78), its segment
+    // kept as the interface segment (manager vt+0x308) first. (CKInterfaceButton.cpp, CKInterfaceButtonDouble.cpp and
+    // CKInterfaceCheckBox.cpp hold local copies.)
+    void StopInterfaceVideoKeepSegment();
+    // 0x005137d8 KBase730C_SetFlashHidden_maybe: the flash UI's flags bit 8 = hidden; hiding hides its hot spots.
+    void SetFlashHidden(uint8_t hidden);
+    // 0x00513880 KBase730C_PlayVideoSegmentById_maybe: the video trigger whose sender is `sender` (from the last): its
+    // segment played from mode 3 as the interface segment; a segment not ended with a wait frame pauses the interface
+    // until that frame (as MessageProc's message 0x2300).
+    void PlayVideoSegmentById(IKSerializable* sender);
+    // 0x00513ab0 KBase730C_FindWidgetByName_maybe (and its copies 0x5159a8 / 0x515a48): the named object whose name hash
+    // is Str_HashXor4(name), from the last; null without one.
+    IKSerializable* FindWidgetByName(const char* name);
+    // 0x00515ae8 KBase730C_SendFlashMessageByName_maybe: the named CKFlashMessageOut posted.
+    void SendFlashMessageByName(const char* name);
+    // 0x00514228 / 0x00514388 KBase730C_Get / SetSelectionOfFirstActivePlayer_maybe: the selection (+0x78 + player) of the
+    // first active player (manager vt+0x180), 0xff without one; only with +0x83 set, the player loop repeated +0x80 times.
+    uint8_t GetSelectionOfFirstActivePlayer();
+    void SetSelectionOfFirstActivePlayer(uint8_t selection);
+    // The reference groups' common operations, inlined by the HUD screens: ClearRefGroup clears group g's dynamic
+    // references [+0x04, +0x08) and its first +0x08 states; AddToRefGroup puts `object` in the first reference of
+    // group g that holds it or is free (that reference's state cleared), nothing when the group is full or `object`
+    // is null.
+    void ClearRefGroup(uint32_t group);
+    void AddToRefGroup(IKSerializable* object, uint32_t group);
 
     // The leaf accessors the Load reads through (defaults: nothing). Counts are bytes (the Load masks
     // them with 0xff).

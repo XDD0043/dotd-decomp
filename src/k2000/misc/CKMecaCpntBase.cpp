@@ -5,20 +5,20 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [ ] 0x3f7950  CKMecaCpntBase_a06_maybe_ConstructBase_2  [dead]
-//   [ ] 0x3f7960  CKMecaCpntBase_a06_maybe_DeletingDestructor
-//   [ ] 0x3f79a8  CKMecaCpntBase_a06_maybe_Destructor
-//   [ ] 0x3f79d8  CKMecaCpntBase_a06_maybe_BaseDestructor
+//   [x] 0x3f7960  CKMecaCpntBase_a06_maybe_DeletingDestructor  (the destructor (IKComponent's chained); delete)
+//   [x] 0x3f79a8  CKMecaCpntBase_a06_maybe_Destructor  (C++ destructor chain: vtable store, IKComponent's destructor)
+//   [x] 0x3f79d8  CKMecaCpntBase_a06_maybe_BaseDestructor  (C++ destructor chain: vtable stores only)
 //   [x] 0x3f7a08  CKMecaCpntBase_a06_maybe_ConstructBase
 //   [x] 0x3f7a18  CKMecaCpntBase_a06_maybe_Load
 //   [ ] 0x3f7a20  CKMecaCpntBase_a06_maybe_Save
-//   [ ] 0x3f7a28  CKMecaCpnt_PostLoad
-//   [ ] 0x3f7a70  CKMecaCpntBase_a06_maybe_LevelReset
-//   [ ] 0x3f7a78  CKMecaCpntBase_a06_maybe_ClearReferences
+//   [x] 0x3f7a28  CKMecaCpnt_PostLoad  (inline in the header)
+//   [x] 0x3f7a70  CKMecaCpntBase_a06_maybe_LevelReset  (RecursiveRegistration: returns 1, the default slot)
+//   [x] 0x3f7a78  CKMecaCpntBase_a06_maybe_ClearReferences  (CKMecaCpntBase.h IKMecaCpnt::Destroy)
 //
 //   [x] 0x9c0cb8  CKMecaCpntBase_a06_maybe_IsKindOf  [inline]
 //   [ ] 0x9c0ce0  CKMecaCpntBase_a06_maybe_GetClassGroup  [inline]
 //   [ ] 0x9c0ce8  CKMecaCpntBase_a06_maybe_GetClassId  [inline]
-//   [ ] 0x9c0cf0  KBaseA06_vf50  [inline]
+//   [x] 0x9c0cf0  KBaseA06_vf50  [inline]
 //   [ ] 0x9c0cf8  KBaseA06_vf54  [inline]
 //   [ ] 0x9c0d00  KBaseA06_vf58  [inline]
 //   [ ] 0x9c0d08  KBaseA06_vf5C  [inline]

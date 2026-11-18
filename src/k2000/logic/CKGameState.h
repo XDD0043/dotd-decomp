@@ -21,19 +21,42 @@ class IKGameStructure;
 class CKGameState : public IKGameObject {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0xcb)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x995090
+        return key == 0x32cc || key == 0x330c || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKGameState)
 
     CKGameState();             // inlined in CKGameState_Create 0x3dd08 / CreateArray
-    ~CKGameState() override {} // vt+0x00 / +0x04  0x995290 / 0x9950d0
+    ~CKGameState() override;   // vt+0x00 / +0x04  0x995290 / 0x9950d0 (CKGameState.cpp)
 
     // vt+0x60 0x0003e598 CKGameState_ClearLevelData_maybe (XXL2 DestroyLevelData): every entry the level
     // appended (flags bit 0 clear) removed from the four lists, each list from the last entry down.
     void DestroyLevelData() override;
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x0003fd18 CKGameState_Load
+    // vt+0x28 0x0003edd0 CKGameState_Save (C2.8 save-menu): K_GAME_MEMCARD writes the spawn point's handle (when its
+    // flag bit 0 is set, else a null handle) and the state bytes of the modules (+0x44, +0x50), of +0x5c (+0x68), of
+    // +0x74 (+0x80) and of the stages (+0x2c).
+    int32_t Save(IKFile* file, int32_t type) override;
     void InitializeGameData() override;                 // vt+0x58 0x0003f2d8 CKGameState_InitGameData
-    // vt+0x5c 0x3dbe8 InitLevelData only calls IKGameObject's. Not ported: vt+0x1c 0x3ed78, +0x54 0x3eaf0,
-    // +0x60 0x3e598, +0x64 0x3f458, +0x6c 0x3e300, the Remove/Write slots +0x84/+0x8c/+0x94/+0x9c/+0xa0/
-    // +0xa8/+0xb0/+0xb8 (STUB(C1.6)).
+    // vt+0x5c 0x3dbe8 InitLevelData only calls IKGameObject's.
+    int32_t MessageProc(uint16_t, void*) override { return 1; }  // vt+0x1c 0x0003ed78 CKGameState_MessageProc
+    // vt+0x24 0x0003dea0 CKGameState_RecursiveRegistration: for the game's memory card (type 5) a tracked state (flags
+    // bit 2) first registers its spawn point when that is a game one (flags bit 0) with the saving manager (vt+0x24);
+    // then IKGameObject's (0x42e38, nothing).
+    void RecursiveRegistration(int32_t type) override;
+    // 0x0003de18 CKGameState_CountCompletedTrackedModules_maybe (the save menu's slot info): the modules (+0x38) that are
+    // game ones (flags bit 0) with their +0x1c byte set and their +0x50 byte set, counted from the last.
+    int32_t CountCompletedTrackedModules();
+    void Destroy() override { IKGameObject::Destroy(); }         // vt+0x10 0x0003dc38 CKGameState_Destroy
+    // vt+0x54 0x0003eaf0 CKGameState_IsCurrentLevel (XXL2 GetMatchesThisLevel): the spawn point's stage is the
+    // loaded level (its vt+0x54); 0 without a spawn point or a stage.
+    uint8_t GetMatchesThisLevel() override;
+    // vt+0x64 0x0003f458 CKGameState_ClearGameData_maybe (XXL2 DestroyGameData): the nine lists freed and
+    // emptied, then IKGameObject's.
+    void DestroyGameData() override;
+    // vt+0x6c 0x0003e300 CKGameState_ResetStateFlags_maybe (DotD; IKGameObject's slot is empty): no spawn point,
+    // every state byte cleared (modules: both bytes; +0x5c / +0x74 entries; the stages last).
+    void Vf6C() override;
 
     // C1.6 gm: the state and the game (XXL2 ApplyToStructure / CopyFromStructure / CopyFromState, two
     // slots later in DotD).
@@ -60,14 +83,16 @@ public:
     virtual void RemoveUnk5c(uint32_t index);                 // vt+0x94 0x0003e478 (name ours)
     virtual uint32_t AddUnk74(IKSerializable* object);        // vt+0x98 0x0003f618 (name ours)
     virtual void RemoveUnk74(uint32_t index);                 // vt+0x9c 0x0003e400 (name ours)
-    virtual void WriteStageData() {}                                         // vt+0xa0 0x3ed80 (STUB(C1.6); arguments unverified)
-    virtual void ReadStageData(IKFile* file, int32_t type, uint32_t index);  // vt+0xa4 0x0003f140
-    virtual void WriteModuleData() {}                                        // vt+0xa8 0x3f230 (STUB(C1.6); arguments unverified)
-    virtual void ReadModuleData(IKFile* file, int32_t type, uint32_t index); // vt+0xac 0x0003f098
-    virtual void WriteUnk5cData() {}                                         // vt+0xb0 0x3f1e0 (STUB(C1.6); arguments unverified)
-    virtual void ReadUnk5cData(IKFile* file, int32_t type, uint32_t index);  // vt+0xb4 0x0003f048
-    virtual void WriteUnk74Data() {}                                         // vt+0xb8 0x3f190 (STUB(C1.6); arguments unverified)
-    virtual void ReadUnk74Data(IKFile* file, int32_t type, uint32_t index);  // vt+0xbc 0x0003eff8
+    // The Write slots (XXL2 WriteStageData / WriteModuleData (IKFile*, ESerializationType, UInt32)): the entry's
+    // state byte(s) at `index` written (the file's vt+0x20); Save calls them.
+    virtual void WriteStageData(IKFile* file, int32_t type, uint32_t index);   // vt+0xa0 0x0003ed80
+    virtual void ReadStageData(IKFile* file, int32_t type, uint32_t index);    // vt+0xa4 0x0003f140
+    virtual void WriteModuleData(IKFile* file, int32_t type, uint32_t index);  // vt+0xa8 0x0003f230
+    virtual void ReadModuleData(IKFile* file, int32_t type, uint32_t index);   // vt+0xac 0x0003f098
+    virtual void WriteUnk5cData(IKFile* file, int32_t type, uint32_t index);   // vt+0xb0 0x0003f1e0
+    virtual void ReadUnk5cData(IKFile* file, int32_t type, uint32_t index);    // vt+0xb4 0x0003f048
+    virtual void WriteUnk74Data(IKFile* file, int32_t type, uint32_t index);   // vt+0xb8 0x0003f190
+    virtual void ReadUnk74Data(IKFile* file, int32_t type, uint32_t index);    // vt+0xbc 0x0003eff8
     // C1.6 gm: vt+0xc0 0x3dad8 / vt+0xc4 0x3dae0 (1): whether CopyFromStructure saves and ApplyToStructure
     // restores the spawn point and the object flags. Names ours.
     virtual uint8_t SavesSpawnPoint() { return 1; }

@@ -5,14 +5,14 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x36fc8  CLocManager_GetSystemLanguageIndex_maybe
-//   [ ] 0x37020  CLocManager_RecursiveRegistration
+//   [x] 0x37020  CLocManager_RecursiveRegistration  (IKSerializable's empty default)
 //   [x] 0x37028  CLocManager_GetText
 //   [ ] 0x37140  RegisterCLocManagerClass
 //   [ ] 0x371b8  _GLOBAL__I_371b8
 //   [ ] 0x371c8  CLocManager_FreeTextTableBuffers_maybe  [dead]
-//   [ ] 0x37238  CLocManager_DestroyGame
+//   [x] 0x37238  CLocManager_DestroyGame
 //   [x] 0x37328  CLocManager_FindTextVariable_maybe
-//   [ ] 0x373e8  CLocManager_DeleteArray
+//   [x] 0x373e8  CLocManager_DeleteArray
 //   [x] 0x37488  CLocManager_Construct
 //   [x] 0x37578  CLocManager_GetTextVariable
 //   [x] 0x375b0  CLocManager_SetTextVariable
@@ -21,15 +21,15 @@
 //   [x] 0x37730  CLocManager_SetTextVariableValue_maybe
 //   [ ] 0x377b8  CLocManager_Save
 //   [x] 0x377c0  CLocManager_GetVoiceLanguageIndex_maybe
-//   [ ] 0x377f8  CLocManager_Construct_2
+//   [x] 0x377f8  CLocManager_Construct_2  (the same as 0x37488 CLocManager_Construct)
 //   [x] 0x378e8  CLocManager_UnloadLocalizedData
-//   [ ] 0x37958  CLocManager_CreateArray
-//   [ ] 0x37b28  CLocManager_Create
+//   [x] 0x37958  CLocManager_CreateArray
+//   [x] 0x37b28  CLocManager_Create
 //   [x] 0x37c20  CLocManager_Load
-//   [ ] 0x38860  CLocManager_DeletingDestructor
-//   [ ] 0x389e8  CLocManager_Destructor
-//   [ ] 0x38b60  CLocManager_Destructor_2_maybe
-//   [ ] 0x38cd8  TriggerPropertyRequest_SetGetter_maybe
+//   [x] 0x38860  CLocManager_DeletingDestructor  (the deleting form of 0x389e8)
+//   [x] 0x389e8  CLocManager_Destructor
+//   [x] 0x38b60  CLocManager_Destructor_2_maybe  (the same as 0x389e8 CLocManager_Destructor)
+//   [x] 0x38cd8  TriggerPropertyRequest_SetGetter_maybe  (IKInfo.h AnswerInfo stands for it: the accessor (+0x04 / +0x08) and the value type (+0x0c))
 //
 //   [ ] 0x994600  CLocManager_GetClassType  [inline]
 //   [ ] 0x994608  CLocManager_GetClassID  [inline]
@@ -126,6 +126,66 @@ CLocManager::CLocManager() {
     int32_t language = 1;
     cellSysutilGetSystemParamInt(CELL_SYSUTIL_SYSTEMPARAM_ID_LANG, &language);
     m_systemLanguage = language;
+}
+
+// 0x00037b28 CLocManager_Create (the constructor inlined)
+IKBaseClass* CLocManager::Create() { return new CLocManager(); }
+
+// 0x00036f28 CLocManager_Delete (CKTrcText.cpp's range): the deleting destructor when not null.
+void CLocManager::Delete(IKBaseClass* object) { delete object; }
+
+// 0x00037958 CLocManager_CreateArray (the constructor inlined per element, the array cookie before them)
+IKBaseClass* CLocManager::CreateArray(uint32_t count, uint16_t* elementSize) {
+    if (elementSize != nullptr) *elementSize = 200;
+    return new CLocManager[count];
+}
+
+// 0x000373e8 CLocManager_DeleteArray (each element's vt+0x00 from the last, then the cookie block)
+void CLocManager::DeleteArray(IKBaseClass* first) { delete[] static_cast<CLocManager*>(first); }
+
+// 0x000389e8 CLocManager_Destructor (0x38860 deleting, 0x38b60 the same): the TRC records' block freed, the hash
+// table's nodes released (vt+0x14, empty) and deleted bucket by bucket, its buckets deleted, the texts' block freed.
+CLocManager::~CLocManager() {
+    if (m_vTrcRecords.m_pBlock != nullptr) Mem_FreeAligned16(m_vTrcRecords.m_pBlock);
+    m_vTrcRecords.m_ui32NbUsedElt = 0;
+    m_vTrcRecords.m_pBlock = nullptr;
+    // The hash table's destructor, inlined (vtable 0xb146c8).
+    for (uint32_t bucket = 0; bucket < m_trcTexts.m_bucketCount; ++bucket) {
+        while (HashTableU32::Node* node = m_trcTexts.m_buckets[bucket]) {
+            m_trcTexts.m_buckets[bucket] = node->m_next;
+            m_trcTexts.ReleaseNode(node);  // vt+0x14
+            ::operator delete(node);       // OperatorDelete
+        }
+    }
+    m_trcTexts.m_count = 0;
+    if (m_trcTexts.m_buckets != nullptr) delete[] m_trcTexts.m_buckets;  // OperatorDeleteArray
+    m_trcTexts.m_buckets = nullptr;  // DOTD: ~HashTableU32 runs after this body
+    if (m_vpTexts.m_pBlock != nullptr) Mem_FreeAligned16(m_vpTexts.m_pBlock);
+    m_vpTexts.m_ui32NbUsedElt = 0;
+    m_vpTexts.m_pBlock = nullptr;
+}
+
+// 0x00037238 CLocManager_DestroyGame
+void CLocManager::DestroyGame() {
+    if (m_wszAllTexts != nullptr) {
+        Mem_FreeAligned16(m_wszAllTexts);
+        m_wszAllTexts = nullptr;
+    }
+    if (m_wszAllTRCTexts != nullptr) {
+        Mem_FreeAligned16(m_wszAllTRCTexts);
+        m_wszAllTRCTexts = nullptr;
+    }
+    if (m_pDefaultTrcText != nullptr) {
+        m_pDefaultTrcText->Destroy();                   // vt+0x10
+        ClassRegistry_DestroyObject(m_pDefaultTrcText);  // 0x00011420
+        m_pDefaultTrcText = nullptr;
+    }
+    if (m_vTrcRecords.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_vTrcRecords.m_pBlock);
+        m_vTrcRecords.m_pBlock = nullptr;
+    }
+    m_vTrcRecords.m_ui32NbUsedElt = 0;
+    m_vTrcRecords.m_pBlock = nullptr;
 }
 
 // 0x00036fc8 CLocManager_GetSystemLanguageIndex_maybe

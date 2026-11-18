@@ -11,7 +11,9 @@
 // Scene dependence: the original reads the light manager, the render states, the shadow service and the shader
 // manager's flag word. Those are ported in steps 5-7; until then they are the fields of ShaderSceneInputs,
 // which a caller fills by hand (the lights and the fog come from the light manager and the render states since step 6).
-// STUB(C2.4 step 7): shadows.
+// The shadows: ShadowEnabled (vt+0x54, 0xeef48) reads the shadow service and the shader manager's flag 1 (set per
+// geometry by CGeometry::Render), the shadow uniforms are ShaderUniform.cpp's (0xf6208 / 0xf62e8), the sector's shadow
+// texture is bound on unit 5 by CKSrvShadow::UpdateActiveSectorWorld 0x1fb9e0.
 #pragma once
 #include <cstdint>
 
@@ -56,6 +58,9 @@ public:
     virtual uint32_t ComputePointLights() { return 0; }     // vt+0x2c
     virtual uint32_t SpecialLightActive() { return 0; }     // vt+0x30
     virtual uint32_t IsFogEnabled() { return 0; }           // vt+0x34
+    // vt+0x38 (KStub_Return0 0x9a5948 / 0x9a59f0 in the immediate pass states): no call of the slot in the shader code
+    // (a scan of 0xed000-0x101000 for vt+0x38 calls finds none).
+    virtual uint32_t ModulateMaterialColor() { return 0; }
     virtual uint32_t ModulateVertexColorFirst() { return 0; }  // vt+0x3c
     virtual uint32_t UseNormalInfluence() { return 0; }     // vt+0x40
     virtual uint32_t VertexColor() { return 0; }            // vt+0x44
@@ -77,6 +82,9 @@ public:
     virtual uint32_t HasAuxLayerTextureB() { return 0; }    // vt+0x8c
     virtual uint32_t SpecularEnabled() { return 0; }        // vt+0xd4
     virtual uint32_t RenderFarTexture() { return 0; }       // vt+0xd8
+    // vt+0xdc: only the immediate pass states have the slot (Immediate3DShaderPassState: KStub_Return0_9a5a18; the mesh
+    // pass state's vtable 0xb18d58 ends before it). ShaderVariantKey_BuildForImmediate3D_maybe reads it for key bit 5.
+    virtual uint32_t ImmediateKeyBit5() { return 0; }
 
     // ---- the uniform fillers and the texture binding (C2.4 step 3). `dst` is the uniform's destination (the record's
     // +0x0c): one float4 per constant register, laid out as the PS3 constant registers (matrices as rows).
@@ -142,6 +150,9 @@ public:
     uint32_t ComputePointLights() override;         // 0x000ef790
     uint32_t SpecialLightActive() override;         // 0x000ef448 vf30
     uint32_t IsFogEnabled() override;               // 0x000eeba0
+    // vt+0x38 0x000ee068 MeshShaderPassState_vf38: 1 when the geometry modulates the material colour (flag 0x40) and there
+    // is a material; otherwise for a PTank atomic 1 when it has no vertex colour (vt+0x44), else 0.
+    uint32_t ModulateMaterialColor() override;
     uint32_t ModulateVertexColorFirst() override;   // 0x000ee5c0 vf3C
     uint32_t UseNormalInfluence() override;         // 0x000ef860 vf40
     uint32_t VertexColor() override;                // 0x000edd30 vf44

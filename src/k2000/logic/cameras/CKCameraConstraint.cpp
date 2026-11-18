@@ -9,16 +9,16 @@
 //   [x] 0x153b10  CKCameraConstraint_SetDefaultState
 //   [ ] 0x153b38  RegisterCKCameraConstraintClass
 //   [ ] 0x153bb0  _GLOBAL__I_153bb0
-//   [ ] 0x153bc0  CKCameraConstraint_RecursiveRegistration
+//   [x] 0x153bc0  CKCameraConstraint_RecursiveRegistration
 //   [x] 0x153d70  CKCameraConstraint_DeleteArray
 //   [x] 0x153e18  CKCameraConstraint_Create
 //   [ ] 0x153e50  CKCameraConstraint_GetBoxCenter_maybe  [dead]
 //   [x] 0x153ea0  CKCameraConstraint_SetGameState
 //   [x] 0x153f00  CKCameraConstraint_IsEnabledFor_maybe
 //   [x] 0x153f70  CKCameraConstraint_CreateArray
-//   [ ] 0x154008  CKCameraConstraint_GetInfo
+//   [x] 0x154008  CKCameraConstraint_GetInfo
 //   [x] 0x154070  CKCameraConstraint_PostLoad
-//   [ ] 0x1540d0  CKCameraConstraint_Destroy
+//   [x] 0x1540d0  CKCameraConstraint_Destroy  (empty: the default slot)
 //   [x] 0x1540d8  CKCameraConstraint_ContainsPoint_maybe
 //   [x] 0x154278  CKCameraConstraint_MessageProc
 //   [x] 0x1544a0  CameraVolume_ResolveAgainstBoundary_ModeByte0_maybe
@@ -42,6 +42,7 @@
 //   [ ] 0x992228  CKCameraConstraint_Destructor  [inline]
 //   [ ] 0x9a7c80  CKCameraConstraint_IsActiveConstraint_maybe  [inline]
 #include "k2000/logic/cameras/CKCameraConstraint.h"
+#include "k2000/core/IKInfo.h"
 
 #include <cfloat>
 #include <cmath>
@@ -56,6 +57,7 @@
 #include "k2000/io/IKFile.h"
 #include "k2000/logic/CDefaultGameManager.h"
 #include "k2000/logic/CKLevel.h"
+#include "k2000/logic/CKSavingManager.h"
 #include "k2000/math/CMatrix34.h"
 #include "k2000/misc/Engine.h"
 
@@ -872,5 +874,26 @@ CVector3 CameraVolume_ComputeConstrainedSphericalPosition(float yaw, float pitch
         case 0: return CameraVolume_ResolveAgainstBox(distance, zone, focus, &position, &direction, constrained);
         case 2: return CameraVolume_ResolveAgainstSphere(distance, zone, focus, &position, &direction, constrained);
         default: return position;
+    }
+}
+
+// 0x00154008 CKCameraConstraint_GetInfo, with 0x009a7c80 CKCameraConstraint_IsActiveConstraint_maybe: 6 this is the camera
+// service's active constraint (+0xe04).
+int32_t CKCameraConstraint::GetInfo(IKInfo* info, int32_t request) {
+    if (request != kGetInfoValueAccessor || info->m_ui32Id != 6) return 1;
+    return AnswerInfo(info, [](IKSerializable* o, uint32_t) {
+        return static_cast<CKSrvCamera*>(g_pEngine->m_srvCamera)->m_pActiveConstraint == o ? 1u : 0u;
+    }, 0);
+}
+
+// 0x00153bc0 CKCameraConstraint_RecursiveRegistration (the starters' KStub_Return1_2361b0 register nothing)
+void CKCameraConstraint::RecursiveRegistration(int32_t type) {
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    const uint8_t mode = m_unk38;
+    if (mode == 2 || mode == 1) {
+        if (m_unk3c != nullptr) m_unk3c->RecursiveRegistration(type);  // vt+0x24
+    } else if (mode == 3) {
+        if (m_unk3c != nullptr) m_unk3c->RecursiveRegistration(type);
+        if (m_unk40 != nullptr) m_unk40->RecursiveRegistration(type);
     }
 }

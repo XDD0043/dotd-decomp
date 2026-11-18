@@ -3,7 +3,7 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x18fc20  IKLogicalDoor_LevelReset
+//   [x] 0x18fc20  IKLogicalDoor_LevelReset  (IKLogicalDoor::RecursiveRegistration)
 //   [ ] 0x18fc88  CKCinematicDoor_Save
 //   [x] 0x18fc90  CKCinematicDoor_Load
 //
@@ -64,4 +64,11 @@ void IKLogicalDoor::CompleteDoor() {
     count = 0;
     outputs = m_pRelatedScene->GetNodeOutputs(&count, 2, this);
     for (uint32_t i = 0; i < count; ++i) outputs[i]->Stop();  // vt+0x6c
+}
+
+#include "k2000/logic/CKSavingManager.h"
+
+// 0x0018fc20 IKLogicalDoor_LevelReset (the recursive registration)
+void IKLogicalDoor::RecursiveRegistration(int32_t type) {
+    if (static_cast<uint32_t>(type - 4) > 3) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);
 }

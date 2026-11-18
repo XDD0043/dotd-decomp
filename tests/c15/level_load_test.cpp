@@ -26,6 +26,9 @@
 #include "k2000/logic/CKGameSpawnPoint.h"
 #include "k2000/logic/CKLevel.h"
 #include "k2000/logic/io/CKLoadingManager.h"
+#include "k2000/logic/sound/CKSound.h"
+#include "k2000/managers/CKSoundManager.h"
+#include "k2000/sound/SoundVoiceManager.h"
 #include "k2000/misc/CKGameLoop.h"
 #include "k2000/misc/CoreSingletons.h"
 #include "k2000/misc/Engine.h"
@@ -173,6 +176,18 @@ bool LoadLevel(int level, LevelResult& result) {
                 std::printf("level_load: LVL%03d: sector %u not current after the switch (%d)\n", level, sector,
                             ckLevel->m_currentSector);
                 ++c15::g_failures;
+            }
+            // CKSound_Destroy (SoundList_Remove): the unloaded sectors' sounds have left the voice manager's sound
+            // list, so StopSectorSounds / PlaySectorAutoSounds never reach a destroyed sound (C2.8 unload).
+            const TVector<CKSound*, 100>& sounds = g_pEngine->m_soundManager->m_pVoiceManager->m_vpSounds;
+            for (uint32_t i = 0; i < sounds.m_ui32NbUsedElt; ++i) {
+                const int32_t soundSector = static_cast<int32_t>(sounds.m_pBlock[i]->m_iSectorIndex);
+                if (soundSector > 0 && soundSector != ckLevel->m_currentSector) {
+                    std::printf("level_load: LVL%03d: a sound of the unloaded sector %d is still in the sound list\n",
+                                level, soundSector);
+                    ++c15::g_failures;
+                    break;
+                }
             }
         }
     }

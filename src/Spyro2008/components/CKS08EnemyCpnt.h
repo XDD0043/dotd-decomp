@@ -12,6 +12,9 @@
 class CKS08EnemyCpnt : public CKEnemyCpnt {
 public:
     DOTD_CLASS_KEY(kCategoryComponent, 0x24)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9bccf0
+        return key == 0x906 || key == 0x186 || key == 0x6 || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKS08EnemyCpnt)
 
     // 0x002b3d38 CKS08EnemyCpnt_Create (after CKEnemyCpnt's inlined constructor), in its order; the
@@ -26,6 +29,11 @@ public:
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x002b4060 CKS08EnemyCpnt_Load
 
+    // 0x002b3ec0 CKS08EnemyCpnt_GetAttackAnimTableEntryPtr_maybe (port-all P22): the attack's animation row base, the
+    // word of 0x00a70400 for the type (+0xb8) plus four rows per attack index (+0x24) of the attack +0x11c[`index`]
+    // (CKHkS08Enemy_11.cpp has a copy, AttackAnimBase). vt+0x30 0x002b3c18 PostLoad: 1 (IKSerializable's). vt+0x24
+    // 0x002b3c48 RecursiveRegistration: CKEnemyCpnt's, inherited.
+    uint32_t GetAttackAnimBase(uint32_t index) const;
     int32_t m_unkb8;  // +0xb8
     uint32_t m_unkbc;  // +0xbc
     float m_unkc0;  // +0xc0
@@ -164,7 +172,7 @@ public:
     float m_unk324;  // +0x324
     float m_unk328;  // +0x328
     IKSerializable* m_pUnk32c;  // +0x32c reference
-    uint32_t m_unk330;  // +0x330 not loaded
+    class IKFx* m_unk330;  // +0x330 not loaded: the stun spark held (CKHkS08Enemy_SetStunFxActive_maybe)
     float m_unk334;  // +0x334
     uint8_t m_unk338;  // +0x338
     uint8_t m_pad339;
@@ -226,7 +234,7 @@ public:
     int32_t m_unk4dc;  // +0x4dc
     float m_unk4e0;  // +0x4e0
     float m_unk4e4;  // +0x4e4
-    uint32_t m_unk4e8;  // +0x4e8
+    float m_unk4e8;  // +0x4e8
     float m_unk4ec;  // +0x4ec
     IKSerializable* m_pUnk4f0;  // +0x4f0 reference
     float m_unk4f4;  // +0x4f4

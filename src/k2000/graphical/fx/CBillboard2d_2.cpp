@@ -5,24 +5,24 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x66e30  BillboardBrush_RebuildPath_maybe (IKBillboard2d_CreateBillboard)
-//   [ ] 0x66ef8  BillboardBrush_ComputeAlignedRect_maybe
-//   [ ] 0x67028  BillboardBrush_RecreateBrush_maybe
+//   [x] 0x66ef8  BillboardBrush_ComputeAlignedRect_maybe  (IKBillboard2d::GetBoundingBox)
+//   [x] 0x67028  BillboardBrush_RecreateBrush_maybe
 //   [x] 0x670f0  CBillboard2d_ConstructBrush_maybe
 //   [ ] 0x67148  CBillboard2d_ConstructBrush_2_maybe  [dead]
 //   [x] 0x671a0  DrawUIBillboardShapeWithTransform
 //   [x] 0x67598  CBillboard2d_LoadBrush
-//   [ ] 0x67888  CBillboard2d_SaveCommon_maybe
-//   [ ] 0x67cd8  Button2d_IsSelected_maybe
-//   [ ] 0x67ce8  IKButton2d_ClearReferences
+//   [ ] 0x67888  CBillboard2d_SaveCommon_maybe  [left: save-only: IKBillboard2d::Save; called only by CBillboard2d_Save / CBillboardButton2d_Save (and its vtable word 0xb41648)]
+//   [x] 0x67cd8  Button2d_IsSelected_maybe  (IKButton2d::IsSelected)
+//   [x] 0x67ce8  IKButton2d_ClearReferences  (IKButton2d::Destroy)
 //   [ ] 0x67d10  IKButton2d_Save
-//   [ ] 0x67d38  IKButton2d_Load
-//   [ ] 0x67d60  Button2d_Deselect_maybe
-//   [ ] 0x67d78  Button2d_Select_maybe
-//   [ ] 0x67e48  IKButton2d_Hide
-//   [ ] 0x67ea0  KBase730C_Load
+//   [x] 0x67d38  IKButton2d_Load
+//   [x] 0x67d60  Button2d_Deselect_maybe  (IKButton2d::Deselect)
+//   [x] 0x67d78  Button2d_Select_maybe  (IKButton2d::Select)
+//   [x] 0x67e48  IKButton2d_Hide  (IKButton2d::Disable)
+//   [x] 0x67ea0  KBase730C_Load  (Spyro2008/logic/KBase730C.h)
 //   [ ] 0x67ea8  KBase730C_Save
-//   [ ] 0x67eb0  KBase730C_LevelReset
-//   [ ] 0x67eb8  KStub_Nop_67eb8
+//   [x] 0x67eb0  KBase730C_LevelReset  (KBase730C::RecursiveRegistration, Spyro2008/logic/KBase730C.h)
+//   [x] 0x67eb8  KStub_Nop_67eb8  (empty)
 //
 //   [ ] 0x998358  IKButton2d_GetClassGroup  [inline]
 //   [ ] 0x998360  IKButton2d_GetClassId  [inline]
@@ -67,8 +67,8 @@ IKBillboard2d::IKBillboard2d() {
 // stream (the file's own position), then its texture by reference (no resolve; one count added here).
 int32_t IKBillboard2d::Load(IKFile* file, int32_t /*type*/) {
     RwStream* stream = file->m_pRwStream;
-    // RwStreamFindChunk(0x1a2) (result ignored), then Rt2dBrushStreamRead_maybe. STUB(C1.4): the brush is
-    // kept as its stream record (Renderware/rt2d/Rt2d.h).
+    // RwStreamFindChunk(0x1a2) (result ignored), then Rt2dBrushStreamRead_maybe 0x70b5b0 (Renderware/rt2d/brush.cpp: the
+    // real Rt2dBrush, with its texture chunk through RwTextureStreamRead when the record says one follows).
     RwStreamFindChunk(stream, 0x1a2, nullptr, nullptr);
     m_pBrush = Rt2dBrushStreamRead(stream);
     IKFile_ReadTextureRef(file, reinterpret_cast<void**>(&m_pBrush->texture), 0);
@@ -98,6 +98,18 @@ int32_t IKBillboard2d::CreateBillboard() {
     if (path == nullptr) return 0;
     // 1 when Rt2dPathRect returns the path (the original's ((|a ^ b|) - 1) >> 31).
     return Rt2dPathRect(path, -0x1p-1f, -0x1p-1f, 0x1p+0f, 0x1p+0f) == m_pBillboard ? 1 : 0;
+}
+
+// 0x00067028 BillboardBrush_RecreateBrush_maybe (IKBillboard2d vt+0x40). The colour goes through a stack copy of the
+// word (+0x0c). vt+0x28 is IKBillboard2d_SetColor 0x66d68 here: CBillboardButton2d's override (0x5bf38 through the thunk
+// 0x9974c8) is not ported, and the reached caller's node is a CBillboard2d.
+uint8_t IKBillboard2d::RecreateBrush() {
+    if (m_pBrush != nullptr) Rt2dBrushDestroy(m_pBrush);  // 0x0098d8a0 TocBridge_Rt2dBrushDestroy
+    m_pBrush = Rt2dBrushCreate();                          // 0x0098d900 TocBridge_Rt2dBrushCreate
+    if (m_pBrush == nullptr) return 0;
+    uint32_t color = m_Color;
+    SetColor(reinterpret_cast<const uint8_t*>(&color));  // vt+0x28
+    return static_cast<uint8_t>(CreateBillboard());       // vt+0x24
 }
 
 // 0x00066c70 BillboardBrush_ApplyUV
@@ -172,4 +184,76 @@ uint8_t IKBillboard2d::DrawShapeWithTransform(float rotation, const CVector2* po
     RwRenderStateSet(rwRENDERSTATESRCBLEND, reinterpret_cast<void*>(static_cast<intptr_t>(kBlendTableSrc[1])));
     RwRenderStateSet(rwRENDERSTATEDESTBLEND, reinterpret_cast<void*>(static_cast<intptr_t>(kBlendTableDest[1])));
     return 1;
+}
+
+// C2.8 port-all P08.
+
+// 0x00066ef8 BillboardBrush_ComputeAlignedRect_maybe (single precision, fused where the original fuses).
+void IKBillboard2d::GetBoundingBox(CBox2D* box, const CVector2* position, uint8_t hAlign, uint8_t vAlign) const {
+    box->m_inf.m_fX = position->m_fX;
+    box->m_inf.m_fY = position->m_fY;
+    box->m_sup.m_fX = position->m_fX;
+    box->m_sup.m_fY = position->m_fY;
+    float width;
+    const float height = m_vBillboardSize.m_fY;
+    if (m_bStretchToAspectRatio != 0) {
+        width = m_vBillboardSize.m_fX;
+    } else {
+        width = m_vBillboardSize.m_fX / g_pEngine->m_manager2d->m_fAspect;
+    }
+    if (hAlign == 1) {
+        box->m_inf.m_fX = ppc::fmadds(width, -0x1p-1f, box->m_inf.m_fX);
+        box->m_sup.m_fX = ppc::fmadds(width, 0x1p-1f, box->m_sup.m_fX);
+    } else if (hAlign < 1) {
+        box->m_sup.m_fX = width + box->m_sup.m_fX;
+    } else if (hAlign == 2) {
+        box->m_inf.m_fX = box->m_inf.m_fX - width;
+    }
+    if (vAlign == 1) {
+        box->m_sup.m_fY = ppc::fmadds(height, 0x1p-1f, box->m_sup.m_fY);
+        box->m_inf.m_fY = ppc::fmadds(height, -0x1p-1f, box->m_inf.m_fY);
+    } else if (vAlign < 1) {
+        box->m_inf.m_fY = box->m_inf.m_fY - height;
+    } else if (vAlign == 2) {
+        box->m_sup.m_fY = height + box->m_sup.m_fY;
+    }
+}
+
+// C2.8 port-all P08: IKButton2d (k2000/ui/IKButton2d.h).
+#include "k2000/graphical/ui/CScene2d.h"
+#include "k2000/ui/IKButton2d.h"
+
+// 0x009983d8 / 0x00998390 (inline in the original): the vtable only.
+IKButton2d::~IKButton2d() {}
+
+// 0x00067cd8 Button2d_IsSelected_maybe
+uint8_t IKButton2d::IsSelected() const { return static_cast<uint8_t>((m_baFlags >> 2) & 1); }
+
+// 0x00067ce8 IKButton2d_ClearReferences (IKButton2d_Destroy)
+void IKButton2d::Destroy() { IKNode2d::Destroy(); }  // 0x00069d68
+
+// 0x00067d38 IKButton2d_Load
+int32_t IKButton2d::Load(IKFile* file, int32_t type) {
+    IKNode2d::Load(file, type);  // 0x00069da8
+    return 1;
+}
+
+// 0x00067d60 Button2d_Deselect_maybe
+void IKButton2d::Deselect() { m_baFlags = static_cast<uint8_t>(m_baFlags & 0xfb); }
+
+// 0x00067d78 Button2d_Select_maybe: (flags & 0xf8) | (flags & 3) | 4 = flags | 4.
+void IKButton2d::Select() {
+    if ((m_baFlags & 2) == 0) return;
+    m_baFlags = static_cast<uint8_t>(m_baFlags | 4);
+    if (m_pOwner == nullptr) return;
+    for (IKNode2d* node = static_cast<IKNode2d*>(static_cast<CScene2d*>(m_pOwner)->GetFirstChild()); node != nullptr;
+         node = node->m_pNext) {
+        if (node->m_ui8Type == 2 && node != this) static_cast<IKButton2d*>(node)->Deselect();  // vt+0x8c
+    }
+}
+
+// 0x00067e48 IKButton2d_Hide
+void IKButton2d::Disable() {
+    m_baFlags = static_cast<uint8_t>(m_baFlags & 0xfd);
+    Deselect();  // vt+0x8c
 }

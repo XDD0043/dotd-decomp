@@ -32,9 +32,13 @@ public:
     virtual int32_t BeginAsyncWrite() { return 0; }              // vt+0x24
     virtual int32_t UpdateAsyncWrite() { return 0; }             // vt+0x28
     virtual int32_t Seek(int32_t offset, int32_t whence) = 0;    // vt+0x2c KStreamWhence
-    virtual int32_t ReadLine() { return 0; }                     // vt+0x30 IKFile_GetString (arguments unverified)
-    virtual int32_t WriteText() { return 0; }                    // vt+0x34 IKFile_PutString (arguments unverified)
-    virtual int32_t Vf38() { return 0; }                         // vt+0x38 0x4d2e8
+    // vt+0x30 0x4d168 IKFile_GetString (dst, size; reads byte by byte through vt+0x14 up to a CR / LF; KMemoryStream
+    // overrides it).
+    virtual char* ReadLine(char* dst, uint32_t size);
+    // vt+0x34 0x4d4e0 IKFile_PutString (text; LF written as CR LF through vt+0x20; KMemoryStream overrides it).
+    virtual int32_t WriteText(const char* text);
+    // vt+0x38 0x4d2e8 KStub_Return0_4d2e8 (KMemoryStream_Printf overrides it: format, variadic arguments).
+    virtual int32_t Printf(const char* /*format*/, ...) { return 0; }
     virtual int32_t IsEOF() = 0;                                 // vt+0x3c
     virtual int32_t Flush() { return 0; }                        // vt+0x40
     virtual uint32_t Tell() = 0;                                 // vt+0x44
@@ -104,17 +108,32 @@ inline uint32_t IKFile_ReadRef(IKFile* stream, T** object) {
     return got;
 }
 
-// The texture registry (STUB(C1.3): RenderWare textures; until then no texture is ever found).
+// The texture registry (render/Texture.cpp): the RenderWare textures of the loaded dictionaries, by name
+// (FindTextureByName_maybe 0xc0828, through CKLoadingManager_ReadTexture 0x28250).
 void TextureRef_AddRef(void* texture);
 void* FindTextureByName(const char* name);
-struct RwShim_Blob;
+struct RwImage;
 struct RwTexture;
 // 0x000c0570 Texture_ReplaceRasterFromImage_maybe (render/Texture.cpp): the texture's raster made from an RwImage.
-int32_t Texture_ReplaceRasterFromImage(RwTexture* texture, const RwShim_Blob* image, const char* path);  // 0x000c0828 FindTextureByName_maybe (RwTextureRead(name, NULL))
+int32_t Texture_ReplaceRasterFromImage(RwTexture* texture, RwImage* image, const char* path);  // 0x000c0828 FindTextureByName_maybe (RwTextureRead(name, NULL))
 void TextureRef_Release(void* texture);     // RwTextureDestroy (decrements, destroys at 0)
 
 // Uuid.cpp: 16 bytes as four little-endian words.
 uint32_t Uuid_Read(uint32_t* uuid, IKFile* stream);       // 0x00245e08
+uint32_t Uuid_Write(const uint32_t* uuid, IKFile* stream);  // 0x00245c98 (C2.8 save-menu): the bytes written
+// The saves' word write (stw, lwbrx, stw, vt+0x20 of 4 bytes, inlined everywhere): `value` as a little-endian word.
+inline uint32_t WriteU32LE(IKFile* stream, uint32_t value) {
+    const uint8_t b[4] = {static_cast<uint8_t>(value), static_cast<uint8_t>(value >> 8), static_cast<uint8_t>(value >> 16),
+                          static_cast<uint8_t>(value >> 24)};
+    return stream->Write(b, 4);
+}
 void Uuid_Copy(uint32_t* dst, const uint32_t* src);        // 0x00246190
 bool Uuid_Equals(const uint32_t* a, const uint32_t* b);    // Uuid_Equals
 bool Uuid_IsNull(const uint32_t* uuid);                     // 0x002461d8 Uuid_IsNull
+
+// 0x0004af28 IKFile_ReadFileTag / 0x0004b0b0 IKFile_WriteFileTag (KFileStream.cpp): the 32-byte tag kept 0x20 bytes before
+// the end of a file, after a 16-byte magic (0x30 before the end). Read: 0 and the raw tag (not decoded), 2 without the
+// magic (empty tag), 1 without a file. Write: the tag centred in spaces and encoded (FileTag_Encode), over the old one or
+// appended with the magic; 5 for a tag longer than 32, 1 without a file. No caller in the binary.
+int32_t IKFile_ReadFileTag(IKFile* file, char* tag);
+int32_t IKFile_WriteFileTag(IKFile* file, const char* tag);

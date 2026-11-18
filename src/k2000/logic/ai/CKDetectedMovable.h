@@ -12,6 +12,7 @@
 class CKDetectedMovable : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0xa1)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x284c || key == 0xc; }  // vt+0x08 0x9ab250
     DOTD_DECLARE_FACTORIES(CKDetectedMovable)
 
     // One movable (0x1c bytes; FreeListPool 0x00ceaa84 in the original). Names after XXL2's members.
@@ -32,6 +33,10 @@ public:
     ~CKDetectedMovable() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001aad68 CKDetectedMovable_Load
+    // vt+0x24 0x001aa9e8 CKDetectedMovable_RecursiveRegistration: type 0 registers it with the saving manager.
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x10 0x001aaca0 CKDetectedMovable_Destroy: every entry back to the pool (0x00ceaa84; deleted here), no list.
+    void Destroy() override;
 
     // 0x001ab0d8 CKSrvDetect_DeactivateSectorDetectables_maybe: the entries of that sector are not loaded.
     void DeactivateSector(int32_t sector);

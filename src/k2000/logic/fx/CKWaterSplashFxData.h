@@ -13,6 +13,9 @@
 class CKWaterSplashFxData : public IKFxData {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0xf0)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9caa68
+        return key == 0x3c0c || key == 0x304c || key == 0x6 || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKWaterSplashFxData)
 
     // Two byte-swapped words. The PS3 allocates the arrays with operator new[] and a 4-byte count cookie.
@@ -25,6 +28,15 @@ public:
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00570948 CKWaterSplashFxData_Load
     uint32_t GetAssociatedFxClassIdentifier() override { return 0x3c4c; }  // vt+0x54 0x570600
+    // vt+0x24 0x00570888 RecursiveRegistration: IKFxData's (nothing).
+    void Destroy() override;  // vt+0x10 0x005708b0 CKWaterSplashFxData_Destroy
+    // The splash's curves over its time (CKWaterSplashNodeFx): 0x00570608 EvalMesh1HeightScale_maybe (+0x0c / +0x10),
+    // 0x005706a8 EvalMesh2HeightScale_maybe (+0x14 / +0x18), 0x00570748 EvalWidthScale_maybe (+0x1c / +0x20), 0x005707e8
+    // EvalAlpha_maybe (+0x24 / +0x28).
+    float EvalMesh1HeightScale(float t) const;
+    float EvalMesh2HeightScale(float t) const;
+    float EvalWidthScale(float t) const;
+    float EvalAlpha(float t) const;
 
     float m_unk08;      // +0x08
     uint32_t m_unk0c;   // +0x0c key count (read third)

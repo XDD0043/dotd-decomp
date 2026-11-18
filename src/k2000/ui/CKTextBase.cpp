@@ -3,10 +3,10 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x2cc38  CKTextBase_700c_maybe_vf24
-//   [ ] 0x2cc40  CKTextBase_700c_maybe_PostLoad
+//   [x] 0x2cc38  CKTextBase_700c_maybe_vf24  (RecursiveRegistration: returns 1, registers nothing: the default)
+//   [x] 0x2cc40  CKTextBase_700c_maybe_PostLoad  (PostLoad: IKGameObject's (0x42e40, returns 1): the default)
 //   [x] 0x2cc68  CKTextBase_700c_maybe_Load
-//   [ ] 0x2cc90  CKTextBase_700c_maybe_vf28
+//   [x] 0x2cc90  CKTextBase_700c_maybe_vf28  (Save: IKGameObject's (0x42e30, returns 1): the default)
 //
 //   [ ] 0x993d90  CKTextBase_700c_maybe_vf8  [inline]
 //   [x] 0x993db8  CKTextBase_700c_maybe_vf14  [inline]

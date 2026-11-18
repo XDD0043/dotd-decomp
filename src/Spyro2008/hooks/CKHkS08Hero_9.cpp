@@ -17,7 +17,7 @@
 //   [x] 0x317e68  CKHkS08Hero_LocoState3_TakeOffToPartner_Condition
 //   [x] 0x317e90  CKHkS08Hero_LocoState4_Ground_Condition
 //   [ ] 0x317eb8  FUN_00317eb8  [dead]
-//   [ ] 0x317f18  StaticInitAndDestruction_317f18
+//   [x] 0x317f18  StaticInitAndDestruction_317f18  (the two file statics at the end)
 //   [ ] 0x317f48  _GLOBAL__D_317f48
 //   [ ] 0x317f58  _GLOBAL__I_317f58
 //   [ ] 0x317f68  FUN_00317f68  [dead]
@@ -1121,3 +1121,10 @@ void CKHkS08Hero::UpdateGroundLocomotionState() {
         m_unk1538 = 0;
     }
 }
+
+// 0x00317f18 StaticInitAndDestruction_317f18: two file statics (0x00ceae2c, 0x00ceae30) set to -1.0f. Nothing in the game
+// reads them (their only references are the initialiser's TOC entries).
+namespace {
+[[maybe_unused]] float s_unkceae2c = -1.0f;
+[[maybe_unused]] float s_unkceae30 = -1.0f;
+}  // namespace

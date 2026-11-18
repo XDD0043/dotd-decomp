@@ -17,6 +17,9 @@ public:
     ~CKEndDoor() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x0016eb30 CKEndDoor_Load
+    // vt+0x24 0x0016eb80 CKEndDoor_RecursiveRegistration: registered with the saving manager (vt+0x24) unless the type is 4..7,
+    // then IKLogicalDoor_LevelReset 0x18fc20 (which registers it once more).
+    void RecursiveRegistration(int32_t type) override;
     void Start() override { CountIncomingActivation(); }  // vt+0x5c 0x0016eac0 CKEndDoor_Start
     void Complete() override { CompleteDoor(); }          // vt+0x64 0x0016e8f0 CKEndDoor_Complete
     void Update(IKTime*) override { Complete(); }         // vt+0x68 0x0016e808 CKEndDoor_Update

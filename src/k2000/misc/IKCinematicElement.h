@@ -22,7 +22,9 @@ class IKTime;
 
 class IKCinematicElement : public IKSerializable {
 public:
-    int32_t IsKindOfClass(uint32_t key) override { return key == 0x808 || key == 0xc; }  // IKCinematicElement
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x808 || key == 0xc; }  // IKCinematicElement (0x9aa5d8)
+    int32_t GetClassType() override { return 8; }     // vt+0x14 0x9aa5c8 (LwMutex.cpp's COMDAT range)
+    int32_t GetClassID() override { return 0x20; }    // vt+0x18 0x9aa5d0
     IKCinematicElement();  // 0x0018f438 IKCinematicElement_Construct
     ~IKCinematicElement() override {}
 
@@ -59,6 +61,12 @@ public:
     // Pause / Resume) call them on every running element with bit 1 set.
     virtual void Pause() {}
     virtual void Resume() {}
+
+    // 0x0018faf8 IKCinematicElement_MessageProc (vt+0x1c of every element but CKFlaggedPath / CKFlashUI / CKGroupBloc,
+    // whose own MessageProcs call it first): 0x500 starts a stopped element of a playing scene (PreActivate, then
+    // CKSrvCinematic::ActivateNode from no source), 0x501 stops a running one (vt+0x6c); both answer 0, anything else 1.
+    int32_t MessageProc(uint16_t message, void* data) override { return ElementMessageProc(message, data); }
+    int32_t ElementMessageProc(uint16_t message, void* data);
 
     IKCinematicElement* m_pNext;                // +0x04 XXL2 CSBaseNode<IKCinematicElement*> (the scene's lists); 0
     uint16_t m_ui16StartElementsFirstIndex;     // +0x08

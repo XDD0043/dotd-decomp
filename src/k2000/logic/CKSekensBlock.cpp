@@ -4,20 +4,20 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1f7018  CKSekensBlock_Delete
-//   [ ] 0x1f7068  CKSekensBlock_IsInterruptible_maybe
-//   [ ] 0x1f7070  CKSekensBlock_vf54
+//   [x] 0x1f7068  CKSekensBlock_IsInterruptible_maybe  (Vf50, CKSekensBlock.h)
+//   [x] 0x1f7070  CKSekensBlock_vf54  (Vf54: CKSekensElement's empty slot)
 //   [ ] 0x1f7078  RegisterCKSekensBlockClass
 //   [ ] 0x1f70f0  _GLOBAL__I_1f70f0
-//   [ ] 0x1f7100  CKSekensBlock_PostLoad
+//   [x] 0x1f7100  CKSekensBlock_PostLoad
 //   [ ] 0x1f7128  CKSekensBlock_Save
-//   [ ] 0x1f7150  CKSekensBlock_RecursiveRegistration
-//   [ ] 0x1f7178  CKSekensBlock_Destroy
-//   [ ] 0x1f71a0  CKSekensBlock_Destructor
+//   [x] 0x1f7150  CKSekensBlock_RecursiveRegistration  (the base's vf24 0x1fa778: registers nothing; the default slot)
+//   [x] 0x1f7178  CKSekensBlock_Destroy  (the base's KStub_Nop_1fa770: the default slot)
+//   [x] 0x1f71a0  CKSekensBlock_Destructor  (~CKSekensBlock, CKSekensBlock.h: the text dropped)
 //   [x] 0x1f71d8  CKSekensBlock_Construct
-//   [ ] 0x1f7218  CKSekensBlock_Construct_2
+//   [x] 0x1f7218  CKSekensBlock_Construct_2  (the constructor, CKSekensBlock.h)
 //   [x] 0x1f7258  CKSekensBlock_DeleteArray
-//   [ ] 0x1f7300  CKSekensBlock_DestructBody
-//   [ ] 0x1f7338  CKSekensBlock_DeletingDestructor
+//   [x] 0x1f7300  CKSekensBlock_DestructBody  (~CKSekensBlock)
+//   [x] 0x1f7338  CKSekensBlock_DeletingDestructor  (~CKSekensBlock; delete)
 //   [x] 0x1f7388  CKSekensBlock_Load
 //   [x] 0x1f74f0  CKSekensBlock_CreateArray
 //   [x] 0x1f75b8  CKSekensBlock_Create

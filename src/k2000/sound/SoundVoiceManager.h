@@ -28,9 +28,20 @@ class SoundVoiceManager {
 public:
     SoundVoiceManager();                       // inlined in CKSoundManager_InitializeModule (0x113b04)
     void Init();                               // 0x001196a0 SoundVoiceManager_Init_maybe
+    // Inlined in CKSoundManager_DestroyModule (0x113820..0x1138dc): both instance lists' nodes back to their pool,
+    // the sound list's block freed, its length and block cleared.
+    ~SoundVoiceManager();
+    // 0x00117368 SoundVoiceManager_LevelReset_maybe (SoundEmitterArray.cpp, P21): type 0 registers the coded dictionary.
+    void RecursiveRegistration(int32_t type);
+    // 0x001198e8 SoundBackend_ReleaseVoices_maybe (CKSoundManager_DestroyModule): the busy voices released, the voice
+    // pool destroyed, every instance deleted, the listener released and deleted, the stream buffer freed.
+    void ReleaseVoices();
     int32_t Load(IKFile* file, int32_t type);  // 0x00117860 SoundVoiceManager_Load_maybe
+    void RebuildVoicePool();                   // 0x00119b48 SoundVoiceManager_RebuildVoicePool_maybe
 
     void AppendSound(CKSound* sound);                          // 0x00117780 SoundList_Append
+    // 0x001173c8 SoundList_Remove (SoundEmitterArray.cpp): the sound's entry replaced by the last one, the count lowered.
+    void RemoveSound(CKSound* sound);
     void InsertByPriority(SoundInstance* instance);            // 0x00117db8 SoundEngine_InsertByPriority_maybe
     void PauseAll();                                           // 0x00118340 SoundChannelSet_PauseAll_maybe
     void ResumeAll();                                          // 0x001183f0 SoundChannelSet_ResumeAll_maybe
@@ -38,6 +49,10 @@ public:
     void CullAndPrioritise();                                  // 0x00118b68 SoundEngine_CullAndPrioritise_maybe
     void Update(IKTime* clock);                                // 0x00118cf8 SoundEngine_Update_maybe
     void StopAll();                                            // 0x00119120 SoundVoiceManager_StopAll_maybe
+    // 0x00119510 CKSoundManager_ReleaseVoicePool_maybe (CKSoundManager_Destroy, the level's end): StopAll without the
+    // listener reset, then the level's sound dictionary references deleted.
+    void ReleaseVoicePool();
+    void ReleaseAllVoices();                                   // 0x00119298 SoundChannelSet_ReleaseAllVoices_maybe
     // 0x001175c0 SoundBank_StopSectorSounds: every sound of that sector stopped (immediately).
     void StopSectorSounds(int32_t sector);
     // 0x00119000 SoundBank_PlaySectorAutoSounds_maybe: every sound of the coded dictionary that is in the sound list,
@@ -51,7 +66,7 @@ public:
     SoundInstance* m_pPriorityList;   // +0x00 the audible instances, highest priority first (rebuilt each Update)
     SoundVoice* m_aVoices;            // +0x04 the voice pool (OperatorNewArray, 0xc bytes each)
     // +0x08 the output's 0x80 voices minus the stream players (SoundEmitterArray_SumVoiceCounts_maybe):
-    // 125 live (two music and one speech player); 128 here until the stream players exist
+    // 125 live (two music and one speech player; RebuildVoicePool when the stream types get them)
     uint32_t m_ui32NbVoices;
     CKListener* m_pListener;          // +0x0c
     float m_fVoiceRatioVelocity;      // +0x10 Init 1.0; read after the listener; scales the instances' velocity

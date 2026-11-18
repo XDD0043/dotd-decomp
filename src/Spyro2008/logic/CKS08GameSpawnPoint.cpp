@@ -4,15 +4,15 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x508720  CKS08GameSpawnPoint_Delete
-//   [ ] 0x508770  CKS08GameSpawnPoint_vf78
+//   [x] 0x508770  CKS08GameSpawnPoint_vf78
 //   [x] 0x508778  CKS08GameSpawnPoint_Activate_maybe
-//   [ ] 0x5087a0  CKS08GameSpawnPoint_ClearGameData_maybe
-//   [ ] 0x5087c8  CKS08GameSpawnPoint_ClearLevelData
+//   [x] 0x5087a0  CKS08GameSpawnPoint_ClearGameData_maybe
+//   [x] 0x5087c8  CKS08GameSpawnPoint_ClearLevelData
 //   [x] 0x5087f0  CKS08GameSpawnPoint_InitLevelData
 //   [x] 0x508828  CKS08GameSpawnPoint_InitGameData
-//   [ ] 0x508850  CKS08GameSpawnPoint_PostLoad
+//   [x] 0x508850  CKS08GameSpawnPoint_PostLoad  (empty / no effect: inherited)
 //   [ ] 0x508878  CKS08GameSpawnPoint_Save
-//   [ ] 0x5088a0  CKS08GameSpawnPoint_MessageProc
+//   [x] 0x5088a0  CKS08GameSpawnPoint_MessageProc
 //   [x] 0x508a30  CKS08GameSpawnPoint_DeleteArray
 //   [x] 0x508ae0  CKS08GameSpawnPoint_CreateArray
 //   [ ] 0x508c20  RegisterCKS08GameSpawnPointClass
@@ -31,7 +31,10 @@
 
 #include <cstring>
 
+#include "Spyro2008/logic/CKS08GameManager.h"
 #include "crt/ppc_ops.h"
+#include "k2000/logic/CKGameLevel.h"
+#include "k2000/misc/IKGameStructure.h"
 #include "k2000/io/IKFile.h"
 #include "k2000/logic/ai/CKBeaconKluster.h"
 #include "k2000/misc/Engine.h"
@@ -176,3 +179,32 @@ CKS08GameSpawnPoint::Slot* CKS08GameSpawnPoint::ResolveSlotPosition(int32_t slot
 
 // 0x00508778 CKS08GameSpawnPoint_Activate_maybe
 uint16_t CKS08GameSpawnPoint::Activate() { return CKGameSpawnPoint::Activate(); }
+
+// 0x005087c8 CKS08GameSpawnPoint_ClearLevelData
+void CKS08GameSpawnPoint::DestroyLevelData() { CKGameSpawnPoint::DestroyLevelData(); }
+
+// 0x005087a0 CKS08GameSpawnPoint_ClearGameData_maybe
+void CKS08GameSpawnPoint::DestroyGameData() { CKGameSpawnPoint::DestroyGameData(); }
+
+// 0x005088a0 CKS08GameSpawnPoint_MessageProc
+int32_t CKS08GameSpawnPoint::MessageProc(uint16_t message, void* data) {
+    if (message != 0x203) {
+        const int32_t answer = CKGameSpawnPoint::MessageProc(message, data);  // 0x3d560
+        if (answer == 3) return 3;
+        if (answer == 2) return 2;
+        return answer != 0 ? 1 : 0;
+    }
+    CKS08GameManager* manager = static_cast<CKS08GameManager*>(m_pGameStage->GetGameManager());  // 0x391e0
+    if (manager->VfC4() != 0) {  // vt+0xc4
+        manager->m_unkAFC = (manager->m_unkAFC & ~0x200u) | 0x200u;
+        return 0;
+    }
+    m_pGameStage->m_pGameStructure->SetCurrentSpawnPoint(this);  // vt+0x6c
+    CDefaultGameManager* owner = m_pGameStage->GetGameManager();
+    const uint32_t flags = manager->m_flags64;
+    const int32_t level = m_pGameStage->m_i32StageIndex;
+    owner->m_requestedSector = m_iSectorIndex;
+    owner->m_requestedLevel = level;
+    if ((flags & 0x10000u) != 0) manager->m_unkAFC = (manager->m_unkAFC & ~0x400u) | 0x400u;
+    return 0;
+}

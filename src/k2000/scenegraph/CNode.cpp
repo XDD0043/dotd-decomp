@@ -5,13 +5,13 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0xcba58  CNode_Delete
-//   [ ] 0xcbaa8  CNode_RecursiveRegistration
+//   [x] 0xcbaa8  CNode_RecursiveRegistration  (returns 1, registers nothing: CSGLeaf's)
 //   [ ] 0xcbab0  CNode_Save
-//   [ ] 0xcbab8  CNode_GetFlag10Bit7_WhenBit8Set_maybe
+//   [x] 0xcbab8  CNode_GetFlag10Bit7_WhenBit8Set_maybe  (inlined in CKHkS08TransportableWeight::Update)
 //   [ ] 0xcbad8  FUN_000cbad8  [dead]
 //   [ ] 0xcbb18  CNode_AddGeometry_maybe  [dead]
 //   [ ] 0xcbba0  CNode_RemoveGeometry_maybe  [dead]
-//   [ ] 0xcbc60  CNode_BaseDestructor
+//   [x] 0xcbc60  CNode_BaseDestructor  (C++ destructor chain: vtable stores only)
 //   [ ] 0xcbca0  RegisterCNodeClass
 //   [ ] 0xcbd18  _GLOBAL__I_cbd18
 //   [x] 0xcbd28  CNode_Load
@@ -20,17 +20,17 @@
 //   [x] 0xcbea0  CNode_DeleteArray
 //   [ ] 0xcbf48  CNode_LevelResetGeometries_maybe  [dead]
 //   [x] 0xcbfc0  TransformNodeBoundingSphereToWorld
-//   [ ] 0xcc160  EnqueueSceneNodeAndChildren
+//   [x] 0xcc160  EnqueueSceneNodeAndChildren  (CNode::UpdateAndExtract)
 //   [ ] 0xcc290  CNode_RemoveAllGeometries_maybe  [dead]
 //   [x] 0xcc340  CNode_PostLoad
 //   [ ] 0xcc400  InitializeCNode_2  [dead]
 //   [x] 0xcc460  CullAndEnqueueNodeGeometry
-//   [ ] 0xcc808  CNode_SetFlag10Bit5_ResetField20To1_maybe
+//   [x] 0xcc808  CNode_SetFlag10Bit5_ResetField20To1_maybe
 //   [ ] 0xcc858  FUN_000cc858  [dead]
 //   [x] 0xcc8a8  CNode_CreateArray
 //   [x] 0xcc998  CNode_Create
-//   [ ] 0xcca08  CNode_DeletingDestructor
-//   [ ] 0xcca60  CNode_Destructor
+//   [x] 0xcca08  CNode_DeletingDestructor  (C++ destructor chain + delete)
+//   [x] 0xcca60  CNode_Destructor  (C++ destructor chain: vtable stores only)
 //
 //   [ ] 0x9a2548  CNode_IsKindOfClass  [inline]
 //   [x] 0x9a2590  CNode_GetClassType  [inline]
@@ -55,6 +55,15 @@ CNode::CNode() {
     m_lGeometryList = nullptr;
 }
 
+// 0x000cc808 CNode_SetFlag10Bit5_ResetField20To1_maybe
+void CNode::SetFlag10Bit5ResetField20To1(uint32_t on) {
+    if (on == ((m_sgProperties >> 5) & 1u)) return;
+    m_sgProperties = (m_sgProperties & 0xffffffdfu) | (on << 5);
+    if (on == 0) return;
+    m_sgProperties &= 0xff9fffffu;
+    m_fDistanceLimitSquared = 1.0f;
+}
+
 // 0x000cbe10 CNode_Destroy
 void CNode::Destroy() {
     m_lGeometryList = nullptr;
@@ -73,9 +82,10 @@ namespace {
 // BridgeRwCameraFrustumTestSphere_maybe (RwCameraFrustumTestSphere): 0 outside, 1 boundary, 2 inside.
 int32_t CameraFrustumTestSphere(RwCamera* camera, const float* sphere) { return RwCameraFrustumTestSphere(camera, sphere); }
 
-// The node's frame: its private flags' low 4 bits cleared (lbz +0x03, >> 4 << 4). Not read natively
-// (no frame hierarchy).
-void MarkFrame(RwFrame* frame) { frame->object.privateFlags = static_cast<uint8_t>(frame->object.privateFlags & 0xf0); }
+// The node's frame: bit 3 of its private flags cleared (lbz +0x03; rlwinm 28,1,31 then rlwinm 4,0,31: the rotates keep
+// bits 0-2, so only the object-sync subtree bit 0x8 goes). The LTM-sync bit 0x4 stays: a node marked dirty during the
+// traversal (CGlowNodeFx_Enqueue's follow) gets its LTM at the next sync of its hierarchy.
+void MarkFrame(RwFrame* frame) { frame->object.privateFlags = static_cast<uint8_t>(frame->object.privateFlags & 0xf7); }
 }  // namespace
 
 // 0x000cc460 CullAndEnqueueNodeGeometry
@@ -149,7 +159,7 @@ int32_t CNode::PostLoad(int32_t type) {
          geometry = geometry->m_pNext) {
         RpAtomic* atomic = geometry->m_pRpAtomic;
         atomic->frame = m_pRwFrame;
-        atomic->objectFlags |= 1;
+        atomic->privateFlags |= 1;
     }
     return 1;
 }
@@ -158,11 +168,12 @@ int32_t CNode::PostLoad(int32_t type) {
 // LTM. A matrix with flag 0x20000 copies it unchanged; otherwise the centre is transformed
 // (Mat4_TransformPoints 0x23f7e8 = RwV3dTransformPoints) and, unless the matrix is flagged 1, the radius is
 // scaled by the longest axis: sqrt (Math_Sqrtf 0x10690, fsqrts) of the largest of |right|^2, |up|^2,
-// |at|^2 (fmadds sums; the max picked with the asm's compares). The original reads the frame's synced LTM
-// (+0x50); here RwFrameGetLTM computes it along the parent chain (no dirty list).
+// |at|^2 (fmadds sums; the max picked with the asm's compares). The frame's stored LTM (+0x50) as the last sync left it
+// (no RwFrameGetLTM): a node moved during the traversal (CGlowNodeFx_Enqueue's follow, RwFrame_MarkDirty) is culled
+// at its last synced place until the next sync (G +8992: a following glow enters the view a frame later).
 void TransformNodeBoundingSphereToWorld(float radius, CNode* node, float* worldCenter, float* worldRadius,
                                         const float* localCenter) {
-    const RwMatrix* m = RwFrameGetLTM(node->m_pRwFrame);
+    const RwMatrix* m = FrameLtm(node->m_pRwFrame);
     const uint32_t flags = m->flags;
     if ((flags & 0x20000) != 0) {
         *worldRadius = radius;

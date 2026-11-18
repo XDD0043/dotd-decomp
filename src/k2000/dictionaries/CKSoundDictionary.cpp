@@ -5,13 +5,13 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1122f8  CKSoundDictionary_Delete
 //   [ ] 0x112348  CKSoundDictionary_Save
-//   [ ] 0x112350  CKSoundDictionary_PostLoad
-//   [ ] 0x112358  CKSoundDictionary_RecursiveRegistration
+//   [x] 0x112350  CKSoundDictionary_PostLoad  (IKSerializable's default PostLoad: 1)
+//   [x] 0x112358  CKSoundDictionary_RecursiveRegistration
 //   [ ] 0x112448  RegisterCKSoundDictionaryClass
 //   [ ] 0x1124c0  _GLOBAL__I_1124c0
 //   [x] 0x1124d0  CKSoundDictionary_DeleteArray
 //   [x] 0x112578  CKSoundDictionary_Create
-//   [ ] 0x1125d0  CKSoundDictionary_Destroy
+//   [x] 0x1125d0  CKSoundDictionary_Destroy
 //   [ ] 0x1126b0  CKSoundDictionary_GetWave_maybe  [dead]
 //   [x] 0x1126e0  CKSoundDictionary_Load
 //   [x] 0x112a60  CKSoundDictionary_CreateArray
@@ -19,8 +19,8 @@
 //   [ ] 0x9a6a80  CKSoundDictionary_GetClassType  [inline]
 //   [ ] 0x9a6a88  CKSoundDictionary_GetClassID  [inline]
 //   [ ] 0x9a6a90  CKSoundDictionary_IsKindOfClass  [inline]
-//   [ ] 0x9a6ab0  CKSoundDictionary_DeletingDestructor  [inline]
-//   [ ] 0x9a6b30  CKSoundDictionary_Destructor  [inline]
+//   [x] 0x9a6ab0  CKSoundDictionary_DeletingDestructor  [inline]
+//   [x] 0x9a6b30  CKSoundDictionary_Destructor  [inline]
 #include "k2000/dictionaries/CKSoundDictionary.h"
 
 #include "Renderware/rwcore/RwStream.h"
@@ -28,6 +28,8 @@
 #include "k2000/logic/sound/CKWave.h"
 #include "k2000/memory/Mem.h"
 #include "platform/audio/rwa.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 
 #include <vector>
 
@@ -37,6 +39,13 @@ CKSoundDictionary::CKSoundDictionary() {
     m_waveCapacity = 1;
     m_ui32NbSound = 0;
     m_pRwSoundDictionary = nullptr;
+}
+
+// 0x00112358 CKSoundDictionary_RecursiveRegistration
+void CKSoundDictionary::RecursiveRegistration(int32_t type) {
+    if (type != 0) return;
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    for (uint32_t i = 0; i < m_ui32NbSound; ++i) m_apKWave[i]->RecursiveRegistration(0);  // the count re-read each turn
 }
 
 // 0x001126e0 CKSoundDictionary_Load
@@ -79,4 +88,21 @@ int32_t CKSoundDictionary::Load(IKFile* file, int32_t type) {
         }
     }
     return 1;
+}
+
+// 0x001125d0 CKSoundDictionary_Destroy. The original destroys the dictionary's first wave once per sound
+// (RwaWave_Destroy_maybe on RwaWaveDict_GetWave_maybe(dict, 0): a destroyed wave leaves the dictionary), then the
+// dictionary (RwaWaveDict_Destroy_maybe). DOTD: the platform dictionary owns its waves (platform/audio/rwa.h), so
+// RwaWaveDict_Destroy frees them with it (and takes them from the voices still holding one).
+void CKSoundDictionary::Destroy() {
+    if (m_pRwSoundDictionary != nullptr) {
+        RwaWaveDict_Destroy(m_pRwSoundDictionary);
+        m_pRwSoundDictionary = nullptr;
+    }
+    if (m_apKWave != nullptr) {
+        Mem_FreeAligned16(m_apKWave);
+        m_apKWave = nullptr;
+    }
+    m_ui32NbSound = 0;
+    m_apKWave = nullptr;
 }

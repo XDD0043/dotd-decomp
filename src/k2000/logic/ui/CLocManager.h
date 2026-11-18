@@ -46,6 +46,7 @@ public:
 class CLocManager : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x3b)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0xecc || key == 0xc; }  // vt+0x08 0x994788
 
     // A text variable of GAME's list (+0xbc), 0xc bytes (DotD): the value the texts' variable tokens show,
     // the variable's name hash (Str_HashXor4) and a third word (CLocManager_GetTextVariable / Set).
@@ -59,7 +60,13 @@ public:
     ~CLocManager() override;
 
     static IKBaseClass* Create();                       // 0x00037b28 CLocManager_Create
-    static void Delete(IKBaseClass* object);
+    static void Delete(IKBaseClass* object);            // 0x00036f28 CLocManager_Delete (vt+0x04)
+    static IKBaseClass* CreateArray(uint32_t count, uint16_t* elementSize);  // 0x00037958 CLocManager_CreateArray
+    static void DeleteArray(IKBaseClass* first);                            // 0x000373e8 CLocManager_DeleteArray
+
+    // vt+0x0c 0x00037238 CLocManager_DestroyGame: both text blocks freed, the default TRC text destroyed (its Destroy,
+    // then ClassRegistry_DestroyObject), the TRC records' block freed. The texts and the hash table stay.
+    void DestroyGame() override;
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00037c20 CLocManager_Load
     int32_t GetSerializationFlags() override { return 0; }  // vt+0x34 0x994610

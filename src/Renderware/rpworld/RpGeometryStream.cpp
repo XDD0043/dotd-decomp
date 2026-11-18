@@ -102,23 +102,8 @@ bool StringStreamFindAndRead(RwStream* stream, char* out, uint32_t capacity) {
     return true;
 }
 
-// RwTextureStreamRead (core/src/babintex.c) after the texture chunk (6) was found: the filter / addressing
-// struct, the name and the mask, then RwTextureRead(name, mask): here the texture of that name in the loaded
-// dictionaries (FindTextureByName, a reference added). Its extension chunk is skipped (the plugin chunks of a
-// texture are not read; RW reads them only for a texture it just created). The mipmapping state RW switches
-// around the read is not modelled (no rasters are created here). Null when the texture is not loaded.
-RwTexture* TextureStreamRead(RwStream* stream) {
-    uint32_t size = 0, version = 0;
-    if (RwStreamFindChunk(stream, kIdStruct, &size, &version) == 0) return nullptr;
-    if (RwStreamSkip(stream, size) == nullptr) return nullptr;  // the filter and addressing word
-    char name[0x80] = {};
-    char mask[0x80] = {};
-    if (!StringStreamFindAndRead(stream, name, sizeof name)) return nullptr;
-    if (!StringStreamFindAndRead(stream, mask, sizeof mask)) return nullptr;
-    RwTexture* texture = static_cast<RwTexture*>(FindTextureByName(name));
-    SkipExtension(stream);
-    return texture;
-}
+// RwTextureStreamRead 0x746870 (rwcore/RwTexture.cpp) after the texture chunk (6) was found.
+RwTexture* TextureStreamRead(RwStream* stream) { return RwTextureStreamRead(stream); }
 
 // 0x006983f8 MatFX_StreamReadTexture_maybe: a flag word, then (when set) a texture chunk. False only for a
 // stream error; a texture that is not loaded gives a null texture.
@@ -137,7 +122,7 @@ bool MatFXStreamReadTexture(RwStream* stream, RwTexture** out) {
 
 void TextureAddRef(RwTexture* texture) { ++texture->refCount; }
 void TextureRelease(RwTexture* texture) {
-    if (texture != nullptr) --texture->refCount;
+    if (texture != nullptr) RwTextureDestroy(texture);  // RwTextureDestroy 0x7548c0
 }
 
 // 0x0069a388 MatFXMaterialStreamRead_maybe: the effect word (RpMatFXMaterialSetEffects), then the two effect
@@ -197,7 +182,8 @@ bool MatFXMaterialStreamRead(RwStream* stream, RpMaterial* material) {
             if (first != nullptr) {
                 slot->bump.texture4 = first;
                 slot->bump.texture8 = second;
-                // 1 / the raster width (fdivs 1.0f, width). STUB(C2.4 step 4): the raster is a shim DDS raster.
+                // 1 / the raster width (fdivs 1.0f, width; RwRaster +0xc). The PS3 reads the raster without a null
+                // check; a texture of the stream always has one.
                 slot->bump.invWidth = 1.0f / static_cast<float>(first->raster != nullptr ? first->raster->width : 1);
             } else if (second != nullptr) {
                 // RpMatFXMaterialSetBumpMapTexture 0x697a48: STUB(C2.4 step 4) (the bumped texture is built there).
@@ -560,6 +546,9 @@ RpAtomic* RpAtomicStreamRead(RwStream* stream) {
             RpPrtStdShim_NoteStreamRead(used, chunkSize);  // DEV
             return true;
         }
+        // The skin plugin's legacy atomic chunk (RpSkinAtomicStreamRead_maybe 0x773e40; the atomic plugin's size is 4,
+        // RpSkinPluginAttach_maybe 0x773620). No atomic of the level files carries one.
+        if (type == kIdSkin) return RpSkinAtomicStreamRead(stream, static_cast<RwInt32>(chunkSize), atomic, 4) != nullptr;
         return RwStreamSkip(stream, chunkSize) != nullptr;
     });
     if (!ok) {

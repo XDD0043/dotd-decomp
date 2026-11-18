@@ -5,6 +5,7 @@
 
 #include "platform/gfx/device.h"
 #include "platform/gfx/gl.h"
+#include "platform/gfx/mesh.h"
 #include "platform/log.h"
 
 using namespace dotd::gfx::gl;
@@ -67,6 +68,8 @@ bool g_failed = false;
 
 GLuint Compile(GLenum type, const char* src) {
     GLuint s = glCreateShader(type);
+    const std::string text = gl::ShaderSourceForContext(src);
+    src = text.c_str();
     glShaderSource(s, 1, &src, nullptr);
     glCompileShader(s);
     GLint ok = 0;
@@ -104,7 +107,7 @@ bool EnsureProgram() {
     g_adjust = glGetUniformLocation(p, "Adjust");
     g_alpha = glGetUniformLocation(p, "Alpha");
     g_hasA = glGetUniformLocation(p, "HasAplane");
-    glUseProgram(p);
+    GlUseProgram(p);
     glUniform1i(glGetUniformLocation(p, "Yplane"), 0);
     glUniform1i(glGetUniformLocation(p, "cRplane"), 1);
     glUniform1i(glGetUniformLocation(p, "cBplane"), 2);
@@ -118,19 +121,21 @@ uint32_t CreateTextureR8(int width, int height) {
     if (!IsReady()) return 0;
     GLuint t = 0;
     glGenTextures(1, &t);
-    glBindTexture(GL_TEXTURE_2D, t);
+    GlBindTexture2D(t);
+    GlFlushActiveTexture();
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glTexImage2D(GL_TEXTURE_2D, 0, static_cast<GLint>(kGlR8), width, height, 0, kGlRed, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    GlTexParameter2D(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    GlTexParameter2D(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    GlTexParameter2D(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    GlTexParameter2D(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     return t;
 }
 
 void UpdateTextureR8(uint32_t texture, int width, int height, const void* pixels, int pitch) {
     if (texture == 0 || !IsReady()) return;
-    glBindTexture(GL_TEXTURE_2D, texture);
+    GlBindTexture2D(texture);
+    GlFlushActiveTexture();
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(kGlUnpackRowLength, pitch);
     glTexImage2D(GL_TEXTURE_2D, 0, static_cast<GLint>(kGlR8), width, height, 0, kGlRed, GL_UNSIGNED_BYTE, pixels);
@@ -140,25 +145,26 @@ void UpdateTextureR8(uint32_t texture, int width, int height, const void* pixels
 void DrawVideoPlanes(uint32_t y, uint32_t cr, uint32_t cb, uint32_t a, const float adjust[4], const float mult[4],
                      bool alpha) {
     if (!EnsureProgram() || y == 0 || cr == 0 || cb == 0) return;
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
+    BindTarget();  // (the current render target: bound by what draws, device.cpp BindCurrent)
+    GlCap(GL_DEPTH_TEST, false);
+    GlCap(GL_CULL_FACE, false);
     if (alpha) {
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        GlCap(GL_BLEND, true);
+        GlBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     } else {
-        glDisable(GL_BLEND);
+        GlCap(GL_BLEND, false);
     }
-    glUseProgram(g_program);
+    GlUseProgram(g_program);
     glUniform4f(g_adjust, adjust[0], adjust[1], adjust[2], adjust[3]);
     glUniform4f(g_alpha, mult[0], mult[1], mult[2], mult[3]);
     glUniform1i(g_hasA, a != 0 ? 1 : 0);
     const GLuint textures[4] = {y, cr, cb, a};
     for (int i = 0; i < 4; ++i) {
-        glActiveTexture(GL_TEXTURE0 + static_cast<GLenum>(i));
-        glBindTexture(GL_TEXTURE_2D, textures[i]);
+        GlActiveTexture(i);
+        GlBindTexture2D(textures[i]);
     }
-    glActiveTexture(GL_TEXTURE0);
-    glBindVertexArray(g_vao);
+    GlActiveTexture(0);
+    GlBindVertexArray(g_vao);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 

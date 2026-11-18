@@ -9,9 +9,12 @@
 #include "k2000/core/Layout.h"
 #include "k2000/logic/IKFxData.h"
 #include "k2000/math/CMatrix34.h"
+#include "k2000/memory/Mem.h"
 #include "k2000/util/TVector.h"
 
 class CSGLeaf;
+class IKFx;
+struct RwMatrix;
 
 class CKParticlesEffectFxData : public IKFxData {
 public:
@@ -45,9 +48,24 @@ public:
     CKParticlesEffectFxData();  // 0x001cbdb0 InitializeParticleEffectFxData
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001cc080 KBase20CC_Load
-    // vt+0x30 PostLoad 0x1cbc50 (stays the default in C1.3): sets +0x10..+0x24 and +0x34 (an RwMatrix
-    // at +0x24).
+    // vt+0x30 0x001cbc50 KBase20CC_PostLoad: (type 0) the attach references and +0x34 cleared, +0x18 the zero vector
+    // (0x00c50d64), +0x24 a new identity matrix (RwMatrixCreate, flags 0x20003).
+    int32_t PostLoad(int32_t type) override;
+    // 0x001cbfb0 KBase20CC_Destructor (0x1cc018 the same): the block list freed (the blocks are not).
+    ~CKParticlesEffectFxData() override {
+        if (m_parameterBlocks.m_pBlock != nullptr) Mem_FreeAligned16(m_parameterBlocks.m_pBlock);
+    }
+    // vt+0x10 0x001cbef8 KBase20CC_ClearReferences: the matrix destroyed and cleared, then DeleteOwnedEntries.
+    void Destroy() override;
+    // 0x001cbde8 KBase20CC_DeleteOwnedEntries_maybe: every parameter block deleted, the list shrinking one by one (the
+    // first removed each time), then emptied with a one-element block.
+    void DeleteOwnedEntries();
     uint32_t GetAssociatedFxClassIdentifier() override { return 0x1fcc; }  // vt+0x54 0x1cbc48
+    // vt+0x1c 0x001cc750 CKParticlesEffectFxData_MessageProc (Ghidra KBase20CC_HandleMessage): 0x1b00 places the effect at
+    // the marker beacon sent (+0x18 its position, +0x24 its matrix; no attach node), 0x1b01 attaches it to the node sent
+    // (+0x10); both then start it: unless flag bit 2 or 3 is set, a reserved effect (+0x34, the old one released) that the
+    // data keeps, else a free one (CKSrvFx::StartEffect). 0x1b02 releases the reserved effect. 0 when handled, else 1.
+    int32_t MessageProc(uint16_t message, void* data) override;
 
     uint8_t m_unk08;                                 // +0x08
     uint8_t m_pad09[3];
@@ -55,12 +73,12 @@ public:
     // +0x10 PostLoad sets 0; the effect's start sets the scene node the effect is attached to (Ghidra
     // pAttachOwner_maybe): its GetSectorIndex (vt+0x6c) tells which sector the effect belongs to.
     CSGLeaf* m_pAttachOwner;
-    uint32_t m_unk14;                                // +0x14 PostLoad
+    IKSerializable* m_pAttachHotSpot;                // +0x14 PostLoad: 0; the hot spot the effect follows (else the node +0x10)
     CVector3 m_unk18;                                // +0x18 PostLoad
-    void* m_unk24;                                   // +0x24 PostLoad: RwMatrixCreate
+    RwMatrix* m_unk24;                               // +0x24 PostLoad: RwMatrixCreate; the nodes' local matrix at start
     TVector<ParameterBlock*, 1> m_parameterBlocks;   // +0x28 (Ghidra ppParameterBlocks_maybe); the
                                                      // constructor: null, 1, 0
-    uint32_t m_unk34;                                // +0x34 PostLoad
+    class IKFx* m_pReservedFx;                       // +0x34 PostLoad: 0; the effect MessageProc reserved
     uint8_t m_unk38;                                 // +0x38 the constructor sets 0
     uint8_t m_pad39[3];
 };

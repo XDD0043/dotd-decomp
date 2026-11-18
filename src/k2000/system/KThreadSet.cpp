@@ -7,47 +7,47 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x54ef0  KThreadSet_Construct
-//   [ ] 0x54f58  KBarrier_Construct
-//   [ ] 0x54fd0  KBarrier_Construct_2
-//   [ ] 0x55048  KThreadState_InitForSpawn_maybe
-//   [ ] 0x550d0  KBarrier_DeletingDestructor
-//   [ ] 0x55140  KBarrier_Destructor
-//   [ ] 0x55198  KBarrier_Destructor_2
-//   [ ] 0x551f0  KThreadSet_Construct_2
-//   [ ] 0x55258  KThreadState_MarkStarted_maybe
-//   [ ] 0x552d8  KThreadSet_JoinAll_maybe
-//   [ ] 0x55380  KThreadSet_Add
-//   [ ] 0x55500  KThreadState_WaitReady_maybe
-//   [ ] 0x555b0  KThreadState_ClearCurrentThreadTls_maybe
-//   [ ] 0x55600  KThreadSet_Remove_maybe
-//   [ ] 0x557a8  KBarrier_Wait_maybe
-//   [ ] 0x558c8  KThreadSet_Destructor
-//   [ ] 0x559f0  KThreadSet_DeletingDestructor
-//   [ ] 0x55b20  KThreadSet_Destructor_2
-//   [ ] 0x55c48  KThread_ConstructAndStart_maybe
-//   [ ] 0x55d68  KThread_ConstructAndStart_2_maybe
-//   [ ] 0x55e88  KThread_Spawn_maybe
-//   [ ] 0x56078  KThreadSet_SpawnThreads_maybe
-//   [ ] 0x561a0  KThreadSet_ConstructAndSpawn_maybe
-//   [ ] 0x56330  KThreadSet_ConstructAndSpawn_2_maybe
-//   [ ] 0x564c0  KThreadState_Destroy_2_maybe
-//   [ ] 0x56588  KThreadState_Destroy_maybe
-//   [ ] 0x56650  keCThreadPool_CreateWorkerThread_maybe
-//   [ ] 0x56858  KThread_EntryTrampoline_2_maybe
-//   [ ] 0x56920  KThreadState_Init_maybe
-//   [ ] 0x569e0  KThreadState_Init_2_maybe
-//   [ ] 0x56aa0  KThread_DeletingDestructor_maybe
-//   [ ] 0x56b80  KThread_Destructor_2_maybe
-//   [ ] 0x56c48  KThread_Destructor_maybe
-//   [ ] 0x56d10  KThread_EntryTrampoline_maybe
-//   [ ] 0x56dd0  KThread_ConstructCurrent_maybe
-//   [ ] 0x56f00  KThread_ConstructCurrent_2_maybe
-//   [ ] 0x57030  KThread_WrapCurrentThread_maybe
-//   [ ] 0x57270  KRequest_vf20_ForwardToVf0C_maybe
-//   [ ] 0x572b0  KRequest_vf24_ForwardToVf10_maybe
-//   [ ] 0x572f0  KRequest_vf28_ForwardToVf14_maybe
-//   [ ] 0x57330  KRequest_vf2C_ForwardToVf1C_maybe
+//   [ ] 0x54ef0  KThreadSet_Construct  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x54f58  KBarrier_Construct  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x54fd0  KBarrier_Construct_2  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x55048  KThreadState_InitForSpawn_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x550d0  KBarrier_DeletingDestructor  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x55140  KBarrier_Destructor  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x55198  KBarrier_Destructor_2  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x551f0  KThreadSet_Construct_2  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x55258  KThreadState_MarkStarted_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x552d8  KThreadSet_JoinAll_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x55380  KThreadSet_Add  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x55500  KThreadState_WaitReady_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x555b0  KThreadState_ClearCurrentThreadTls_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x55600  KThreadSet_Remove_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x557a8  KBarrier_Wait_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x558c8  KThreadSet_Destructor  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x559f0  KThreadSet_DeletingDestructor  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x55b20  KThreadSet_Destructor_2  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x55c48  KThread_ConstructAndStart_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x55d68  KThread_ConstructAndStart_2_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x55e88  KThread_Spawn_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x56078  KThreadSet_SpawnThreads_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x561a0  KThreadSet_ConstructAndSpawn_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x56330  KThreadSet_ConstructAndSpawn_2_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x564c0  KThreadState_Destroy_2_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x56588  KThreadState_Destroy_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x56650  keCThreadPool_CreateWorkerThread_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x56858  KThread_EntryTrampoline_2_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x56920  KThreadState_Init_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x569e0  KThreadState_Init_2_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x56aa0  KThread_DeletingDestructor_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x56b80  KThread_Destructor_2_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x56c48  KThread_Destructor_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x56d10  KThread_EntryTrampoline_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x56dd0  KThread_ConstructCurrent_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x56f00  KThread_ConstructCurrent_2_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x57030  KThread_WrapCurrentThread_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x57270  KRequest_vf20_ForwardToVf0C_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x572b0  KRequest_vf24_ForwardToVf10_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x572f0  KRequest_vf28_ForwardToVf14_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x57330  KRequest_vf2C_ForwardToVf1C_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
 //   [ ] 0x57370  keCThreadPoolBase_PopRequest_maybe  [dead]
 //
 //   [ ] 0x996200  KThreadSet_vfC  [inline]

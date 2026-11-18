@@ -17,6 +17,9 @@ public:
     IKPath() { m_pPathOwner = nullptr; }
     ~IKPath() override {}
 
+    // vt+0x50 (CKLine_vf50 0xc7940; CKSpline4L_vf50 0xc6650): the point at `distance` returned (vt+0x54 into the
+    // return value; `direction` handed on as it came). Name ours. The default is CKLine's body.
+    virtual CVector3 GetPointAt(float distance, CVector3* direction);
     // vt+0x54 (pure in IKPath; CKSpline4L 0xc7420 GetPointAtDistance_maybe): the point at `distance` along the path, and
     // with `direction` the path's direction there. (r5 is not read.) step 5: the camera path track.
     virtual void GetPointAtDistance(float distance, CVector3* point, CVector3* direction);

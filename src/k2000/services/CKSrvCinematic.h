@@ -28,10 +28,18 @@ DOTD_ASSERT_SIZE(SBandColor, 0x1c);
 class CKSrvCinematic : public IKService {
 public:
     DOTD_CLASS_KEY(kCategoryService, 0x4)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a8c30
+        return key == 0x101 || key == 0x1 || key == 0x3fe || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKSrvCinematic)
 
     CKSrvCinematic();  // 0x00166be8 CKSrvCinematic_Construct
-    ~CKSrvCinematic() override {}
+    // 0x00168b98 CKSrvCinematic_Destructor (0x168c78 DestructBody the same, 0x168d58 DeletingDestructor + delete): the
+    // engine's cinematic service cleared, then the +0x64, +0x4c and +0x40 blocks freed with their lengths.
+    ~CKSrvCinematic() override;
+    // vt+0x24 0x00166390 CKSrvCinematic_RecursiveRegistration: types 0 / 1 register the service; types 0 / 4 pass the
+    // type to every scene (a 16-bit index); type 0 also to the three black-band billboards that exist.
+    void RecursiveRegistration(int32_t type) override;
 
     void Destroy() override;  // vt+0x10 0x00167548 CKSrvCinematic_Destroy
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001685e8 CKSrvCinematic_Load

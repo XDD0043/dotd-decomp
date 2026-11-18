@@ -14,11 +14,11 @@
 //   [x] 0x1f1d98  CKQuadTreeLeaf_Create
 //   [ ] 0x1f1dd8  CKQuadTreeLeaf_Save
 //   [x] 0x1f1de0  CKQuadTreeLeaf_Load
-//   [ ] 0x1f1f40  CKQuadTreeLeaf_RecursiveRegistration
-//   [ ] 0x1f1f48  CKQuadTreeLeaf_Destroy
-//   [ ] 0x1f1f88  CKQuadTreeLeaf_Destructor
+//   [x] 0x1f1f40  CKQuadTreeLeaf_RecursiveRegistration  (IKSerializable's: returns 1)
+//   [x] 0x1f1f48  CKQuadTreeLeaf_Destroy  (header)
+//   [x] 0x1f1f88  CKQuadTreeLeaf_Destructor  (header)
 //   [ ] 0x1f1fe8  CKQuadTreeLeaf_Destructor_2  [dead]
-//   [ ] 0x1f2048  CKQuadTreeLeaf_DeletingDestructor
+//   [x] 0x1f2048  CKQuadTreeLeaf_DeletingDestructor  (the destructor; delete)
 //
 //   [ ] 0x9b0720  CKQuadTreeLeaf_GetClassType  [inline]
 //   [ ] 0x9b0728  CKQuadTreeLeaf_GetClassID  [inline]

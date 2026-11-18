@@ -15,6 +15,9 @@ class IKFxData;
 class CKSrvFx : public IKService {
 public:
     DOTD_CLASS_KEY(kCategoryService, 0xe)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9ab2f0
+        return key == 0x381 || key == 0x1 || key == 0x3fe || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKSrvFx)
 
     // XXL2 CKSrvFx::CUnderMappingindex: the effect nodes of one type, 0xc bytes on the PS3.
@@ -34,14 +37,23 @@ public:
     ~CKSrvFx() override {}
 
     void Destroy() override;  // vt+0x10 0x001ab558 CKSrvFx_Destroy
+    // vt+0x24 0x001ab310 CKSrvFx_RecursiveRegistration: type 0 only: the service registered, then every effect of the
+    // pool (+0x14) and every unique effect (+0x1c) gets RecursiveRegistration(0) (the counts read again each time).
+    void RecursiveRegistration(int32_t type) override;
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001ac708 CKSrvFx_Load
     // vt+0x30 0x001ab990 CKSrvFx_PostLoad: the table's effects flattened into m_apFxArray (a level-start step
     // of the load), every effect of both pools marked stopped and its owner cleared.
     int32_t PostLoad(int32_t type) override;
-    void Start() override {}                            // vt+0x50 0x1ab4e8  STUB(C1.6)
+    // vt+0x50 0x001ab4e8 CKSrvFx_Start: every particle component caches its emitter's values
+    // (CKParticlesCpnt_CachePropertyValuesFromEmitter_Thunk_maybe 0x1d9b78).
+    void Start() override;
+    void Restart() override;                            // vt+0x54 0x1abe28 CKSrvFx_Restart (Stop's body)
     void Stop() override;                               // vt+0x68 0x1abc50 CKSrvFx_Stop
-    void Pause() override {}                            // vt+0x70 0x1ac210  STUB(C1.6)
-    void Resume() override {}                           // vt+0x78 0x1ac3c0  STUB(C1.6)
+    // vt+0x70 0x001ac210 CKSrvFx_Pause / vt+0x78 0x001ac3c0 CKSrvFx_Resume: every effect of both pools that runs (not
+    // stopped, or stopped and reserved) and does not update while paused (vt+0x94) gets OnPause (vt+0x70) / OnResume
+    // (vt+0x74).
+    void Pause() override;
+    void Resume() override;
     void Update(IKTime* frameClock) override;           // vt+0x7c 0x001ac000 UpdateCKSrvFx
     // The start of an effect from its data, inlined by every FX data's MessageProc (0x1b00, e.g. CKTimeScalingFxData_MessageProc
     // 0x1d7618) and by CKS08MenuPauseInfo_OnStatePhase 0x55fe00. Data of a pooled effect (vt+0x50 == 0): the mapping entry of
@@ -50,6 +62,16 @@ public:
     // unique effect: the unique effect of that class gets SetDataAndOwner (vt+0x8c) and starts if it was stopped and not
     // reserved. Returns the effect, null when none was found.
     IKFx* StartEffect(IKFxData* data, const IKSerializable* owner);
+    // The pooled effect lookup the effects inline (the reserving copy 0x9c6468 `ori 0x2` / `stb` on the flags; 0x9bdc18,
+    // Ghidra's CKSrvFx_AcquireFx, never reserves and is StartEffect above): the effects of `data`'s node
+    // class and type; the first one loaded (flag bit 0) and not reserved (bit 1) gets the data, is reserved, owned by
+    // `owner` and started. Null when none is free (or the type has no effects).
+    IKFx* AcquireFx(IKFxData* data, const IKSerializable* owner);
+    // 0x001afaf8 CKSrvFx_StartCameraFx_maybe / 0x001affd8 CKSrvFx_StopCameraFx_maybe (unit CKDOFFxData.cpp): a camera's
+    // attached effect (a CKDOFFxData) started (StartEffect, the data as owner) with the DOF node's blend time, or faded
+    // out; a negative time keeps the node's blend time / takes the data's fade time.
+    static void StartCameraFx(float time, IKFxData* data);
+    static void StopCameraFx(float time, IKFxData* data);
     // vt+0x8c 0x001ab848 CKSrvFx_SectorUnload: every pooled effect told (IKFx vt+0x7c StopIfLinkedTo with
     // the sector), then the particle components' queued emissions dropped.
     void SectorUnload(int32_t sector) override;

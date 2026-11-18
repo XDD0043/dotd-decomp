@@ -14,11 +14,16 @@ class IKFile;
 class CKInputDico {
 public:
     CKInputDico();  // 0x0010e3a8 InputMapping_Construct_maybe
-    virtual ~CKInputDico() {}                        // vt+0x00 / +0x04 0x10e730 / 0x10e6c8 STUB(C1.6)
+    // vt+0x00 / +0x04 0x0010e730 / 0x0010e6c8 InputMapping_Destructor_maybe / _DeletingDestructor_maybe: the index
+    // array deleted (OperatorDeleteArray), the action count cleared (the pointer is left).
+    virtual ~CKInputDico() {
+        if (m_aNumAction != nullptr) delete[] m_aNumAction;
+        m_ui8NbAction = 0;
+    }
     virtual int32_t Vf08() { return 9; }             // vt+0x08 0x9a66f0
     virtual int32_t Vf0C() { return 5; }             // vt+0x0c 0x9a66f8
     virtual void Destroy() {}                        // vt+0x10 0x10e3d0
-    virtual void Save() {}                           // vt+0x14 0x10ea68 STUB(C1.6) (not on the load path)
+    virtual int32_t Save(IKFile* file, int32_t type);  // vt+0x14 0x0010ea68 InputMapping_Save_maybe
     // vt+0x18 0x0010e898 InputMapping_Load_maybe; XXL2 Load(IKFile*, UInt8, UInt8*, UInt8*).
     virtual int32_t Load(IKFile* file, uint8_t nbActionTotal, uint8_t* actionBase, uint8_t* comboBase);
 
@@ -31,6 +36,9 @@ public:
     // 0x0010e408 CKInputDico_GetActionTimePressed (XXL2 name): how long entry index's action has been held
     // (CKAction::m_fActionTimePressed); no range check.
     float GetActionTimePressed(int32_t index) const;
+    // 0x0010eb00 InputMapping_QueryActionSourceVf14_maybe: the filter threshold (IKFilter vt+0x14) of entry index's
+    // action, 0 without a filter (InputMapping.cpp).
+    uint8_t GetFilterThreshold(int32_t index) const;
 
     uint8_t m_ui8NbAction;   // +0x04
     uint8_t m_ui8NbCombo;    // +0x05

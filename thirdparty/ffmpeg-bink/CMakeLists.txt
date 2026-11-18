@@ -1,5 +1,6 @@
 # ffmpeg-bink: a static build of FFmpeg's Bink video and Bink audio decoders (libavcodec bink, binkaudio_dct,
-# binkaudio_rdft) and the ATRAC3 decoder (speech) with the minimum of libavcodec/libavutil they need. FFmpeg is LGPL-2.1-or-later: the
+# binkaudio_rdft), the ATRAC3 decoder (speech) and the VP9 and Vorbis decoders (the web pack's re-encoded videos
+# and music, dotd/web/README.md) with the minimum of libavcodec/libavutil they need. FFmpeg is LGPL-2.1-or-later: the
 # source comes from a shallow clone of the official repository (see ../README.md), built here from
 # source with the handwritten configuration in include/ (no configure script, no assembly, no threads).
 #
@@ -16,6 +17,12 @@ set(DOTD_FFMPEG_BINK_SOURCES
   # libavcodec: the decoders
   libavcodec/bink.c libavcodec/binkdsp.c libavcodec/binkaudio.c libavcodec/wma_freqs.c
   libavcodec/atrac3.c libavcodec/atrac.c  # ATRAC3: the levels' SPEECH/*.RWS streams
+  # VP9: the picture of a re-encoded video (platform/video/bink.cpp, the "DVP9" files of the web pack)
+  libavcodec/vp9.c libavcodec/vp9data.c libavcodec/vp9dsp.c libavcodec/vp9lpf.c libavcodec/vp9recon.c
+  libavcodec/vp9block.c libavcodec/vp9prob.c libavcodec/vp9mvs.c libavcodec/vpx_rac.c libavcodec/vp9dsp_8bpp.c
+  libavcodec/vp9dsp_10bpp.c libavcodec/vp9dsp_12bpp.c libavcodec/videodsp.c libavcodec/bsf/vp9_superframe_split.c
+  # Vorbis: the web pack's re-encoded music (platform/audio/rws.cpp, OgvFile)
+  libavcodec/vorbisdec.c libavcodec/vorbisdsp.c libavcodec/vorbis.c libavcodec/vorbis_data.c libavcodec/xiph.c
   libavcodec/blockdsp.c libavcodec/hpeldsp.c libavcodec/vlc.c libavcodec/bitstream.c libavcodec/mathtables.c
   # libavcodec: the core avcodec_send_packet / avcodec_receive_frame need
   libavcodec/allcodecs.c libavcodec/avcodec.c libavcodec/decode.c libavcodec/encode.c libavcodec/bsf.c
@@ -34,12 +41,17 @@ set(DOTD_FFMPEG_BINK_SOURCES
   libavutil/stereo3d.c libavutil/ambient_viewing_environment.c libavutil/downmix_info.c
   libavutil/film_grain_params.c libavutil/video_enc_params.c libavutil/csp.c
 )
+if(NOT WIN32)
+  # random_seed.c reads /dev/urandom through avpriv_fopen_utf8 off Windows.
+  list(APPEND DOTD_FFMPEG_BINK_SOURCES libavutil/file_open.c)
+endif()
 list(TRANSFORM DOTD_FFMPEG_BINK_SOURCES PREPEND "${_ff}/")
 
 add_library(ffbink STATIC ${DOTD_FFMPEG_BINK_SOURCES})
 set_target_properties(ffbink PROPERTIES LINKER_LANGUAGE C)
 # FFmpeg's bsf/ sources include their libavcodec headers by bare name.
-set_source_files_properties("${_ff}/libavcodec/bsf/null.c" PROPERTIES INCLUDE_DIRECTORIES "${_ff}/libavcodec")
+set_source_files_properties("${_ff}/libavcodec/bsf/null.c" "${_ff}/libavcodec/bsf/vp9_superframe_split.c"
+  PROPERTIES INCLUDE_DIRECTORIES "${_ff}/libavcodec")
 target_include_directories(ffbink
   PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include" "${_ff}"
   INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include" "${_ff}")
@@ -55,5 +67,10 @@ if(MSVC)
   endforeach()
   target_compile_options(ffbink PRIVATE /O2 /std:c11 /W0 /wd4028 /wd4244 /wd4267 /wd4996)
 else()
-  target_compile_options(ffbink PRIVATE -O2 -std=c11 -w)
+  # gnu11: FFmpeg uses the POSIX functions (gmtime_r, nanosleep) strict c11 hides.
+  target_compile_options(ffbink PRIVATE -O2 -std=gnu11 -w)
+endif()
+if(EMSCRIPTEN)
+  # The decoders are C only (no assembly); wasm SIMD lets clang vectorise their loops (VP9 on a phone).
+  target_compile_options(ffbink PRIVATE -msimd128)
 endif()

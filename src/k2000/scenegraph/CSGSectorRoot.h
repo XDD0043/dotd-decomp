@@ -10,6 +10,9 @@
 class CSGSectorRoot : public CNode {
 public:
     DOTD_CLASS_KEY(kCategoryNode, 0x2)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a2a10
+        return key == 0x8b || key == 0xcb || key == 0x24b || key == 0x20b || key == 0x14b || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CSGSectorRoot)
 
     CSGSectorRoot();  // inlined in 0x000d3180 CreateCSGSectorRoot

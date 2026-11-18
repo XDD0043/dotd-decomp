@@ -14,6 +14,12 @@ public:
     ~CKSekensElement() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001fa788 CKSekensEntry_Load
+    // vt+0x30 0x001fa8a0 CKSekensMarker_PostLoad (the base's and CKSekensMarker's slot; CKSekensBlock_PostLoad calls it):
+    // +0x08 = 0, then 1. (vt+0x10 0x1fa770 Destroy: empty, vt+0x24 0x1fa778 / +0x28 0x1fa780: 1, the defaults.)
+    int32_t PostLoad(int32_t /*type*/) override {
+        m_unk08 = 0;
+        return 1;
+    }
     int32_t IsKindOfClass(uint32_t key) override { return key == 0x658c || key == 0xc; }  // 0x9b10d0
     // The line slots (vt+0x50..+0x5c; names ours): Vf50 is pure here (CKSekensBlock 0x1f7068 returns its byte +0x18,
     // CKSekensMarker 0x9b0f10 returns 1); Vf54 is empty; Vf58 (block: its byte +0x19; marker: 0) says whether the line

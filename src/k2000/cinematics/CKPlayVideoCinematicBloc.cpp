@@ -7,16 +7,16 @@
 //   [x] 0x187208  CKPlayVideoCinematicBloc_IsCurrentVideoSkippable_maybe
 //   [ ] 0x187238  RegisterCKPlayVideoCinematicBlocClass
 //   [ ] 0x1872b0  _GLOBAL__I_1872b0
-//   [ ] 0x1872c0  CKPlayVideoCinematicBloc_UpdateSubtitleVisibility_maybe
-//   [ ] 0x187398  CKPlayVideoCinematicBloc_PostLoad
-//   [ ] 0x1873c0  CKPlayVideoCinematicBloc_RecursiveRegistration
+//   [x] 0x1872c0  CKPlayVideoCinematicBloc_UpdateSubtitleVisibility_maybe  [dead: no pointer to its descriptor 0xb66cc0, no call]  (CKPlayVideoCinematicBloc::UpdateSubtitleVisibility)
+//   [x] 0x187398  CKPlayVideoCinematicBloc_PostLoad  (= the inherited slot)
+//   [x] 0x1873c0  CKPlayVideoCinematicBloc_RecursiveRegistration
 //   [x] 0x1874e8  CKPlayVideoCinematicBloc_StartFade_maybe
 //   [ ] 0x187580  FUN_00187580  [dead]
 //   [x] 0x187620  CKPlayVideoCinematicBloc_DeleteArray
 //   [x] 0x1876c0  CKPlayVideoCinematicBloc_Create
 //   [ ] 0x187760  CKPlayVideoCinematicBloc_Save
 //   [x] 0x1879f8  CKPlayVideoCinematicBloc_Load
-//   [ ] 0x187e10  CKPlayVideoCinematicBloc_Destroy
+//   [x] 0x187e10  CKPlayVideoCinematicBloc_Destroy
 //   [x] 0x187ec8  CKPlayVideoCinematicBloc_Start
 //   [x] 0x188190  CKPlayVideoCinematicBloc_CreateArray
 //   [x] 0x1882a8  CKPlayVideoCinematicBloc_UpdateSubtitles_maybe
@@ -36,6 +36,7 @@
 //   [ ] 0x9a9f18  CKPlayVideoCinematicBloc_Destructor  [inline]
 //   [ ] 0x9a9fe8  CKPlayVideoCinematicBloc_DeletingDestructor  [inline]
 #include "k2000/cinematics/CKPlayVideoCinematicBloc.h"
+#include "k2000/logic/CKSavingManager.h"
 
 #include <cmath>
 #include <cstring>
@@ -310,4 +311,49 @@ void CKPlayVideoCinematicBloc::Abort() {
     Sekensor()->MessageProc(0xf08, nullptr);
     if (m_pSubtitleText != nullptr) m_pSubtitleText->Disable();
     m_pSubtitleText = nullptr;
+}
+
+// 0x00187e10 CKPlayVideoCinematicBloc_Destroy
+void CKPlayVideoCinematicBloc::Destroy() {
+    if (m_vpVideo != nullptr) {
+        Mem_FreeAligned16(m_vpVideo);
+        m_vpVideo = nullptr;
+    }
+    m_vpVideoCount = 0;
+    m_vpVideo = nullptr;
+    if (m_vi32SekIndex != nullptr) {
+        Mem_FreeAligned16(m_vi32SekIndex);
+        m_vi32SekIndex = nullptr;
+    }
+    m_vi32SekIndexCount = 0;
+    m_vi32SekIndex = nullptr;
+    if (m_vbSkipVideo != nullptr) {
+        Mem_FreeAligned16(m_vbSkipVideo);
+        m_vbSkipVideo = nullptr;
+    }
+    m_vbSkipVideoCount = 0;
+    m_vbSkipVideo = nullptr;
+}
+
+// 0x001873c0 CKPlayVideoCinematicBloc_RecursiveRegistration
+void CKPlayVideoCinematicBloc::RecursiveRegistration(int32_t type) {
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // no type test here
+    IKCinematicBloc::RecursiveRegistration(type);  // 0x0018e8d8
+    for (uint32_t i = 0; i < m_vpVideoCount; ++i) m_vpVideo[i]->RecursiveRegistration(type);  // vt+0x24
+    m_pColorizedScreenFx->RecursiveRegistration(type);
+}
+
+// 0x001872c0 CKPlayVideoCinematicBloc_UpdateSubtitleVisibility_maybe: the out-of-line copy of PlayNextVideo's end: with a
+// subtitle text, shown (vt+0x64) while `sekens` runs (not done), has a current line and the sekensor's +0x2c bit 0 is
+// set; hidden (vt+0x68) otherwise (and without a sekens). Dead in the original (no pointer to its descriptor 0xb66cc0, no
+// call).
+void CKPlayVideoCinematicBloc::UpdateSubtitleVisibility(CKSekens* sekens) {
+    if (m_pSubtitleText == nullptr) return;
+    CKSrvSekensor* sekensor = Sekensor();
+    if (sekens != nullptr && sekensor->IsSekensDone(sekens) == 0 && sekens->GetCurrentLineIndex() != -1 &&
+        (Sekensor()->m_unk2c & 1) != 0) {
+        m_pSubtitleText->Enable();  // vt+0x64
+        return;
+    }
+    m_pSubtitleText->Disable();  // vt+0x68
 }

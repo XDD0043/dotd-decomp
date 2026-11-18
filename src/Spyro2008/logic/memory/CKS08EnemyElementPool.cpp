@@ -14,9 +14,9 @@
 //   [ ] 0x26cb28  CKS08EnemyElementPool_SetElement_maybe  [dead]
 //   [x] 0x26cb40  CKS08EnemyElementPool_CreateArray
 //   [ ] 0x26cbf8  CKS08EnemyElementPool_Save
-//   [ ] 0x26cc00  CKS08EnemyElementPool_RecursiveRegistration
-//   [ ] 0x26cc08  CKS08EnemyElementPool_PostLoad
-//   [ ] 0x26cc58  CKS08EnemyElementPool_Destroy
+//   [x] 0x26cc00  CKS08EnemyElementPool_RecursiveRegistration  (IKSerializable's default, the same)
+//   [x] 0x26cc08  CKS08EnemyElementPool_PostLoad
+//   [x] 0x26cc58  CKS08EnemyElementPool_Destroy  (IKSerializable's default nop)
 //   [x] 0x26cc60  CKS08EnemyElementPool_Load
 //
 //   [ ] 0x9bbd78  CKS08EnemyElementPool_GetClassType  [inline]
@@ -58,5 +58,11 @@ int32_t CKS08EnemyElementPool::Load(IKFile* file, int32_t /*type*/) {
     ReadS32LE(file, &m_unk14);
     ReadF32LE(file, &m_unk18);
     ReadF32LE(file, &m_unk1c);
+    return 1;
+}
+
+// 0x0026cc08 CKS08EnemyElementPool_PostLoad
+int32_t CKS08EnemyElementPool::PostLoad(int32_t /*type*/) {
+    for (uint32_t i = 0; i < m_count; ++i) m_apElements[i]->m_inUse54 = 0;
     return 1;
 }

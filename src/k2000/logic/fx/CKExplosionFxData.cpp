@@ -5,19 +5,19 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1b3510  CKExplosionFxData_CreateElementByType_maybe
-//   [ ] 0x1b36f0  CKExplosionFxData_PostLoad
-//   [ ] 0x1b37a0  CKExplosionFxData_RecursiveRegistration
+//   [x] 0x1b36f0  CKExplosionFxData_PostLoad
+//   [x] 0x1b37a0  CKExplosionFxData_RecursiveRegistration
 //   [ ] 0x1b3920  FUN_001b3920  [dead]
-//   [ ] 0x1b3990  CKExplosionFxData_GetInfo
-//   [ ] 0x1b3998  Vt_b1c970_DeletingDestructor_maybe
-//   [ ] 0x1b39c8  Vt_b1c970_Destructor_maybe
+//   [x] 0x1b3990  CKExplosionFxData_GetInfo  (returns 1: the default slot)
+//   [x] 0x1b3998  Vt_b1c970_DeletingDestructor_maybe  (C++ deleting destructor)
+//   [x] 0x1b39c8  Vt_b1c970_Destructor_maybe  (C++ destructor chain: vtable stores only)
 //   [ ] 0x1b39d8  Vt_b1c970_Destructor_2_maybe  [dead]
-//   [ ] 0x1b39e8  CKExplosionFxData_Destroy
+//   [x] 0x1b39e8  CKExplosionFxData_Destroy
 //   [ ] 0x1b3b20  CKExplosionFxData_ReleaseAndDestroyAllEntries_maybe  [dead]
-//   [ ] 0x1b3c78  CKExplosionFxData_MessageProc
+//   [x] 0x1b3c78  CKExplosionFxData_MessageProc
 //   [x] 0x1b4328  CKExplosionFxData_Load
 //   [ ] 0x1b4ea8  CKExplosionFxData_Save
-//   [ ] 0x1b5ca8  CKExplosionNodeFx_Delete
+//   [x] 0x1b5ca8  CKExplosionNodeFx_Delete  (CKExplosionNodeFx's factory Delete: DOTD_DECLARE_FACTORIES)
 //   [ ] 0x1b5cf8  FUN_001b5cf8  [dead]
 //   [ ] 0x1b5d18  FUN_001b5d18  [dead]
 //   [ ] 0x1b5d88  FUN_001b5d88  [dead]
@@ -31,7 +31,19 @@
 
 #include <cstring>
 
+#include "Renderware/rwcore/RwCamera.h"
+#include "k2000/fx/IKFx.h"
+#include "k2000/hooks/IKHook.h"
+#include "k2000/dictionaries/CKSoundDictionaryID.h"
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/ai/CKMarkerBeacon.h"
+#include "k2000/logic/sound/CKSound.h"
+#include "k2000/logic/fx/CKExplosionNodeFx.h"
+#include "k2000/math/Quat.h"
+#include "k2000/misc/Engine.h"
+#include "k2000/misc/Mat4.h"
+#include "k2000/scenegraph/CSGMovable.h"
+#include "k2000/services/CKSrvFx.h"
 #include "k2000/memory/Mem.h"
 
 namespace {
@@ -62,33 +74,33 @@ CKExplosionFxData::CKExplosionFxData() {
 
 // The type-0 part as CreatePart builds it, in the original's store order.
 CKExplosionFxData::PartType0::PartType0() {
-    m_unk14.x = 1.0f;
-    m_unk2c.x = 0.0f;
-    m_unk38.x = 0.0f;
-    m_unk20.x = 0.0f;
-    m_unk10 = 0;
+    m_overrides.m_emtSize.x = 1.0f;
+    m_overrides.m_prtInitDir.x = 0.0f;
+    m_overrides.m_prtInitDirBias.x = 0.0f;
+    m_overrides.m_force.x = 0.0f;
+    m_overrides.m_emtPrtEmitBias = 0;
     m_type = 0;
-    m_unk0c = 0;
-    m_unk44 = 5.0f;
+    m_overrides.m_emtPrtEmit = 0;
+    m_overrides.m_prtInitVel = 5.0f;
     m_unk08 = 0.0f;
-    m_unk48 = 1.0f;
-    m_unk4c = 1.0f;
-    m_unk50 = 1.0f;
-    m_unk5c = 1.0f;
-    m_unk60 = 1.0f;
-    m_unk54 = 0.0f;
-    m_unk58 = 0.0f;
-    m_unk64 = 0.0f;
-    m_unk68 = 0.0f;
-    m_unk14.z = 1.0f;
-    m_unk14.y = 1.0f;
-    m_unk2c.z = 0.0f;
-    m_unk2c.y = 0.0f;
-    m_unk38.z = 0.0f;
-    m_unk38.y = 0.0f;
-    m_unk20.z = 0.0f;
-    m_unk20.y = 0.0f;
-    m_unk6c = 0x1ff;
+    m_overrides.m_prtInitVelBias = 1.0f;
+    m_overrides.m_prtSize[0] = 1.0f;
+    m_overrides.m_prtSize[1] = 1.0f;
+    m_overrides.m_prtSize[4] = 1.0f;
+    m_overrides.m_prtSize[5] = 1.0f;
+    m_overrides.m_prtSize[2] = 0.0f;
+    m_overrides.m_prtSize[3] = 0.0f;
+    m_overrides.m_prtSize[6] = 0.0f;
+    m_overrides.m_prtSize[7] = 0.0f;
+    m_overrides.m_emtSize.z = 1.0f;
+    m_overrides.m_emtSize.y = 1.0f;
+    m_overrides.m_prtInitDir.z = 0.0f;
+    m_overrides.m_prtInitDir.y = 0.0f;
+    m_overrides.m_prtInitDirBias.z = 0.0f;
+    m_overrides.m_prtInitDirBias.y = 0.0f;
+    m_overrides.m_force.z = 0.0f;
+    m_overrides.m_force.y = 0.0f;
+    m_overrides.m_overrideMask = 0x1ff;
 }
 
 // The type-1 part as CreatePart builds it, in the original's store order.
@@ -169,26 +181,124 @@ int32_t CKExplosionFxData::Load(IKFile* file, int32_t type) {
             ReadWordsLE(file, &p->m_unk34, 3);
         } else if (kind == 0) {
             PartType0* p = static_cast<PartType0*>(part);
-            ReadF32LE(file, &p->m_unk44);
-            ReadF32LE(file, &p->m_unk48);
-            ReadF32LE(file, &p->m_unk4c);
-            ReadF32LE(file, &p->m_unk50);
-            ReadF32LE(file, &p->m_unk5c);
-            ReadF32LE(file, &p->m_unk60);
-            ReadU32LE(file, &p->m_unk0c);
-            ReadU32LE(file, &p->m_unk10);
-            ReadWordsLE(file, &p->m_unk14, 3);
-            ReadWordsLE(file, &p->m_unk2c, 3);
-            ReadWordsLE(file, &p->m_unk38, 3);
-            ReadWordsLE(file, &p->m_unk20, 3);
-            ReadF32LE(file, &p->m_unk54);
-            ReadF32LE(file, &p->m_unk58);
-            ReadF32LE(file, &p->m_unk64);
-            ReadF32LE(file, &p->m_unk68);
+            ReadF32LE(file, &p->m_overrides.m_prtInitVel);
+            ReadF32LE(file, &p->m_overrides.m_prtInitVelBias);
+            ReadF32LE(file, &p->m_overrides.m_prtSize[0]);
+            ReadF32LE(file, &p->m_overrides.m_prtSize[1]);
+            ReadF32LE(file, &p->m_overrides.m_prtSize[4]);
+            ReadF32LE(file, &p->m_overrides.m_prtSize[5]);
+            ReadU32LE(file, &p->m_overrides.m_emtPrtEmit);
+            ReadU32LE(file, &p->m_overrides.m_emtPrtEmitBias);
+            ReadWordsLE(file, &p->m_overrides.m_emtSize, 3);
+            ReadWordsLE(file, &p->m_overrides.m_prtInitDir, 3);
+            ReadWordsLE(file, &p->m_overrides.m_prtInitDirBias, 3);
+            ReadWordsLE(file, &p->m_overrides.m_force, 3);
+            ReadF32LE(file, &p->m_overrides.m_prtSize[2]);
+            ReadF32LE(file, &p->m_overrides.m_prtSize[3]);
+            ReadF32LE(file, &p->m_overrides.m_prtSize[6]);
+            ReadF32LE(file, &p->m_overrides.m_prtSize[7]);
         } else if (kind <= 8) {
             IKFile_ReadRef(file, &static_cast<PartObject*>(part)->m_pObject);
         }
         ReadF32LE(file, &part->m_unk08);
     }
     return 1;
+}
+
+// 0x001b3c78 CKExplosionFxData_MessageProc
+int32_t CKExplosionFxData::MessageProc(uint16_t message, void* data) {
+    if (message != 0x1b00 && message != 0x1b02) return 1;
+    const uint8_t* object = *static_cast<uint8_t* const*>(data);
+    if (object == nullptr) return 0;
+    IKFx* fx = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(this, this);  // the inline pool lookup
+    if (fx == nullptr) return 0;
+    CKExplosionNodeFx* explosion = static_cast<CKExplosionNodeFx*>(fx);
+    CMatrix34 matrix;
+    if (message == 0x1b00) {
+        // The placement: the quaternion at +0x10, the position at +0x04 (the original reads those words of any object;
+        // LVL010 sends CKMarkerBeacons, whose m_qOrientation / m_v3Position they are). Read through the members: on a
+        // 64-bit host the vtable pointer moves them.
+        const CKMarkerBeacon* marker = reinterpret_cast<const CKMarkerBeacon*>(object);
+        float q[4];
+        std::memcpy(q, marker->m_qOrientation, sizeof q);
+        Quat_ToMatrixNormalizing(q, &matrix);  // 0x00241d78
+        const CVector3 p = marker->m_v3Position;
+        matrix.m_pos.z = p.z;
+        matrix.m_pos.x = p.x;
+        matrix.m_pos.y = p.y;
+        matrix.m_ui32Flags &= 0xfffdffffu;
+    } else {
+        const IKHook* hook = reinterpret_cast<const IKHook*>(object);
+        const CSGMovable* node = static_cast<const CSGMovable*>(hook->m_pKGLObject);  // +0x1c
+        if (node != nullptr) {
+            // The node frame's LTM (+0x50), its pad words too, orthonormalised.
+            std::memcpy(&matrix, FrameLtm(node->m_pRwFrame), sizeof matrix);
+        } else {
+            matrix = {};
+            matrix.m_right.x = 1.0f;  // TOC1 -0x21b0
+            matrix.m_ui32Flags = 0x20003u;
+            matrix.m_at.z = 1.0f;
+            matrix.m_up.y = 1.0f;
+        }
+        Mat4_OrthoNormalizeInPlace(&matrix);  // 0x0023f648
+    }
+    explosion->SetMatrix(reinterpret_cast<const RwMatrix*>(&matrix), this);  // 0x001b6368
+    explosion->Trigger(this, 0);                                            // 0x001b82a8
+    explosion->ReleaseReservation(this);                                    // vt+0x54
+    return 0;
+}
+
+// 0x001b36f0 CKExplosionFxData_PostLoad (last sound first; a missing sound or one without a sample is skipped)
+int32_t CKExplosionFxData::PostLoad(int32_t /*type*/) {
+    m_unk20 = 0;
+    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_pSoundDico);
+    if (sounds == nullptr) return 1;
+    for (uint32_t i = sounds->m_ui32NbKSound; i != 0;) {
+        --i;
+        CKSound* sound = sounds->GetSound(i);  // 0x00112bc0
+        if (sound == nullptr || sound->GetSample() == nullptr) continue;  // 0x00111000
+        ++m_unk20;
+    }
+    return 1;
+}
+
+// 0x001b37a0 CKExplosionFxData_RecursiveRegistration (C2.8 save-menu)
+void CKExplosionFxData::RecursiveRegistration(int32_t type) {
+    if (type == 0) {
+        m_pSoundDico->RecursiveRegistration(0);
+        if (m_pVibrationPadData != nullptr) m_pVibrationPadData->RecursiveRegistration(0);
+        m_pQuakeLauncher->RecursiveRegistration(0);
+    }
+    for (uint32_t i = 0; i < m_parts.m_ui32NbUsedElt; ++i) {
+        Part* part = m_parts.m_pBlock[i];
+        if (part->m_type < 1) continue;
+        // +0x0c: PartType1::m_pObject or PartObject::m_pObject.
+        IKSerializable* object = part->m_type == 1 ? static_cast<PartType1*>(part)->m_pObject
+                                                   : static_cast<PartObject*>(part)->m_pObject;
+        if (object != nullptr) object->RecursiveRegistration(type);
+    }
+}
+
+// 0x001b39e8 CKExplosionFxData_Destroy
+void CKExplosionFxData::Destroy() {
+    const uint32_t count = m_parts.m_ui32NbUsedElt;
+    uint32_t used = count;
+    for (uint32_t i = 0; i != count; ++i) {
+        Part** block = m_parts.m_pBlock;
+        Part* part = block[0];
+        m_parts.m_ui32NbUsedElt = used - 1;
+        std::memmove(block, block + 1, static_cast<size_t>(used - 1) * sizeof(Part*));  // (used - 1) * 4 on the PS3
+        int32_t capacity = static_cast<int32_t>(m_parts.m_ui32NbElt - 10);
+        if (static_cast<int32_t>(m_parts.m_ui32NbUsedElt) <= capacity) {  // shrink by 10
+            if (capacity == 0) capacity = 10;  // 0x28 bytes
+            m_parts.m_pBlock = static_cast<Part**>(
+                Mem_ReallocAligned16(m_parts.m_pBlock, static_cast<uint32_t>((static_cast<uint32_t>(capacity) & 0x3fffffffu) * sizeof(Part*))));
+            m_parts.m_ui32NbElt = static_cast<uint32_t>(capacity);
+        }
+        if (part != nullptr) delete part;  // vt+0x04
+        used = m_parts.m_ui32NbUsedElt;
+    }
+    m_parts.m_ui32NbUsedElt = 0;
+    m_parts.m_pBlock = static_cast<Part**>(Mem_ReallocAligned16(m_parts.m_pBlock, static_cast<uint32_t>(10 * sizeof(Part*))));
+    m_parts.m_ui32NbElt = 10;
 }

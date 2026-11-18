@@ -13,12 +13,15 @@ class IKTime;
 class CKMeshKluster : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x42)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x108c || key == 0xc; }  // vt+0x08 0x994018
     DOTD_DECLARE_FACTORIES(CKMeshKluster)
 
     CKMeshKluster() { m_pNext = nullptr; }  // inlined in 0x00031618 CKMeshKluster_Create
     ~CKMeshKluster() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00031df8 CKMeshKluster_Load
+    // vt+0x10 0x000314c8 CKMeshKluster_Destroy: the ground, wall, collision mesh and active ground arrays freed.
+    void Destroy() override;
 
     // The sector's klusters are told by CKSector (vt+0x50 / vt+0x54 of CKSector, with the sector index).
     // vt+0x50 0x000324e0 CKMeshKluster_RebuildActiveGroundList_maybe (XXL2 PreSectorLoaded): the level's

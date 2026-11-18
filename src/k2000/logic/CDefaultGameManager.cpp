@@ -4,29 +4,29 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x130f8  CDefaultGameManager_LevelResetImpl
-//   [ ] 0x13288  CDefaultGameManager_RecursiveRegistration
+//   [x] 0x130f8  CDefaultGameManager_LevelResetImpl
+//   [x] 0x13288  CDefaultGameManager_RecursiveRegistration
 //   [x] 0x132b0  IKGameManager_FindNonRecreableInstances
 //   [x] 0x13408  CDefaultGameManager_RequestSave_maybe
 //   [ ] 0x13430  KStub_Return0_13430  [dead]
-//   [ ] 0x13438  CDefaultGameManager_IsSaveDataBusy_maybe
+//   [x] 0x13438  CDefaultGameManager_IsSaveDataBusy_maybe
 //   [x] 0x13448  SaveFlow_OnMsgDialogClosed_maybe
-//   [ ] 0x13490  CDefaultGameManager_Restart
+//   [x] 0x13490  CDefaultGameManager_Restart
 //   [x] 0x134e0  CGameManager_BasePause_maybe
 //   [x] 0x134e8  CGameManager_BaseResume_maybe
-//   [ ] 0x134f0  CDefaultGameManager_SectorLoaded
-//   [ ] 0x134f8  CDefaultGameManager_SectorUnload
-//   [ ] 0x13500  CDefaultGameManager_vf198
-//   [ ] 0x13508  CDefaultGameManager_vf19C
-//   [ ] 0x13510  CDefaultGameManager_vf1A0
-//   [ ] 0x13518  IKGameManager_vf1A4
-//   [ ] 0x13520  IKGameManager_vf1A8
-//   [ ] 0x13528  CDefaultGameManager_vf1AC
+//   [x] 0x134f0  CDefaultGameManager_SectorLoaded  (empty: IKUpdatable's SectorLoaded; CKS08GameManager::SectorLoaded's base call)
+//   [x] 0x134f8  CDefaultGameManager_SectorUnload  (empty: IKUpdatable's SectorUnload)
+//   [x] 0x13500  CDefaultGameManager_vf198
+//   [x] 0x13508  CDefaultGameManager_vf19C
+//   [x] 0x13510  CDefaultGameManager_vf1A0
+//   [x] 0x13518  IKGameManager_vf1A4
+//   [x] 0x13520  IKGameManager_vf1A8
+//   [x] 0x13528  CDefaultGameManager_vf1AC
 //   [x] 0x13530  IKGameManager_IsMotionSensorEnabled
 //   [x] 0x13558  IKGameManager_HaveOptionsChanged
 //   [x] 0x137b0  CDefaultGameManager_vf1E4
 //   [x] 0x137b8  CDefaultGameManager_GetSkipVideoPromptText_maybe
-//   [ ] 0x137e8  CDefaultGameManager_vf138
+//   [x] 0x137e8  CDefaultGameManager_vf138  (CDefaultGameManager::GetGroundSurfaceBit, virtual: CKS08GameManager overrides it)
 //   [x] 0x137f8  CDefaultGameManager_TogglePlayerVibration_maybe
 //   [x] 0x138e8  CDefaultGameManager_ToggleVibrationBothPlayers_maybe
 //   [x] 0x13920  IKGameManager_ApplyOptions_maybe
@@ -36,56 +36,56 @@
 //   [x] 0x13cc8  IKGameManager_CopyOptionsToEditBlock
 //   [x] 0x13d60  IKGameManager_SwitchToFocusedHeroCamera_maybe
 //   [x] 0x13e08  IKGameManager_OnLevelExit
-//   [ ] 0x13e48  CDefaultGameManager_GetCurrentLevelNumber_maybe
+//   [x] 0x13e48  CDefaultGameManager_GetCurrentLevelNumber_maybe  (local copy)
 //   [x] 0x13e78  CDefaultGameManager_OnLevelStart_maybe
 //   [ ] 0x13fb8  CDefaultGameManager_SaveFlow_PostAndWaitDone_maybe  [dead]
-//   [ ] 0x140a8  IKGameManager_UpdateSaveGameFlow_maybe
+//   [x] 0x140a8  IKGameManager_UpdateSaveGameFlow_maybe
 //   [ ] 0x143b8  CDefaultGameManager_LoadSelectedSlotObjects_maybe  [dead]
-//   [ ] 0x144a8  CDefaultGameManager_SaveDialogCallback_NotSaveDeviceVf10_maybe
+//   [x] 0x144a8  CDefaultGameManager_SaveDialogCallback_NotSaveDeviceVf10_maybe  (SaveDialogCallbackNotSaveDeviceVf10, UpdateSaveDataFlow's message-box interrupt)
 //   [x] 0x14508  CDefaultGameManager_PostLoadImpl
 //   [ ] 0x145c8  CDefaultGameManager_UnloadSectorAndClearSlot_maybe  [dead]
 //   [x] 0x14618  CDefaultGameManager_RecacheLocStrings_maybe_2
 //   [x] 0x14660  BootLoad_SetGameLoopActive_maybe
-//   [ ] 0x14698  BootLoad_InitSaveData_maybe
+//   [x] 0x14698  BootLoad_InitSaveData_maybe  (BootLoad_InitSaveData, BootLoadRequest::Execute calls it)
 //   [ ] 0x146f8  FUN_000146f8  [dead]
 //   [ ] 0x14708  FUN_00014708  [dead]
 //   [ ] 0x14738  FUN_00014738  [dead]
 //   [x] 0x14750  CDefaultGameManager_InitDefaultOptions_maybe
-//   [ ] 0x14870  CDefaultGameManager_SaveFlowA_State4_maybe
-//   [ ] 0x14958  CDefaultGameManager_SaveFlowA_State2_maybe
-//   [ ] 0x14a08  CDefaultGameManager_SaveFlowB_State5_maybe
-//   [ ] 0x14af0  CDefaultGameManager_SaveFlowB_State3_maybe
-//   [ ] 0x14ba0  CDefaultGameManager_SaveFlowB_State1_maybe
-//   [ ] 0x14c68  CDefaultGameManager_SaveDialogCallback_NotSaveDeviceVfC_maybe
-//   [ ] 0x14cc8  CDefaultGameManager_ReleaseGameData_maybe
+//   [x] 0x14870  CDefaultGameManager_SaveFlowA_State4_maybe  (CDefaultGameManager::SaveCheckState4)
+//   [x] 0x14958  CDefaultGameManager_SaveFlowA_State2_maybe  (CDefaultGameManager::SaveCheckState2)
+//   [ ] 0x14a08  CDefaultGameManager_SaveFlowB_State5_maybe  [dead: reached only through the dead CDefaultGameManager_RunSaveFlowBStateMachine_maybe 0x18e20 (its table 0xb13290, TOC1 slot 0xc0db5c loaded by it alone; no pointer to its descriptor 0xb35ad0)]
+//   [ ] 0x14af0  CDefaultGameManager_SaveFlowB_State3_maybe  [dead: reached only through the dead CDefaultGameManager_RunSaveFlowBStateMachine_maybe 0x18e20 (its table 0xb13290, TOC1 slot 0xc0db5c loaded by it alone; no pointer to its descriptor 0xb35ad0)]
+//   [ ] 0x14ba0  CDefaultGameManager_SaveFlowB_State1_maybe  [dead: reached only through the dead CDefaultGameManager_RunSaveFlowBStateMachine_maybe 0x18e20 (its table 0xb13290, TOC1 slot 0xc0db5c loaded by it alone; no pointer to its descriptor 0xb35ad0)]
+//   [x] 0x14c68  CDefaultGameManager_SaveDialogCallback_NotSaveDeviceVfC_maybe  (SaveDialogCallbackNotSaveDeviceVfC)
+//   [x] 0x14cc8  CDefaultGameManager_ReleaseGameData_maybe
 //   [x] 0x14d68  CDefaultGameManager_RequestGameExit_maybe
-//   [ ] 0x14d98  Engine_PopGamePause_maybe
-//   [ ] 0x14dc8  Engine_PushGamePause_maybe
+//   [x] 0x14d98  Engine_PopGamePause_maybe
+//   [x] 0x14dc8  Engine_PushGamePause_maybe
 //   [x] 0x14df8  CKS08GameManager_CommitRequestedLevel_maybe
-//   [ ] 0x14e38  GameManager_PollPlayer2Reconnected_maybe
+//   [x] 0x14e38  GameManager_PollPlayer2Reconnected_maybe
 //   [x] 0x14ec0  CDefaultGameManager_GetCannotSkipPromptText_maybe
 //   [x] 0x14ef0  CDefaultGameManager_GetSkipCinematicPromptText_maybe
 //   [x] 0x14f20  CDefaultGameManager_SetSaveRequestFlag_maybe
 //   [x] 0x14f60  IKGameManager_SetFlag64Bit2_maybe
 //   [x] 0x14f78  IKGameManager_RefreshOptionsChangedFlag
 //   [ ] 0x14fc0  FUN_00014fc0  [dead]
-//   [ ] 0x14fd8  IKGameManager_GetCurrentSpawnPoint_maybe
+//   [x] 0x14fd8  IKGameManager_GetCurrentSpawnPoint_maybe  (CKSrvCamera.cpp's local copy GetCurrentSpawnPoint)
 //   [x] 0x14fe8  IKGameManager_vfD8
-//   [ ] 0x15090  ApplySoundVolumesToVideoManager_maybe
+//   [ ] 0x15090  ApplySoundVolumesToVideoManager_maybe  [dead: no pointer to its descriptor 0xb35820, no call (raw ELF scan)]
 //   [ ] 0x15100  ZeroVideoManagerVolumes_maybe  [dead]
 //   [x] 0x15160  LoadDefaultAndSystemLanguageLocFiles_maybe
 //   [x] 0x15208  GameManager_ReloadLocalizedData_maybe
-//   [ ] 0x15240  FindVideoModeMatchingAspect_maybe
+//   [x] 0x15240  FindVideoModeMatchingAspect_maybe  (CKInterfaceButtonDouble.cpp's FindVideoModeMatchingAspect)
 //   [x] 0x153d8  CDefaultGameManager_vf108
 //   [ ] 0x15428  CDefaultGameManager_SaveSelectedSlotObjects_maybe  [dead]
-//   [ ] 0x155b0  CDefaultGameManager_SaveFlowA_State3_maybe
+//   [x] 0x155b0  CDefaultGameManager_SaveFlowA_State3_maybe  (CDefaultGameManager::SaveCheckState3)
 //   [x] 0x156d8  CDefaultGameManager_ClearReferencesImpl
-//   [ ] 0x15700  CDefaultGameManager_SaveImpl
-//   [ ] 0x157e8  CDefaultGameManager_SaveFlowA_State0_maybe
+//   [x] 0x15700  CDefaultGameManager_SaveImpl
+//   [x] 0x157e8  CDefaultGameManager_SaveFlowA_State0_maybe  (CDefaultGameManager::SaveCheckState0)
 //   [x] 0x159a8  CDefaultGameManager_ResetProgressImpl_maybe
 //   [x] 0x15ba0  CDefaultGameManager_InitImpl
-//   [ ] 0x15e48  CDefaultGameManager_SaveFlowB_State4_maybe
-//   [ ] 0x16018  CDefaultGameManager_SaveFlowB_State0_maybe
+//   [ ] 0x15e48  CDefaultGameManager_SaveFlowB_State4_maybe  [dead: reached only through the dead CDefaultGameManager_RunSaveFlowBStateMachine_maybe 0x18e20 (its table 0xb13290, TOC1 slot 0xc0db5c loaded by it alone; no pointer to its descriptor 0xb35ad0)]
+//   [ ] 0x16018  CDefaultGameManager_SaveFlowB_State0_maybe  [dead: reached only through the dead CDefaultGameManager_RunSaveFlowBStateMachine_maybe 0x18e20 (its table 0xb13290, TOC1 slot 0xc0db5c loaded by it alone; no pointer to its descriptor 0xb35ad0)]
 //   [x] 0x162a0  CDefaultGameManager_RecacheLocStrings_maybe
 //   [x] 0x162e8  CKS08GameManager_UnloadCurrentLevel_maybe
 //   [ ] 0x16388  FUN_00016388  [dead]
@@ -95,11 +95,11 @@
 //   [x] 0x16618  IKGameManager_UpdateAutoLoadFlow_maybe
 //   [x] 0x167d0  IKGameManager_UpdateLoadGameFlow_maybe
 //   [x] 0x16bb8  IKGameManager_RestoreDefaultOptions_maybe
-//   [ ] 0x16c88  CDefaultGameManager_Save
+//   [x] 0x16c88  CDefaultGameManager_Save
 //   [x] 0x16d78  CDefaultGameManager_LoadImpl
-//   [ ] 0x170a8  CDefaultGameManager_Load
+//   [x] 0x170a8  CDefaultGameManager_Load  (CDefaultGameManager::Load, the header)
 //   [x] 0x170d0  CDefaultGameManager_ResetRuntimeImpl
-//   [ ] 0x171e0  CDefaultGameManager_PostLoad
+//   [x] 0x171e0  CDefaultGameManager_PostLoad  (CDefaultGameManager::PostLoad, the header: PostLoadImpl's body)
 //   [x] 0x172b0  CDefaultGameManager_vf1D4
 //   [x] 0x17320  IKGameManager_ToggleAutosaveOption_maybe
 //   [x] 0x17340  IKGameManager_ResetScreenOffsetOption
@@ -125,36 +125,36 @@
 //   [x] 0x177f8  IKGameManager_TogglePerPlayerOption10CBothPlayers
 //   [x] 0x17870  IKGameManager_TogglePerPlayerOption10ABothPlayers
 //   [x] 0x178e8  IKGameManager_UpdateSaveDataRequests_maybe
-//   [ ] 0x17c38  CDefaultGameManager_SaveFlowA_State1_maybe
-//   [ ] 0x17e80  CDefaultGameManager_SaveFlowB_State2_maybe
+//   [x] 0x17c38  CDefaultGameManager_SaveFlowA_State1_maybe  (CDefaultGameManager::SaveCheckState1)
+//   [ ] 0x17e80  CDefaultGameManager_SaveFlowB_State2_maybe  [dead: reached only through the dead CDefaultGameManager_RunSaveFlowBStateMachine_maybe 0x18e20 (its table 0xb13290, TOC1 slot 0xc0db5c loaded by it alone; no pointer to its descriptor 0xb35ad0)]
 //   [ ] 0x18040  CDefaultGameManager_RunSaveFlowAStateMachine_maybe  [dead]
 //   [ ] 0x184e0  CDefaultGameManager_StepSaveFlowA_maybe  [dead]
-//   [ ] 0x18650  CDefaultGameManager_RunSaveCheckStateMachine_maybe
-//   [ ] 0x18a80  CDefaultGameManager_UpdateSaveDataFlow_maybe
+//   [x] 0x18650  CDefaultGameManager_RunSaveCheckStateMachine_maybe  (CDefaultGameManager::RunSaveCheckStateMachine)
+//   [x] 0x18a80  CDefaultGameManager_UpdateSaveDataFlow_maybe  (CDefaultGameManager::UpdateSaveDataFlow)
 //   [ ] 0x18e20  CDefaultGameManager_RunSaveFlowBStateMachine_maybe  [dead]
 //   [ ] 0x195a8  CDefaultGameManager_StepSaveFlowB_Variant1_maybe  [dead]
 //   [ ] 0x19688  CDefaultGameManager_StepSaveFlowB_Variant2_maybe  [dead]
 //   [ ] 0x19770  FUN_00019770  [dead]
 //   [ ] 0x197e0  KStub_Return1_197e0  [dead]
 //   [ ] 0x19808  FUN_00019808  [dead]
-//   [ ] 0x198c8  IKHook_vf9C
+//   [x] 0x198c8  IKHook_vf9C  (IKLife::Vf9C in IKLife.h: -1)
 //   [ ] 0x198d8  IKHook_Save
-//   [ ] 0x19900  CKHook_Load
-//   [ ] 0x19a90  IKHook_vfBC
-//   [ ] 0x19ab8  IKHook_LevelReset
+//   [x] 0x19900  CKHook_Load  (inline in the header)
+//   [x] 0x19a90  IKHook_vfBC
+//   [x] 0x19ab8  IKHook_LevelReset  (IKHook::RecursiveRegistration)
 //   [ ] 0x19b30  FUN_00019b30  [dead]
 //   [ ] 0x19ba8  KStub_Return1_19ba8  [dead]
 //   [ ] 0x19bd0  FUN_00019bd0  [dead]
-//   [ ] 0x19c90  KStub_Return1_19c90
-//   [ ] 0x19c98  KObject_LevelResetIfNotNull_maybe
-//   [ ] 0x19ce8  KStub_Return1_19ce8
-//   [ ] 0x19cf0  IKLife_Load
+//   [x] 0x19c90  KStub_Return1_19c90  (IKLife's RecursiveRegistration: returns 1, the root's empty slot)
+//   [x] 0x19c98  KObject_LevelResetIfNotNull_maybe  (inlined in IKHook::RecursiveRegistration)
+//   [x] 0x19ce8  KStub_Return1_19ce8  (IKLife's Save: returns 1, nothing written)
+//   [x] 0x19cf0  IKLife_Load  (inline in the header)
 //   [x] 0x19e60  IKLife_SectorLoaded
 //   [x] 0x19ed8  IKLife_SectorUnload
-//   [ ] 0x19f68  IKLife_PostLoad
-//   [ ] 0x19f90  CKS08Player_Destroy
-//   [ ] 0x19f98  CKDefaultPlayer_SaveImpl
-//   [ ] 0x1a0d0  CKS08Player_PostLoad
+//   [x] 0x19f68  IKLife_PostLoad  (IKLife::PostLoadLife in IKLife.h)
+//   [x] 0x19f90  CKS08Player_Destroy  (empty: the root's Destroy)
+//   [x] 0x19f98  CKDefaultPlayer_SaveImpl
+//   [x] 0x1a0d0  CKS08Player_PostLoad  (returns 1: the root's PostLoad)
 //
 //   [ ] 0x990d30  IKLife_IsKindOf  [inline]
 //   [ ] 0x990dd8  IKLife_Destructor  [inline]
@@ -299,6 +299,11 @@
 // 0x00014660 BootLoad_SetGameLoopActive_maybe
 void BootLoad_SetGameLoopActive(CDefaultGameManager* /*manager*/) { g_pEngine->m_gameLoop->SetAppActive(1); }
 
+// 0x00013490 CDefaultGameManager_Restart (vt+0x54): the game structure's game state applied to the level again (vt+0x5c).
+void CDefaultGameManager::Restart() {
+    if (m_gameStructure != nullptr) static_cast<IKGameStructure*>(m_gameStructure)->ApplyGameStateToLevel();  // vt+0x5c
+}
+
 // 0x00014fe8 IKGameManager_vfD8: level -1 = the boot loading video (+0x84); otherwise the video (+0x84) of
 // the game structure's level whose number (+0x1c) matches, searched from the last; null when none does.
 IKVideo* CDefaultGameManager::GetLoadingVideo(int32_t level) {
@@ -336,6 +341,13 @@ void CDefaultGameManager::UnloadCurrentLevel() {
 #include "k2000/misc/ClassManager.h"
 #include "k2000/misc/ClassRegistry.h"
 #include "k2000/misc/IKGameStructure.h"
+#include "k2000/io/KFileSystem.h"
+
+// 0x00c517c0: a global byte InitImpl clears (TOC1 -0x7f14; its readers are the save-data flows).
+uint8_t g_unkC517C0 = 0;
+
+// 0x00013438 CDefaultGameManager_IsSaveDataBusy_maybe: the byte at 0x00c517c0 (SaveData.cpp's stat flag, the same byte).
+bool CDefaultGameManager::IsSaveDataBusy() { return g_unkC517C0 != 0; }
 
 // 0x00015ba0 CDefaultGameManager_InitImpl
 void CDefaultGameManager::InitImpl() {
@@ -351,8 +363,14 @@ void CDefaultGameManager::InitImpl() {
     m_playerArray = static_cast<IKSerializable*>(g_pEngine->m_classManager->CreateObjectArray(
         static_cast<int32_t>(playerKey & 0x3f), (playerKey >> 6) & 0x7ff, 7, &m_playerStride));
     for (IKSerializable*& player : m_players) player = nullptr;
-    // KMemBuffer_Init/Resize (+0x1c) and the save-state memory stream (KFileSystem_OpenFile device 3
-    // -> +0x3c): STUB(save data).
+    // The save-state buffer (+0x1c): the slot size (0x00c40710: 0x1400) times the slot count (0x00c40704: 0x65),
+    // zeroed, and the memory stream over it (+0x3c; KFileSystem_OpenFile device 3, read-write: a KMemoryStream).
+    const int32_t saveStateSize = kSaveStateSlotSize * kSaveStateSlotCount;
+    m_unk1c.Init(saveStateSize, 0);  // 0x48430
+    m_unk1c.Resize(saveStateSize);   // 0x48ec0
+    std::memset(m_unk1c.m_pData, 0, static_cast<uint32_t>(saveStateSize));
+    m_unk3c = g_pEngine->m_fileSystem->OpenFile(reinterpret_cast<const char*>(&m_unk1c), 2, KFileSystem::kDeviceMemory,
+                                                KFileSystem::kRootNone, 0, -1, 0);  // 0x4a288
     m_gameStructure = static_cast<IKSerializable*>(ClassRegistry_CreateObjectByKey(GetGameStructureClassKey()));
     static_cast<IKGameStructure*>(m_gameStructure)->SetGameManager(this);  // vt+0x70
     m_unk84 = nullptr;
@@ -362,7 +380,7 @@ void CDefaultGameManager::InitImpl() {
     m_unkB0 = -1;
     m_unk89 = 0;
     m_bSaveRequestPosted = 0;
-    // The global byte at TOC1 -0x1fc5*4 = 0: STUB(C1.6), its readers are not ported.
+    g_unkC517C0 = 0;  // TOC1 -0x7f14
     m_unk270 = 1;
     m_flags64 &= ~0x3eu;
 }
@@ -398,7 +416,11 @@ void CDefaultGameManager::LoadImpl(IKFile* stream, int32_t mode) {
     }
     if (mode == 6) {
         ReadS32LE(stream, &m_unk28c);
-        ReadRaw(stream, &m_currentOptions, 0x34);  // the PS3 words as they are (save data)
+        // The PS3's 0x34 bytes as they are (big-endian words: SaveImpl's block), taken into the host's layout.
+        void OptionsFromPS3(const uint8_t* block, SGameOptions* options);  // C2.8 save-menu, below
+        uint8_t block[0x34];
+        ReadRaw(stream, block, 0x34);
+        OptionsFromPS3(block, &m_currentOptions);
         return;
     }
     if (mode != 0) return;
@@ -430,10 +452,14 @@ void CDefaultGameManager::ReloadLocalizedData() { Engine_ReloadLocalizedData(g_p
 
 // 0x00014508 CDefaultGameManager_PostLoadImpl: a level (0) runs its two trigger lists' PostLoad
 // (TriggerEventList_PostLoad_maybe 0x236330 returns 1); a save restore (5) the game structure's vt+0x60
-// with the first player (STUB(C1.6)).
+// with the first player (IKGameStructure_vf60: its game state applied to the structure).
 void CDefaultGameManager::PostLoadImpl(int32_t type) {
     m_unk80 = (m_unk80 & 0x00ffffffu);  // the byte at +0x80
-    if (type == 5) DOTD_STUB_ONCE("CDefaultGameManager_PostLoadImpl: save restore (C1.6)");
+    if (type == 5) {
+        static_cast<IKGameStructure*>(m_gameStructure)->ApplyPlayerGameState(static_cast<IKPlayer*>(m_players[0]));  // vt+0x60
+        return;
+    }
+    // type 0: TriggerEventList_PostLoad_maybe (0x236330) of +0x70 and +0x78 returns 1 and changes nothing.
 }
 
 // 0x000153d8 CDefaultGameManager_vf108
@@ -482,10 +508,10 @@ void CDefaultGameManager::ResetRuntimeImpl() {
     const uint32_t level = static_cast<uint32_t>(m_currentLevel);
     if (level != 0xffffffffu && level < 0x20 &&
         ((1u << level) & static_cast<IKPlayer*>(m_players[0])->m_baLevelSaved) != 0) {
-        // STUB(save data): the save-state stream (+0x3c) seeks to level * the slot size (0x00c40710; vt+0x2c)
-        // and CKLoadingManager_LoadSavedObjects_maybe (0x2a7c8) reads it in mode 4. No saved level exists
-        // until a save is loaded.
-        DOTD_STUB_ONCE("CDefaultGameManager_ResetRuntimeImpl: the level's saved objects (save data)");
+        // C2.8 menus-load: the save-state stream (+0x3c) at the level's slot (level * the slot size 0x00c40710, vt+0x2c)
+        // read in K_LEVEL_MEMCARD (CKLoadingManager_LoadSavedObjects_maybe 0x2a7c8).
+        m_unk3c->Seek(static_cast<int32_t>(level * static_cast<uint32_t>(kSaveStateSlotSize)), kSeekSet);
+        g_pEngine->m_objectDatabase->LoadSavedObjects(m_unk3c, K_LEVEL_MEMCARD);
     }
     IKGameStructure* structure = static_cast<IKGameStructure*>(m_gameStructure);
     m_unk80 = (m_unk80 & 0x00ffffffu) | 0x01000000u;  // the byte at +0x80
@@ -502,14 +528,40 @@ void CDefaultGameManager::BasicNewGame() {
     for (uint32_t i = 1; i <= 5; ++i) static_cast<IKPlayer*>(m_players[i])->InitializeNewGame();  // vt+0x54
     static_cast<IKPlayer*>(m_players[0])->InitializeNewGame();
     static_cast<IKPlayer*>(m_players[6])->InitializeNewGame();
-    // memset(the save-state buffer (KMemBuffer +0x1c, its data +0x20), 0, the slot size * the slot count
-    // (TOC1 -0x7ec8 / -0x7ed4)). STUB(save data): CDefaultGameManager_InitImpl does not allocate the buffer
-    // yet, so there is nothing to clear.
-    if (m_unk1c.m_unk04 != 0) DOTD_STUB_ONCE("CDefaultGameManager_ResetProgressImpl_maybe: save-state buffer (save data)");
+    // The save-state buffer (KMemBuffer +0x1c, its data +0x20) cleared: the slot size * the slot count (TOC1 -0x7ec8 /
+    // -0x7ed4).
+    std::memset(m_unk1c.m_pData, 0, static_cast<uint32_t>(kSaveStateSlotSize * kSaveStateSlotCount));
+}
+
+// 0x00014cc8 CDefaultGameManager_ReleaseGameData_maybe. The stream (+0x3c) and the game structure (+0x6c) keep their
+// pointers: the manager is destroyed right after (CKGameLoop_ShutdownSubsystems_maybe).
+void CDefaultGameManager::ReleaseGameData() {
+    g_pEngine->m_classManager->DestroyObjectArray(m_playerArray);  // 0x1b400
+    m_playerArray = nullptr;
+    m_unk1c.Free();                                   // 0x483b8
+    g_pEngine->m_fileSystem->CloseFile(m_unk3c);      // 0x49dd8
+    if (m_gameStructure != nullptr) ClassRegistry_DestroyObject(m_gameStructure);  // 0x11420
+    SaveData_FreeWorkBuffer2();                       // 0x2d148
 }
 
 // 0x00014d68 CDefaultGameManager_RequestGameExit_maybe
 void CDefaultGameManager::RequestGameExit() { g_pEngine->m_gameLoop->RequestExit(); }
+
+// 0x00014dc8 Engine_PushGamePause_maybe / 0x00014d98 Engine_PopGamePause_maybe: the game loop's pause count (+0x20) up
+// and down (CKGameLoop_IncPauseCount_maybe 0x1e188 / _DecPauseCount_maybe 0x1e198, inlined).
+void Engine_PushGamePause(CDefaultGameManager* /*manager*/) { ++g_pEngine->m_gameLoop->m_inhibitCount; }
+void Engine_PopGamePause(CDefaultGameManager* /*manager*/) { --g_pEngine->m_gameLoop->m_inhibitCount; }
+
+#include "k2000/input/PS3PadDevice.h"
+#include "k2000/managers/CKInput.h"
+
+// 0x00014e38 GameManager_PollPlayer2Reconnected_maybe: the interrupt of the "connect a controller" message box: pad 1
+// active again, the game manager has two players (vt+0x158); 1 then (the box closes).
+uint8_t GameManager_PollPlayer2Reconnected() {
+    const bool connected = g_pEngine->m_input->GetPad(1)->m_bActive != 0;  // 0x1052d8, +0x04
+    if (connected) g_pEngine->m_gameManager->SetPlayerCount(2);
+    return connected ? 1 : 0;
+}
 
 // 0x000172b0 CDefaultGameManager_vf1D4
 void CDefaultGameManager::ResetEditedOptions() {
@@ -552,8 +604,8 @@ int32_t CDefaultGameManager::UpdateLoadGameFlow(uint8_t* done) {
     }
     if (request.CheckDone() == 0) return 0;
     if (g_saveDataResult == 0) {
-        // Player 6 (the loaded one) into player 0 (vt+0x50). STUB(save data): no save loads yet.
-        DOTD_STUB_ONCE("IKGameManager_UpdateLoadGameFlow_maybe: player vt+0x50 (save data)");
+        // C2.8 menus-load: the loaded player 0 copied into player 6 (player 6's vt+0x50 with player 0).
+        static_cast<IKPlayer*>(m_players[6])->CopyPlayerGameData(static_cast<IKPlayer*>(m_players[0]));
         Vf240(0);
         ApplyOptions(&m_currentOptions, 1);
         m_editedOptions = m_currentOptions;
@@ -588,6 +640,52 @@ int32_t CDefaultGameManager::UpdateLoadGameFlow(uint8_t* done) {
     return 1;
 }
 
+// 0x000140a8 IKGameManager_UpdateSaveGameFlow_maybe (C2.8 save-menu)
+int32_t CDefaultGameManager::UpdateSaveGameFlow(uint8_t* done) {
+    SaveDataRequest& request = g_pEngine->m_gameLoop->m_saveDataRequest;
+    if (m_bSaveRequestPosted == 0) {
+        Vf234();  // vt+0x234
+        request.Post(SaveDataRequest::kListSave);
+        m_bSaveRequestPosted = 1;
+        return 0;
+    }
+    if (request.CheckDone() == 0) return 0;
+    const int32_t result = g_saveDataResult;
+    if (result == 0) {
+        OnSaveGameDone(0);  // vt+0x238
+    } else if (result == static_cast<int32_t>(0x8002b401u)) {  // CELL_SAVEDATA_ERROR_CBRESULT
+        m_flags64 = (m_flags64 & 0xffffffefu) | 0x10u;
+    } else if (result == 1) {  // CELL_SAVEDATA_RET_CANCEL
+        OnSaveGameDone(1);
+    } else {
+        // The system dialog with text 0x16a (YES/NO, no cancel).
+        if (s_saveFlowDialogState == 0) {
+            const uint16_t* text = LocTextString(g_pEngine->m_locManager->GetText(0x16a));
+            size_t length = 0;
+            while (text[length] != 0) ++length;  // Wcs_Length 0x10a18
+            size_t utf8Length = 0;
+            size_t sourceLength = length;
+            UCS2stoUTF8s(text, &sourceLength, nullptr, &utf8Length);
+            uint8_t* utf8 = new uint8_t[utf8Length + 1];
+            std::memset(utf8, 0, utf8Length + 1);
+            sourceLength = length;
+            UCS2stoUTF8s(LocTextString(g_pEngine->m_locManager->GetText(0x16a)), &sourceLength, utf8, &utf8Length);
+            cellMsgDialogOpen2(0x90, reinterpret_cast<const char*>(utf8), &SaveFlow_OnMsgDialogClosed, nullptr, nullptr);
+            delete[] utf8;
+            s_saveFlowDialogState = 1;
+            return 1;
+        }
+        if (s_saveFlowDialogState == 1) return 1;
+        if (static_cast<uint32_t>(s_saveFlowDialogState - 3) < 2) *done = 1;  // NO or escape: the flow ends
+        m_bSaveRequestPosted = 0;  // YES: the request again
+        s_saveFlowDialogState = 0;
+        return 1;
+    }
+    m_bSaveRequestPosted = 0;
+    *done = 1;
+    return 1;
+}
+
 // 0x000178e8 IKGameManager_UpdateSaveDataRequests_maybe: player 1 active with two players; then the
 // first pending flow: 2 save game, 4 load game, 8 the options restored, 0x20 the auto-load, 0x10 a delete
 // then a save. A finished flow with more than one player activates player 1 again.
@@ -596,7 +694,9 @@ void CDefaultGameManager::UpdateSaveDataRequests() {
     SetPlayerActive(1, GetPlayerCount() == 2 ? 1 : 0);
     const uint32_t flags = m_flags64;
     if ((flags & 2) != 0) {
-        DOTD_STUB_ONCE("IKGameManager_UpdateSaveGameFlow_maybe (C1.6)");  // 0x140a8; done: flags &= ~3
+        UpdateSaveGameFlow(&done);
+        if (done == 0) return;
+        m_flags64 &= ~2u;  // rlwinm 30,1,31 + rlwinm 2: bit 1 only
     } else if ((flags & 4) != 0) {
         UpdateLoadGameFlow(&done);
         if (done == 0) return;
@@ -1062,4 +1162,420 @@ uint8_t CDefaultGameManager::SwitchToFocusedHeroCamera() {
         result = 0;
     }
     return result;
+}
+
+// ==== C2.8 save-menu: the game manager's and the players' save data ================================================
+#include "k2000/logic/CKSavingManager.h"
+
+namespace {
+// The options block (0x34 bytes) as the PS3 holds it: the words big-endian, the bytes (padding included) as they are.
+void OptionsToPS3(const SGameOptions& o, uint8_t* b) {
+    auto word = [b](uint32_t at, uint32_t v) {
+        b[at] = static_cast<uint8_t>(v >> 24);
+        b[at + 1] = static_cast<uint8_t>(v >> 16);
+        b[at + 2] = static_cast<uint8_t>(v >> 8);
+        b[at + 3] = static_cast<uint8_t>(v);
+    };
+    uint32_t bits[3];
+    std::memcpy(bits, o.m_afVolumes, sizeof(bits));
+    word(0x00, o.m_ui32Language);
+    b[0x04] = o.m_bSubtitles;
+    b[0x05] = o.m_unk05;
+    b[0x06] = o.m_pad06[0];
+    b[0x07] = o.m_pad06[1];
+    word(0x08, o.m_ui32SoundOutput);
+    word(0x0c, o.m_ui32AspectRatio);
+    word(0x10, bits[0]);
+    word(0x14, bits[1]);
+    word(0x18, bits[2]);
+    b[0x1c] = o.m_abVibration[0];
+    b[0x1d] = o.m_abVibration[1];
+    b[0x1e] = o.m_abUnk1E[0];
+    b[0x1f] = o.m_abUnk1E[1];
+    b[0x20] = o.m_abUnk20[0];
+    b[0x21] = o.m_abUnk20[1];
+    b[0x22] = o.m_pad22[0];
+    b[0x23] = o.m_pad22[1];
+    word(0x24, static_cast<uint32_t>(o.m_i32ScreenOffsetX));
+    word(0x28, static_cast<uint32_t>(o.m_i32ScreenOffsetY));
+    b[0x2c] = o.m_bAutosave;
+    b[0x2d] = o.m_abMotionSensor[0];
+    b[0x2e] = o.m_abMotionSensor[1];
+    b[0x2f] = o.m_pad2f;
+    word(0x30, o.m_ui32Brightness);
+}
+}  // namespace
+
+// The inverse (LoadImpl's mode 6).
+void OptionsFromPS3(const uint8_t* b, SGameOptions* o) {
+    auto word = [b](uint32_t at) {
+        return (static_cast<uint32_t>(b[at]) << 24) | (static_cast<uint32_t>(b[at + 1]) << 16) |
+               (static_cast<uint32_t>(b[at + 2]) << 8) | b[at + 3];
+    };
+    o->m_ui32Language = word(0x00);
+    o->m_bSubtitles = b[0x04];
+    o->m_unk05 = b[0x05];
+    o->m_pad06[0] = b[0x06];
+    o->m_pad06[1] = b[0x07];
+    o->m_ui32SoundOutput = word(0x08);
+    o->m_ui32AspectRatio = word(0x0c);
+    const uint32_t bits[3] = {word(0x10), word(0x14), word(0x18)};
+    std::memcpy(o->m_afVolumes, bits, sizeof(bits));
+    o->m_abVibration[0] = b[0x1c];
+    o->m_abVibration[1] = b[0x1d];
+    o->m_abUnk1E[0] = b[0x1e];
+    o->m_abUnk1E[1] = b[0x1f];
+    o->m_abUnk20[0] = b[0x20];
+    o->m_abUnk20[1] = b[0x21];
+    o->m_pad22[0] = b[0x22];
+    o->m_pad22[1] = b[0x23];
+    o->m_i32ScreenOffsetX = static_cast<int32_t>(word(0x24));
+    o->m_i32ScreenOffsetY = static_cast<int32_t>(word(0x28));
+    o->m_bAutosave = b[0x2c];
+    o->m_abMotionSensor[0] = b[0x2d];
+    o->m_abMotionSensor[1] = b[0x2e];
+    o->m_pad2f = b[0x2f];
+    o->m_ui32Brightness = word(0x30);
+}
+
+// 0x000130f8 CDefaultGameManager_LevelResetImpl. (The original's null tests of &m_players[0] always pass.)
+void CDefaultGameManager::LevelResetImpl(int32_t type) {
+    if (static_cast<uint32_t>(type - 4) >= 4u) return;
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    IKPlayer* player = static_cast<IKPlayer*>(m_players[0]);
+    if (type == K_GAME_MEMCARD) {
+        player->m_bUsed = 1;
+        player->RecursiveRegistration(K_GAME_MEMCARD);  // vt+0x24
+        return;
+    }
+    if (type == K_LEVEL_MEMCARD) {
+        if (player == nullptr) return;
+        static_cast<IKPlayer*>(m_players[6])->CopyPlayerGameData(player);  // vt+0x50
+        player->RecursiveRegistration(K_LEVEL_MEMCARD);
+        return;
+    }
+    player->RecursiveRegistration(type);  // 6, 7
+}
+
+// 0x00015700 CDefaultGameManager_SaveImpl
+void CDefaultGameManager::SaveImpl(IKFile* file, int32_t type) {
+    if (type != K_OPTIONS_MEMCARD) return;
+    WriteU32LE(file, g_pEngine->m_locManager->m_languageIndex);  // engine +0x94, lhz +0xb2
+    uint8_t block[0x34];
+    OptionsToPS3(m_currentOptions, block);
+    file->Write(block, 0x34);
+}
+
+// 0x00019f98 CKDefaultPlayer_SaveImpl
+int32_t IKPlayer::SaveImpl(IKFile* file, int32_t type) {
+    if (type != K_GAME_MEMCARD) return 1;
+    WriteU32LE(file, m_baLevelSaved);
+    file->Write(&m_bUsed, 1);
+    WriteU32LE(file, m_unk10);  // lfs / stfs: the word's bits
+    return 1;
+}
+
+// 0x000156d8 CDefaultGameManager_ClearReferencesImpl (C2.8 save-menu: SaveData_FreeWorkBuffer_maybe is ported)
+void CDefaultGameManager::ClearReferencesImpl() { SaveData_FreeWorkBuffer(); }  // 0x0002d100
+
+// 0x00019ab8 IKHook_LevelReset (IKHook::RecursiveRegistration, returns 1). 0x00019c98 KObject_LevelResetIfNotNull_maybe
+// inlined: the node's vt+0x24 when there is one.
+void IKHook::RecursiveRegistration(int32_t type) {
+    if (static_cast<uint32_t>(type) - 4u > 3u && m_pKGLObject != nullptr) m_pKGLObject->RecursiveRegistration(type);
+}
+
+// ==== C2.8 port-rest R05: the save-data check flow (vt+0xac), vt+0x138, the boot save-data init ===================
+#include "k2000/memory/Mem.h"
+#include "k2000/misc/JobQueue.h"
+#include "k2000/services/ICollisionMesh.h"
+
+// 0x000137e8 CDefaultGameManager_vf138
+uint16_t CDefaultGameManager::GetGroundSurfaceBit(const IKSerializable* ground) const {
+    return static_cast<uint16_t>((static_cast<const ICollisionMesh*>(ground)->m_ba16EngineFlags >> 6) & 1u);
+}
+
+namespace {
+
+KSaveDevice* SaveDevice() { return g_pEngine->m_fileSystem->m_saveDevice; }  // 0x00048f88 KFileSystem_GetSaveDevice
+
+// 0x000144a8 CDefaultGameManager_SaveDialogCallback_NotSaveDeviceVf10_maybe: the message boxes' interrupt (TOC1 -0x7ea4):
+// the box closes once the save device's vt+0x10 answers 0.
+uint8_t SaveDialogCallbackNotSaveDeviceVf10() { return static_cast<uint8_t>(SaveDevice()->Vf10() ^ 1); }
+
+// 0x00014c68 CDefaultGameManager_SaveDialogCallback_NotSaveDeviceVfC_maybe: the same with vt+0x0c (TOC1 -0x7ea8, the box
+// 0x13b).
+uint8_t SaveDialogCallbackNotSaveDeviceVfC() { return static_cast<uint8_t>(SaveDevice()->Vf0C() ^ 1); }
+
+// The save-check machine's table (0x00b132c0: five PS3 pointers to member, eight bytes each).
+const CDefaultGameManager::SaveCheckState kSaveCheckStates[5] = {
+    &CDefaultGameManager::SaveCheckState0, &CDefaultGameManager::SaveCheckState1, &CDefaultGameManager::SaveCheckState2,
+    &CDefaultGameManager::SaveCheckState3, &CDefaultGameManager::SaveCheckState4,
+};
+
+}  // namespace
+
+// 0x00014698 BootLoad_InitSaveData_maybe (BootLoadRequest_Execute_maybe 0x343c4 calls it): the save device's vt+0x00,
+// then the save folders' prefix.
+void BootLoad_InitSaveData() {
+    SaveDevice()->Vf00();
+    SaveData_InitDirNamePrefix();  // 0x0002d840
+}
+
+// 0x0001a6f8 CDefaultGameManager_vfAC: KStub_Nop_12fb8 (empty) first.
+void CDefaultGameManager::VfAC() { UpdateSaveDataFlow(); }
+
+// 0x00018a80 CDefaultGameManager_UpdateSaveDataFlow_maybe (its jump table 0x18b4c: states 0..6)
+int32_t CDefaultGameManager::UpdateSaveDataFlow() {
+    if (m_unk274 == 9) {
+        m_unk274 = RunSaveCheckStateMachine();
+        return 0;
+    }
+    SaveDevice()->Vf10();  // the answer is not used
+    if (static_cast<uint32_t>(m_unk274) > 6u) return 0;
+    // The two ends the states share: 0x18c68 (the box's answer polled), 0x18c84 (confirmed: the defaults restored),
+    // 0x18cb4 (the options applied when a slot was loaded, then copied to the edited block; returns 1).
+    bool poll = false;
+    bool restore = false;
+    switch (m_unk274) {
+    case 0:
+        if (SaveDevice()->Vf10() == 0) {
+            m_unk274 = 3;
+            return 0;
+        }
+        break;  // 0x18cb4
+    case 1:
+        return 0;
+    case 2:
+        if (SaveDevice()->Vf10() != 0) {
+            restore = true;  // 0x18c84
+            break;
+        }
+        m_unk274 = 3;
+        m_unk274 = 9;
+        return 0;
+    case 3:
+        if (MessageBox_GetQueuedCount() == 0) {
+            MessageBox_Push(1.0f, -1.0f, nullptr, g_pEngine->m_locManager->GetText(0x13b), 1, 0,
+                            &SaveDialogCallbackNotSaveDeviceVfC);  // TOC1 -0x7ef4 / -0x7ed0
+        }
+        poll = true;
+        break;
+    case 4:
+    case 5:
+    case 6:
+        if (MessageBox_GetQueuedCount() == 0) {
+            const uint32_t text = m_unk274 == 4 ? 0x135u : (m_unk274 == 5 ? 0x13cu : 0x134u);
+            MessageBox_Push(1.0f, -1.0f, nullptr, g_pEngine->m_locManager->GetText(text), 1, 0,
+                            &SaveDialogCallbackNotSaveDeviceVf10);
+        }
+        poll = true;
+        break;
+    }
+    if (poll) {
+        const int32_t answer = MessageBox_TakeResult(nullptr);  // 0x000685c8
+        if (answer == 0xb) return 0;
+        if (answer == 8) {
+            m_unk274 = 9;
+            return 0;
+        }
+        restore = true;
+    }
+    if (restore) {
+        m_unk28c = -1;
+        RestoreDefaultOptions(1);  // vt+0x1c0
+    }
+    if (m_unk28c != -1) ApplyOptions(&m_currentOptions, 1);  // 0x00013920
+    m_editedOptions = m_currentOptions;
+    return 1;
+}
+
+// 0x00018650 CDefaultGameManager_RunSaveCheckStateMachine_maybe
+int32_t CDefaultGameManager::RunSaveCheckStateMachine() {
+    uint8_t current = m_unk151;
+    if (current == 0xff) {
+        m_unk148 = this;
+        m_unk14c = static_cast<SaveCheckState*>(Mem_AllocAligned16(static_cast<uint32_t>(sizeof(kSaveCheckStates))));
+        for (uint32_t i = 0; i < 5; ++i) m_unk14c[i] = kSaveCheckStates[i];
+        m_unk150 = 5;
+        m_unk268[0] = 0;
+        m_unk268[1] = 1;
+        uint8_t previous = m_unk151;
+        if (m_unk151 != 0xff) {
+            (m_unk148->*m_unk14c[m_unk151])(2, 0);
+            previous = m_unk151;
+        }
+        m_unk151 = 0;
+        (m_unk148->*m_unk14c[0])(1, previous);
+        current = m_unk151;
+    }
+    if (current != 0xff) {
+        const uint8_t next = (m_unk148->*m_unk14c[current])(0, current);
+        const uint8_t now = m_unk151;
+        if (next != now) {
+            uint8_t previous = now;
+            if (now != 0xff) {
+                (m_unk148->*m_unk14c[now])(2, next);
+                previous = m_unk151;
+            }
+            m_unk151 = next;
+            if (next != 0xff) (m_unk148->*m_unk14c[next])(1, previous);
+        }
+    }
+    int32_t result = 9;
+    if (m_unk268[0] != 0) {
+        m_unk148 = nullptr;
+        Mem_FreeAligned16(m_unk14c);
+        m_unk150 = 0;
+        m_unk151 = 0xff;
+        m_unk14c = nullptr;
+        result = m_unk1c4;
+    }
+    return result;
+}
+
+// 0x000157e8 CDefaultGameManager_SaveFlowA_State0_maybe
+uint8_t CDefaultGameManager::SaveCheckState0(int32_t event, uint8_t /*state*/) {
+    if (event == 1) {
+        std::memset(m_unkA0, 0, sizeof(m_unkA0));  // 0x002461c0 Uuid_Clear
+        m_unkB0 = -1;
+        if (m_unk268[2] != 0) {
+            m_unk1c0 = -1;
+            m_unk1f0[10] = 0;
+            m_unk1f0[9] = 1;
+            m_unk1b8 = 0;
+            m_unk1f0[0] = 0;
+            m_unk1f0[1] = 0;
+            m_unk1f0[2] = 1;
+            m_unk1f0[3] = 0;
+            m_unk1f0[6] = 0;
+            m_unk1f0[7] = 1;
+            m_unk1f0[8] = 0;
+            std::memset(m_unk220, 0, sizeof(m_unk220));
+            return 0;
+        }
+        if (m_unk268[1] != 0) {
+            m_unk1c0 = -1;
+            m_unk1f0[6] = 1;
+            m_unk1f0[10] = 0;
+            m_unk1b8 = 0;
+            m_unk1f0[0] = 0;
+            m_unk1f0[1] = 1;
+            m_unk1f0[2] = 0;
+            m_unk1f0[3] = 0;
+            m_unk1f0[9] = 0;
+            std::memset(m_unk220, 0, sizeof(m_unk220));
+        }
+        return 0;
+    }
+    if (event == 2) {
+        if (m_unk1c4 != 0) {
+            std::memset(m_unk8c, 0, sizeof(m_unk8c));
+            m_unk9c = -1;
+            m_unk288 = -1;
+        }
+        return 0;
+    }
+    if (event == 0 && m_unk1f0[4] == 0) {
+        if (m_unk1f0[6] != 0) {
+            m_unk268[0] = 1;
+            return 0xff;
+        }
+        // srawi / xor / subf / subi / srawi, the mask, + 4: 1 while the result is 0, else 4.
+        return m_unk1c4 == 0 ? 1 : 4;
+    }
+    return 0;
+}
+
+// 0x00017c38 CDefaultGameManager_SaveFlowA_State1_maybe
+uint8_t CDefaultGameManager::SaveCheckState1(int32_t event, uint8_t /*state*/) {
+    if (event == 1) {
+        VfBC(1);  // vt+0xbc
+        m_unk268[5] = 1;
+        return 1;
+    }
+    if (event == 2) {
+        VfD0();  // vt+0xd0 (r4 = 1)
+        return 1;
+    }
+    if (event != 0) return 1;
+    m_unk24c[0] = -1;
+    m_unk24c[1] = 0;
+    m_unk288 = -1;
+    const uint8_t chosen = VfCC(1, &m_unk24c[0]);  // vt+0xcc
+    m_unk288 = m_unk24c[0];
+    m_unk268[5] = chosen;
+    if (SaveDevice()->Vf10() == 0) return 2;
+    if (m_unk268[5] != 0) return 1;
+    const int32_t slot = m_unk288;
+    if (slot == -1) {
+        m_unk1c4 = 1;
+        m_unk288 = slot;
+        return 4;
+    }
+    static_cast<IKPlayer*>(m_players[0])->CopyPlayerGameData(static_cast<IKPlayer*>(m_players[slot + 1]));  // vt+0x50
+    const int32_t index = m_unk1c0;
+    Uuid_Copy(m_unk8c, m_unk230);  // 0x00246190
+    m_unk9c = index;
+    m_unk268[0] = 1;
+    return 0xff;
+}
+
+// 0x00014958 CDefaultGameManager_SaveFlowA_State2_maybe: the box 0x12f (one button) shown and polled; answered: result 3.
+uint8_t CDefaultGameManager::SaveCheckState2(int32_t event, uint8_t /*state*/) {
+    if (event == 0) {
+        MessageBox_Push(1.0f, -1.0f, nullptr, g_pEngine->m_locManager->GetText(0x12f), 1, 0, nullptr);
+        if (MessageBox_TakeResult(nullptr) != 0xb) {
+            m_unk1c4 = 3;
+            return 4;
+        }
+    }
+    return 2;
+}
+
+// 0x000155b0 CDefaultGameManager_SaveFlowA_State3_maybe
+uint8_t CDefaultGameManager::SaveCheckState3(int32_t event, uint8_t /*state*/) {
+    if (event == 0) {
+        if (m_unk1f0[4] != 0) return 3;
+        if (m_unk1c4 != 0) return 4;
+        const int32_t index = m_unk1c0;
+        Uuid_Copy(m_unk8c, m_unk230);
+        m_unk9c = index;
+        m_unk268[0] = 1;
+        return 0xff;
+    }
+    if (event == 1) {
+        m_unk1c0 = m_unk288;
+        m_unk1f0[1] = m_unk268[1];
+        m_unk1f0[3] = 1;
+        m_unk1f0[8] = m_unk268[4];
+        m_unk1f0[9] = 0;
+        m_unk1b8 = 0;
+        m_unk1f0[0] = 0;
+        m_unk1f0[2] = 1;
+        m_unk1f0[6] = 0;
+        m_unk1f0[7] = 0;
+        m_unk1f0[10] = 0;
+        std::memset(m_unk220, 0, sizeof(m_unk220));
+    }
+    return 3;
+}
+
+// 0x00014870 CDefaultGameManager_SaveFlowA_State4_maybe: the box 0x179 (combine type 3, default button 6) shown and polled.
+uint8_t CDefaultGameManager::SaveCheckState4(int32_t event, uint8_t /*state*/) {
+    if (event == 0) {
+        MessageBox_Push(1.0f, -1.0f, nullptr, g_pEngine->m_locManager->GetText(0x179), 3, 6, nullptr);
+        const int32_t answer = MessageBox_TakeResult(nullptr);
+        if (answer != 0xb) {
+            if (answer != 5) {
+                m_unk1c4 = 8;
+                m_unk24c[1] = 0;
+                return 0;
+            }
+            m_unk268[0] = 1;
+            m_unk288 = -1;
+            m_unk1c4 = 1;
+            return 0xff;
+        }
+    }
+    return 4;
 }

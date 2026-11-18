@@ -11,13 +11,20 @@ struct RtAnimAnimation;
 class CKAnmKeyFrameController : public KBase98D {
 public:
     DOTD_CLASS_KEY(kCategoryGraphical, 0x2d)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x999748
+        return key == 0xb4d || key == 0x98d || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKAnmKeyFrameController)
 
     CKAnmKeyFrameController() {}  // 0x0007ae08 CKAnmKeyFrameController_Create: KBase98D's constructor only
     ~CKAnmKeyFrameController() override {}
+    // vt+0x10 0x0007ad18 CKAnmKeyFrameController_Destroy: the base's references, the times and animations cleared.
+    void Destroy() override;
 
     // vt+0x2c 0x0007ac78 CKAnmKeyFrameController_Load: the base's, then the four runtime words cleared.
     int32_t Load(IKFile* file, int32_t type) override;
+    // vt+0x24 0x0007acf0 CKAnmKeyFrameController_RecursiveRegistration: KBase98D's (0x7cff8).
+    void RecursiveRegistration(int32_t type) override { KBase98D::RecursiveRegistration(type); }
     // vt+0x30 0x0007ac50 CKAnmKeyFrameController_PostLoad: KBase98D::PostLoadBase. 1.
     int32_t PostLoad(int32_t type) override;
 

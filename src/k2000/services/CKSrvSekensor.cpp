@@ -6,47 +6,47 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1f8450  CKSrvSekensor_Delete
 //   [ ] 0x1f84a0  CKSrvSekensor_Construct  [dead]
-//   [ ] 0x1f8518  Platform_GetFileTag_maybe
+//   [x] 0x1f8518  Platform_GetFileTag_maybe
 //   [ ] 0x1f8548  Platform_GetSecondFileTag_maybe  [dead]
 //   [ ] 0x1f8578  CKSrvSekensor_GetSekensCount_maybe  [dead]
 //   [ ] 0x1f8580  KStub_Nop_1f8580  [dead]
-//   [ ] 0x1f8588  CKSrvSekensor_GetCurrentSekens_maybe
+//   [x] 0x1f8588  CKSrvSekensor_GetCurrentSekens_maybe  (inline, CKSrvSekensor.h)
 //   [x] 0x1f8590  CKSrvSekensor_GetPendingSekens_maybe
 //   [ ] 0x1f8598  CKSrvSekensor_Construct_2  [dead]
 //   [x] 0x1f8610  CKSrvSekensor_GetSekensTypeDelay_maybe
 //   [ ] 0x1f8640  RegisterCKSrvSekensorClass
 //   [ ] 0x1f86b8  _GLOBAL__I_1f86b8
 //   [x] 0x1f86c8  CKSrvSekensor_RefreshSubtitleVisibility_maybe
-//   [ ] 0x1f8808  CKSrvSekensor_Resume
+//   [x] 0x1f8808  CKSrvSekensor_Resume
 //   [x] 0x1f8810  CKSrvSekensor_Stop
-//   [ ] 0x1f8880  CKSrvSekensor_Restart
-//   [ ] 0x1f88f0  CKSrvSekensor_IsCurrentSekensRunningWithFlag14Bit4_maybe
-//   [ ] 0x1f8970  CKSrvSekensor_IsCurrentSekensDone
+//   [x] 0x1f8880  CKSrvSekensor_Restart
+//   [x] 0x1f88f0  CKSrvSekensor_IsCurrentSekensRunningWithFlag14Bit4_maybe
+//   [x] 0x1f8970  CKSrvSekensor_IsCurrentSekensDone
 //   [x] 0x1f89b0  CKSrvSekensor_RequestSekens_maybe
 //   [x] 0x1f8ce0  CKSrvSekensor_StopSekens_maybe
-//   [ ] 0x1f8e08  FormatLevelSpeechPath
-//   [ ] 0x1f8e40  FormatSpeechExportWavPath
-//   [ ] 0x1f8e88  FormatSpeechExportDir
-//   [ ] 0x1f8ec0  CKSrvSekensor_DestroyService
+//   [x] 0x1f8e08  FormatLevelSpeechPath
+//   [x] 0x1f8e40  FormatSpeechExportWavPath
+//   [x] 0x1f8e88  FormatSpeechExportDir
+//   [x] 0x1f8ec0  CKSrvSekensor_DestroyService
 //   [x] 0x1f8f38  CKSrvSekensor_InitializeService
-//   [ ] 0x1f8fa0  CKSrvSekensor_PostLoad
+//   [x] 0x1f8fa0  CKSrvSekensor_PostLoad
 //   [x] 0x1f9028  CKSrvSekensor_Destroy
 //   [x] 0x1f9080  CKSrvSekensor_DeleteArray
-//   [ ] 0x1f9128  CKSrvSekensor_Pause
-//   [ ] 0x1f91d8  CKSrvSekensor_FindSekensByUuid_maybe
+//   [x] 0x1f9128  CKSrvSekensor_Pause
+//   [x] 0x1f91d8  CKSrvSekensor_FindSekensByUuid_maybe
 //   [ ] 0x1f92a8  CKSrvSekensor_AnySekensUsesSpeechStream_maybe  [dead]
-//   [ ] 0x1f9350  CKSrvSekensor_SetDefaultState
+//   [x] 0x1f9350  CKSrvSekensor_SetDefaultState
 //   [x] 0x1f93e8  CKSrvSekensor_GetSekens
-//   [ ] 0x1f9418  CKSrvSekensor_Start
-//   [ ] 0x1f9450  CKSrvSekensor_vfA8
-//   [ ] 0x1f94e8  CKSrvSekensor_RecursiveRegistration
+//   [x] 0x1f9418  CKSrvSekensor_Start
+//   [x] 0x1f9450  CKSrvSekensor_vfA8
+//   [x] 0x1f94e8  CKSrvSekensor_RecursiveRegistration
 //   [ ] 0x1f9590  CKSrvSekensor_IsSubtitleVisible_maybe  [dead]
 //   [x] 0x1f95f0  CKSrvSekensor_SetSubtitlesEnabled_maybe
 //   [ ] 0x1f9760  CKSrvSekensor_Save
-//   [ ] 0x1f9768  CKSrvSekensor_GetInfo
-//   [ ] 0x1f9770  CKSrvSekensor_RegisterSekens_maybe
+//   [x] 0x1f9768  CKSrvSekensor_GetInfo  (returns 1: the root's default)
+//   [x] 0x1f9770  CKSrvSekensor_RegisterSekens_maybe
 //   [x] 0x1f9858  CKSrvSekensor_Load
-//   [ ] 0x1f9c48  CKSrvSekensor_UpdateLocalizedData
+//   [x] 0x1f9c48  CKSrvSekensor_UpdateLocalizedData
 //   [x] 0x1f9d50  CKSrvSekensor_MessageProc
 //   [x] 0x1f9ef0  CKSrvSekensor_CreateArray
 //   [x] 0x1fa000  CKSrvSekensor_Create
@@ -75,6 +75,13 @@
 #include "k2000/memory/Mem.h"
 #include "k2000/misc/ClassRegistry.h"
 #include "k2000/misc/Engine.h"
+#include "k2000/io/KFileSystem.h"
+#include "k2000/logic/CKGameLevel.h"
+#include "k2000/logic/sound/CKStreamWave.h"
+#include "k2000/logic/ui/CLocManager.h"
+#include "k2000/misc/IKGameStructure.h"
+#include "k2000/sound/SoundStreamType.h"
+#include <cstdio>
 
 namespace {
 // The inlined TVector sizing of both vectors: the block is sized to count; growth (to the next
@@ -122,12 +129,72 @@ int32_t CKSrvSekensor::InitializeService() {
     return 1;
 }
 
-// 0x001f95f0 CKSrvSekensor_SetSubtitlesEnabled_maybe. The two sekens (+0x1c, +0x24) only run in game:
-// their subtitle texts (CKSekens +0x2c, vt+0x64 / +0x68 after CKSekens_ShouldShowSubtitles_maybe) are
-// STUB(C2).
+// 0x001f95f0 CKSrvSekensor_SetSubtitlesEnabled_maybe: +0x2c bit 0, then the subtitle texts of the current sekens
+// (shown while the engine clock runs and the sekens says so) and of the secondary one (+0x24) shown or hidden. A
+// current sekens without a text ends it there: the secondary one's is left as it is.
 void CKSrvSekensor::SetSubtitlesEnabled(uint32_t enabled) {
     m_unk2c = enabled | (m_unk2c & ~1u);
-    if (m_unk1c != nullptr || m_unk24 != nullptr) DOTD_STUB_ONCE("CKSrvSekensor_SetSubtitlesEnabled_maybe: running sekens texts (C2)");
+    CKSekens* current = m_unk1c;
+    if (current != nullptr) {
+        CText2d* text = current->m_pText;
+        if (text == nullptr) return;
+        if (g_pEngine->m_timeManager->m_pTime->m_eCurrentState == IKTime::RUNNING && current->ShouldShowSubtitles(enabled & 0xff) != 0) {
+            text->Enable();  // vt+0x64
+        } else {
+            text->Disable();  // vt+0x68
+        }
+    }
+    CKSekens* secondary = m_unk24;
+    if (secondary != nullptr && secondary->m_pText != nullptr) {
+        CText2d* text = secondary->m_pText;
+        if (g_pEngine->m_timeManager->m_pTime->m_eCurrentState == IKTime::RUNNING && secondary->ShouldShowSubtitles(enabled & 0xff) != 0) {
+            text->Enable();
+        } else {
+            text->Disable();
+        }
+    }
+}
+
+// 0x001f8fa0 CKSrvSekensor_PostLoad: GAME.KP3's post-load gives the "Speech" stream type its one player
+// (PtrList_FindByNameHash_maybe 0x115cc8 with "Speech", 0x00c4b158; the base PostLoad KStub_Return1_1a5b0).
+int32_t CKSrvSekensor::PostLoad(int32_t type) {
+    if (type != K_GAME_PLATEFORMS) return 1;
+    g_pEngine->m_soundManager->m_pSoundStreamManager->FindTypeByName("Speech")->SetStreamCount(1);
+    return 1;
+}
+
+namespace {
+
+// Local copies of 0x0002f590 Game_GetCurrentLevelNumber_maybe (CKLevel.cpp) and 0x00013e48
+// CDefaultGameManager_GetCurrentLevelNumber_maybe (CDefaultGameManager.cpp): the loaded stage's level number (+0x1c), 0
+// without a game manager.
+int32_t Game_GetCurrentLevelNumber() {
+    CDefaultGameManager* manager = g_pEngine->m_gameManager;
+    if (manager == nullptr) return 0;
+    CKGameLevel* level = static_cast<IKGameStructure*>(manager->m_gameStructure)->GetCurrentLevel();
+    return level->m_i32StageIndex;  // BUG(original): a structure without a loaded stage is not checked (a null read)
+}
+
+// 0x00c4b054: the platform tag of the file names ("PS3", 0x00ac3038).
+const char kPlatformTag[] = "PS3";
+
+}  // namespace
+
+// 0x001f8e08 FormatLevelSpeechPath: "%sLVL%03d/SPEECH" (UpdateLocalizedData formats the same inline).
+//
+// vt+0xa0 0x001f9c48 CKSrvSekensor_UpdateLocalizedData: the speech wave (+0x4c) takes the speech file of the loaded
+// level in the voice language, "LVL%03d/SPEECH/%d_PS30.RWS" (KStub_Nop_1f4c58 on the current sekens first).
+void CKSrvSekensor::UpdateLocalizedData() {
+    if (m_unk1c != nullptr) m_unk1c->LocalizedDataChanged(0, 0);  // 0x001f4c58 KStub_Nop_1f4c58 (empty)
+    const uint32_t voice = g_pEngine->m_locManager->GetVoiceLanguageIndex();
+    const char* tag = kPlatformTag;
+    const int32_t level = Game_GetCurrentLevelNumber();
+    char directory[0xa08];
+    char path[0x100];
+    std::snprintf(directory, sizeof(directory), "%sLVL%03d/SPEECH", "", level);  // TOC -0x12b8 / -0x12a0
+    std::snprintf(path, sizeof(path), "%s/%d_%s0.RWS", directory, static_cast<int32_t>(voice), tag);  // TOC -0x129c
+    KFileSystem_ConvertBackslashes(g_pEngine->m_fileSystem, path);
+    static_cast<CKStreamWave*>(m_unk4c)->SetFilePath(path);
 }
 
 // 0x001f9028 CKSrvSekensor_Destroy: the sekens list freed.
@@ -168,6 +235,34 @@ int32_t CKSrvSekensor::Load(IKFile* file, int32_t type) {
     return 1;
 }
 
+// 0x001f9418 CKSrvSekensor_Start
+void CKSrvSekensor::Start() {
+    m_unk28 &= 0x00ffffffu;  // stb 0 at +0x28: bits 24-31 of the word
+    m_unk1c = nullptr;
+    m_pPendingSekens = nullptr;
+    m_unk24 = nullptr;
+    m_unk2c &= 0xfffffffdu;
+    m_unk48 = 9999.99f;  // TOC1 -0x12a4: 0x461c3ff6
+}
+
+// 0x001f9128 CKSrvSekensor_Pause
+void CKSrvSekensor::Pause() {
+    if (m_unk1c != nullptr && m_unk1c->m_pText != nullptr) m_unk1c->m_pText->Disable();  // vt+0x68
+    if (m_unk24 != nullptr && m_unk24->m_pText != nullptr) m_unk24->m_pText->Disable();
+}
+
+// 0x001f8ec0 CKSrvSekensor_DestroyService
+void CKSrvSekensor::DestroyService() {
+    Engine_SetSrvSekensor(nullptr);  // 0x24c30
+    if (m_unk30.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_unk30.m_pBlock);
+        m_unk30.m_pBlock = nullptr;
+    }
+    m_unk30.m_ui32NbUsedElt = 0;
+    m_unk30.m_pBlock = nullptr;
+    ClassRegistry_DestroyObject(m_unk4c);  // 0x11420
+}
+
 // 0x001f8810 CKSrvSekensor_Stop: the running sekens (+0x1c) stopped and forgotten; the second one (+0x24)
 // stopped, its byte at +0x28 (bits 24-31 of the word, the first byte on the PS3) cleared, and kept.
 void CKSrvSekensor::Stop() {
@@ -180,6 +275,27 @@ void CKSrvSekensor::Stop() {
         m_unk28 &= 0x00ffffffu;
     }
     m_pPendingSekens = nullptr;
+}
+
+// 0x001f8880 CKSrvSekensor_Restart (vt+0x54): the same body as Stop.
+void CKSrvSekensor::Restart() {
+    if (m_unk1c != nullptr) {
+        m_unk1c->Stop();  // 0x001f56b0
+        m_unk1c = nullptr;
+    }
+    if (m_unk24 != nullptr) {
+        m_unk24->Stop();
+        m_unk28 &= 0x00ffffffu;  // stb 0 at +0x28
+    }
+    m_pPendingSekens = nullptr;
+}
+
+// 0x001f9350 CKSrvSekensor_SetDefaultState
+void CKSrvSekensor::SetDefaultState(int32_t flag) {
+    const int32_t byteFlag = flag & 0xff;  // rldicl r29,r4,0,56
+    for (uint32_t i = 0; i < m_vSekensList.m_ui32NbUsedElt; ++i) {
+        m_vSekensList.m_pBlock[i]->SetDefaultState(byteFlag);  // vt+0x38 CKSekens_SetDefaultState 0x1f3ec0
+    }
 }
 
 // 0x001f93e8 CKSrvSekensor_GetSekens
@@ -500,4 +616,72 @@ label_3d0:
     m_unk24 = nullptr;
 label_450:
     RefreshSubtitleVisibility();
+}
+
+// 0x001f8518 Platform_GetFileTag_maybe: the platform table 0x00c4afc8 (8 entries of 0x14 bytes; the first word is the tag).
+// BUG(original): the test is signed (index < 8), so a negative index reads before the table; dotd answers null there.
+const char* Platform_GetFileTag(int32_t index) {
+    static const char* const kTags[8] = {"PS2", "WIN", "GCN", "XBX", "PSP", "XEN", "REV", "PS3"};
+    if (index >= 8 || index < 0) return nullptr;
+    return kTags[index];
+}
+
+// 0x001f8e40 FormatSpeechExportWavPath / 0x001f8e88 FormatSpeechExportDir: the speech export tool's paths (FormatString,
+// i.e. sprintf). No caller in the original (only their OPDs).
+void FormatSpeechExportWavPath(char* out, const char* root, int32_t language, int32_t sekens, int32_t line) {
+    std::sprintf(out, "%sTmp-SpeechExport-%02d/Sekens_%04d_%02d.wav", root, language, sekens, line);
+}
+void FormatSpeechExportDir(char* out, const char* root, int32_t language) {
+    std::sprintf(out, "%sTmp-SpeechExport-%02d", root, language);
+}
+
+// 0x001f88f0 CKSrvSekensor_IsCurrentSekensRunningWithFlag14Bit4_maybe: with a current sekens that is not done
+// (CKSrvSekensor_IsSekensDone_maybe 0x1f4728, on the engine's sekensor), its flags' bit 4.
+uint32_t CKSrvSekensor::IsCurrentSekensRunningWithFlag14Bit4() const {
+    if (m_unk1c == nullptr) return 0;
+    if (static_cast<CKSrvSekensor*>(g_pEngine->m_srvSekensor)->IsSekensDone(m_unk1c) != 0) return 0;
+    return (m_unk1c->m_flags >> 4) & 1;
+}
+
+// 0x001f8970 CKSrvSekensor_IsCurrentSekensDone: 1 without a current sekens, else IsSekensDone 0x1f4728 of it. No caller
+// in the original (only its OPD).
+uint8_t CKSrvSekensor::IsCurrentSekensDone() const {
+    if (m_unk1c == nullptr) return 1;
+    return static_cast<CKSrvSekensor*>(g_pEngine->m_srvSekensor)->IsSekensDone(m_unk1c);
+}
+
+// 0x001f91d8 CKSrvSekensor_FindSekensByUuid_maybe: the last sekens of the list (searched backwards) whose uuid (+0x18) is
+// `uuid`, or null. No caller in the original (only its OPD).
+CKSekens* CKSrvSekensor::FindSekensByUuid(const uint32_t* uuid) const {
+    for (uint32_t i = m_vSekensList.m_ui32NbUsedElt; i != 0; --i) {
+        CKSekens* sekens = static_cast<CKSekens*>(m_vSekensList.m_pBlock[i - 1]);
+        if (Uuid_Equals(sekens->m_uuid, uuid)) return sekens;
+    }
+    return nullptr;
+}
+
+// vt+0xa8 0x001f9450 CKSrvSekensor_vfA8: CKSekens_ForEachLineCallVf54_maybe 0x1f4ac0 on every sekens of the list.
+void CKSrvSekensor::VfA8(uint8_t a, uint32_t b) {
+    const uint32_t count = m_vSekensList.m_ui32NbUsedElt;
+    for (uint32_t i = 0; i != count; ++i) static_cast<CKSekens*>(m_vSekensList.m_pBlock[i])->ForEachLineCallVf54(a, b);
+}
+
+// vt+0x24 0x001f94e8 CKSrvSekensor_RecursiveRegistration: every sekens' RecursiveRegistration (vt+0x24) with `type`.
+void CKSrvSekensor::RecursiveRegistration(int32_t type) {
+    const uint32_t count = m_vSekensList.m_ui32NbUsedElt;
+    for (uint32_t i = 0; i != count; ++i) m_vSekensList.m_pBlock[i]->RecursiveRegistration(type);
+}
+
+// vt+0xac 0x001f9770 CKSrvSekensor_RegisterSekens_maybe: `sekens` appended to the list (TVector growth by 8; returns 1).
+int32_t CKSrvSekensor::RegisterSekens(IKSerializable* sekens) {
+    if (m_vSekensList.m_ui32NbElt == m_vSekensList.m_ui32NbUsedElt) {
+        uint32_t capacity = m_vSekensList.m_ui32NbUsedElt + 8;
+        if (capacity == 0) capacity = 8;
+        m_vSekensList.m_pBlock = static_cast<IKSerializable**>(
+            Mem_ReallocAligned16(m_vSekensList.m_pBlock, capacity * static_cast<uint32_t>(sizeof(IKSerializable*))));
+        m_vSekensList.m_ui32NbElt = capacity;
+    }
+    m_vSekensList.m_pBlock[m_vSekensList.m_ui32NbUsedElt] = sekens;
+    ++m_vSekensList.m_ui32NbUsedElt;
+    return 1;
 }

@@ -5,6 +5,7 @@
 #include <fstream>
 #include <string>
 
+#include "platform/fps.h"
 #include "platform/log.h"
 
 namespace dotd::platform {
@@ -30,6 +31,8 @@ void Apply(Config& c, const std::string& key, const std::string& value) {
     else if (key == "fullscreen") c.fullscreen = std::atoi(value.c_str()) != 0;
     else if (key == "vsync") c.vsync = std::atoi(value.c_str()) != 0;
     else if (key == "frame_rate") c.frameRate = std::atoi(value.c_str());
+    else if (key == "fps") c.fps = std::atoi(value.c_str());
+    else if (key == "show_fps") c.showFps = std::atoi(value.c_str()) != 0;
     else DOTD_LOG("config: unknown key '%s'", key.c_str());
 }
 
@@ -58,6 +61,9 @@ std::string ExeDirectory(const char* argv0) {
 
 bool LoadConfig(int argc, char** argv, Config& out) {
     Config c;
+#ifdef __EMSCRIPTEN__
+    c.showFps = true;
+#endif
     if (!ReadIni("dotd.ini", c) && argc > 0) {
         ReadIni(ExeDirectory(argv[0]) + "dotd.ini", c);
     }
@@ -71,7 +77,23 @@ bool LoadConfig(int argc, char** argv, Config& out) {
         else if (std::strcmp(a, "--fullscreen") == 0) c.fullscreen = true;
         else if (std::strcmp(a, "--novsync") == 0) c.vsync = false;
         else if (std::strcmp(a, "--frame-rate") == 0 && i + 1 < argc) c.frameRate = std::atoi(argv[++i]);
+        else if (std::strcmp(a, "--fps") == 0 && i + 1 < argc) c.fps = std::atoi(argv[++i]);
+        else if (std::strcmp(a, "--show-fps") == 0) {
+            // An optional 0 / 1 after it (the web page writes ?show-fps=0 as "--show-fps 0").
+            c.showFps = true;
+            if (i + 1 < argc && (std::strcmp(argv[i + 1], "0") == 0 || std::strcmp(argv[i + 1], "1") == 0)) {
+                c.showFps = argv[++i][0] == '1';
+            }
+        }
     }
+    // --fps N (any N but 60; negative = 60): the pacer's target and the 60 Hz timing calculation (platform/fps.h).
+    if (c.fps < 0) c.fps = 60;
+    const bool unlocked = c.fps != 60;
+    if (unlocked) {
+        c.frameRate = c.fps;
+        DOTD_LOG("config: fps %d with the 60 Hz timing calculation", c.fps);
+    }
+    fps::Configure(unlocked);
     // normalise: forward slashes, no trailing separator
     for (char& ch : c.usrdir) {
         if (ch == '\\') ch = '/';

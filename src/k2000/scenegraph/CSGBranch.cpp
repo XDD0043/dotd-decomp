@@ -5,8 +5,8 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0xcd528  CSGBranch_Delete
-//   [ ] 0xcd578  CSGBranch_RecursiveRegistration
-//   [ ] 0xcd580  CSGBranch_CollectFlaggedChildren_maybe
+//   [x] 0xcd578  CSGBranch_RecursiveRegistration  (returns 1, registers nothing: CSGLeaf's)
+//   [x] 0xcd580  CSGBranch_CollectFlaggedChildren_maybe
 //   [ ] 0xcd5f0  RegisterCSGBranchClass
 //   [ ] 0xcd668  _GLOBAL__I_cd668
 //   [x] 0xcd678  CSGBranch_PostLoad
@@ -18,11 +18,11 @@
 //   [x] 0xcd948  CSGBranch_CreateArray
 //   [ ] 0xcda10  CSGBranch_SetHAnimFrameID_maybe  [dead]
 //   [ ] 0xcda38  CSGBranch_GetHAnimFrameID_maybe  [dead]
-//   [ ] 0xcda68  CSGBranch_RemoveAllChildren_maybe
+//   [ ] 0xcda68  CSGBranch_RemoveAllChildren_maybe  [dead: no pointer to its descriptor 0xb4f390]
 //   [x] 0xcdb30  CSGBranch_RemoveChild_maybe
 //   [ ] 0xcdc28  CSGBranch_LevelResetChildren_maybe  [dead]
 //   [x] 0xcdca8  EnqueueSceneRootChildren
-//   [ ] 0xcdd60  CSGBranch_UpdateWorldMatrices
+//   [x] 0xcdd60  CSGBranch_UpdateWorldMatrices
 //   [ ] 0xcdde0  CSGBranch_Save
 //   [x] 0xcdec0  CSGBranch_Create
 //
@@ -43,6 +43,22 @@
 
 // Inlined in 0x000cdec0 CSGBranch_Create and the derived constructors.
 CSGBranch::CSGBranch() { m_lChildList = nullptr; }
+
+// 0x000cd580 CSGBranch_CollectFlaggedChildren_maybe
+uint32_t CSGBranch::GetHotSpots(CSGLeaf** out, uint32_t max) {
+    CSGLeaf* child = m_lChildList;
+    if (child == nullptr || max == 0) return 0;
+    uint32_t count = 0;
+    do {
+        if ((child->m_sgProperties & 8u) != 0) {
+            --max;
+            ++count;
+            *out++ = child;
+        }
+        child = child->m_pNext;
+    } while (child != nullptr && max != 0);
+    return count;
+}
 
 // 0x000cd6a0 CSGBranch_Load. No type check.
 int32_t CSGBranch::Load(IKFile* file, int32_t type) {
@@ -119,4 +135,11 @@ void CSGBranch::Destroy() {
 int32_t CSGBranch::PostLoad(int32_t type) {
     CSGLeaf::PostLoad(type);
     return 1;
+}
+
+// 0x000cdd60 CSGBranch_UpdateWorldMatrices
+uint8_t CSGBranch::UpdateWorldMatrices(int32_t force) {
+    const uint8_t changed = UpdateWorldMatrix(force);  // 0x000cede0
+    for (CSGLeaf* child = m_lChildList; child != nullptr; child = child->m_pNext) child->UpdateWorldMatrices(changed);
+    return changed;
 }

@@ -5,8 +5,8 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x202248  CKSrvInput_Delete
 //   [x] 0x202298  CKSrvInput_Start
-//   [ ] 0x2022a0  CKSrvInput_Pause
-//   [ ] 0x2022a8  CKSrvInput_Resume
+//   [x] 0x2022a0  CKSrvInput_Pause
+//   [x] 0x2022a8  CKSrvInput_Resume
 //   [ ] 0x2022b0  CKSrvInput_GetActiveBlockStep_maybe  [dead]
 //   [ ] 0x202358  KStub_ReturnFloat0_202358  [dead]
 //   [ ] 0x202360  FUN_00202360  [dead]
@@ -20,11 +20,11 @@
 //   [ ] 0x202578  FUN_00202578  [dead]
 //   [ ] 0x2025b0  FUN_002025b0  [dead]
 //   [x] 0x2025e8  CKSrvInput_PostLoad
-//   [ ] 0x202638  CKSrvInput_Destroy
-//   [ ] 0x202660  CKSrvInput_DestroyService
+//   [x] 0x202638  CKSrvInput_Destroy  (inherited: IKService_Destroy)
+//   [x] 0x202660  CKSrvInput_DestroyService
 //   [x] 0x2026b8  CKSrvInput_InitializeService
 //   [x] 0x202700  CKSrvInput_Construct
-//   [ ] 0x202778  CKSrvInput_Construct_2
+//   [x] 0x202778  CKSrvInput_Construct_2  (the not-in-charge copy of the constructor 0x202700: CKSrvInput())
 //   [x] 0x2027f0  CKSrvInput_DeleteArray
 //   [x] 0x202898  CKSrvInput_Stop
 //   [ ] 0x202920  CKSrvInput_GetActivePositionScaled_maybe  [dead]
@@ -32,16 +32,16 @@
 //   [x] 0x202a50  CKSrvInput_GetInputBlock_maybe
 //   [ ] 0x202a80  CKSrvInput_GetActivePositionNormalizedPtr_maybe  [dead]
 //   [ ] 0x202ab8  CKSrvInput_Save
-//   [ ] 0x202ac0  CKSrvInput_RecursiveRegistration
-//   [ ] 0x202ac8  CKSrvInput_DetachBlock_maybe
-//   [ ] 0x202c90  CKSrvInput_AppendBlock_maybe
+//   [x] 0x202ac0  CKSrvInput_RecursiveRegistration  (returns 1, registers nothing: the default)
+//   [ ] 0x202ac8  CKSrvInput_DetachBlock_maybe  [dead: no pointer to its descriptor 0xb79d88]
+//   [ ] 0x202c90  CKSrvInput_AppendBlock_maybe  [dead: no pointer to its descriptor 0xb79d90]
 //   [x] 0x202d78  CKSrvInput_Load
-//   [ ] 0x202ff8  CKSrvInput_AttachBlock_maybe
-//   [ ] 0x203108  CKSrvInput_DeletingDestructor
+//   [ ] 0x202ff8  CKSrvInput_AttachBlock_maybe  [dead: no pointer to its descriptor 0xb79da0]
+//   [x] 0x203108  CKSrvInput_DeletingDestructor  (~CKSrvInput + delete)
 //   [x] 0x203190  CKSrvInput_Create
 //   [x] 0x203228  CKSrvInput_CreateArray
-//   [ ] 0x203360  CKSrvInput_Destructor
-//   [ ] 0x2033e0  CKSrvInput_Destructor_2
+//   [x] 0x203360  CKSrvInput_Destructor  (~CKSrvInput)
+//   [x] 0x2033e0  CKSrvInput_Destructor_2  (~CKSrvInput)
 //
 //   [ ] 0x9b15e0  CKSrvInput_IsKindOfClass  [inline]
 //   [ ] 0x9b1618  CKSrvInput_GetClassType  [inline]
@@ -64,11 +64,28 @@ CKSrvInput::CKSrvInput() {
     Engine_SetSrvInput(this);
 }
 
+// 0x00203360 CKSrvInput_Destructor (0x2033e0 / 0x203108 the same; the capacity is kept)
+CKSrvInput::~CKSrvInput() {
+    if (m_vRefs.m_pBlock != nullptr) Mem_FreeAligned16(m_vRefs.m_pBlock);
+    m_vRefs.m_ui32NbUsedElt = 0;
+    m_vRefs.m_pBlock = nullptr;
+}
+
 // 0x002026b8 CKSrvInput_InitializeService: the vector's first one-element block.
 int32_t CKSrvInput::InitializeService() {
     m_vRefs.m_ui32NbElt = 1;
     m_vRefs.m_pBlock = static_cast<IKSerializable**>(Mem_AllocAligned16(static_cast<uint32_t>(sizeof(IKSerializable*))));
     return 1;
+}
+
+// 0x00202660 CKSrvInput_DestroyService (the capacity is kept)
+void CKSrvInput::DestroyService() {
+    if (m_vRefs.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_vRefs.m_pBlock);
+        m_vRefs.m_pBlock = nullptr;
+    }
+    m_vRefs.m_ui32NbUsedElt = 0;
+    m_vRefs.m_pBlock = nullptr;
 }
 
 // 0x00202d78 CKSrvInput_Load

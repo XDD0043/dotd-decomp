@@ -20,39 +20,39 @@
 //   [ ] 0x9ea90  _GLOBAL__I_9ea90
 //   [x] 0x9eaa0  CRenderer_RegisterPostRenderingFx_maybe
 //   [x] 0x9eb70  CRenderer_ClearReferences
-//   [ ] 0x9ec10  CRenderer_LevelReset
+//   [x] 0x9ec10  CRenderer_LevelReset  (CRenderer::RecursiveRegistration)
 //   [x] 0x9ed38  ApplySceneRenderStatesAndFog
 //   [x] 0x9f0a8  CRenderer_Construct
-//   [ ] 0x9f208  CRenderer_DestroyArray
+//   [x] 0x9f208  CRenderer_DestroyArray  (CRenderer::DeleteArray)
 //   [x] 0x9f2b0  CRenderer_StageApplySceneStates_maybe
-//   [ ] 0x9f320  CRenderer_Shutdown_maybe
+//   [x] 0x9f320  CRenderer_Shutdown_maybe
 //   [x] 0x9f588  CompareRenderItemsFarToNear
-//   [ ] 0x9f5c0  CompareRenderItemsPriorityThenFarToNear
+//   [x] 0x9f5c0  CompareRenderItemsPriorityThenFarToNear  (ComparePriorityThenFarToNear, the queues' sort)
 //   [x] 0x9f620  InitializeRendererStages
 //   [x] 0x9fd30  ConstructRenderer
-//   [ ] 0x9fe90  CRenderer_CreateArray
+//   [x] 0x9fe90  CRenderer_CreateArray  (CRenderer::CreateArray)
 //   [x] 0x9ff30  CRenderer_Create
 //   [x] 0x9ff70  ExecuteRenderStages4CTo74
 //   [x] 0xa04e8  SyncSceneCamerasAndClipPlanes
-//   [ ] 0xa0a00  SceneRoots_UpdateWorldMatrices_maybe
+//   [x] 0xa0a00  SceneRoots_UpdateWorldMatrices_maybe
 //   [x] 0xa0ac8  ExecuteRenderStages7CTo90
-//   [~] 0xa11b0  RenderFallbackFrame_maybe (the 2D part; the video manager calls and the matrices STUB)
+//   [x] 0xa11b0  RenderFallbackFrame_maybe (the render lwmutex is a PS3 system object: not taken here)
 //   [x] 0xa1408  ExecuteRenderStages38To48
 //   [x] 0xa1a78  ExecuteRenderStage78
 //   [x] 0xa1c08  RenderGameFrame
 //   [x] 0xa2180  CRenderer_PostLoad
 //   [x] 0xa2330  CRenderer_Load
 //   [ ] 0xa26a8  CRenderer_RegisterAllPostRenderingFx_maybe  [dead]
-//   [ ] 0xa2ab8  CRenderer_DeletingDestructor
-//   [ ] 0xa2b70  CRenderer_Destructor
-//   [ ] 0xa2c18  CRenderer_Destructor_2_maybe
+//   [x] 0xa2ab8  CRenderer_DeletingDestructor  (~CRenderer and the delete)
+//   [x] 0xa2b70  CRenderer_Destructor
+//   [ ] 0xa2c18  CRenderer_Destructor_2_maybe  [dead: no pointer to its descriptor 0xb48bc0, no call]
 //
 //   [ ] 0x99cd28  CRenderer_GetClassGroup  [inline]
 //   [ ] 0x99cd30  CRenderer_GetClassId  [inline]
 //   [ ] 0x99cd38  KStub_Nop_99cd38  [inline]
 //   [ ] 0x99cd40  KStub_Nop_99cd40  [inline]
-//   [ ] 0x99cd48  RenderQueueType4_BlendedZWrite_FreeBuffer  [inline]
-//   [ ] 0x99cda0  RenderQueueType7_TransparentPrio_BeginPass  [inline]
+//   [x] 0x99cd48  RenderQueueType4_BlendedZWrite_FreeBuffer  [inline]
+//   [x] 0x99cda0  RenderQueueType7_TransparentPrio_BeginPass  [inline]
 //   [x] 0x99d028  RenderQueueType0_TransparentATestPrio_AllocBuffer  [inline]
 //   [x] 0x99d068  RenderQueueType6_TransparentATest_Add  [inline]
 //   [ ] 0x99d148  RenderQueueType7_TransparentPrio_IsEmpty  [inline]
@@ -73,10 +73,10 @@
 //   [x] 0x99d2b8  RenderQueueType6_TransparentATest_Clear  [inline]
 //   [x] 0x99d2c8  RenderQueueType0_TransparentATestPrio_BeginPass  [inline]
 //   [x] 0x99d548  RenderQueueType1_Opaque_BeginPass  [inline]
-//   [ ] 0x99d7c8  RenderQueueType2_OpaqueCutout_BeginPass  [inline]
-//   [ ] 0x99da48  RenderQueueType3_Transparent_BeginPass  [inline]
+//   [x] 0x99d7c8  RenderQueueType2_OpaqueCutout_BeginPass  [inline]
+//   [x] 0x99da48  RenderQueueType3_Transparent_BeginPass  [inline]
 //   [ ] 0x99dcd0  RenderQueueType4_BlendedZWrite_BeginPass  [inline]
-//   [ ] 0x99df50  RenderQueueType5_TransparentUnsorted_BeginPass  [inline]
+//   [x] 0x99df50  RenderQueueType5_TransparentUnsorted_BeginPass  [inline]
 //   [x] 0x99e1d8  RenderQueueType6_TransparentATest_BeginPass  [inline]
 //   [ ] 0x99e458  CRenderer_IsKindOf  [inline]
 //   [ ] 0x99e478  RenderQueueType7_TransparentPrio_Execute  [inline]
@@ -87,20 +87,20 @@
 //   [ ] 0x99e7e8  RenderQueueType2_OpaqueCutout_AllocBuffer  [inline]
 //   [ ] 0x99e828  RenderQueueType3_Transparent_AllocBuffer  [inline]
 //   [ ] 0x99e868  RenderQueueType4_BlendedZWrite_AllocBuffer  [inline]
-//   [ ] 0x99e8a8  RenderQueueType0_TransparentATestPrio_FreeBuffer  [inline]
-//   [ ] 0x99e900  RenderQueueType7_TransparentPrio_FreeBuffer  [inline]
-//   [ ] 0x99e958  RenderQueueType5_TransparentUnsorted_FreeBuffer  [inline]
-//   [ ] 0x99e9b0  RenderQueueType6_TransparentATest_FreeBuffer  [inline]
-//   [ ] 0x99ea08  RenderQueueType1_Opaque_FreeBuffer  [inline]
-//   [ ] 0x99ea60  RenderQueueType2_OpaqueCutout_FreeBuffer  [inline]
-//   [ ] 0x99eab8  RenderQueueType3_Transparent_FreeBuffer  [inline]
+//   [x] 0x99e8a8  RenderQueueType0_TransparentATestPrio_FreeBuffer  [inline]
+//   [x] 0x99e900  RenderQueueType7_TransparentPrio_FreeBuffer  [inline]
+//   [x] 0x99e958  RenderQueueType5_TransparentUnsorted_FreeBuffer  [inline]
+//   [x] 0x99e9b0  RenderQueueType6_TransparentATest_FreeBuffer  [inline]
+//   [x] 0x99ea08  RenderQueueType1_Opaque_FreeBuffer  [inline]
+//   [x] 0x99ea60  RenderQueueType2_OpaqueCutout_FreeBuffer  [inline]
+//   [x] 0x99eab8  RenderQueueType3_Transparent_FreeBuffer  [inline]
 //   [ ] 0x99eb10  RenderQueueType7_TransparentPrio_Add  [inline]
 //   [x] 0x99ebf0  RenderQueueType0_TransparentATestPrio_Add  [inline]
 //   [x] 0x99ecd0  RenderQueueType1_Opaque_Add  [inline]
 //   [x] 0x99edb0  RenderQueueType2_OpaqueCutout_Add  [inline]
 //   [ ] 0x99ee90  RenderQueueType3_Transparent_Add  [inline]
 //   [ ] 0x99ef70  RenderQueueType4_BlendedZWrite_Add  [inline]
-//   [ ] 0x99f050  RenderQueueType5_TransparentUnsorted_Add  [inline]
+//   [x] 0x99f050  RenderQueueType5_TransparentUnsorted_Add  [inline]
 //   [x] 0x99f130  RenderQueueType0_TransparentATestPrio_Execute  [inline]
 //   [x] 0x99f510  RenderQueueType1_Opaque_Execute  [inline]
 //   [ ] 0x99f690  RenderQueueType2_OpaqueCutout_Execute  [inline]
@@ -115,6 +115,7 @@
 #include <cstring>
 
 #include "Renderware/rpworld/RpGeometry.h"
+#include "Renderware/rpworld/RpWorld.h"
 #include "Renderware/rwcore/RwCamera.h"
 #include "Renderware/rwcore/RwDevice.h"
 #include "Renderware/rwcore/RwIm3D.h"
@@ -125,6 +126,7 @@
 #include "k2000/cameras/CameraContext.h"
 #include "k2000/core/Stub.h"
 #include "k2000/fx/ParticleUpdateScheduler.h"
+#include "k2000/geometry/CGeometry.h"
 #include "k2000/graphical/CBackgroundManager.h"
 #include "k2000/graphical/CSpawnManager.h"
 #include "k2000/graphical/memory/CKPBuffer.h"
@@ -138,6 +140,7 @@
 #include "k2000/cameras/CKSrvCamera.h"
 #include "k2000/graphical/IRendableObject.h"
 #include "k2000/graphical/system/CVideoManager.h"
+#include "k2000/misc/CKGameLoop.h"
 #include "k2000/graphical/ui/CKFlashManager.h"
 #include "k2000/graphical/ui/CManager2d.h"
 #include "k2000/logic/CKLevel.h"
@@ -145,6 +148,7 @@
 #include "k2000/misc/ClassRegistry.h"
 #include "k2000/misc/CoreSingletons.h"
 #include "k2000/misc/Engine.h"
+#include "k2000/misc/Mat4.h"
 #include "k2000/scenegraph/CSGBranch.h"
 #include "k2000/services/CKSrvShadow.h"
 
@@ -164,9 +168,8 @@ uint8_t s_queueZWrite = 0;       // 0x00c5c874
 uint8_t s_queueAlphaTest = 0;    // 0x00c5c875
 float s_queueAlphaRef = 200.0f;  // 0x00c296ac
 
-// 0x0001e178 CKGameLoop_GetGlobalUpdateInhibitByte_maybe: the byte at 0x00ceac59. STUB: where the game
-// sets it is not traced; 0 in the front end.
-uint8_t GetGlobalUpdateInhibitByte() { return 0; }
+// 0x0001e178 CKGameLoop_GetGlobalUpdateInhibitByte_maybe (CKGameLoop.cpp): the byte at 0x00ceac59, the XMB open.
+uint8_t GetGlobalUpdateInhibitByte() { return CKGameLoop_GetGlobalUpdateInhibitByte(); }
 
 // 0x0009f588 CompareRenderItemsFarToNear: by the sorting coefficient (+0x0c), descending.
 int CompareFarToNear(const IRendableObject* a, const IRendableObject* b) {
@@ -229,6 +232,16 @@ void RenderQueue::AllocBuffer() {
     m_ppItems = static_cast<IRendableObject**>(std::malloc(100 * sizeof(IRendableObject*)));  // Mem_AllocAligned16(400)
 }
 
+// 0x0099e9b0 RenderQueueType6_TransparentATest_FreeBuffer (0x0099ea08 Type1, 0x0099e8a8 Type0: the same in every type)
+void RenderQueue::FreeBuffer() {
+    if (m_ppItems != nullptr) {
+        std::free(m_ppItems);  // Mem_FreeAligned16 (AllocBuffer's block)
+        m_ppItems = nullptr;
+    }
+    m_count = 0;
+    m_ppItems = nullptr;
+}
+
 // 0x0099d068 RenderQueueType6_TransparentATest_Add / 0x0099ecd0 RenderQueueType1_Opaque_Add / 0x0099ebf0 ...Type0 /
 // 0x0099edb0 Type2 / 0x0099ee90 Type3 / 0x0099ef70 Type4 / 0x0099f050 Type5 / 0x0099eb10 Type7: appends the item (the
 // array grows by 100), then the item's vt+0x74 (ComputeSortingCoef) with the queue's sorting order (opaque types 1, 2: 2;
@@ -271,7 +284,7 @@ void RenderQueue::BeginPass() {
 // 0x009a0068 Type6 / 0x0099f510 Type1 / 0x0099f130 Type0 / 0x0099f690 Type2 / 0x0099f810 Type3 / 0x0099fa80 Type4 /
 // 0x0099fe18 Type5 / 0x0099e478 Type7 Execute: BeginPass, the items sorted, each item's states, its lighting and its
 // vt+0x5c.
-void RenderQueue::Execute() {
+void RenderQueue::Execute(IKTime* frameClock) {
     BeginPass();
     const QueueClass& c = kQueueClasses[m_type];
     if (c.sorted) {
@@ -306,10 +319,14 @@ void RenderQueue::Execute() {
                 }
             }
             if (m_type == kTransparentATestPrio || m_type == kTransparentATest) {
-                // Z write: off for the opaque blend mode 2 (additive), else on when the item asks for it and
-                // its alpha reference byte is 0xff.
+                // Z write: off for blend mode 2 (additive); otherwise on, except for an item whose first property
+                // byte is set (render flags 0x1a00 or the material's bit 1), which writes depth only while its
+                // geometry alpha (the second byte) is below 0xff (0x9a0348 / 0x99f3d8: lbz, nor, clrldi 56, neg,
+                // rldicl 1,63 = (~alpha & 0xff) != 0). The port had this test the other way round until
+                // live-fixes-4: full-alpha translucent sheets (LVL010's Water_Fall / Water_Waterfall_Wave, the
+                // Mec_PFM_Ivy vines) wrote depth, so blended items sorted after them vanished behind the water.
                 uint8_t zWrite = 0;
-                if (blendMode != 2) zWrite = zWriteWithAlpha != 0 ? static_cast<uint8_t>(alphaRef == 0xff ? 1 : 0) : 1;
+                if (blendMode != 2) zWrite = zWriteWithAlpha != 0 ? static_cast<uint8_t>(alphaRef != 0xff ? 1 : 0) : 1;
                 if (zWrite != s_queueZWrite) {
                     s_queueZWrite = zWrite;
                     RwRenderStateSet(rwRENDERSTATEZWRITEENABLE, StateWord(zWrite));
@@ -324,7 +341,7 @@ void RenderQueue::Execute() {
                 lighting->ApplyLightingZone(static_cast<const CLightSet*>(item->m_pLightSet), flat);
             }
         }
-        item->Render();  // vt+0x5c (under the render mutex 0x00cf9c90)
+        item->Render(frameClock);  // vt+0x5c (under the render mutex 0x00cf9c90)
     }
     m_count = 0;
 }
@@ -332,11 +349,12 @@ void RenderQueue::Execute() {
 // ==== the renderer ======================================================================================
 
 // 0x0009fd30 ConstructRenderer (= 0x9f0a8 CRenderer_Construct): the render-state owner, the 23 empty
-// stage slots, the render-state stack (20 x 0x38 bytes), the matrix (+0xd0, STUB) and +0xd4 = 99.
+// stage slots, the render-state stack (20 x 0x38 bytes), the matrix (+0xd0) and +0xd4 = 99.
 CRenderer::CRenderer()
     : m_cameraContext(nullptr),
       m_pRootNode(nullptr),
       m_pSecondaryRootNode(nullptr),
+      m_pWorld(nullptr),
       m_cloneManager(nullptr),
       m_manager2d(nullptr),
       m_fFogDistance(0.0f),
@@ -351,16 +369,122 @@ CRenderer::CRenderer()
       m_renderStateCapacity(0x14),
       m_pRenderStateStack(nullptr),
       m_fInvFarSquared(0.0f),
+      m_pInvCameraMatrix(nullptr),
       m_unkD4(99) {
     g_pRenderStateRenderer = this;
     for (RenderQueue*& stage : m_aStages) stage = nullptr;
     std::memset(m_cFogColor, 0, sizeof(m_cFogColor));
     m_pRenderStateStack = static_cast<uint8_t*>(std::calloc(1, 0x460));  // Mem_AllocAligned16(0x460)
+    // 0x0023fa68 RwMatrixCreate_Thunk, then set to the identity (flags 0x20003, the 1.0f of TOC -0x6214).
+    CMatrix34* matrix = RwMatrixCreate_Thunk();
+    m_pInvCameraMatrix = matrix;
+    matrix->m_ui32Flags = 0x20003;
+    matrix->m_right.x = 1.0f;
+    matrix->m_pos.x = 0.0f;
+    matrix->m_at.z = 1.0f;
+    matrix->m_up.y = 1.0f;
+    matrix->m_up.x = 0.0f;
+    matrix->m_right.z = 0.0f;
+    matrix->m_right.y = 0.0f;
+    matrix->m_at.y = 0.0f;
+    matrix->m_at.x = 0.0f;
+    matrix->m_up.z = 0.0f;
+    matrix->m_pos.z = 0.0f;
+    matrix->m_pos.y = 0.0f;
     m_bitProperties |= 0x20;
 }
 
-CRenderer::~CRenderer() {}  // STUB: 0xa2b70 CRenderer_Destructor
+// 0x000a2b70 CRenderer_Destructor: the render-state stack freed, the matrix +0xd0 destroyed (RwMatrixDestroy), the
+// renderable list's nodes back to their pool, the lwmutex +0x08 destroyed (a PS3 system object: nothing here).
+CRenderer::~CRenderer() {
+    std::free(m_pRenderStateStack);  // Mem_FreeAligned16 (the constructor's block)
+    RwMatrixDestroy_Thunk(m_pInvCameraMatrix);  // 0x0023f968
+    for (RendableNode* node = m_lRenderableObjectList; node != nullptr;) {
+        RendableNode* next = node->m_pNext;
+        delete node;  // the node pool (TOC -0x6260) takes it back
+        node = next;
+    }
+    m_lRenderableObjectList = nullptr;
+}
+
+// 0x0009f320 CRenderer_Shutdown_maybe. The cameras are taken out of the world through the camera context before its null
+// check (as in the original; InitializeStages always makes the context).
+void CRenderer::Shutdown() {
+    for (RenderQueue*& stage : m_aStages) {
+        stage->FreeBuffer();  // vt+0x10
+        delete stage;         // OperatorDelete_Bridge
+        stage = nullptr;
+    }
+    if (m_manager2d != nullptr) {
+        m_manager2d->Shutdown();  // 0x62920
+        Engine_SetManager2d(nullptr);
+        ClassRegistry_DestroyObject(m_manager2d);
+        m_manager2d = nullptr;
+    }
+    RpWorldRemoveCamera(m_pWorld, m_cameraContext->m_pMainCamera);
+    RpWorldRemoveCamera(m_pWorld, m_cameraContext->m_pUICamera);
+    RpWorldRemoveCamera(m_pWorld, m_cameraContext->m_pSceneCamera);
+    if (m_cameraContext != nullptr) {
+        m_cameraContext->DestroyCamerasAndRasters();  // 0xa4350
+        delete m_cameraContext;                       // vt+0x04
+        m_cameraContext = nullptr;
+    }
+    if (m_cloneManager != nullptr) {
+        ClassRegistry_DestroyObject(m_cloneManager);
+        m_cloneManager = nullptr;
+    }
+    if (m_backgroundManager != nullptr) {
+        ClassRegistry_DestroyObject(m_backgroundManager);
+        m_backgroundManager = nullptr;
+    }
+    if (m_flashManager != nullptr) {
+        static_cast<CKFlashManager*>(m_flashManager)->DestroyManager();  // 0x6c990 UI2D_DestroyRt2dFreeLists_maybe
+        ClassRegistry_DestroyObject(m_flashManager);
+        m_flashManager = nullptr;
+    }
+    if (m_lightManager != nullptr) {
+        static_cast<CLightManager*>(m_lightManager)->DestroyRwLights();  // 0x9b3a8
+        ClassRegistry_DestroyObject(m_lightManager);
+        m_lightManager = nullptr;
+    }
+    if (m_videoManager != nullptr) {
+        m_videoManager->ShutdownVideoSystem();  // 0xa8328 VideoSystem_Shutdown_maybe
+        ClassRegistry_DestroyObject(m_videoManager);
+        m_videoManager = nullptr;
+    }
+    if (m_spawnManager != nullptr) {
+        static_cast<CSpawnManager*>(m_spawnManager)->Shutdown();  // 0xb9270
+        ClassRegistry_DestroyObject(m_spawnManager);
+        m_spawnManager = nullptr;
+    }
+    if (m_pWorld != nullptr) {
+        RpWorldDestroy(m_pWorld);
+        m_pWorld = nullptr;
+    }
+}
 IKBaseClass* CRenderer::Create() { return new CRenderer(); }  // 0x0009ff30 CRenderer_Create
+// C2.8 port-all P18.
+// 0x0009fe90 CRenderer_CreateArray (the element size 0xd8 on the PS3)
+IKBaseClass* CRenderer::CreateArray(uint32_t count, uint16_t* elementSize) {
+    if (elementSize != nullptr) *elementSize = static_cast<uint16_t>(sizeof(CRenderer));
+    return new CRenderer[count];
+}
+// 0x0009f208 CRenderer_DeleteArray: each element's destructor (vt+0x00), last first, then the block.
+void CRenderer::DeleteArray(IKBaseClass* first) { delete[] static_cast<CRenderer*>(first); }
+
+// C2.8 port-all P18.
+// 0x0009ec10 CRenderer_RecursiveRegistration
+void CRenderer::RecursiveRegistration(int32_t type) {
+    if (type == 0) {
+        m_pRootNode->RecursiveRegistration(0);           // vt+0x24
+        m_pSecondaryRootNode->RecursiveRegistration(0);
+        m_flashManager->RecursiveRegistration(0);
+        // KStub_Return1_a2e10(m_cameraContext, 0): the camera context registers nothing.
+    }
+    for (RendableNode* node = m_lRenderableObjectList; node != nullptr; node = node->m_pNext) {
+        node->m_pObject->RecursiveRegistration(type);
+    }
+}
 void CRenderer::Delete(IKBaseClass* object) { delete object; }
 
 // 0x0009f620 InitializeRendererStages. The stage queue types in slot order (renderer +0x38 + 4 * stage; the vtable of
@@ -372,8 +496,15 @@ int32_t CRenderer::InitializeStages(void* startupContext) {
     m_cameraContext = new CameraContext();  // OperatorNew(0x98) + ConstructRendererCameraContext
     if (m_cameraContext->Init(static_cast<AppConfig*>(startupContext)) != 1) return 0;
     RwDevice_RegisterWorldCameras(m_cameraContext->m_pMainCamera, m_cameraContext->m_pSceneCamera);
-    // STUB(C2.4 step 5): RpWorldCreate (+0x34) and its cameras: the world has no sectors of its own here (the level's
-    // geometry hangs in the scene graph), the cameras are the camera context's.
+    // The renderer's world: empty (the level's geometry hangs in the scene graph), the box +-100000 (TOC -0x61fc sup,
+    // -0x6200 inf), with the main, UI and scene cameras.
+    RwBBox box;
+    box.inf = RwV3d{-100000.0f, -100000.0f, -100000.0f};
+    box.sup = RwV3d{100000.0f, 100000.0f, 100000.0f};
+    m_pWorld = RpWorldCreate(&box);
+    RpWorldAddCamera(m_pWorld, m_cameraContext->m_pMainCamera);
+    RpWorldAddCamera(m_pWorld, m_cameraContext->m_pUICamera);
+    RpWorldAddCamera(m_pWorld, m_cameraContext->m_pSceneCamera);
     static const RenderQueue::Type kStageTypes[23] = {
         RenderQueue::kTransparentATestPrio, RenderQueue::kOpaque, RenderQueue::kOpaqueCutout,       // 0-2
         RenderQueue::kTransparent, RenderQueue::kTransparentATestPrio, RenderQueue::kOpaque,        // 3-5
@@ -398,8 +529,7 @@ int32_t CRenderer::InitializeStages(void* startupContext) {
     m_flashManager = static_cast<IKSerializable*>(ClassRegistry_CreateObjectByKey(0x70d));
     static_cast<CKFlashManager*>(m_flashManager)->InitializeManager();  // 0x6c9b8 Rt2dDevice_Init_maybe
     m_videoManager = static_cast<CVideoManager*>(ClassRegistry_CreateObjectByKey(0x9cd));
-    // Engine +0xac is set elsewhere in the original (not traced yet). STUB(C1.4 video): CVideoManager_InitCodec_maybe.
-    Engine_SetVideoManager(m_videoManager);
+    m_videoManager->InitCodec();  // 0xa83d0 CVideoManager_InitCodec_maybe (the engine slot is set by its constructor)
     m_spawnManager = static_cast<IKSerializable*>(ClassRegistry_CreateObjectByKey(0xb8d));
     static_cast<CSpawnManager*>(m_spawnManager)->Init();  // 0xb90e8 CSpawnManager_Init_maybe
     m_bitProperties &= 0xfffffff1u;
@@ -586,8 +716,8 @@ void CRenderer::ApplySceneRenderStatesAndFog(const uint8_t fogColor[4]) {
 // 0x000a04e8 SyncSceneCamerasAndClipPlanes: the scene (far) camera takes the main camera's frame, view offset, view
 // window and projection; its far plane is the background radius of the level and the active sector and its near plane a
 // thousandth of it (0.99 of it, limited to 0.99 of the main far plane, when the background asks for it: bit 3). While the
-// far-texture object (class 0x4d0d, CBackgroundCopyRender; its flags +0x20 and +0x21 are set by its own update, which is
-// STUB(C2.4 step 8)) is active the main far plane is reduced by its +0x1c first.
+// far-texture object (class 0x4d0d, CBackgroundCopyRender; its flags +0x20 and +0x21 come from its Load) is active the
+// main far plane is reduced by its +0x1c first. Last, the cameras' frame objects are synced (their view matrices).
 void CRenderer::SyncSceneCamerasAndClipPlanes() {
     CameraContext* context = m_cameraContext;
     RwCamera* main = context->m_pMainCamera;
@@ -643,12 +773,24 @@ void CRenderer::SyncSceneCamerasAndClipPlanes() {
     if (scene->farPlane != far) RwCameraSetFarClipPlane(scene, far);
     if (scene->nearPlane != nearPlane) RwCameraSetNearClipPlane(scene, nearPlane);
     if (scene->nearPlane >= scene->farPlane) RwCameraSetFarClipPlane(scene, scene->nearPlane + 0.001f);
+    // Per frame (the main camera's, then the UI camera's): its LTM synced (BridgeRwGetFrameLocalToWorldMatrix), the
+    // objects of its object list synced through their sync callbacks (+0x10: _rwCameraSync_maybe 0x7471c8, their view
+    // matrices and frustums; the main frame holds the scene camera, added last, then the main camera), then the frame's
+    // private sync bits cleared (& 0xf0).
+    RwFrameGetLTM(frame);
+    _rwCameraSync(scene);
+    _rwCameraSync(main);
+    frame->object.privateFlags = static_cast<RwUInt8>(frame->object.privateFlags & 0xf0);
+    RwFrame* uiFrame = RwCameraGetFrame(context->m_pUICamera);
+    RwFrameGetLTM(uiFrame);
+    _rwCameraSync(context->m_pUICamera);
+    uiFrame->object.privateFlags = static_cast<RwUInt8>(uiFrame->object.privateFlags & 0xf0);
 }
 
 // 0x000a1408 ExecuteRenderStages38To48 (the far group): stages 0-4 on the scene camera, then a depth-only clear so the
-// main group draws over the background. The background gradient quad of a sector with render type 1
-// (DrawBackgroundGradientQuad_maybe) is STUB(C2.4 step 7).
-void CRenderer::ExecuteRenderStages38To48(IKTime* /*frameClock*/) {
+// main group draws over the background, after the background gradient quad of a sector with render type 1
+// (DrawBackgroundGradientQuad_maybe 0x93c48, CBackgroundManager.cpp).
+void CRenderer::ExecuteRenderStages38To48(IKTime* frameClock) {
     uint8_t farFogColor[4];
     static_cast<CKSrvCamera*>(g_pEngine->m_srvCamera)->GetFarFogColor(farFogColor);
     CBackgroundData* background = ActiveBackground(this);
@@ -664,7 +806,11 @@ void CRenderer::ExecuteRenderStages38To48(IKTime* /*frameClock*/) {
         ApplySceneRenderStatesAndFog(farFogColor);
         if (g_pLightManager != nullptr) g_pLightManager->ApplyLightingZone(nullptr, 0);
         for (uint32_t stage = 0; stage <= 4; ++stage) {
-            if (!m_aStages[stage]->IsEmpty()) m_aStages[stage]->Execute();
+            if (!m_aStages[stage]->IsEmpty()) m_aStages[stage]->Execute(frameClock);
+        }
+        const CBackgroundData* active = ActiveBackground(this);
+        if (active != nullptr && active->m_eRenderType == 1) {
+            static_cast<CBackgroundManager*>(m_backgroundManager)->DrawBackgroundGradientQuad(m_cFogColor);
         }
     }
     RwCameraEndUpdate(context->m_pSceneCamera);
@@ -680,7 +826,7 @@ void CRenderer::ExecuteRenderStages38To48(IKTime* /*frameClock*/) {
 // 0x0009ff70 ExecuteRenderStages4CTo74 (the main group): stages 5-15 on the main camera drawing into the scene colour
 // raster (the alternative one on the depth of field path), then the scene colour copied into the final colour (ONE / ZERO,
 // white, linear, not flipped); on the depth of field path the main camera keeps the scene colour raster.
-void CRenderer::ExecuteRenderStages4CTo74(IKTime* /*frameClock*/) {
+void CRenderer::ExecuteRenderStages4CTo74(IKTime* frameClock) {
     uint8_t mainFogColor[4];
     static_cast<CKSrvCamera*>(g_pEngine->m_srvCamera)->GetMainFogColor(mainFogColor);
     CBackgroundData* background = ActiveBackground(this);
@@ -696,7 +842,7 @@ void CRenderer::ExecuteRenderStages4CTo74(IKTime* /*frameClock*/) {
         ApplySceneRenderStatesAndFog(mainFogColor);
         if (g_pLightManager != nullptr) g_pLightManager->ApplyLightingZone(nullptr, 0);
         for (uint32_t stage = 5; stage <= 15; ++stage) {
-            if (!m_aStages[stage]->IsEmpty()) m_aStages[stage]->Execute();
+            if (!m_aStages[stage]->IsEmpty()) m_aStages[stage]->Execute(frameClock);
         }
     }
     RwCameraEndUpdate(m_cameraContext->m_pMainCamera);
@@ -709,11 +855,11 @@ void CRenderer::ExecuteRenderStages4CTo74(IKTime* /*frameClock*/) {
 
 // 0x000a1a78 ExecuteRenderStage78: stage 16 (the distortion materials, queued by CGeometry's modes 7 and 8; the post
 // effects of CPostRenderingFx are step 8) on the main camera.
-void CRenderer::ExecuteRenderStage78(IKTime* /*frameClock*/) {
+void CRenderer::ExecuteRenderStage78(IKTime* frameClock) {
     if ((m_bitProperties & 2) == 0 && !m_aStages[16]->IsEmpty()) {
         if (BeginRenderCameraUpdate(m_cameraContext->m_pMainCamera) != nullptr) {
             if (g_pLightManager != nullptr) g_pLightManager->ApplyLightingZone(nullptr, 0);
-            m_aStages[16]->Execute();
+            m_aStages[16]->Execute(frameClock);
         } else {
             m_aStages[16]->Clear();
         }
@@ -724,7 +870,7 @@ void CRenderer::ExecuteRenderStage78(IKTime* /*frameClock*/) {
 }
 
 // 0x000a0ac8 ExecuteRenderStages7CTo90: the 2D group on the UI camera (render context +0x20).
-void CRenderer::ExecuteRenderStages7CTo90(IKTime* /*frameClock*/) {
+void CRenderer::ExecuteRenderStages7CTo90(IKTime* frameClock) {
     m_manager2d->UpdateScreen();
     const bool fullscreenVideo = m_videoManager->HasFullscreenVideo();  // 0xa8698
     // depthOnly: with the loading video, a full-screen video, the inhibit byte, or bit 2/3 set ... (see below)
@@ -757,18 +903,18 @@ void CRenderer::ExecuteRenderStages7CTo90(IKTime* /*frameClock*/) {
     if ((m_bitProperties & 4) == 0) {
         Apply2DRenderStates();
         if (g_pLightManager != nullptr) g_pLightManager->ApplyLightingZone(nullptr, 0);
-        if (!m_aStages[17]->IsEmpty()) m_aStages[17]->Execute();
-        m_videoManager->Render();  // vt+0x5c CVideoManager_Draw 0xa98b0
+        if (!m_aStages[17]->IsEmpty()) m_aStages[17]->Execute(frameClock);
+        m_videoManager->Render(frameClock);  // vt+0x5c CVideoManager_Draw 0xa98b0
     } else {
         m_aStages[17]->Clear();
-        m_videoManager->Render();
+        m_videoManager->Render(frameClock);
     }
     if ((m_bitProperties & 4) != 0) {
         for (uint32_t stage = 18; stage <= 22; ++stage) m_aStages[stage]->Clear();
     } else {
         Apply2DRenderStates();
         for (uint32_t stage = 18; stage <= 22; ++stage) {
-            if (!m_aStages[stage]->IsEmpty()) m_aStages[stage]->Execute();
+            if (!m_aStages[stage]->IsEmpty()) m_aStages[stage]->Execute(frameClock);
         }
     }
     m_manager2d->RenderMsgBox();  // 0x63550 CManager2d_PostRenderPass_maybe
@@ -856,7 +1002,20 @@ void CRenderer::RenderFallbackFrame(IKTime* frameClock) {
         m_videoManager->PreUpdate(frameClock);  // vt+0x54
         m_videoManager->UpdateAndExtract(0.0f, m_aStages, frameClock, context->m_pMainCamera, 0);  // vt+0x58
     }
-    // STUB(M2): the frame counter (TOC -0x61ac), +0xcc = k / far^2 and the inverse view matrix (+0xd0).
+    // TOC -0x61ac: the frame counter, as RenderGameFrame advances it (-2 -> 1): mode 6 and the other fallback frames
+    // count too (the nodes posed before them are not "drawn this frame" afterwards).
+    if (g_ui16RenderFrameCounter == 0xfffe) {
+        g_ui16RenderFrameCounter = 1;
+    } else {
+        ++g_ui16RenderFrameCounter;
+    }
+    const float farPlane = context->m_pMainCamera->farPlane;  // camera +0x84
+    m_fInvFarSquared = 1.0f / (farPlane * farPlane);           // TOC -0x6214: 1.0f
+    // The main camera's frame LTM (BridgeRwGetFrameLocalToWorldMatrix of the TOC -0x626c camera's frame: RwFrameGetLTM,
+    // which syncs a dirty frame). C2.8 chase-g8: in the first frame after a streaming load (G +82419: mode 8 -> 5, still a
+    // fallback frame) the camera service has moved the camera and this is what brings its LTM up to date; without it the
+    // camera stood on the load's pose for a frame. Its inverse goes into the matrix +0xd0 (0x0023f878 Mat4_Invert_maybe).
+    Mat4_Invert(m_pInvCameraMatrix, reinterpret_cast<const CMatrix34*>(RwFrameGetLTM(RwCameraGetFrame(context->m_pMainCamera))));
     ClearRendererCamera(context, 0);
     m_bitProperties = (m_bitProperties & 0xfffffffbu) | 4;
     ExecuteRenderStages7CTo90(frameClock);
@@ -944,4 +1103,15 @@ int32_t CRenderer::Load(IKFile* file, int32_t type) {
     Engine_SetMainSceneRoot(m_pRootNode);
     Engine_SetSecondarySceneRoot(m_pSecondaryRootNode);
     return 1;
+}
+
+// 0x000a0a00 SceneRoots_UpdateWorldMatrices_maybe
+void CRenderer::UpdateSceneWorldMatrices() {
+    SyncSceneCamerasAndClipPlanes();  // 0x000a04e8
+    RenderLock_Lock();                // 0x00cf9c90
+    static_cast<CSGLeaf*>(m_pRootNode)->UpdateWorldMatrices(0);           // vt+0x68
+    static_cast<CSGLeaf*>(m_pSecondaryRootNode)->UpdateWorldMatrices(0);
+    RenderLock_Unlock();
+    RwFrame* frame = static_cast<CSGLeaf*>(m_pRootNode)->m_pRwFrame;
+    frame->object.privateFlags = static_cast<RwUInt8>(frame->object.privateFlags & 0xfdu);
 }

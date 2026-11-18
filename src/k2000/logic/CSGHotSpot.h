@@ -14,6 +14,7 @@ class CSGLeaf;
 class CSGHotSpot : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0xad)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x2b4c || key == 0xc; }  // vt+0x08 0x9a2740
     DOTD_DECLARE_FACTORIES(CSGHotSpot)
 
     CSGHotSpot() {}  // 0x000ce280 CSGHotSpot_Create: only the vtable
@@ -26,10 +27,16 @@ public:
     // orientation and places it at the hot spot's position (in the node's frame). 1 when done, 0 when the
     // hot spot has no node.
     int32_t AttachVolume(CSGLeaf* volume);
+    // 0x000ce690 CSGHotSpot_DetachVolume (not virtual): the volume leaves the hot spot's node (vt+0x78); 0 without a node.
+    int32_t DetachVolume(CSGLeaf* volume);
     // 0x000ce790 CSGHotSpot_GetWorldPosition (not virtual): the hot spot in the world: its position through the node's
     // frame matrix (+0x50 as stored), or through its bone's matrix times it while the node was drawn this frame (or has
     // scene flag 0x2000). 0 without a node.
     int32_t GetWorldPosition(CVector3* out) const;
+    // 0x000ce970 CSGHotSpot_GetWorldMatrix (not virtual): the hot spot's orientation and position as a matrix, through
+    // the node's frame matrix (+0x50 as stored), or through its bone's matrix times it while the node was drawn this
+    // frame (or has scene flag 0x2000). 0 without a node (`out` untouched).
+    int32_t GetWorldMatrix(CMatrix34* out) const;
 
     CVector3 m_v3RelativePosition;        // +0x04
     float m_qUnitRelativeOrientation[4];  // +0x10 CQuaternion (x, y, z, w)

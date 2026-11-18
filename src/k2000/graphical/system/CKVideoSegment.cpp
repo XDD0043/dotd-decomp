@@ -4,10 +4,10 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0xa73c8  CKVideoSegment_Delete
+//   [x] 0xa73c8  CKVideoSegment_Delete  (the registry factory: DOTD_DECLARE_FACTORIES(CKVideoSegment))
 //   [ ] 0xa7418  CKVideoSegment_Construct  [dead]
 //   [ ] 0xa7440  CKVideoSegment_Construct_2  [dead]
-//   [ ] 0xa7468  CKVideoSegment_RecursiveRegistration
+//   [x] 0xa7468  CKVideoSegment_RecursiveRegistration  (RecursiveRegistration: returns 1, the default slot)
 //   [ ] 0xa7470  CKVideoSegment_ResetState_maybe  [dead]
 //   [x] 0xa7488  CKVideoSegment_MarkEndedIfPlaying_maybe
 //   [ ] 0xa74a8  CKVideoSegment_EndPlayback_maybe  [dead]
@@ -18,21 +18,21 @@
 //   [ ] 0xa7540  RegisterCKVideoSegmentClass
 //   [ ] 0xa75b8  _GLOBAL__I_a75b8
 //   [x] 0xa75c8  CKVideoSegment_Play_maybe
-//   [ ] 0xa76e8  CKVideoSegment_DeleteArray
+//   [x] 0xa76e8  CKVideoSegment_DeleteArray  (the registry factory: DOTD_DECLARE_FACTORIES(CKVideoSegment))
 //   [x] 0xa7790  CKVideoSegment_IsAtEnd_maybe
-//   [ ] 0xa7848  CKVideoSegment_MessageProc
+//   [x] 0xa7848  CKVideoSegment_MessageProc  (MessageProc: returns 1, the default slot)
 //   [ ] 0xa7850  CKVideoSegment_Save
-//   [ ] 0xa7858  CKVideoSegment_GetInfo
-//   [ ] 0xa7860  CKVideoSegment_CreateArray
+//   [x] 0xa7858  CKVideoSegment_GetInfo  (GetInfo: returns 1, the default slot)
+//   [x] 0xa7860  CKVideoSegment_CreateArray  (the registry factory: DOTD_DECLARE_FACTORIES(CKVideoSegment), the constructor per element)
 //   [x] 0xa7918  CKVideoSegment_Create
-//   [ ] 0xa7968  CKVideoSegment_PostLoad
-//   [ ] 0xa7970  CKVideoSegment_Destroy
+//   [x] 0xa7968  CKVideoSegment_PostLoad  (PostLoad: returns 1, the default slot)
+//   [x] 0xa7970  CKVideoSegment_Destroy  (Destroy: empty, the default slot)
 //   [x] 0xa7978  CKVideoSegment_UpdatePlayback_maybe
 //   [x] 0xa7ad8  CKVideoSegment_Load
 //   [ ] 0xa7d18  CKVideoSegment_Restart_maybe  [dead]
-//   [ ] 0xa7e70  CVideoManager_Delete
-//   [ ] 0xa7ec0  CVideoManager_RecursiveRegistration
-//   [ ] 0xa7ec8  KStub_Nop_a7ec8
+//   [x] 0xa7e70  CVideoManager_Delete  (the registry factory: DOTD_DECLARE_FACTORIES(CVideoManager))
+//   [x] 0xa7ec0  CVideoManager_RecursiveRegistration  (RecursiveRegistration: returns 1, the default slot)
+//   [x] 0xa7ec8  KStub_Nop_a7ec8  (empty: CKGraphic_Start calls it, nothing to port)
 //   [ ] 0xa7ed0  CVideoManager_GetVideoCount_maybe  [dead]
 //   [ ] 0xa7ed8  CVideoManager_GetVideoAt_maybe  [dead]
 //   [ ] 0xa7ef0  CVideoManager_PlayVideoAt_maybe  [dead]
@@ -48,9 +48,9 @@
 //   [ ] 0x9a0598  CKVideoSegment_GetSerializationFlags  [inline]
 //   [x] 0x9a05a0  CKVideoSegment_GetClassType  [inline]
 //   [x] 0x9a05a8  CKVideoSegment_GetClassID  [inline]
-//   [ ] 0x9a05b0  CKVideoSegment_DeletingDestructor  [inline]
+//   [x] 0x9a05b0  CKVideoSegment_DeletingDestructor  [inline]
 //   [x] 0x9a05f0  CKVideoSegment_IsKindOfClass  [inline]
-//   [ ] 0x9a0610  CKVideoSegment_Destructor  [inline]
+//   [x] 0x9a0610  CKVideoSegment_Destructor  [inline]
 #include "k2000/graphical/system/CKVideoSegment.h"
 
 #include "k2000/graphical/system/CVideoManager.h"

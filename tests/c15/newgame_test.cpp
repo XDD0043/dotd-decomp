@@ -7,6 +7,8 @@
 // DOTD_DUMP_LEVEL_OBJECTS=<path> writes the loaded objects at the end (objects_diff.py against objects-lvl010_ingame-*.json.gz).
 // Skipped (77) without the game data, like the other tests that boot.
 #include <cstdio>
+#include "k2000/cameras/CKSrvCamera.h"
+#include "k2000/cameras/CKCameraClassicTrack3.h"
 #include <cstdlib>
 #include <vector>
 #include <cmath>
@@ -16,7 +18,21 @@
 #include <typeinfo>
 
 #include "Spyro2008/logic/CKS08GameManager.h"
+#include "Spyro2008/hooks/CKHkS08Enemy.h"
+#include "k2000/groups/CKGrpFightZone.h"
+#include "Spyro2008/logic/CKS08InGameInterfaceBoss.h"
+#include "Spyro2008/logic/CKS08InGameInterfaceCenter.h"
+#include "Spyro2008/logic/CKS08InGameInterfaceLeft.h"
+#include "Spyro2008/logic/CKS08InGameInterfaceRight.h"
+#include "Spyro2008/logic/ui/CKS08MenuArmors.h"
+#include "Spyro2008/logic/ui/CKS08MenuHits.h"
+#include "k2000/logic/CKInterfaceButton.h"
+#include "k2000/components/CKGaugeCpntUpdater.h"
+#include "k2000/components/CKQuakeCpntUpdater.h"
+#include "k2000/components/CKSuperGaugeCpntUpdater.h"
+#include "k2000/graphical/ui/CKFlashUI.h"
 #include "boot_helper.h"
+#include "k2000/misc/SectorRequest.h"
 #include "k2000/cinematics/CKManageCameraCinematicBloc.h"
 #include "k2000/cinematics/CKPathFindingCinematicBloc.h"
 #include "k2000/cinematics/CKPlayAnimCinematicBloc.h"
@@ -39,11 +55,21 @@
 #include "k2000/logic/CKCinematicSceneData.h"
 #include "k2000/hooks/IKHook.h"
 #include "k2000/scenegraph/CSGMovable.h"
+#include "k2000/ui/CKGrpBonus.h"
+#include "k2000/memory/CKGrpBonusPool.h"
+#include "Spyro2008/ui/CKHkS08Bonus.h"
 #include "Renderware/rwcore/RwCamera.h"
 #include "k2000/logic/CKGameLevel.h"
 #include "k2000/logic/CKGameSpawnPoint.h"
+#include "k2000/hooks/CKHkPressionStone.h"
+#include "k2000/hooks/CKHkTransportableObjectSpawner.h"
 #include "k2000/logic/CKLevel.h"
 #include "k2000/logic/io/CKLoadingManager.h"
+#include "k2000/misc/ClassRegistry.h"
+#include "platform/heap_fill.h"
+#include "platform/cell/savedata.h"
+#include "k2000/io/LoadRequests.h"
+#include <atomic>
 #include "k2000/misc/CKGameLoop.h"
 #include "k2000/system/CTimeManager.h"
 #include "k2000/system/IKTime.h"
@@ -54,8 +80,11 @@
 #include "k2000/misc/IKCinematicElement.h"
 #include "k2000/misc/IKGameStructure.h"
 #include "k2000/logic/CKSekens.h"
+#include "k2000/misc/CKSekensElement.h"
 #include "k2000/services/CKSrvCinematic.h"
 #include "k2000/services/CKSrvSekensor.h"
+#include "k2000/logic/sound/CKMusicPlayList.h"
+#include "k2000/services/CKSrvMusic.h"
 #include <chrono>
 #include "platform/cell/pad.h"
 #include "platform/config.h"
@@ -72,12 +101,25 @@
 #include "crt/rand.h"
 #include "platform/debug_symbols.h"
 #include <thread>
+#include <filesystem>  // C2.8 lvl020-load (newgame_load.inc)
+#ifdef _WIN32
+#include <process.h>
+#else
+#include <unistd.h>
+#endif
+#include "Spyro2008/logic/CKMenuBase114c.h"
+#include "k2000/io/SaveData.h"  // g_saveDataResult (newgame_load.inc)
 #include "platform/cell/sys_time.h"
 #include "Spyro2008/hooks/CKHkS08Hero.h"
+#include "k2000/logic/render/CKLightningBoltNodeFx.h"
+#include "k2000/logic/sound/CKSound.h"
+#include "k2000/sound/SoundInstance.h"
+#include "k2000/sound/SoundVoice.h"
 #include "k2000/hooks/CKHkClimbZone.h"
 #include "k2000/logic/CKSas.h"
 #include "k2000/services/ICollisionMesh.h"
 #include "k2000/hooks/CKHkCrumblyZone.h"
+#include "k2000/hooks/CKHkSequenceMgr.h"
 #include "k2000/logic/physics/CDynamicGround.h"
 #include "k2000/logic/physics/CGround.h"
 #include "k2000/services/CKSrvCollision.h"
@@ -90,7 +132,11 @@
 #include "k2000/graphical/KBase98D.h"
 #include "k2000/input/PS3PadDevice.h"
 #include "k2000/managers/CKInput.h"
-#include "k2000/sound/SpeechStreamModel.h"
+#include "k2000/sound/SoundStream.h"
+#include "k2000/managers/CKSoundManager.h"
+#include "k2000/sound/CKSoundStreamManager.h"
+#include "k2000/sound/SoundStreamType.h"
+#include "platform/audio/rwa_stream.h"
 
 namespace {
 uint16_t g_d1 = 0, g_d2 = 0;
@@ -201,6 +247,92 @@ void DumpScenes() {
 // from the boot) as abs_<frame>.png into DOTD_NEWGAME_SHOTS, wherever the run is (the front end, the video, the scene).
 const char* g_shotsDir = nullptr;
 std::vector<uint32_t> g_absShots;
+// The fill test (work/fill_test.py): DOTD_FRAME_HASH=<file> (with DOTD_NEWGAME_SHOTS, so the run draws) writes, per loop
+// frame, "<frame> <h0> ... <h143>": an FNV-1a hash of the RGB pixels of each 80x80 tile of the 1280x720 target (16 columns,
+// 9 rows, row by row from the top). Two runs that draw the same pictures write the same lines.
+std::FILE* g_frameHash = nullptr;
+void WriteFrameHash(uint32_t frame) {
+    constexpr int kW = 1280, kH = 720, kTile = 80, kCols = kW / kTile, kRows = kH / kTile;
+    static std::vector<uint8_t> rgba(static_cast<size_t>(kW) * kH * 4);
+    if (!dotd::gfx::ReadTarget(rgba.data())) return;
+    uint32_t hashes[kCols * kRows];
+    for (uint32_t& h : hashes) h = 2166136261u;
+    for (int y = 0; y < kH; ++y) {
+        const uint8_t* row = &rgba[static_cast<size_t>(y) * kW * 4];
+        for (int x = 0; x < kW; ++x) {
+            uint32_t& h = hashes[(y / kTile) * kCols + x / kTile];
+            for (int c = 0; c < 3; ++c) h = (h ^ row[x * 4 + c]) * 16777619u;
+        }
+    }
+    std::fprintf(g_frameHash, "%u", frame);
+    for (uint32_t h : hashes) std::fprintf(g_frameHash, " %08x", h);
+    std::fputc('\n', g_frameHash);
+    std::fflush(g_frameHash);  // kept up to a crash
+}
+
+// The fill scan (work/fill_test.py --scan): DOTD_FILL_SCAN=<frame>,<frame>,... lists, at these loop frames, every 4-byte
+// word of every loaded object (its class's PS3 size: use the x86 parity build, whose offsets are the PS3 ones) that
+// still holds the heap fill (DOTD_HEAP_FILL, not 00): fields nothing wrote since the allocation. One line per class and
+// offset: "fillscan: <frame> <class> <key> +<offset> <objects with it>/<objects>".
+std::vector<uint32_t> g_fillScanFrames;
+void FillScan(uint32_t frame) {
+    const int fill = dotd::HeapFillByte();
+    if (fill <= 0) return;
+    struct Scan {
+        uint32_t word;
+        std::map<std::pair<uint32_t, uint32_t>, uint32_t> hits;  // (class key, offset) -> objects
+        std::map<uint32_t, uint32_t> objects;                    // class key -> objects
+    } scan;
+    scan.word = 0x01010101u * static_cast<uint32_t>(fill);
+    Kp3_ForEachLoadedObject(
+        [](IKSerializable* object, uint32_t key, void* context) {
+            Scan& s = *static_cast<Scan*>(context);
+            const KClassInfo* info = FindClassInfo(key);
+            if (info == nullptr || info->size == 0) return;
+            ++s.objects[key];
+            const uint8_t* bytes = reinterpret_cast<const uint8_t*>(object);
+            for (uint32_t offset = 0; offset + 4 <= info->size; offset += 4) {
+                uint32_t word;
+                std::memcpy(&word, bytes + offset, 4);
+                if (word == s.word) ++s.hits[{key, offset}];
+            }
+        },
+        &scan);
+    // DOTD_FILL_ZERO=<class>:<from>-<to> (hex offsets, the end excluded): the words of that class in the range that still
+    // hold the fill are set to 0 here, so a bisection finds the unset field behind a fill difference.
+    if (const char* zero = std::getenv("DOTD_FILL_ZERO")) {
+        char name[128] = {};
+        unsigned from = 0, to = 0;
+        if (std::sscanf(zero, "%127[^:]:%x-%x", name, &from, &to) == 3) {
+            struct Zero {
+                const char* name;
+                uint32_t from, to, word, words;
+            } z{name, from, to, scan.word, 0};
+            Kp3_ForEachLoadedObject(
+                [](IKSerializable* object, uint32_t key, void* context) {
+                    Zero& s = *static_cast<Zero*>(context);
+                    const KClassInfo* info = FindClassInfo(key);
+                    if (info == nullptr || std::strcmp(info->name, s.name) != 0) return;
+                    uint8_t* bytes = reinterpret_cast<uint8_t*>(object);
+                    for (uint32_t offset = s.from & ~3u; offset + 4 <= s.to && offset + 4 <= info->size; offset += 4) {
+                        uint32_t word;
+                        std::memcpy(&word, bytes + offset, 4);
+                        if (word == s.word) {
+                            std::memset(bytes + offset, 0, 4);
+                            ++s.words;
+                        }
+                    }
+                },
+                &z);
+            std::printf("fillzero: %u %s +0x%x..+0x%x: %u words\n", frame, name, from, to, z.words);
+        }
+    }
+    for (const auto& hit : scan.hits) {
+        std::printf("fillscan: %u %s 0x%x +0x%x %u/%u\n", frame, FindClassInfo(hit.first.first)->name, hit.first.first,
+                    hit.first.second, hit.second, scan.objects[hit.first.first]);
+    }
+    std::fflush(stdout);
+}
 std::vector<uint32_t> ParseFrames(const char* list) {
     std::vector<uint32_t> frames;
     for (const char* p = list; p != nullptr && *p != 0;) {
@@ -602,13 +734,70 @@ void ShowClones() {
     announced = true;
 }
 
+// C2.8 sequence, DOTD_SEQ_SMOKE=<frame>[,<frames>]: at test frame <frame> every CKHkSequenceMgr of the level is activated
+// (OnActivate) and told 0x996 (start at entry 0); for <frames> frames (default 900) the running ones are printed every 30
+// frames (entry, +0xd4, presses left, ended / no failure). A crash check of the sequence engine on LVL010's data before a
+// recording reaches the sequences (G: +15955); the original never starts them this way, so a replay diverges from there.
+void SequenceSmoke() {
+    static const char* text = std::getenv("DOTD_SEQ_SMOKE");
+    if (text == nullptr) return;
+    static unsigned start = 0, frames = 900;
+    static bool parsed = false;
+    if (!parsed) {
+        std::sscanf(text, "%u,%u", &start, &frames);
+        parsed = true;
+    }
+    if (g_frame < start || g_frame > start + frames) return;
+    struct Visit {
+        bool begin;
+        unsigned frame;
+    } visit{g_frame == start, g_frame - start};
+    if (!visit.begin && visit.frame % 30 != 0) return;
+    Kp3_ForEachLoadedObject(
+        [](IKSerializable* object, uint32_t key, void* context) {
+            if (key != CKHkSequenceMgr::kClassKey) return;
+            Visit& v = *static_cast<Visit*>(context);
+            CKHkSequenceMgr* mgr = static_cast<CKHkSequenceMgr*>(object);
+            if (v.begin) {
+                std::printf("seq: %p %u entries, %u items, flags %08x: start\n", static_cast<void*>(mgr), mgr->m_vEntries.m_ui32NbUsedElt,
+                            mgr->m_vItems.m_ui32NbUsedElt, mgr->m_bitArray);
+                for (uint32_t e = 0; e < mgr->m_vEntries.m_ui32NbUsedElt; ++e) {
+                    const CKHkSequenceMgr::SequenceEntry& entry = mgr->m_vEntries.m_pBlock[e];
+                    const IKSerializable* refs[3] = {entry.m_recA.m_pRef, entry.m_recB.m_pRef, entry.m_recC.m_pRef};
+                    std::printf("seq:   entry %u type %u action %u presses %u actor %d next %d/%d:", e, entry.m_stepParams.m_unk0,
+                                entry.m_stepParams.m_unkC, entry.m_stepParams.m_unk10, entry.m_unkA8, static_cast<int32_t>(entry.m_unk64),
+                                static_cast<int32_t>(entry.m_unk68));
+                    for (const IKSerializable* ref : refs) {
+                        if (ref == nullptr) {
+                            std::printf(" -");
+                            continue;
+                        }
+                        const CAnimationDictionary* d = static_cast<const CAnimationDictionary*>(ref);
+                        std::printf(" [%s n %u cols %u f14 %u w0 %08x]", typeid(*ref).name(), d->m_ui32NbAnimations, d->m_ui32NbColumns, d->m_unk14,
+                                    d->m_apAnimations != nullptr ? static_cast<uint32_t>(d->m_apAnimations[0]) : 0xdeadu);
+                    }
+                    std::printf("\n");
+                }
+                if (std::getenv("DOTD_SEQ_SMOKE_LIST") != nullptr) return;
+                mgr->VfA0();
+                mgr->MessageProc(0x996, nullptr);
+            }
+            std::printf("seq: +%u %p entry %d d4 %02x presses %d/%d ended %u ok %u\n", v.frame, static_cast<void*>(mgr), mgr->m_unkE8,
+                        mgr->m_unkD4, mgr->m_unkF4, mgr->m_unkF8, mgr->m_unk130, mgr->m_unk131);
+        },
+        &visit);
+    std::fflush(stdout);
+}
+
 #include "newgame_replay.inc"
+#include "newgame_ltmwatch.inc"
 
 void Step() {
     ShowClones();
     ReplayBeforeFrame(g_frame + 1);
     c15::RunFrame();
     ++g_frame;
+    SequenceSmoke();
     ReplayAfterFrame();
     if (g_shotsDir != nullptr) {
         for (uint32_t wanted : g_absShots) {
@@ -618,6 +807,10 @@ void Step() {
             std::printf("shot: %s (loop frame %u, gfx frame %u, mode %d)\n", path, g_frame, dotd::gfx::FrameCount(), g_pCKGameLoop->m_mode);
             dotd::gfx::SaveScreenshot(path);
         }
+        if (g_frameHash != nullptr) WriteFrameHash(g_frame);
+    }
+    for (uint32_t wanted : g_fillScanFrames) {
+        if (wanted == g_frame) FillScan(g_frame);
     }
     if (g_traceCine) TraceCinematics();
     const int key = g_pCKGameLoop->m_mode * 1000 + M()->m_gameState.m_ui8Current;
@@ -665,6 +858,8 @@ bool PrintSceneState(const char* when) {
                 service->m_vpBlockingScenes.m_ui32NbUsedElt);
     return playing > 0 && M()->IsInputBlocked() != 0 && (service->m_baData & 1) != 0;
 }
+
+#include "newgame_load.inc"  // C2.8 lvl020-load: the replay of a recording that starts from a saved game
 }  // namespace
 
 int main() {
@@ -675,6 +870,7 @@ int main() {
     const char* shotsDir = std::getenv("DOTD_NEWGAME_SHOTS");
     g_shotsDir = shotsDir;
     g_absShots = ParseFrames(std::getenv("DOTD_NEWGAME_SHOT_ABS"));
+    g_fillScanFrames = ParseFrames(std::getenv("DOTD_FILL_SCAN"));
     // DOTD_NEWGAME_SHOT_FRAMES=<n>,<n>,...: the frames after the video's end to save (newgame_<n>.png; default below).
     const std::vector<uint32_t> relativeShots = ParseFrames(std::getenv("DOTD_NEWGAME_SHOT_FRAMES"));
     ParseBonesSpec(std::getenv("DOTD_BONES_OUT"));
@@ -682,6 +878,10 @@ int main() {
     // step 1: DOTD_REPLAY=<rpcs3.rec> plays a recording of the original from the video's end (newgame_replay.inc).
     const char* replayPath = std::getenv("DOTD_REPLAY");
     const bool replay = replayPath != nullptr;
+    if (const char* hashPath = std::getenv("DOTD_FRAME_HASH"); hashPath != nullptr && shotsDir != nullptr) {
+        g_frameHash = std::fopen(hashPath, "w");
+        if (g_frameHash == nullptr) std::printf("newgame: cannot write %s\n", hashPath);
+    }
     if (replay && !LoadReplay(replayPath)) return 1;
     if (shotsDir != nullptr) {
         dotd::platform::Config& config = dotd::platform::MutableConfig();
@@ -693,6 +893,15 @@ int main() {
             std::printf("newgame: no OpenGL 3.3 device\n");
             return 77;
         }
+    }
+    // C2.8 lvl020-load: a recording that starts from a saved game (rpcs3_replay_record.py --load) has its own player
+    // (with DOTD_NEWGAME_SHOTS it draws: DOTD_NEWGAME_SHOT_FRAMES then counts from the replay's frame 0).
+    if (replay && !g_replayLoadSave.empty()) {
+        g_replayPath = replayPath;
+        g_loadRelativeShots = relativeShots;
+        const int code = RunLoadReplay();
+        std::fflush(stdout);
+        std::_Exit(code);  // the engine's load threads are still running (see the end of main)
     }
     if (!c15::BootToFrontEnd()) return 77;
     // DOTD_NO_POST=1 (C2.4 step 8, for before / after pictures): the graphic caps' post-effect bit 0x400 cleared, so
@@ -715,7 +924,10 @@ int main() {
         for (int i = 0; i < 150 && g_pCKGameLoop->m_mode == 5; ++i) Step();
     }
     // The level start: mode 5 (gameplay) with the game state 7.
-    for (int i = 0; i < 3000 && !(g_pCKGameLoop->m_mode == 5 && M()->m_gameState.m_ui8Current == 7); ++i) Step();
+    for (int i = 0; i < 3000 && !(g_pCKGameLoop->m_mode == 5 && M()->m_gameState.m_ui8Current == 7); ++i) {
+        if (replay) ReplayHoldLoadingRand(g_pCKGameLoop->m_mode);
+        Step();
+    }
     int failures = 0;
     auto expect = [&failures](bool ok, const char* what) {
         if (!ok) {
@@ -736,6 +948,9 @@ int main() {
     uint32_t modeEightFrame = 0;
     uint32_t modeFiveAgainFrame = 0;
     uint32_t binkFrames = 0, binkRate = 0, binkRateDiv = 0;
+    // Frames the video waits in its state 3 for the stream players to close (SoundSuspend_AreStreamsState9_maybe: the
+    // music the level start requested is still opening when the video starts).
+    uint32_t streamWaitFrames = 0;
     const IKVideo* video = nullptr;
     {
         int playing = 0, first = -1;
@@ -780,7 +995,11 @@ int main() {
             if (lineChanges <= 3 || lastLine == -1)
                 std::printf("subtitles: frame %u line %d of %u\n", g_frame, lastLine, sekens->m_vBlocks.m_ui32NbUsedElt);
         }
-        if (g_pCKGameLoop->m_mode == 8 && modeEightFrame == 0) modeEightFrame = g_frame;
+        if (g_pCKGameLoop->m_mode == 8 && modeEightFrame == 0) {
+            modeEightFrame = g_frame;
+            if (replay) ArmReplayFrameZero();  // the video_end frame's dt from the recording (newgame_replay.inc)
+        }
+        if (modeEightFrame != 0 && video != nullptr && video->m_state == 3) ++streamWaitFrames;
         if (modeEightFrame != 0 && binkFrames == 0 && video != nullptr && video->m_pBink != nullptr) {
             binkFrames = video->m_pBink->Frames;
             binkRate = video->m_pBink->FrameRate;
@@ -797,10 +1016,11 @@ int main() {
         // Frames from the first frame in mode 8 to the one before the return to mode 5, against the video's own length
         // (Bink frames x FrameRateDiv / FrameRate seconds at 60 Hz). The clean RPCS3 capture measured 12263 (1144 -> 13407).
         const uint32_t measured = modeFiveAgainFrame - 1 - modeEightFrame;
-        const double expected = static_cast<double>(binkFrames) * binkRateDiv / binkRate * 60.0;
+        const double expected = static_cast<double>(binkFrames) * binkRateDiv / binkRate * 60.0 + streamWaitFrames;
         std::printf("video: %u Bink frames at %u/%u = %.3f s = %.2f loop frames expected; level start frame %u, mode 8 at %u, mode 5 again at %u, measured %u\n",
                     binkFrames, binkRate, binkRateDiv, static_cast<double>(binkFrames) * binkRateDiv / binkRate, expected,
                     levelStartFrame, modeEightFrame, modeFiveAgainFrame, measured);
+        std::printf("video: %u frame(s) waiting for the stream players (state 3) included\n", streamWaitFrames);
         if (!skipTest) {
             expect(static_cast<double>(measured) >= expected - 1.5 && static_cast<double>(measured) <= expected + 1.5,
                    "the video's frames in mode 8 equal its Bink length at 60 Hz (within one frame)");
@@ -828,11 +1048,26 @@ int main() {
         const bool skipScene = std::getenv("DOTD_NEWGAME_SKIP2") != nullptr;
         int scenePhase = 0;
         uint32_t scenePhaseFrame = 0, promptOpenFrame = 0, answerFrame = 0;
-        int inhibitAtPrompt = -1, pauseState = -1;
+        int inhibitAtPrompt = -1, pauseState = -1, pauseMenu = -1, resumedState = -1, inhibitAfterResume = -1;
+        uint32_t resumeFrame = 0;
+        // C2.8 live-fixes, DOTD_NEWGAME_ARMORS=1 (with DOTD_NEWGAME_SKIP2): in the pause the armours page (interface menu 0)
+        // is requested with every piece shown (the game manager's +0x64 bit 25), Cross on its focused first item (Spyro's
+        // armour 0 in slot 0) chooses it, Circle goes back to the pause menu, which writes the choice to the game structure.
+        const bool armorsTest = skipScene && std::getenv("DOTD_NEWGAME_ARMORS") != nullptr;
+        int armorStep = 0, armorsMenu = -1, armorsEnabled = -1, armorsFocus = -1, armorsBefore = -1, armorsChosen = -1;
+        int armorsBackMenu = -1, armorsWritten = -1;
+        uint32_t armorFrame = 0;
+        // C2.8 live-fixes-3, DOTD_NEWGAME_MOVES=1 (with DOTD_NEWGAME_SKIP2): then the moves page (interface menu 7, "Menu
+        // Hits") is requested; the d-pad turns its pages (CKS08MenuHits_HandlePagingButtons: "Flash Manager" action 9 next,
+        // action 8 previous, wrapping at 32) and Circle goes back to the pause menu.
+        const bool movesTest = skipScene && std::getenv("DOTD_NEWGAME_MOVES") != nullptr;
+        int movesStep = 0, movesMenu = -1, movesPage0 = -1, movesNext = -1, movesPrev = -1, movesWrap = -1, movesBackMenu = -1;
+        uint32_t movesFrame = 0;
         uint32_t sekensorFrame = 0, pathFrame = 0, controlFrame = 0, barsFrame = 0, endedFrame = 0;
         // A replay runs to the recording's last frame.
         for (int i = 0; replay ? !ReplayOver() : i < 1500; ++i) {
             Step();
+            if (replay && g_replayLevelExited) break;  // the level's objects are gone (ReplayAfterFrame)
             if (inEngine < 0) {
                 for (uint32_t s = 0; s < service->m_ui32SceneNumber; ++s) {
                     const CKCinematicScene* scene = static_cast<CKCinematicScene*>(service->m_pSceneList[s]);
@@ -879,8 +1114,117 @@ int main() {
                     std::printf("skip: START pressed during the scene: queued boxes %d, game loop inhibited %d, scene still playing %d, game state %d\n",
                                 MessageBox_GetQueuedCount(), inhibitAtPrompt, scene->m_baData & 1, M()->m_gameState.m_ui8Current);
                     pauseState = M()->m_gameState.m_ui8Current;
+                    pauseMenu = M()->m_interfaceState.m_ui8Current;
                     scenePhase = 3;
                     scenePhaseFrame = g_frame;
+                } else if (scenePhase == 3 && armorsTest && armorStep < 6) {
+                    CKS08MenuArmors* page = static_cast<CKS08MenuArmors*>(M()->Vf344()[0]);  // the menu table's menu 0
+                    const uint32_t since = g_frame - armorFrame;
+                    if (armorStep == 0 && g_frame - scenePhaseFrame == 30) {
+                        M()->m_flags64 |= 0x2000000u;
+                        MenuGm_RequestMenu(M(), 0);
+                        armorStep = 1;
+                        armorFrame = g_frame;
+                    } else if (armorStep == 1 && since == 45) {
+                        armorsMenu = M()->m_interfaceState.m_ui8Current;
+                        armorsEnabled = 0;
+                        for (uint32_t i = 0; i < 18 && i < page->m_apButtons.m_ui32NbUsedElt; ++i) {
+                            const CKInterfaceButton* button = static_cast<const CKInterfaceButton*>(page->m_apButtons.m_pBlock[i]);
+                            if ((button->m_baFlags & 2) == 0) ++armorsEnabled;
+                        }
+                        armorsFocus = page->m_unk6c[0];
+                        armorsBefore = page->m_aaui8Equipped[0][0];
+                        g_d2 = CELL_PAD_CTRL_CROSS;
+                        armorStep = 2;
+                        armorFrame = g_frame;
+                    } else if (armorStep == 2 && since == 4) {
+                        g_d2 = 0;
+                        armorStep = 3;
+                        armorFrame = g_frame;
+                    } else if (armorStep == 3 && since == 10) {
+                        armorsChosen = page->m_aaui8Equipped[0][0];
+                        g_d2 = CELL_PAD_CTRL_CIRCLE;
+                        armorStep = 4;
+                        armorFrame = g_frame;
+                    } else if (armorStep == 4 && since == 4) {
+                        g_d2 = 0;
+                        armorStep = 5;
+                        armorFrame = g_frame;
+                    } else if (armorStep == 5 && since == 60) {
+                        armorsBackMenu = M()->m_interfaceState.m_ui8Current;
+                        armorsWritten = M()->GetEquippedArmor(0, 0);
+                        std::printf("armors: menu %d, %d of 18 items enabled, focus %d, Spyro slot 0 armour %d -> %d after Cross, "
+                                    "menu %d after Circle, written %d\n", armorsMenu, armorsEnabled, armorsFocus, armorsBefore,
+                                    armorsChosen, armorsBackMenu, armorsWritten);
+                        M()->m_flags64 &= ~0x2000000u;
+                        armorStep = 6;
+                        scenePhaseFrame = g_frame;  // then the resume below, as without the armours
+                    }
+                } else if (scenePhase == 3 && movesTest && movesStep < 10) {
+                    CKS08MenuHits* page = static_cast<CKS08MenuHits*>(M()->Vf344()[7]);  // the menu table's menu 7
+                    const uint32_t since = g_frame - movesFrame;
+                    // Press `pad` (d-pad word) for 4 frames, then wait 30 (the validated item's delay) and read the page.
+                    auto press = [&](int step, uint32_t wait, uint16_t d1, uint16_t d2) {
+                        if (movesStep == step && since == wait) {
+                            g_d1 = d1;
+                            g_d2 = d2;
+                            ++movesStep;
+                            movesFrame = g_frame;
+                            return true;
+                        }
+                        return false;
+                    };
+                    if (movesStep == 0 && g_frame - scenePhaseFrame == 30) {
+                        MenuGm_RequestMenu(M(), 7);
+                        movesStep = 1;
+                        movesFrame = g_frame;
+                    } else if (movesStep == 1 && since == 45) {
+                        movesMenu = M()->m_interfaceState.m_ui8Current;
+                        movesPage0 = static_cast<int>(page->m_ui32Page);
+                        press(1, 45, CELL_PAD_CTRL_DOWN, 0);
+                    } else if (press(2, 4, 0, 0)) {
+                    } else if (movesStep == 3 && since == 30) {
+                        movesNext = static_cast<int>(page->m_ui32Page);
+                        if (shotsDir != nullptr) {
+                            char path[512];
+                            std::snprintf(path, sizeof path, "%s/newgame_moves_page1.png", shotsDir);
+                            dotd::gfx::SaveScreenshot(path);
+                        }
+                        press(3, 30, CELL_PAD_CTRL_UP, 0);
+                    } else if (press(4, 4, 0, 0)) {
+                    } else if (movesStep == 5 && since == 30) {
+                        movesPrev = static_cast<int>(page->m_ui32Page);
+                        press(5, 30, CELL_PAD_CTRL_UP, 0);
+                    } else if (press(6, 4, 0, 0)) {
+                    } else if (movesStep == 7 && since == 30) {
+                        movesWrap = static_cast<int>(page->m_ui32Page);
+                        press(7, 30, 0, CELL_PAD_CTRL_CIRCLE);
+                    } else if (press(8, 4, 0, 0)) {
+                    } else if (movesStep == 9 && since == 60) {
+                        movesBackMenu = M()->m_interfaceState.m_ui8Current;
+                        std::printf("moves: menu %d, page %d, %d after Down, %d after Up, %d after Up again, menu %d after Circle\n",
+                                    movesMenu, movesPage0, movesNext, movesPrev, movesWrap, movesBackMenu);
+                        movesStep = 10;
+                        scenePhaseFrame = g_frame;  // then the resume below
+                    }
+                } else if (scenePhase == 3 && g_frame - scenePhaseFrame == 30) {
+                    // Cross on the pause menu's focused first item (the resume item, CKS08MenuPause_OnItemEvent 0x55e6b0:
+                    // item 0 validated requests game state 7) ends the pause, as a player would, once the menu takes input
+                    // (KBase730C_Open's 0.5 s input delay, counted from the menu's opening, has run out by now).
+                    g_d2 = CELL_PAD_CTRL_CROSS;
+                    scenePhase = 4;
+                    scenePhaseFrame = g_frame;
+                } else if (scenePhase == 4 && g_frame - scenePhaseFrame == 4) {
+                    g_d2 = 0;
+                    scenePhase = 5;
+                    scenePhaseFrame = g_frame;
+                } else if (scenePhase == 5 && (M()->m_gameState.m_ui8Current == 7 || g_frame - scenePhaseFrame == 60)) {
+                    resumedState = M()->m_gameState.m_ui8Current;
+                    inhibitAfterResume = g_pCKGameLoop->m_inhibitCount;
+                    resumeFrame = g_frame;
+                    std::printf("pause: menu 0x%x, Cross on its resume item: game state %d %u frame(s) after the press, game loop inhibited %d, menu 0x%x\n",
+                                pauseMenu, resumedState, g_frame - scenePhaseFrame + 4, inhibitAfterResume, M()->m_interfaceState.m_ui8Current);
+                    scenePhase = 6;
                 }
             }
             for (uint32_t k = 0; k < scene->m_ui32CinematicPointerLength; ++k) {
@@ -908,6 +1252,15 @@ int main() {
             if (controlFrame != 0 && barsFrame == 0 && (service->m_baData & 1) == 0) barsFrame = g_frame;
             if (controlFrame != 0 && endedFrame == 0 && (scene->m_baData & 1) == 0) endedFrame = g_frame;
         }
+        if (replay && g_replayLevelExited) {
+            // C2.8 chase-g8: the replay ran to the level exit; the end-state checks below read the level's objects.
+            FinishBones();
+            failures += FinishReplay(g_replayControlSeen);
+            std::printf("probe: %d frames in total, mode %d (the level exit), %d failure(s)\n", static_cast<int>(g_frame),
+                        g_pCKGameLoop->m_mode, failures);
+            std::fflush(stdout);
+            std::_Exit(failures != 0 ? 1 : 0);
+        }
         std::printf("cinematic: after the video (frame %u): sekensor done +%d, first path bloc done +%d, control given +%d, bars off +%d, scene over +%d\n",
                     videoEnd, static_cast<int>(sekensorFrame - videoEnd), static_cast<int>(pathFrame - videoEnd),
                     static_cast<int>(controlFrame - videoEnd), static_cast<int>(barsFrame - videoEnd), static_cast<int>(endedFrame - videoEnd));
@@ -930,10 +1283,28 @@ int main() {
             expect(introHoldsInput(), "the scene is over and the first fight's intro holds the input in the tutorial pages");
         } else if (skipScene) {
             // The in-engine scene's flag +0x22 bit 4 is clear: it cannot be skipped, so START is the pause request (state 8)
-            // and the skip prompt stays closed (CKS08GameManager_CheckPauseRequest_maybe).
-            expect(promptOpenFrame != 0 && MessageBox_GetQueuedCount() == 0 && inhibitAtPrompt == 0,
+            // and the skip prompt stays closed (CKS08GameManager_CheckPauseRequest_maybe); the pause holds the game loop (one
+            // pause count: CKS08GameManager_StateMenuCommon_maybe's Engine_PushGamePause_maybe).
+            expect(promptOpenFrame != 0 && MessageBox_GetQueuedCount() == 0 && inhibitAtPrompt == 1,
                    "START during the in-engine scene opened no skip prompt");
             expect(pauseState == 8, "START during the unskippable in-engine scene switched to the pause state 8");
+            expect(pauseMenu == 0xf, "the pause state shows the pause menu (interface state 0xf)");
+            expect(resumeFrame != 0 && resumedState == 7 && inhibitAfterResume == 0,
+                   "Cross on the pause menu's resume item ends the pause (game state 7, the game loop running again)");
+            if (armorsTest) {
+                expect(armorsMenu == 0, "the armours page is shown (interface menu 0)");
+                expect(armorsEnabled == 18, "with every piece shown the page's 18 armour items are enabled (SetArmors)");
+                expect(armorsFocus == 0 && armorsBefore == 3 && armorsChosen == 0,
+                       "Cross on the focused first item chooses Spyro's armour 0 for slot 0 (HandleSlotInput)");
+                expect(armorsBackMenu == 0xf, "Circle on the armours page goes back to the pause menu");
+                expect(armorsWritten == 0, "leaving the page writes the chosen armour to the game structure (SetEquippedArmor)");
+            }
+            if (movesTest) {
+                expect(movesMenu == 7 && movesPage0 == 0, "the moves page is shown (interface menu 7) on its first page");
+                expect(movesNext == 1 && movesPrev == 0 && movesWrap == 31,
+                       "Down / Up turn the moves pages, wrapping from the first to the last (CKS08MenuHits paging)");
+                expect(movesBackMenu == 0xf, "Circle on the moves page goes back to the pause menu");
+            }
         } else if (!skipTest) {
             expect(inEngine >= 0, "the in-engine scene started after the video");
             expect(within(sekensorFrame, videoEnd, 255), "the sekensor bloc is done 255 frames after the video (capture 13408 -> 13663)");
@@ -1000,6 +1371,35 @@ int main() {
     expect(structure->m_pCurrentSpawnPoint != nullptr &&
                g_pEngine->m_level->m_currentSector == structure->m_pCurrentSpawnPoint->m_iSectorIndex,
            "the current sector is the spawn point's sector");
+    if (!replay) {
+        // live-fixes-2: the level start's game state reaches the actors' presets (KBaseD82_SetGameState 0x3f72a8), so of the
+        // two spawners with a pression stone only the lower stone's (+0x25 clear) puts the weight on its stone; the upper
+        // stone's (+0x25 set) is switched off and its stone stays empty; the weight presses the lower stone (+0x40), as in the
+        // RPCS3 census at control (spawner +0x24 0 / 1, stone +0x40 the weight).
+        struct Spawners {
+            int withStone, ok;
+        } spawners{0, 0};
+        Kp3_ForEachLoadedObject(
+            [](IKSerializable* object, uint32_t key, void* context) {
+                if (key != CKHkTransportableObjectSpawner::kClassKey) return;
+                Spawners& s = *static_cast<Spawners*>(context);
+                const CKHkTransportableObjectSpawner* spawner = static_cast<const CKHkTransportableObjectSpawner*>(object);
+                if (spawner->m_unk20 == nullptr) return;
+                ++s.withStone;
+                const CKHkPressionStone* stone = static_cast<const CKHkPressionStone*>(spawner->m_unk20);
+                const bool ok = spawner->m_unk25 != 0
+                                    ? spawner->m_unk24 == 0 && spawner->m_unk28 == nullptr && stone->m_unk40 == nullptr
+                                    : spawner->m_unk24 != 0 && spawner->m_unk28 != nullptr && stone->m_unk40 == spawner->m_unk28;
+                std::printf("end state: spawner %p preset byte %u on %u weight %p stone (%.2f, %.2f, %.2f) pressed by %p\n",
+                            static_cast<const void*>(spawner), spawner->m_unk25, spawner->m_unk24,
+                            static_cast<const void*>(spawner->m_unk28), stone->m_vPosition.x, stone->m_vPosition.y,
+                            stone->m_vPosition.z, static_cast<const void*>(stone->m_unk40));
+                if (ok) ++s.ok;
+            },
+            &spawners);
+        expect(spawners.withStone == 2 && spawners.ok == 2,
+               "the weight starts on the lower pression stone, the upper one is empty (spawner presets)");
+    }
     if (const char* pattern = std::getenv("DOTD_DUMP_LEVEL_OBJECTS")) {
         char path[512];
         std::snprintf(path, sizeof(path), pattern, 10);

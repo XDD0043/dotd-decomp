@@ -10,6 +10,9 @@
 class CNode : public CSGBranch {
 public:
     DOTD_CLASS_KEY(kCategoryNode, 0x3)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a2548
+        return key == 0xcb || key == 0x24b || key == 0x20b || key == 0x14b || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CNode)
 
     CNode();  // 0x000cbe40 InitializeCNode (the constructor; also clears m_pParent, as XXL2's)
@@ -30,6 +33,9 @@ public:
     // geometry, 1 the atomic's cached sphere, 2 every geometry without a frustum test, 3 none. Returns 1
     // when something was queued.
     uint32_t CullAndEnqueueGeometry(RenderQueue** stages, IKTime* frameClock, RwCamera* camera);
+    // 0x000cc808 CNode_SetFlag10Bit5_ResetField20To1_maybe (not virtual): bit 5 of the properties set to `on` (the whole
+    // value shifted in); when it changes to set, bits 21-22 are cleared and +0x20 becomes 1.0 (TOC -0x55cc).
+    void SetFlag10Bit5ResetField20To1(uint32_t on);
 
     // +0x1c XXL2 GeometryList: the first CGeometry (they chain through the geometry's next pointer),
     // one reference. The constructor sets 0.

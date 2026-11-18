@@ -8,14 +8,14 @@
 //   [x] 0x349a8  SectorRequest_GetOperation
 //   [x] 0x349b0  SectorRequest_GetSectorIndex
 //   [ ] 0x349d8  SectorRequest_ApplyCompletionToLevel_maybe  [dead]
-//   [ ] 0x34ab8  SectorRequest_IsPending
-//   [ ] 0x34af8  SectorRequest_Destructor_2
-//   [ ] 0x34b28  SectorRequest_Construct
+//   [x] 0x34ab8  SectorRequest_IsPending  (SectorRequest.h IsPending; no caller in the original either)
+//   [x] 0x34af8  SectorRequest_Destructor_2  (the same as 0x34d80 SectorRequest_Destructor (vtable stores, KRequest's destructor))
+//   [x] 0x34b28  SectorRequest_Construct  (the same stores as 0x34ec8 (the constructor))
 //   [x] 0x34bc8  SectorRequest_Post
-//   [ ] 0x34d38  SectorRequest_DeletingDestructor
-//   [ ] 0x34d80  SectorRequest_Destructor
+//   [x] 0x34d38  SectorRequest_DeletingDestructor  (the deleting form of the destructor)
+//   [x] 0x34d80  SectorRequest_Destructor  (C++ destructor chain: vtable stores only)
 //   [x] 0x34db0  SectorRequest_Execute
-//   [ ] 0x34e70  SectorRequest_GetSectorState
+//   [x] 0x34e70  SectorRequest_GetSectorState  (SectorRequest::GetSectorState; no caller in the original either)
 //   [x] 0x34ec8  CKSector_ConstructBase_maybe
 //   [x] 0x34f68  SectorRequest_CheckDone
 //   [x] 0x350e8  SectorRequest_Wait
@@ -72,6 +72,13 @@ int8_t SectorRequest::GetSectorIndex() const {
     return static_cast<int8_t>(m_sector + g_pEngine->m_level->m_i8NumFirstStream - 1);
 }
 
+// 0x00034e70 SectorRequest_GetSectorState
+int32_t SectorRequest::GetSectorState() const {
+    const int8_t index = GetSectorIndex();
+    if (index == -1) return 1;
+    return g_pEngine->m_objectDatabase->m_aeStreamStates[index];
+}
+
 // 0x00034db0 SectorRequest_Execute (the load worker, or RunSync on the caller's thread)
 void SectorRequest::Execute() {
     if (m_operation == kLoad) {
@@ -91,10 +98,22 @@ void SectorRequest::Post(int32_t operation) {
     m_unk60 = 1;  // atomic store
 }
 
+namespace {
+SectorRequestPacer g_sectorRequestPacer = nullptr;  // SectorRequest_SetPacer (replays)
+}  // namespace
+
+void SectorRequest_SetPacer(SectorRequestPacer pacer) { g_sectorRequestPacer = pacer; }
+
 // 0x00034f68 SectorRequest_CheckDone: 1 once the request finished and was committed.
 uint32_t SectorRequest::CheckDone() {
     uint8_t succeeded = 0;
-    IsFinished(&succeeded);
+    const int32_t paced = g_sectorRequestPacer != nullptr ? g_sectorRequestPacer(m_sector, m_operation) : -1;
+    if (paced == 0) return 0;  // replays: the original's request still runs in this frame
+    if (paced == 1) {
+        KRequest::Wait(&succeeded);  // replays: the original committed it in this frame
+    } else {
+        IsFinished(&succeeded);
+    }
     if (succeeded == 0) return 0;
     Commit(this);
     m_unk60 = 0;  // atomic store

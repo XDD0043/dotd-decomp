@@ -35,13 +35,25 @@ public:
     DOTD_CLASS_KEY(kCategoryGraphical, 0x28)  // vt+0x14 / +0x18  0x9a0688 / 0x9a0690
 
     IKVideo();                   // 0x000ab2a8 (Ghidra PS3_CKVideo_ConstructBase_maybe; stores the IKVideo vtable)
-    ~IKVideo() override {}       // STUB(C1.6): 0x9a0728 / 0x9a06e8
+    ~IKVideo() override {}       // 0x009a0728 / 0x009a06e8 IKVideo_vf0 / IKVideo_DeletingDestructor: the vtables only
     // vt+0x08 0x9a06c8
     int32_t IsKindOfClass(uint32_t key) override { return key == 0xa0d || key == 0xc; }
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x000ad5f8 IKVideo_Load
     int32_t PostLoad(int32_t type) override;            // vt+0x30 0x000ac410 IKVideo_vf30
     const uint32_t* GetGuid() override { return m_guidIdentifier; }  // vt+0x44 0x9a0668
     void SetGuid(const uint32_t* guid) override;                     // vt+0x48 0x9a0698
+    // vt+0x0c 0x000abc88 IKVideo_vfC (DestroyGame; PS3_CKVideo_DestroyGame 0xae4f8 only calls it): the texture forgotten.
+    void DestroyGame() override { m_pTexture = nullptr; }
+    // vt+0x24 0x000ab2c8 IKVideo_vf24 (RecursiveRegistration; PS3_CKVideo's 0xae4d0 only calls it): registered with the
+    // saving manager for types 0 and 1; type 0 also the end trigger's (KStub_Return1_2361b0: nothing).
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x40 0x000abb50 PS3_CKVideo_GetInfo: value 5 is the playback position (an integer, 0x000ac4a0).
+    int32_t GetInfo(IKInfo* info, int32_t request) override;
+    // vt+0x10 0x000ae520 PS3_CKVideo_Destroy: ReleaseTexture.
+    void Destroy() override { ReleaseTexture(); }
+    // 0x000abc98 PS3_CKVideo_ReleaseTexture_maybe: a video-to-texture (0x40) destroys its texture (RwTextureDestroy) and
+    // forgets it; then the stream closed (vt+0x58).
+    void ReleaseTexture();
 
     // ---- the video slots (vt+0x50..+0xa0) ----
     virtual int32_t Vf50() { return 1; }                      // vt+0x50 0x9a0680 PS3_CKVideo_vf50

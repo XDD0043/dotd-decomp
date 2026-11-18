@@ -11,6 +11,7 @@
 #include "k2000/math/CMatrix34.h"
 
 class IKFile;
+class IKTime;
 
 class CKFlaggedPathCinematicBloc : public IKCinematicBloc {
 public:
@@ -22,6 +23,54 @@ public:
     ~CKFlaggedPathCinematicBloc() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00179320 CKFlaggedPathCinematicBloc_Load
+    // vt+0x24 0x00178230 CKFlaggedPathCinematicBloc_RecursiveRegistration: registered (unless 4..7), the base's, then the
+    // flagged path's.
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x10 0x00178828 CKFlaggedPathCinematicBloc_Destroy: the state engine's owner cleared, its table freed
+    // (Mem_FreeAligned16) and cleared, its state 0 and +0xcd 0xff.
+    void Destroy() override;
+
+    void Start() override;               // vt+0x5c 0x0017a260 CKFlaggedPathCinematicBloc_Start
+    void Complete() override;            // vt+0x64 0x00179bf0 CKFlaggedPathCinematicBloc_Complete (CompleteBloc inlined)
+    void Update(IKTime* time) override;  // vt+0x68 0x00178ff0 CKFlaggedPathCinematicBloc_Update
+    void Stop() override;                // vt+0x6c 0x00178050 CKFlaggedPathCinematicBloc_Stop
+    // vt+0x70 0x009a9628 CKFlaggedPathCinematicBloc_Abort [inline]: not running (bit 0 cleared).
+    void Abort() override { m_DataFlags &= 0xfffffffeu; }
+    uint8_t UsesActor() override { return 1; }            // vt+0x80 0x009a9638
+    uint8_t IsExclusiveOnActor() override { return 1; }   // vt+0x84 0x009a9640
+    uint8_t GetAnimCount() override { return 3; }         // vt+0x88 0x009a9648
+    // vt+0x8c 0x009a9650 CKFlaggedPathCinematicBloc_GetAnimIndex_maybe [inline]: m_i32Tab[index] (the base declares the
+    // slot without the index; nothing calls it).
+    int32_t GetAnimIndexAt(int32_t index) const { return m_i32Tab[index]; }
+    // vt+0x1c 0x00179ff0 CKFlaggedPathCinematicBloc_MessageProc: IKCinematicElement's, then 0x503 the speed's target from
+    // m_fSpeedArray[*data], 0x504 its rate from m_fAccelerateArray[*data], 0x502 the state *data (0 handled).
+    int32_t MessageProc(uint16_t message, void* data) override;
+
+    // 0x00179dc8 CKFlaggedPathCinematicBloc_RunStateMachine_maybe: the state engine's frame (the current state's handler with
+    // mode 0 gives the next state; a change runs the old one's exit (2) and the new one's entry (1)), then the actor's
+    // animation advanced. Update inlines it.
+    void RunStateMachine();
+    // The state engine's handler call: the handler table's word pair at `state` (the PS3 member-function descriptors
+    // 0xb640a8 / 0xb64098 / 0xb64090 the Load copied) dispatched to the native handlers.
+    uint8_t CallStateHandler(uint8_t state, int32_t mode, uint8_t other);
+    // 0x00178740 / 0x00178660 / 0x00178580 CKFlaggedPathCinematicBloc_PathState0/1/2_maybe: the states standing (until
+    // m_fTimeForStatique has passed since m_fStatiqueStartTime), walking and running; entry (mode 1) plays the state's
+    // animation (m_i32Tab) and sets the speed (0, walk, run); mode 0 returns the state to go on with, mode 2 (exit) 0.
+    uint8_t PathState0(int32_t mode, uint8_t other);
+    uint8_t PathState1(int32_t mode, uint8_t other);
+    uint8_t PathState2(int32_t mode, uint8_t other);
+    // 0x00178c80 CKFlaggedPathCinematicBloc_MoveActorAlongPath: the speed approached, the distance advanced (not while
+    // standing), the actor placed on the path (on the ground with m_bPutOnGround) and oriented along it (with bit 7 of the
+    // flags turned smoothly, StepActorTowards), turned by m_fAngleRotate (bit 8) and scaled back.
+    void MoveActorAlongPath();
+    // 0x00177e60 CKFlaggedPathCinematicBloc_StepActorTowards_maybe: the look-at vector (+0x44, a CSmoothedCVector3Linear
+    // with the rotation speed) stepped towards `direction`, which gets it back normalised.
+    void StepActorTowards(CVector3* direction);
+    // 0x001789d0 CKFlaggedPathCinematicBloc_UpdateActorGroundContact_maybe: the actor's shadow on the ground under it (or
+    // flat at 0.2 under the position without a ground).
+    void UpdateActorGroundContact();
+    // 0x00177dc8 CKFlaggedPathCinematicBloc_SnapTargetToGround_maybe: the current position put on the ground under it.
+    void SnapTargetToGround();
 
     CVector3 m_v3CurrentPos;                             // +0x38 runtime
     uint32_t m_sv3LookAt[7];                             // +0x44 XXL2 CSmoothedCVector3Linear; runtime

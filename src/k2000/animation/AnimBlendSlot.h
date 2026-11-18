@@ -12,6 +12,14 @@ class IKSerializable;
 
 class AnimBlendSlot {
 public:
+    // 0x0007a660 AnimBlendSlot_ClearReferences_maybe (CAnimatedNode_Destroy): no controller.
+    void ClearReferences() { m_pController = nullptr; }
+    // 0x0007a670 KStub_Return1_7a670 (the word 0xb16574 of the vtable 0xb16560; the thunk 0x79de8 calls it): 1.
+    int32_t Vf14() const { return 1; }
+    // 0x0007a708 KStub_Return1_7a708 (the word 0xb16580 of the vtable 0xb16560; AnimBlendSlot_PostLoadThunk_maybe
+    // 0x79d70 calls it, CAnimatedNode's PostLoad): 1.
+    int32_t PostLoad() const { return 1; }
+public:
     AnimBlendSlot() {}  // inlined in CAnimatedNode_Construct 0xc9480: the vtables only
     virtual ~AnimBlendSlot() {}  // 0x009996e0 / 0x00999710 (inline)
 
@@ -70,3 +78,5 @@ DOTD_ASSERT_OFFSET(AnimFloatBlock9, m_pUnk20, 0x20);
 
 // 0x00079418 AnimFloatBlock9_LoadByteSwapped_maybe (no type test, nothing returned).
 void AnimFloatBlock9_LoadByteSwapped(AnimFloatBlock9* block, IKFile* file);
+// 0x000795d8 AnimFloatBlock9_SaveByteSwapped_maybe: the Load's fields written back (only a Save writer calls it).
+void AnimFloatBlock9_SaveByteSwapped(const AnimFloatBlock9* block, IKFile* file);

@@ -89,7 +89,7 @@ public:
     void Destroy() override;                                // vt+0x10 0x0006f030 CKFlashUI_Destroy
     int32_t MessageProc(uint16_t, void*) override { return 1; }            // vt+0x1c 0x6d4b0 CKFlashUI_MessageProc
     void RecursiveRegistration(int32_t /*type*/) override {}  // vt+0x24 0x6e520 (returns 1)
-    int32_t Save(IKFile* /*file*/) override { return 1; }   // vt+0x28 0x6e518
+    int32_t Save(IKFile* /*file*/, int32_t /*type*/) override { return 1; }   // vt+0x28 0x6e518
     int32_t Load(IKFile* file, int32_t type) override;      // vt+0x2c 0x0006fc48 CKFlashUI_Load
     int32_t PostLoad(int32_t type) override;                // vt+0x30 0x00071f48 CKFlashUI_PostLoad
 
@@ -194,3 +194,7 @@ DOTD_ASSERT_OFFSET(CKFlashUI, m_fOffsetX_maybe, 0x238);
 
 // 0x0006e500 CameraContext_GetReferenceAspect_maybe: the camera context's +0x80 (4:3 = 1.3333).
 float CameraContext_GetReferenceAspect();
+// 0x0006da18 Rt2dScene_ApplyColorMultiplierToChildren_maybe: the colour multiplier on every string and shape below
+// `scene` (Rt2dSceneForAllChildren with Rt2dObject_SetColorMultiplierRecursiveCB_maybe 0x6db28 and {ui, multiply}).
+// CKFlashAnimation_ApplyColorMultiplier_maybe 0x73fd0 calls it; CKFlashUI's own copy is inline in its update.
+void Rt2dScene_ApplyColorMultiplierToChildren(CKFlashUI* ui, struct Rt2dObject* scene, struct RwRGBAReal* multiply);

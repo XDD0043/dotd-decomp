@@ -4,7 +4,7 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x12a888  CKSrvCamera_Destroy
+//   [x] 0x12a888  CKSrvCamera_Destroy  (the Delete factory: DOTD_DECLARE_FACTORIES(CKSrvCamera))
 //   [x] 0x12a8d8  CKSrvCamera_vf98
 //   [x] 0x12a8e0  CKSrvCamera_vf50
 //   [x] 0x12a8e8  CKSrvCamera_vf70
@@ -17,7 +17,7 @@
 //   [ ] 0x12ae18  FUN_0012ae18  [dead]
 //   [ ] 0x12afc0  CKSrvCamera_InitSampleRing150_maybe  [dead]
 //   [ ] 0x12b040  CKSrvCamera_PushSampleRing150_maybe  [dead]
-//   [ ] 0x12b0a8  CKSrvCamera_vf40
+//   [x] 0x12b0a8  CKSrvCamera_vf40  (GetInfo: 1, IKSerializable's default)
 //   [x] 0x12b0b0  CKSrvCamera_StartCameraParamBlend_maybe
 //   [x] 0x12b420  CKSrvCamera_CanStartScriptedCamera_maybe
 //   [ ] 0x12b468  RegisterCKSrvCameraClass
@@ -30,7 +30,7 @@
 //   [x] 0x12b9a0  CKSrvCamera_StopAllShakes_maybe
 //   [x] 0x12ba78  CKSrvCamera_AccumulateShake_maybe
 //   [ ] 0x12bb20  CKSrvCamera_GetTargetPositionWithCoop_maybe  [dead]
-//   [ ] 0x12bbf8  CKSrvCamera_DestroyArray
+//   [x] 0x12bbf8  CKSrvCamera_DestroyArray  (the DeleteArray factory: DOTD_DECLARE_FACTORIES(CKSrvCamera))
 //   [x] 0x12bc98  CKSrvCamera_EnableDirectionLock_maybe
 //   [x] 0x12bda0  FogManager_GetFarDensity_maybe
 //   [ ] 0x12bde0  FogManager_GetFogField18_maybe  [dead]
@@ -42,9 +42,9 @@
 //   [x] 0x12bf60  FogManager_GetColorForFarPass_maybe
 //   [x] 0x12bfc0  FogManager_GetMainColor_maybe
 //   [ ] 0x12c020  CKSrvCamera_IsViewBlockedByCollision_maybe  [dead]
-//   [ ] 0x12c1b0  CKSrvCamera_ResetToInitialState_maybe
-//   [ ] 0x12c2f0  CKSrvCamera_LevelReset
-//   [ ] 0x12c560  CKSrvCamera_ComputeFrustumOutcode_maybe
+//   [x] 0x12c1b0  CKSrvCamera_ResetToInitialState_maybe
+//   [x] 0x12c2f0  CKSrvCamera_LevelReset  (CKSrvCamera::RecursiveRegistration)
+//   [x] 0x12c560  CKSrvCamera_ComputeFrustumOutcode_maybe  (CKSrvCamera::ComputeFrustumOutcode; its only caller IKHkHero_vf180 is unreachable)
 //   [ ] 0x12c7a0  FUN_0012c7a0  [dead]
 //   [x] 0x12c7d0  CKSrvCamera_FindIndexByKey_maybe
 //   [x] 0x12c830  CKSrvCamera_TestSphereAgainstFrustum
@@ -67,10 +67,10 @@
 //   [x] 0x12eaa0  CKSrvCamera_FindZoneCameraAtPosition_maybe
 //   [x] 0x12ecd0  CKSrvCamera_FindCameraSectorAtFocus_maybe
 //   [x] 0x12eee8  CKSrvCamera_StartQuake_maybe
-//   [ ] 0x12f0c0  CKSrvCamera_DeletingDestructor
+//   [x] 0x12f0c0  CKSrvCamera_DeletingDestructor  (~CKSrvCamera, delete)
 //   [x] 0x12f268  CKSrvCamera_ResolveGroundClearance_maybe  (CKSrvCamera_2.cpp)
-//   [ ] 0x12fa38  CKSrvCamera_IsPointInFrustumScaled_maybe
-//   [ ] 0x12fbe8  CKSrvCamera_IsExtentInsideFrustum_maybe
+//   [x] 0x12fa38  CKSrvCamera_IsPointInFrustumScaled_maybe  [dead: no pointer to its descriptor 0xb5b3a8, no call]  (CKSrvCamera::IsPointInFrustumScaled)
+//   [x] 0x12fbe8  CKSrvCamera_IsExtentInsideFrustum_maybe  [dead: no pointer to its descriptor 0xb5b3b0, no call]  (CKSrvCamera::IsExtentInsideFrustum)
 //   [x] 0x12fd98  CKSrvCamera_UpdateFrustumPlanes_maybe
 //   [x] 0x130200  CKSrvCamera_HandleMessage
 //   [x] 0x1308f0  CKSrvCamera_StopAll_maybe
@@ -79,10 +79,10 @@
 //   [x] 0x130c20  IKFile_ReadObjectRef
 //   [x] 0x130cc8  CKSrvCamera_PushCamera_maybe
 //   [x] 0x1314f8  CKSrvCamera_SwitchCameraIfDifferent_maybe
-//   [ ] 0x131530  CKSrvCamera_Destructor
+//   [x] 0x131530  CKSrvCamera_Destructor  (~CKSrvCamera)
 //   [x] 0x1316d0  CKSrvCamera_Load
-//   [ ] 0x132b38  CKSrvCamera_Destructor_2
-//   [ ] 0x132cd8  CKSrvCamera_GetFrustumPlaneNormal_maybe
+//   [x] 0x132b38  CKSrvCamera_Destructor_2  [dead: no pointer to its descriptor 0xb5b478, no call]  (~CKSrvCamera: the same code as 0x131530 CKSrvCamera_Destructor)
+//   [x] 0x132cd8  CKSrvCamera_GetFrustumPlaneNormal_maybe  (CKSrvCamera::GetFrustumPlaneNormal; the same unreachable caller)
 //   [x] 0x132d88  CKSrvCamera_CaptureHeroHeadingLock_maybe
 //   [x] 0x132fd8  CKSrvCamera_AdjustViewToKeepTargetInFrameMargins_maybe  (CKSrvCamera_2.cpp)
 //   [x] 0x1337c0  CKSrvCamera_ComputeViewBasis_maybe
@@ -105,6 +105,7 @@
 //   [ ] 0x9a7168  CKSrvCamera_GetClassId  [inline]
 //   [ ] 0x9a7170  KStub_Return0_9a7170  [inline]
 #include "k2000/cameras/CKSrvCamera.h"
+#include "k2000/components/CKCameraEventCpnt.h"
 
 #include <cfloat>
 #include <cmath>
@@ -124,6 +125,7 @@
 #include "k2000/io/IKFile.h"
 #include "k2000/logic/render/CKCameraFogDatas.h"
 #include "k2000/logic/CDefaultGameManager.h"
+#include "k2000/logic/CKSavingManager.h"
 #include "k2000/logic/CKGameSpawnPoint.h"
 #include "k2000/logic/ai/CKBeaconKluster.h"
 #include "k2000/logic/cameras/CKCameraConstraint.h"
@@ -261,6 +263,38 @@ CKSrvCamera::CKSrvCamera() {
     m_ui32FrameTimeIndex = 0;
     m_fFrameTimeSum = 0.0f;
     m_apUnke00 = nullptr;
+}
+
+// 0x00131530 CKSrvCamera_Destructor (0x0012f0c0 CKSrvCamera_DeletingDestructor: the same, then the delete): the
+// engine's camera service slot cleared, the stack count and the cinematic owner cleared, the beacon frustum's matrix
+// destroyed, the +0x930 nodes and the shake nodes (+0x8e8, linked by +0x08) back to their pools, each reference group's
+// vector freed and the group array freed (not cleared); then the internal camera's destructor.
+CKSrvCamera::~CKSrvCamera() {
+    Engine_SetSrvCamera(nullptr);  // 0x24bd0
+    m_ui32NbStacked = 0;
+    m_unke24 = 0;
+    RwMatrixDestroy(m_BeaconFrustum.m_pMatrix);
+    for (CameraNode* node = m_pUnk930; node != nullptr;) {
+        CameraNode* next = node->m_pNext;
+        delete node;  // FreeListPool 0x00ceaa30
+        node = next;
+    }
+    m_pUnk930 = nullptr;
+    if (m_vUnk8ec.m_pBlock != nullptr) {
+        for (uint32_t i = 0; i < m_vUnk8ec.m_ui32NbUsedElt; ++i) {
+            RefGroup& group = m_vUnk8ec.m_pBlock[i];
+            if (group.m_vRefs.m_pBlock != nullptr) Mem_FreeAligned16(group.m_vRefs.m_pBlock);
+            group.m_vRefs.m_ui32NbUsedElt = 0;
+            group.m_vRefs.m_pBlock = nullptr;
+        }
+        Mem_FreeAligned16(m_vUnk8ec.m_pBlock);
+    }
+    for (SShakeNode* node = m_unk8e8; node != nullptr;) {
+        SShakeNode* next = node->m_pNext;
+        delete node;  // FreeListPool 0x00ceaa20
+        node = next;
+    }
+    m_unk8e8 = nullptr;
 }
 
 // 0x0012d5a0 CKSrvCamera_Destroy (the level unload). IKService's part (0x1a5b8) and the internal
@@ -727,7 +761,7 @@ CKCameraSector* CKSrvCamera::FindCameraSectorAtFocus(bool requireCameras, CKCame
         CSGLeaf* leaf = static_cast<CSGLeaf*>(m_aStack[0].m_pTarget);
         // The stored LTM of the original (synchronised by CKGraphic_UpdateSceneWorldMatrices right before): computed
         // on demand here.
-        const RwMatrix* ltm = RwFrameGetLTM(leaf->m_pRwFrame);
+        const RwMatrix* ltm = FrameLtm(leaf->m_pRwFrame);
         for (CameraNode* node = *m_aCameraSectorMode[m_unk24[0]]; node != nullptr; node = node->m_pNext) {
             CKCameraSector* sector = static_cast<CKCameraSector*>(node->m_pObject);
             if (sector->IsEnabledForFocusedHero() && sector != exclude &&
@@ -751,7 +785,7 @@ CKCameraSector* CKSrvCamera::FindCameraSectorAtFocus(bool requireCameras, CKCame
 void CKSrvCamera::UpdateCameraZones() {
     if (m_ui32NbStacked == 0 || m_aStack[0].m_pTarget == nullptr) return;
     CSGLeaf* leaf = static_cast<CSGLeaf*>(m_aStack[0].m_pTarget);
-    const RwMatrix* ltm = RwFrameGetLTM(leaf->m_pRwFrame);  // the stored LTM of the original, computed on demand
+    const RwMatrix* ltm = FrameLtm(leaf->m_pRwFrame);  // the stored LTM of the original, computed on demand
     // The point the zones are tested with: a camera track's target, else the focus node's world position.
     const RwV3d* focus = &ltm->pos;
     if (m_pCurrentCamera != nullptr && m_pCurrentCamera->IsKindOfClass(0x387) != 0) {
@@ -854,7 +888,7 @@ void CKSrvCamera::UpdateInitialize() {
         const RwV3d* position;
         if (parent == nullptr || parent->GetClassID() != 2) {
             if ((m_baTemporaryFlags & 0x80000u) == 0) leaf->ForceWorldMatrixUpdate();
-            position = &RwFrameGetLTM(leaf->m_pRwFrame)->pos;
+            position = &FrameLtm(leaf->m_pRwFrame)->pos;
         } else {
             position = &leaf->m_pRwFrame->modelling.pos;
         }
@@ -872,7 +906,7 @@ void CKSrvCamera::UpdateInitialize() {
             if ((parent == nullptr || parent->GetClassID() != 2) && (m_baTemporaryFlags & 0x80000u) == 0) {
                 leaf->ForceWorldMatrixUpdate();
             }
-            const RwV3d& position = RwFrameGetLTM(leaf->m_pRwFrame)->pos;
+            const RwV3d& position = FrameLtm(leaf->m_pRwFrame)->pos;
             m_aStack[i].m_unk24[0] = position.x;
             m_aStack[i].m_unk24[1] = position.y;
             m_aStack[i].m_unk24[2] = position.z;
@@ -959,6 +993,45 @@ void CKSrvCamera::Resume() {
 void CKSrvCamera::Update(IKTime* frameClock) {
     if (frameClock->m_eCurrentState != IKTime::RUNNING) return;
     UpdateFrame(frameClock->m_afDeltaTime[IKTime::FIXED_GAME_TIME]);
+}
+
+// 0x0012c1b0 CKSrvCamera_SetDefaultState (vt+0x38; Ghidra's checklist name CKSrvCamera_ResetToInitialState_maybe).
+void CKSrvCamera::SetDefaultState(int32_t flag) {
+    const int32_t byteFlag = flag & 0xff;  // rldicl r30,r4,0,56
+    for (uint32_t mode = 0; mode < m_ui32NbCameraSectorMode; ++mode) {
+        for (CameraNode* node = *m_aCameraSectorMode[mode]; node != nullptr; node = node->m_pNext) {
+            node->m_pObject->SetDefaultState(byteFlag);  // vt+0x38 (the camera sectors)
+        }
+    }
+    for (uint32_t i = 0; i < m_ui32NbUnke00; ++i) {
+        m_apUnke00[i]->SetDefaultState(byteFlag);  // vt+0x38 CKCameraConstraint_SetDefaultState 0x153b10
+    }
+}
+
+// 0x0012c2f0 CKSrvCamera_LevelReset (RecursiveRegistration, vt+0x24). Type 0: the service registered, every camera of
+// the list +0x18 (linked by the cameras' +0x04), every object of the sector-mode lists and every constraint zone
+// (+0xe00) get RecursiveRegistration(0); the memory-card types 4..7: the sector-mode lists' objects get
+// RecursiveRegistration(type); the other types nothing.
+void CKSrvCamera::RecursiveRegistration(int32_t type) {
+    if (type != 0) {
+        if (static_cast<uint32_t>(type - 4) > 3u) return;
+        for (uint32_t mode = 0; mode < m_ui32NbCameraSectorMode; ++mode) {
+            for (CameraNode* node = *m_aCameraSectorMode[mode]; node != nullptr; node = node->m_pNext) {
+                node->m_pObject->RecursiveRegistration(type);
+            }
+        }
+        return;
+    }
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    for (IKSerializable* camera = m_lKCamera; camera != nullptr; camera = static_cast<IKCamera*>(camera)->m_unk04) {
+        camera->RecursiveRegistration(0);
+    }
+    for (uint32_t mode = 0; mode < m_ui32NbCameraSectorMode; ++mode) {
+        for (CameraNode* node = *m_aCameraSectorMode[mode]; node != nullptr; node = node->m_pNext) {
+            node->m_pObject->RecursiveRegistration(0);
+        }
+    }
+    for (uint32_t i = 0; i < m_ui32NbUnke00; ++i) m_apUnke00[i]->RecursiveRegistration(0);
 }
 
 // 0x0012cce0 CKSrvCamera_vf8C (SectorUnload): the node list at +0x930 back to its pool and four flags reset.
@@ -1288,7 +1361,7 @@ done:
 IKCamera* CKSrvCamera::FindZoneCameraAtPosition(uint8_t refuse) {
     if (m_ui32NbStacked == 0 || m_aStack[0].m_pTarget == nullptr || m_ui32NbCameraSectorMode == 0) return nullptr;
     CSGLeaf* leaf = static_cast<CSGLeaf*>(m_aStack[0].m_pTarget);
-    const RwMatrix* ltm = RwFrameGetLTM(leaf->m_pRwFrame);  // the stored LTM of the original, computed on demand
+    const RwMatrix* ltm = FrameLtm(leaf->m_pRwFrame);  // the stored LTM of the original, computed on demand
     for (CameraNode* node = *m_aCameraSectorMode[m_unk24[0]]; node != nullptr; node = node->m_pNext) {
         CKCameraSector* sector = static_cast<CKCameraSector*>(node->m_pObject);
         if (!sector->IsEnabledForFocusedHero() || !sector->ContainsPoint(&ltm->pos.x)) continue;
@@ -1337,7 +1410,7 @@ void CKSrvCamera::PushCamera(float blend, IKSerializable* target, int32_t transi
                     CSGBranch* parent = static_cast<CSGBranch*>(first->m_pParent);
                     if (parent == nullptr || parent->GetClassID() != 2) {
                         if ((m_baTemporaryFlags & 0x80000u) == 0) first->ForceWorldMatrixUpdate();
-                        position = &RwFrameGetLTM(first->m_pRwFrame)->pos;
+                        position = &FrameLtm(first->m_pRwFrame)->pos;
                     } else {
                         position = &first->m_pRwFrame->modelling.pos;
                     }
@@ -1355,7 +1428,7 @@ void CKSrvCamera::PushCamera(float blend, IKSerializable* target, int32_t transi
                     if ((parent == nullptr || parent->GetClassID() != 2) && (m_baTemporaryFlags & 0x80000u) == 0) {
                         leaf->ForceWorldMatrixUpdate();
                     }
-                    const RwV3d& world = RwFrameGetLTM(leaf->m_pRwFrame)->pos;
+                    const RwV3d& world = FrameLtm(leaf->m_pRwFrame)->pos;
                     m_aStack[i].m_unk24[0] = world.x;
                     m_aStack[i].m_unk24[1] = world.y;
                     m_aStack[i].m_unk24[2] = world.z;
@@ -1767,9 +1840,7 @@ bool CKSrvCamera::CanStartScriptedCamera(float time) const {
 void CKSrvCamera::SetActiveScriptedCamera(float time, IKSerializable* handle) {
     if (handle != nullptr) {
         if (m_pScriptedCameraHandle != nullptr) {
-            // ScriptedCameraHandle_Release_maybe 0x166130 (k2000/components/CKCameraEventCpnt.cpp). STUB(C2.8): the
-            // scripted camera handles (CKCameraEventCpnt) are scripting; nothing activates one natively yet.
-            DOTD_STUB_ONCE("CKSrvCamera_SetActiveScriptedCamera_maybe: ScriptedCameraHandle_Release_maybe 0x166130 (C2.8)");
+            static_cast<CKCameraEventCpnt*>(m_pScriptedCameraHandle)->Release();  // 0x00166130
         }
         m_fScriptedCameraTimer = time;
     }
@@ -2366,4 +2437,120 @@ void CKSrvCamera::ApplyTransitionFraming(float dt) {
         }
     }
     UpdateCameraParamBlend(dt);
+}
+
+namespace {
+float WordAsFloat(uint32_t word) {
+    float value;
+    std::memcpy(&value, &word, 4);
+    return value;
+}
+}  // namespace
+
+// 0x0012c560 CKSrvCamera_ComputeFrustumOutcode_maybe (only IKHkHero_vf180 0x3557e8 calls it, in the abstract IKHkHero
+// vtable 0xb22f10 alone: unreachable in the game): the sphere (`point`, `radius`) against the frustum planes 5 down to
+// 0: plane k gives 0x41 << k when the sphere is wholly in front of it (d > radius), 1 << k when it only crosses it (-radius
+// < d), nothing behind it. Plane 1 is moved by the real far less the word +0x4a0 (read as a float), plane 0 by the word
+// +0x49c less 0.001 of the real far. Plane 0's crossing test is bge (a NaN distance counts as crossing),
+// the others blt.
+uint32_t CKSrvCamera::ComputeFrustumOutcode(const CVector3* point, float radius) const {
+    const float y = point->y;
+    const float x = point->x;
+    const float z = point->z;
+    const auto dot = [&](const float* plane) { return ppc::fmadds(z, plane[2], ppc::fmadds(x, plane[0], y * plane[1])); };
+    uint32_t code = 0;
+    for (int32_t k = 5; k >= 2; --k) {
+        const float d = dot(m_afFrustumPlanes[k]) + m_afFrustumPlanes[k][3];
+        if (d > radius) {
+            code += 0x41u << k;
+        } else if (-radius < d) {
+            code += 1u << k;
+        }
+    }
+    const float realFar = m_fRealFar;
+    const float far1 = realFar - WordAsFloat(m_unk4a0);
+    const float d1 = (m_afFrustumPlanes[1][3] + far1) + dot(m_afFrustumPlanes[1]);
+    if (d1 > radius) {
+        code += 0x82;
+    } else if (-radius < d1) {
+        code += 2;
+    }
+    const float near0 = WordAsFloat(m_unk49c) - realFar * 0.0010000000474974513f;  // TOC -0x407c 0x3a83126f
+    const float d0 = dot(m_afFrustumPlanes[0]) + (m_afFrustumPlanes[0][3] + near0);
+    if (d0 > radius) return code + 0x41;
+    if (-radius >= d0) return code;
+    return code + 1;
+}
+
+// 0x0012fa38 CKSrvCamera_IsPointInFrustumScaled_maybe: 1 when `point` is in the view pyramid of `matrix` (right +0x00,
+// up +0x10, at +0x20, position +0x30) with the vertical field `fovDeg` (half angle: tanf(fov * pi/180 * 0.5)): its
+// depth along `at` between 0.001 far and far (bge / blt), its side offset inside (-left, right) times the half width
+// (depth * tan / (the context's height-over-width * 4/3)), its height inside (-down, up) times the half height (depth *
+// tan * 0.75). TOC -0x4050 (pi/180 0x3c8efa34), -0x409c (0.5), -0x4044 (4/3 0x3faaaaab), -0x404c (0.75). Dead in the
+// original (no pointer to its descriptor 0xb5b3a8, no call).
+uint8_t CKSrvCamera::IsPointInFrustumScaled(const CVector3* point, float fovDeg, float far, const CMatrix34* matrix,
+                                            float right, float left, float up, float down) const {
+    const float dy = point->y - matrix->m_pos.y;
+    const float dx = point->x - matrix->m_pos.x;
+    const float dz = point->z - matrix->m_pos.z;
+    const float depth = ppc::fmadds(dz, matrix->m_at.z, ppc::fmadds(dx, matrix->m_at.x, dy * matrix->m_at.y));
+    if (depth >= far) return 0;
+    if (!(far * 0.0010000000474974513f < depth)) return 0;
+    const float side = ppc::fmadds(dz, matrix->m_right.z, ppc::fmadds(dx, matrix->m_right.x, dy * matrix->m_right.y));
+    const float t = crt::Tanf(fovDeg * 0.01745329052209854f * 0.5f);  // TocBridge_tanf 0x98e410
+    const float depthTan = depth * t;
+    const float halfWidth = depthTan / (m_pCameraContext->m_fHeightOverWidth * 1.3333333730697632f);
+    if (-halfWidth * left >= side) return 0;
+    if (halfWidth * right <= side) return 0;
+    const float halfHeight = depthTan * 0.75f;
+    const float vertical = ppc::fmadds(dz, matrix->m_up.z, ppc::fmadds(dx, matrix->m_up.x, dy * matrix->m_up.y));
+    if (-halfHeight * down >= vertical) return 0;
+    return vertical < halfHeight * up ? 1 : 0;
+}
+
+// 0x0012fbe8 CKSrvCamera_IsExtentInsideFrustum_maybe: the same pyramid; 1 when the extent around the point (side - left
+// .. side + right, vertical - down .. vertical + up) is strictly inside the half width / height (ble / bge / ble / bgt).
+// Dead in the original (no pointer to its descriptor 0xb5b3b0, no call).
+uint8_t CKSrvCamera::IsExtentInsideFrustum(const CVector3* point, float fovDeg, float far, const CMatrix34* matrix,
+                                           float right, float left, float up, float down) const {
+    const float dy = point->y - matrix->m_pos.y;
+    const float dx = point->x - matrix->m_pos.x;
+    const float dz = point->z - matrix->m_pos.z;
+    const float depth = ppc::fmadds(dz, matrix->m_at.z, ppc::fmadds(dx, matrix->m_at.x, dy * matrix->m_at.y));
+    if (depth >= far) return 0;
+    if (!(far * 0.0010000000474974513f < depth)) return 0;
+    const float side = ppc::fmadds(dz, matrix->m_right.z, ppc::fmadds(dx, matrix->m_right.x, dy * matrix->m_right.y));
+    const float t = crt::Tanf(fovDeg * 0.01745329052209854f * 0.5f);
+    const float depthTan = depth * t;
+    const float halfWidth = depthTan / (m_pCameraContext->m_fHeightOverWidth * 1.3333333730697632f);
+    if (side - left <= -halfWidth) return 0;
+    if (side + right >= halfWidth) return 0;
+    const float halfHeight = depthTan * 0.75f;
+    const float vertical = ppc::fmadds(dz, matrix->m_up.z, ppc::fmadds(dx, matrix->m_up.x, dy * matrix->m_up.y));
+    if (vertical - down <= -halfHeight) return 0;
+    return halfHeight > vertical + up ? 1 : 0;
+}
+
+// 0x00132cd8 CKSrvCamera_GetFrustumPlaneNormal_maybe (the same unreachable caller as ComputeFrustumOutcode): plane
+// `index`'s normal; for any plane but 4 flattened (y 0) and normalised unless of length 0 (TOC -0x40e0 0, -0x40e4 1).
+CVector3 CKSrvCamera::GetFrustumPlaneNormal(int32_t index) const {
+    CVector3 out;
+    const float* plane = m_afFrustumPlanes[index];
+    const float z = plane[2];
+    const float x = plane[0];
+    out.x = x;
+    out.y = plane[1];
+    out.z = z;
+    if (index == 4) return out;
+    out.y = 0.0f;
+    const float length = std::sqrt(ppc::fmadds(z, z, ppc::fmadds(x, x, 0.0f)));  // Math_Sqrtf 0x10690
+    if (length == 0.0f) return out;
+    const float inverse = 1.0f / length;
+    const float nz = inverse * out.z;
+    const float nx = inverse * out.x;
+    const float ny = inverse * out.y;
+    out.z = nz;
+    out.x = nx;
+    out.y = ny;
+    return out;
 }

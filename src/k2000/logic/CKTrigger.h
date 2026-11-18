@@ -15,6 +15,7 @@ struct CTriggerAction;
 class CKTrigger : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x8e)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x238c || key == 0xc; }  // vt+0x08 0x9b74b8
     DOTD_DECLARE_FACTORIES(CKTrigger)
 
     CKTrigger() {}  // inlined in 0x00233850 CKTrigger_Create: only the vtable is set

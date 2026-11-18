@@ -8,8 +8,8 @@
 //   [ ] 0x557308  CKS08MenuMain_Construct  [dead]
 //   [x] 0x5573b0  CKS08Menu_PlayLoopSounds_maybe
 //   [x] 0x5574a8  CKS08Menu_PlayEnterSounds_maybe
-//   [ ] 0x557528  CKS08MenuMain_RecursiveRegistration
-//   [ ] 0x557598  CKS08MenuMain_Destroy
+//   [x] 0x557528  CKS08MenuMain_RecursiveRegistration
+//   [x] 0x557598  CKS08MenuMain_Destroy  (inherited: CKMenuBase114c::Destroy)
 //   [x] 0x5575c0  CKS08MenuMain_DeleteArray
 //   [ ] 0x557660  RegisterCKS08MenuMainClass
 //   [ ] 0x5576e8  _GLOBAL__D_5576e8
@@ -21,9 +21,9 @@
 //   [x] 0x557b80  CKS08MenuMain_Load
 //   [ ] 0x557c60  CKS08MenuMain_Save
 //   [x] 0x557d40  CKS08MenuMain_OnMenuState_maybe
-//   [ ] 0x557f10  CKS08MenuMain_Destructor
-//   [ ] 0x558048  CKS08MenuMain_Destructor_2
-//   [ ] 0x558180  CKS08MenuMain_DeletingDestructor
+//   [x] 0x557f10  CKS08MenuMain_Destructor  (implicit destructor: CKMenuBase114c's inlined)
+//   [x] 0x558048  CKS08MenuMain_Destructor_2  (implicit destructor: CKMenuBase114c's inlined)
+//   [x] 0x558180  CKS08MenuMain_DeletingDestructor  (implicit destructor: CKMenuBase114c's inlined)
 //
 //   [x] 0x9c9c40  CKS08MenuMain_IsKindOfClass  [inline]
 //   [x] 0x9c9c80  CKS08MenuMain_GetClassType  [inline]
@@ -143,4 +143,10 @@ uint8_t CKS08MenuMain::OnMenuState(int32_t phase, uint8_t /*other*/) {
         manager->m_unk2FC = 1;
     }
     return static_cast<uint8_t>(GetMenuId());
+}
+
+// 0x00557528 CKS08MenuMain_RecursiveRegistration: the referenced objects' registration, then the base.
+void CKS08MenuMain::RecursiveRegistration(int32_t type) {
+    m_pSound->RecursiveRegistration(type);
+    CKMenuBase114c::RecursiveRegistration(type);
 }

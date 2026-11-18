@@ -10,6 +10,9 @@
 class CKSrvDynamic : public IKService {
 public:
     DOTD_CLASS_KEY(kCategoryService, 0x1c)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9b9bc8
+        return key == 0x701 || key == 0x1 || key == 0x3fe || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKSrvDynamic)
 
     // One registered object, 0x24 bytes on the PS3 (CKSrvDynamic_RegisterHook 0x23b480 inserts them
@@ -24,11 +27,16 @@ public:
 
     CKSrvDynamic();  // inlined in 0x0023b990 CKSrvDynamic_Create
     ~CKSrvDynamic() override {}
+    // vt+0x24 0x0023aa50 CKSrvDynamic_RecursiveRegistration: type 0: the service registered.
+    void RecursiveRegistration(int32_t type) override;
 
     void Destroy() override;  // vt+0x10 0x0023aec8 CKSrvDynamic_Destroy
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x0023b3c0 CKSrvDynamic_Load
     // 0x0023aff8 CKSrvDynamic_SetEntryFlag: the flag byte of the entry registered for `object`, if any.
     void SetEntryFlag(IKSerializable* object, uint8_t flag);
+    // 0x0023b168 CKSrvDynamic_UnregisterHook: the object's entry gets the last entry (unordered removal), the count +0x0c
+    // follows the size; an object not registered changes nothing.
+    void UnregisterHook(IKSerializable* object);
 
     // A pointer to a member function as the PS3 passes it: the function descriptor's address and the this-adjust
     // (k2000/core/Ps3MemberFn.h; the entry keeps the words, the owner maps them to its native hooks: the hero's

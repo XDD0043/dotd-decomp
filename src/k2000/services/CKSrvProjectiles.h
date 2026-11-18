@@ -10,18 +10,28 @@
 class CKSrvProjectiles : public IKService {
 public:
     DOTD_CLASS_KEY(kCategoryService, 0xd)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9b07d8
+        return key == 0x341 || key == 0x1 || key == 0x3fe || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKSrvProjectiles)
 
     CKSrvProjectiles();  // 0x001f3620 CKSrvProjectiles_Construct
     ~CKSrvProjectiles() override {}
 
     void Destroy() override;  // vt+0x10 0x001f3920 CKSrvProjectiles_Destroy
+    int32_t MessageProc(uint16_t /*message*/, void* /*data*/) override { return 0; }  // vt+0x1c 0x1f3918
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001f3978 CKSrvProjectiles_Load
-    void Start() override {}                            // vt+0x50 0x1f3ad8  STUB(C1.6)
+    void Start() override {}                            // vt+0x50 0x1f3ad8 CKSrvProjectiles_Start (empty)
+    void Restart() override { Stop(); }                 // vt+0x54 0x1f3bc0 CKSrvProjectiles_Restart: Stop (vt+0x68)
     void Stop() override;                               // vt+0x68 0x1f3ae0 CKSrvProjectiles_Stop
-    void Pause() override {}                            // vt+0x70 0x1f3bb0  STUB(C1.6)
-    void Resume() override {}                           // vt+0x78 0x1f3bb8  STUB(C1.6)
-    void Update(IKTime*) override {}                    // vt+0x7c 0x1f3c00 UpdateCKSrvProjectiles  STUB(C1.6)
+    void Pause() override {}                            // vt+0x70 0x1f3bb0 CKSrvProjectiles_Pause (empty)
+    void Resume() override {}                           // vt+0x78 0x1f3bb8 CKSrvProjectiles_Resume (empty)
+    // vt+0x7c 0x001f3c00 UpdateCKSrvProjectiles: UpdateAll with the frame's dt while the clock runs (state 0).
+    void Update(IKTime* frameClock) override;
+    // 0x001f3330 CKSrvProjectiles_UpdateAll: every pool's active projectiles, in order: UpdateMotion,
+    // ProcessDamageContacts, UpdateCollision, UpdateOrientation, then IsDead -> OnDeath (which kills it: the last
+    // active one moves into its place, so the same index is looked at again).
+    void UpdateAll(float dt);
     int32_t InitializeService() override { return 1; }  // vt+0x94 0x1f3588
     void DestroyService() override {}                   // vt+0x98 0x1f3590 (empty)
 

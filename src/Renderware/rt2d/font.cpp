@@ -40,17 +40,11 @@ RwInt32 s_fontOpen = 0;
 // 0x00ad14a0: the default font path.
 const RwChar kDefaultFontPath[] = "fonts\\";
 
-// RwTextureRead(name, null) 0x754be0 as the font reader uses it: the texture of that name in the current
-// dictionary, with a reference taken. STUB(C1.4): RW also tries the image readers (files on disc) when the
-// dictionary has no such texture; the game's fonts always find theirs.
-RwTexture* TextureRead(const RwChar* name) {
-    RwTexture* texture = RwTexDictionaryFindNamedTexture(RwTexDictionaryGetCurrent(), name);
-    if (texture != nullptr) ++texture->refCount;
-    return texture;
-}
+// RwTextureRead(name, null) 0x754be0 as the font reader calls it (the font texture dictionary is current then).
+RwTexture* TextureRead(const RwChar* name) { return RwTextureRead(name, nullptr); }
 
-// RwTextureDestroy as the font calls it. STUB(C1.4): the dictionaries own the shim's textures.
-void TextureRelease(RwTexture* texture) { --texture->refCount; }
+// RwTextureDestroy 0x7548c0 as the font calls it.
+void TextureRelease(RwTexture* texture) { RwTextureDestroy(texture); }
 
 }  // namespace
 
@@ -136,8 +130,8 @@ RwBool _rt2dFontOpen() {
     return 1;
 }
 
-// 0x0070de08 _rt2dFontClose_maybe: every dictionary entry (its name and font), the texture dictionary,
-// the free lists, the buffers. STUB(C1.4): RwTexDictionaryDestroy (the shim keeps its dictionaries).
+// 0x0070de08 _rt2dFontClose_maybe: every dictionary entry (its name and font), the texture dictionary _rt2dFontOpen
+// made (destroyed when there is one), the free lists, the buffers.
 RwBool _rt2dFontClose() {
     Rt2dGlobalVars& g = rt2dGlobals;
     _rt2dFontDictionaryNode* node = g.fontDictionary;
@@ -149,6 +143,7 @@ RwBool _rt2dFontClose() {
         node = next;
     }
     g.fontDictionary = nullptr;
+    if (g.fontTexDictionary != nullptr) RwTexDictionaryDestroy(g.fontTexDictionary);
     g.fontTexDictionary = nullptr;
     g.currFontTexDictionary = nullptr;
     RwFreeListDestroy(g.fontDictNodeFreeList);

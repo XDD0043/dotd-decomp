@@ -54,9 +54,14 @@ struct RwIm3DDraw {
     RwUInt32 transformFlags;              // the RwIm3DTransform flags | rwIM3D_VERTEXXYZ | rwIM3D_VERTEXRGBA
     bool hasLtm;                          // false: the LTM pointer was null (identity)
     RwMatrix ltm;
+    // The primitive's geometry is copied into the record only when nothing draws it (no GL device: the headless tests
+    // read it). With a device the draw reads the caller's arrays directly, as the PS3 does, and the two arrays stay
+    // empty (perf: the copies were 2% of a frame); numVertices / numIndices are always the primitive's counts.
     std::vector<RwIm3DVertex> vertices;   // the pool's numElements vertices
     bool indexed;                         // glDrawRangeElements (indices non-null) vs glDrawArrays
     std::vector<RwImVertexIndex> indices; // numIndices entries (after the line/triangle list rounding)
+    RwUInt32 numVertices = 0;
+    RwUInt32 numIndices = 0;
     RwIm3DRenderStates states;
 };
 

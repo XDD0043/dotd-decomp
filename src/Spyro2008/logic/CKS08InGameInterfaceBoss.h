@@ -11,11 +11,25 @@ public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x28f)
     DOTD_DECLARE_FACTORIES(CKS08InGameInterfaceBoss)
 
-    CKS08InGameInterfaceBoss() {}  // 0x533d90 CKS08InGameInterfaceBoss_Create: the CKMenuBase114c part only
+    // 0x533d90 CKS08InGameInterfaceBoss_Create: the CKMenuBase114c part only. +0xe0 and +0xf0 are read (the vt+0xdc update)
+    // before any write; the original reads its fresh heap's 0 (fill test 2026-11-14: with junk, bit 0 timed the panel out
+    // and posted message 2, so the boss HUD stayed hidden after the pause menu at breath2 +1592).
+    CKS08InGameInterfaceBoss() {
+        m_baFlagsE0 = 0;
+        m_fTime = 0.0f;
+    }
     int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9c9240
         return key == 0xa3cc || key == 0x114c || key == 0x730c || key == 0xc;
     }
     int32_t Load(IKFile* file, int32_t type) override;                                   // vt+0x2c 0x5341f0 CKS08InGameInterfaceBoss_Load
+    // ---- C2.7 step 7 ----
+    uint8_t OnMenuState(int32_t phase, uint8_t other) override;  // vt+0xdc 0x00533ed8 CKS08InGameInterfaceBoss_Update_maybe
+    void ResetWidgets() override;                                 // vt+0x98 0x005339b0 CKS08InGameInterfaceBoss_ResetWidgets_maybe
+    // The gauge refreshes of 0x533940 / 0x533978 / 0x533e78 (no caller in the original: their descriptors are referenced
+    // nowhere; the vt+0xdc update inlines the same calls): value +0xf4 / +0xfc (reset), marker +0xf8 / +0xfc.
+    void RefreshGaugeMarker();  // 0x00533940 CKS08InGameInterfaceBoss_RefreshGaugeMarker_maybe
+    void RefreshGaugeValue();   // 0x00533978 CKS08InGameInterfaceBoss_RefreshGaugeValue_maybe
+    void RefreshGauge();        // 0x00533e78 CKS08InGameInterfaceBoss_RefreshGauge_maybe
     uint32_t GetWidgetSlotCount() override { return 3; }                                 // vt+0x68 0x9c92e0
     WidgetSlot* GetWidgetSlots() override { return m_aWidgetSlots; }                     // vt+0x6c 0x9c92e8
     uint8_t Vf84() override { return 0; }                                                // vt+0x84 0x9c92f8

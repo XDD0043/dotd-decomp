@@ -6,9 +6,9 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [ ] 0x246350  CurveKeys_Equals_maybe  [dead]
 //   [x] 0x246408  ColorCurve_Evaluate
-//   [ ] 0x246670  CurveKeys_CopyFrom_maybe
+//   [x] 0x246670  CurveKeys_CopyFrom_maybe  [dead: no pointer to its descriptor 0xb826e8, no call]
 //   [ ] 0x246778  CurveKeys_NotEquals_maybe  [dead]
-//   [ ] 0x246830  CurveKeys_Save_maybe
+//   [x] 0x246830  CurveKeys_Save_maybe  (CurveKeys_Save; only the Save writers call it)
 //   [x] 0x2469b8  CurveKeys_Load_maybe
 #include "k2000/math/CurveKeys.h"
 
@@ -96,4 +96,46 @@ void ColorCurve_Evaluate(float t, uint8_t out[4], const TVector<CurveKey, 20>* k
         }
     }
     std::memcpy(out, kBlack, 4);
+}
+
+// 0x00246670 CurveKeys_CopyFrom_maybe: `keys` becomes a copy of `source`: the block grown as in the Load (the next
+// multiple of 20 above the count; the byte size masked to 8, rlwinm 0..28) when its capacity is below the count, the
+// count stored, then each key's two words copied (the time through a float register, the colour as a word). Dead in the
+// original (no pointer to its descriptor 0xb826e8, no call).
+void CurveKeys_CopyFrom(TVector<CurveKey, 20>* keys, const TVector<CurveKey, 20>* source) {
+    const uint32_t count = source->m_ui32NbUsedElt;
+    if (keys->m_ui32NbElt < count) {
+        uint32_t capacity = (count / 20) * 20 + 20;
+        uint32_t bytes = capacity * static_cast<uint32_t>(sizeof(CurveKey));
+        if (capacity == 0) {  // as in the original (cannot happen)
+            capacity = 20;
+            bytes = 20 * static_cast<uint32_t>(sizeof(CurveKey));
+        }
+        keys->m_pBlock = static_cast<CurveKey*>(Mem_ReallocAligned16(keys->m_pBlock, bytes & 0xfffffff8u));
+        keys->m_ui32NbElt = capacity;
+    }
+    keys->m_ui32NbUsedElt = count;
+    if (count == 0) return;
+    uint32_t i = 0;
+    do {
+        keys->m_pBlock[i].m_key = source->m_pBlock[i].m_key;  // lfs / stfs: the bits unchanged
+        std::memcpy(keys->m_pBlock[i].m_valueRaw, source->m_pBlock[i].m_valueRaw, 4);
+        ++i;
+    } while (keys->m_ui32NbUsedElt > i);
+}
+
+// 0x00246830 CurveKeys_Save_maybe (called only by the Save writers LightColorAnim_Save_maybe / CKGaugeCpnt_Save, which
+// the port leaves out on purpose): u32 1 ("present"), the count, then each key's time byte-swapped (lwbrx) and its colour
+// bytes as they are (IKFile vt+0x20 Write).
+void CurveKeys_Save(const TVector<CurveKey, 20>* keys, IKFile* file) {
+    WriteU32LE(file, 1);
+    const uint32_t count = keys->m_ui32NbUsedElt;
+    WriteU32LE(file, count);
+    if (count == 0) return;
+    uint32_t i = 0;
+    do {
+        WriteU32LE(file, keys->m_pBlock[i].m_key);
+        file->Write(keys->m_pBlock[i].m_valueRaw, 4);
+        ++i;
+    } while (count != i);
 }

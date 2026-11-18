@@ -5,7 +5,7 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x239b10  CKTriggerSynchro_Delete
-//   [ ] 0x239b60  CKTriggerSynchro_RecursiveRegistration
+//   [x] 0x239b60  CKTriggerSynchro_RecursiveRegistration
 //   [ ] 0x239bc0  CKTriggerSynchroEntry_FreeArray_maybe  [dead]
 //   [ ] 0x239c18  RegisterCKTriggerSynchroClass
 //   [ ] 0x239c90  _GLOBAL__I_239c90
@@ -14,11 +14,11 @@
 //   [x] 0x239d98  TriggerDomains_FindSetForSector_maybe
 //   [ ] 0x239e00  TriggerDomains_FindSetForSector_2_maybe  [dead]
 //   [x] 0x239e68  CKTriggerSynchro_CreateArray
-//   [ ] 0x239f20  CKTriggerSynchro_PostLoad
-//   [ ] 0x239f28  CKTriggerSynchro_Destroy
+//   [x] 0x239f20  CKTriggerSynchro_PostLoad  (returns 1: the default slot)
+//   [x] 0x239f28  CKTriggerSynchro_Destroy
 //   [x] 0x239ff0  CKTriggerSynchro_LoadEntry
 //   [x] 0x23a210  CKTriggerSynchro_Load
-//   [ ] 0x23a4c8  CKTriggerSynchro_SaveEntry
+//   [ ] 0x23a4c8  CKTriggerSynchro_SaveEntry  [left: save-only: only CKTriggerSynchro_Save calls it, and Save is left out]
 //   [ ] 0x23a620  CKTriggerSynchro_Save
 //   [x] 0x23a770  CKTriggerDomainSet_SetEnabled_maybe
 //
@@ -32,6 +32,8 @@
 #include "k2000/io/IKFile.h"
 #include "k2000/logic/CKTriggerDomain.h"
 #include "k2000/memory/Mem.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 
 // Inlined in 0x00239d48 CKTriggerSynchro_Create: an empty entry vector with a capacity of 4.
 CKTriggerSynchro::CKTriggerSynchro() {
@@ -119,4 +121,24 @@ void CKTriggerSynchro::Entry::SetEnabled(uint8_t enabled) {
             domain->DisableRecursive();
         }
     }
+}
+
+// 0x00239b60 CKTriggerSynchro_RecursiveRegistration
+void CKTriggerSynchro::RecursiveRegistration(int32_t type) {
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+}
+
+// 0x00239f28 CKTriggerSynchro_Destroy
+void CKTriggerSynchro::Destroy() {
+    if (m_vEntries.m_pBlock != nullptr) {
+        for (uint32_t i = 0; i < m_vEntries.m_ui32NbUsedElt; ++i) {
+            Entry& entry = m_vEntries.m_pBlock[i];
+            if (entry.m_vRefs.m_pBlock != nullptr) Mem_FreeAligned16(entry.m_vRefs.m_pBlock);
+            entry.m_vRefs.m_ui32NbUsedElt = 0;
+            entry.m_vRefs.m_pBlock = nullptr;
+        }
+        Mem_FreeAligned16(m_vEntries.m_pBlock);
+    }
+    m_vEntries.m_ui32NbUsedElt = 0;
+    m_vEntries.m_pBlock = nullptr;
 }

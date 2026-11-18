@@ -27,8 +27,9 @@ public:
         return key == 0x7cd || key == 0x74d || key == 0xc;
     }
     void Destroy() override;                                                // vt+0x10 0x00075fb8 CKFlashText_Destroy
-    // vt+0x24 0x75f00 CKFlashText_RecursiveRegistration: with type 0, registers itself and its accessor
-    // with the saving manager (engine +0x50 vt+0x24). STUB(C1.6): the saving manager is not ported.
+    // vt+0x24 0x00075f00 CKFlashText_RecursiveRegistration: IKFlashObject's (0x77b78, nothing), then with type
+    // 0 itself registered with the saving manager (engine +0x50 vt+0x24) and its accessor's vt+0x24 with 0.
+    void RecursiveRegistration(int32_t type) override;
     int32_t Load(IKFile* file, int32_t type) override;                      // vt+0x2c 0x00075ce8 CKFlashText_Load
     int32_t PostLoad(int32_t type) override;                                // vt+0x30 0x000773e0 CKFlashText_PostLoad
     void GetRt2dObject(TVector<Rt2dObject*, 1>* objects) override;          // vt+0x50 0x00076238

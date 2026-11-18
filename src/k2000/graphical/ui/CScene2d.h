@@ -17,14 +17,14 @@ public:
     DOTD_DECLARE_FACTORIES(CScene2d)
 
     CScene2d();                    // 0x00065c98 CScene2d_Create (inlined; = CScene2d_Construct 0x64a28)
-    ~CScene2d() override {}        // STUB(C1.6): 0x65dc8 / 0x65e08
+    ~CScene2d() override {}        // 0x00065dc8 / 0x00065e08 CScene2d_Destructor / _DeletingDestructor: the vtables only
     // vt+0x08 0x997cf8
     int32_t IsKindOfClass(uint32_t key) override { return key == 0x50d || key == 0xa8d || key == 0xc; }
     // vt+0x2c 0x00998010 CScene2d_Load: reads for every type (no type check).
     int32_t Load(IKFile* file, int32_t type) override;
     // vt+0x5c 0x00065608 DrawUISceneWidgetList (Ghidra CScene2d_Render): under pushed overlay render
     // states, every node's vt+0x84 when the scene is enabled.
-    void Render() override;
+    void Render(IKTime* frameClock) override;
     // 0x00064a98 CScene2d_BroadcastEvent_maybe: every node's vt+0x58 (RecursiveNodeReach) with the event.
     void BroadcastEvent(uint8_t event, void* data);
     // 0x000650d8 CContainer2d_RemoveChild_maybe: `node` out of this scene's list; the node, or null when it is
@@ -39,6 +39,25 @@ public:
     // 0x00064b30 CContainer2d_GetChildAt: the node at index along the m_pNext chain; null when index is not
     // below the node count or the chain ends first.
     IKSerializable* GetChildAt(uint32_t index) const;
+    // vt+0x10 0x00065518 CScene2d_Destroy: IRendableObject's, then disabled and emptied (root, last, count).
+    void Destroy() override;
+    // 0x00064be0 CContainer2d_SwapChildWithPrev (Ghidra's name; CScene2d's): `node` (of this scene, with a previous
+    // node) trades places with its previous node; 1 when it moved.
+    uint8_t SwapChildWithPrev(IKNode2d* node);
+    // 0x00064e70 CContainer2d_SwapChildWithNext: the same with the next node.
+    uint8_t SwapChildWithNext(IKNode2d* node);
+    // 0x00064dd0 CContainer2d_MoveChildToHead_maybe: SwapChildWithPrev until `node` is the last or the first node (or a
+    // swap fails, 0). BUG(original): a last node does not move.
+    uint8_t MoveChildToHead(IKNode2d* node);
+    // 0x00065060 CContainer2d_MoveChildToTail_maybe: SwapChildWithNext until `node` is the last or the first node or a
+    // swap fails; always 1. BUG(original): a first node does not move.
+    uint8_t MoveChildToTail(IKNode2d* node);
+    // 0x000656c8 CContainer2d_ShowChildren_maybe / 0x00065a28 CContainer2d_HideChildren_maybe: every unlocked node's
+    // Enable / Disable (vt+0x64 / +0x68); 1.
+    uint8_t ShowChildren();
+    uint8_t HideChildren();
+    // 0x00065c30 CContainer2d_RemoveChildAt: RemoveChild of the node at `index` (GetChildAt's walk).
+    IKNode2d* RemoveChildAt(uint32_t index);
 
     IKSerializable* m_pRootNode;   // +0x18 IKNode2d (a reference)
     IKSerializable* m_pLastNode;   // +0x1c IKNode2d (a reference)

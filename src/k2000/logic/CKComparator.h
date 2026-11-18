@@ -12,12 +12,19 @@ class CKComparedData;
 class CKComparator : public IKEvaluator {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x8c)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9b75b8
+        return key == 0x230c || key == 0x228c || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKComparator)
 
     CKComparator() {}  // inlined in 0x00234ce0 CKComparator_Create: the IKEvaluator part only
     ~CKComparator() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00234938 CKComparator_Load
+    // vt+0x24 0x00234b48 CKComparator_RecursiveRegistration: the base's (0x235030), then for type 0 both operands (each
+    // when present, vt+0x24 with 0).
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x10 0x00234c10 CKComparator_Destroy: KStub_Nop_235180 (IKEvaluator's empty Destroy) only.
     // vt+0x58 0x00234d30 CKComparator_ClearFiredEvents_maybe: an operand of mode 2 (flags bits 2-3) loses its
     // "fired" bit (bit 24 of its +0x08 word).
     void Start() override;

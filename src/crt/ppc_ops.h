@@ -24,19 +24,66 @@
 #include <cstdint>
 #include <limits>
 
+// PERF (MSVC x86/x64): std::fmaf / std::fma are out-of-line calls into ucrtbase (about 4 ns each on x64, 6 ns on x86,
+// against under 1 ns for the instruction); the trails' Bezier sampling alone spent 4% of a frame's CPU in them. On a CPU
+// with FMA3 (and the OS saving the AVX state) the VFMADD instruction is used instead. Both are IEEE 754 fusedMultiplyAdd
+// (one rounding, in the current MXCSR mode), so every non-NaN result is the same bits (signed zeros and infinities
+// included). A NaN result's payload is not: with two NaN operands it depends on the operand order of the VFMADD form
+// the compiler picks (and the x86 library prefers `a`), so a NaN result is computed again by the library call, giving
+// exactly its bits. Without FMA3 the library call stays.
+#if defined(_MSC_VER) && !defined(__clang__) && (defined(_M_X64) || defined(_M_IX86))
+#include <immintrin.h>
+#include <intrin.h>
+#define DOTD_PPC_HW_FMA 1
+namespace ppc::detail {
+inline bool DetectHardwareFma() {
+    int regs[4];
+    __cpuid(regs, 1);
+    const int ecx = regs[2];
+    const bool fma = (ecx & (1 << 12)) != 0, osxsave = (ecx & (1 << 27)) != 0, avx = (ecx & (1 << 28)) != 0;
+    return fma && osxsave && avx && (_xgetbv(0) & 6u) == 6u;  // XMM and YMM state enabled by the OS
+}
+// Set during static initialisation; a call before that takes the library path (the same result).
+inline const bool g_hardwareFma = DetectHardwareFma();
+}  // namespace ppc::detail
+#else
+#define DOTD_PPC_HW_FMA 0
+#endif
+
 namespace ppc {
+
+namespace detail {
+inline float FusedMulAdd(float a, float b, float c) {
+#if DOTD_PPC_HW_FMA
+    if (g_hardwareFma) {
+        const float r = _mm_cvtss_f32(_mm_fmadd_ss(_mm_set_ss(a), _mm_set_ss(b), _mm_set_ss(c)));
+        if (r == r) return r;  // not NaN (/fp:precise keeps this test)
+    }
+#endif
+    return std::fmaf(a, b, c);
+}
+inline double FusedMulAdd(double a, double b, double c) {
+#if DOTD_PPC_HW_FMA
+    if (g_hardwareFma) {
+        const double r = _mm_cvtsd_f64(_mm_fmadd_sd(_mm_set_sd(a), _mm_set_sd(b), _mm_set_sd(c)));
+        if (r == r) return r;
+    }
+#endif
+    return std::fma(a, b, c);
+}
+}  // namespace detail
 
 // ---- fused multiply-add: one rounding, like the FPU -------------------------------------------
 // The single-precision forms operate on values that are already exact floats (loaded with lfs or
 // produced by single ops), so fmaf equals the hardware's round-to-single of the exact a*b+c.
-inline float fmadds(float a, float b, float c) { return std::fmaf(a, b, c); }
-inline float fmsubs(float a, float b, float c) { return std::fmaf(a, b, -c); }
-inline float fnmadds(float a, float b, float c) { return -std::fmaf(a, b, c); }
-inline float fnmsubs(float a, float b, float c) { return -std::fmaf(a, b, -c); }
-inline double fmadd(double a, double b, double c) { return std::fma(a, b, c); }
-inline double fmsub(double a, double b, double c) { return std::fma(a, b, -c); }
-inline double fnmadd(double a, double b, double c) { return -std::fma(a, b, c); }
-inline double fnmsub(double a, double b, double c) { return -std::fma(a, b, -c); }
+inline float fmadds(float a, float b, float c) { return detail::FusedMulAdd(a, b, c); }
+inline float fmsubs(float a, float b, float c) { return detail::FusedMulAdd(a, b, -c); }
+inline float fnmadds(float a, float b, float c) { return -detail::FusedMulAdd(a, b, c); }
+inline float fnmsubs(float a, float b, float c) { return -detail::FusedMulAdd(a, b, -c); }
+inline double fmadd(double a, double b, double c) { return detail::FusedMulAdd(a, b, c); }
+inline double fmsub(double a, double b, double c) { return detail::FusedMulAdd(a, b, -c); }
+inline double fnmadd(double a, double b, double c) { return -detail::FusedMulAdd(a, b, c); }
+inline double fnmsub(double a, double b, double c) { return -detail::FusedMulAdd(a, b, -c); }
 
 // frsp: round a double to single precision (round to nearest even, the PS3's default mode)
 inline float frsp(double x) { return static_cast<float>(x); }

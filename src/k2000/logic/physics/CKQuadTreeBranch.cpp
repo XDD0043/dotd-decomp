@@ -12,14 +12,14 @@
 //   [ ] 0x1f16a0  _GLOBAL__I_1f16a0
 //   [x] 0x1f16b0  CKQuadTreeBranch_DeleteArray
 //   [ ] 0x1f1758  CKQuadTreeBranch_Save
-//   [ ] 0x1f1760  CKQuadTreeBranch_RecursiveRegistration
+//   [x] 0x1f1760  CKQuadTreeBranch_RecursiveRegistration  (IKSerializable's: returns 1)
 //   [x] 0x1f1768  CKQuadTreeBranch_CreateArray
 //   [x] 0x1f1820  CKQuadTreeBranch_Create
-//   [ ] 0x1f1870  CKQuadTreeBranch_Destroy
+//   [x] 0x1f1870  CKQuadTreeBranch_Destroy  (empty)
 //   [x] 0x1f1878  CKQuadTreeBranch_Load
-//   [ ] 0x1f19d0  CKQuadTreeBranch_DeletingDestructor
-//   [ ] 0x1f1a18  CKQuadTreeBranch_BaseDestructor
-//   [ ] 0x1f1a38  CKQuadTreeBranch_Destructor
+//   [x] 0x1f19d0  CKQuadTreeBranch_DeletingDestructor  (the destructor; delete)
+//   [x] 0x1f1a18  CKQuadTreeBranch_BaseDestructor  (C++ destructor chain: vtable stores only)
+//   [x] 0x1f1a38  CKQuadTreeBranch_Destructor  (C++ destructor chain: vtable stores only)
 //
 //   [ ] 0x9b0690  CKQuadTreeBranch_GetClassType  [inline]
 //   [ ] 0x9b0698  CKQuadTreeBranch_GetClassID  [inline]

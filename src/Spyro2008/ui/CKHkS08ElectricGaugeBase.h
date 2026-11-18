@@ -17,5 +17,8 @@ public:
     ~CKHkS08ElectricGaugeBase() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x004e0920 CKHkS08ElectricGaugeBase_3542_maybe_Load
+    // vt+0x7c 0x004e0858 CKHkS08ElectricGaugeBase_3542_maybe_Update (unit CKHkMecaSound.cpp): the actor base's update
+    // (WorldObjectBase_Update_Nop 0x3f6e68, empty).
+    void Update(IKTime* clock) override;
 };
 DOTD_ASSERT_SIZE(CKHkS08ElectricGaugeBase, 0x20);

@@ -15,12 +15,20 @@ public:
     CKSparkFxData();  // 0x001d3908 CKSparkFxData_ConstructBase_maybe (called by Create 0x1ae160)
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001d39c8 CKSparkFxData_Load
-    // vt+0x30 PostLoad 0x1d3940 (stays the default in C2.1): fills +0x14.
+    // vt+0x30 0x001d3940 CKSparkFxData_PostLoad: type 0 creates the identity matrix +0x14 (RwMatrixCreate); 1.
+    int32_t PostLoad(int32_t type) override;
     uint32_t GetAssociatedFxClassIdentifier() override { return 0x244c; }  // vt+0x54 0x1d3930
+    // vt+0x10 0x001d3e20 CKSparkFxData_ClearReferences (Destroy): the matrix +0x14 destroyed (RwMatrixDestroy) and cleared.
+    void Destroy() override;
+    // vt+0x1c 0x001d3b00 CKSparkFxData_HandleMessage (MessageProc): 0x1b00 with an object (null: 0) sets the matrix +0x14
+    // from the object (its quaternion +0x10, its position +0x04, flag 0x20000 cleared), then an effect of this data is
+    // acquired (CKSrvFx::AcquireFx inlined) and released (vt+0x54); returns 0. Other messages return 1.
+    // vt+0x40 0x001d3e18 GetInfo: 1 (the default). 0x9ad358 / 0x9ad3b0 destructors: the C++ chain.
+    int32_t MessageProc(uint16_t message, void* data) override;
 
     IKSerializable* m_pSparkParam;  // +0x08 the spark parameters (Ghidra draft: CKSparkParam*); name ours
-    uint32_t m_unk0c;               // +0x0c the constructor sets 0
-    uint32_t m_unk10;               // +0x10 the constructor sets 0
+    IKSerializable* m_unk0c;        // +0x0c the constructor sets 0; the parent node (CKSparkNodeFx_Start)
+    IKSerializable* m_unk10;        // +0x10 the constructor sets 0; a hot spot to hang the node under (Start)
     void* m_unk14;                  // +0x14 the constructor sets 0; a heap pointer live (PostLoad)
 };
 static_assert(CKSparkFxData::kClassKey == 0x24cc, "key");

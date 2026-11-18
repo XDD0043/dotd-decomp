@@ -24,11 +24,17 @@ struct CGroundContactDatasInOut;
 class CKPathFindingCpnt : public IKComponent {
 public:
     DOTD_CLASS_KEY(kCategoryComponent, 0x23)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9adf58
+        return key == 0x8c6 || key == 0x6 || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKPathFindingCpnt)
 
     CKPathFindingCpnt();  // 0x001e1f70 CKPathFindingCpnt_Create (the constructor is inlined there)
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001e2040 CKPathFindingCpnt_Load
+    // vt+0x24 0x001e1f10 CKPathFindingCpnt_RecursiveRegistration: the component registered, whatever the type.
+    // vt+0x10 0x1e1f68 Destroy: empty, the default.
+    void RecursiveRegistration(int32_t type) override;
     // 0x001e1158 NavPoint_SnapToGround_maybe (XXL2 IKHkHero::FindPosOnGroundFromPFPoint-like): the ground under the
     // point (probed from its node's box top, one point, masks 1 / 8), the point moved onto it (0.01 below; the probe
     // start when no ground was found), its node looked up again. 1 when the contact found ground (status 0 or 1)

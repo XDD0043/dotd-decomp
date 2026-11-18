@@ -16,6 +16,7 @@ public:
         return key == 0xafcc || key == 0x114c || key == 0x730c || key == 0xc;
     }
     int32_t Load(IKFile* file, int32_t type) override;                                   // vt+0x2c 0x5494f8 CKS08MenuChapterMode_Load
+    void RecursiveRegistration(int32_t type) override;                                  // vt+0x24 0x548ba8 CKS08MenuChapterMode_RecursiveRegistration
     uint32_t GetWidgetSlotCount() override { return 1; }                                 // vt+0x68 0x9c9840
     WidgetSlot* GetWidgetSlots() override { return m_aWidgetSlots; }                     // vt+0x6c 0x9c9848
     const char* GetMenuName() override { return "Menu ChapterMode"; }                    // vt+0xb8 0x9c9818
@@ -24,7 +25,15 @@ public:
     uint8_t VfC4() override { return 9; }                                                // vt+0xc4 0x9c9858
     IKSerializable** VfC8() override { return m_apMessageIns; }                          // vt+0xc8 0x9c9860
     uint8_t* VfCC() override { return m_abMessageInFlags; }                              // vt+0xcc 0x9c9870
+    // vt+0xdc 0x00548f90 CKS08MenuChapterMode_OnMenuState_maybe: enter: the main menu's enter sounds, the timer from
+    // m_fDuration, the video (+0xdc) played from its start with the fade-in (m_pColorizedData0); leave: the video stopped,
+    // the fade inactive; update: the video restarted when it stopped or reached its last frame.
+    uint8_t OnMenuState(int32_t phase, uint8_t other) override;
     int32_t GetMenuId() override { return 0x20; }                                        // vt+0xe0 0x9c9820
+    // vt+0xe8 0x00548ea8 CKS08MenuChapterMode_vfE8: item 0 validated (state 4, after) requests menu 0x23, item 1 menu 3.
+    void OnItemState(uint8_t item, uint8_t state, uint8_t phase) override;
+    uint8_t VfF0() override { return 1; }                                                // vt+0xf0 0x9c9880
+    uint8_t VfF4() override { return 1; }                                                // vt+0xf4 0x9c9888 the back item
 
     WidgetSlot m_aWidgetSlots[1];                // +0x94
     IKSerializable* m_apMessageIns[9];           // +0x9c

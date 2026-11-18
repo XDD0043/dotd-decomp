@@ -14,6 +14,9 @@ class CKSekens;
 class CKSrvSekensor : public IKService {
 public:
     DOTD_CLASS_KEY(kCategoryService, 0xa)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9b0f18
+        return key == 0x281 || key == 0x1 || key == 0x3fe || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKSrvSekensor)
 
     CKSrvSekensor();  // inlined in 0x001fa000 CKSrvSekensor_Create
@@ -21,10 +24,18 @@ public:
 
     void Destroy() override;  // vt+0x10 0x001f9028 CKSrvSekensor_Destroy
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001f9858 CKSrvSekensor_Load
-    void Start() override {}                            // vt+0x50 0x1f9418  STUB(C1.6)
+    int32_t PostLoad(int32_t type) override;            // vt+0x30 0x001f8fa0 CKSrvSekensor_PostLoad
+    // vt+0x38 0x001f9350 CKSrvSekensor_SetDefaultState: every sekens' SetDefaultState(flag & 0xff).
+    void SetDefaultState(int32_t flag) override;
+    // vt+0x50 0x001f9418 CKSrvSekensor_Start: no sekens (current, pending, secondary; byte +0x28 cleared), bit 1 of
+    // +0x2c cleared, +0x48 9999.99.
+    void Start() override;
+    void Restart() override;                            // vt+0x54 0x1f8880 CKSrvSekensor_Restart (Stop's body)
     void Stop() override;                               // vt+0x68 0x1f8810 CKSrvSekensor_Stop
-    void Pause() override {}                            // vt+0x70 0x1f9128  STUB(C1.6)
-    void Resume() override {}                           // vt+0x78 0x1f8808  STUB(C1.6)
+    // vt+0x70 0x001f9128 CKSrvSekensor_Pause: the subtitle texts (CKSekens +0x2c) of the current and the secondary sekens
+    // hidden (vt+0x68).
+    void Pause() override;
+    void Resume() override {}                           // vt+0x78 0x1f8808 CKSrvSekensor_Resume (empty)
     // vt+0x7c 0x001fa2a0 UpdateCKSrvSekensor: a pending request that waited too long dropped; the current sekens (and the
     // secondary one) updated: a line that is over starts the next, a sekens that is over is stopped and the pending one
     // takes its place; the subtitles shown or hidden.
@@ -56,10 +67,26 @@ public:
     // vt+0x94 0x001f8f38 CKSrvSekensor_InitializeService: the engine's sekensor, subtitles on (+0x2c bit 0)
     // and m_unk4c (ClassRegistry_CreateObjectByKey(0x5a8c), a CKStreamWave); returns 1.
     int32_t InitializeService() override;
-    // C1.6 gm: 0x001f95f0 CKSrvSekensor_SetSubtitlesEnabled_maybe (the options): +0x2c bit 0, then the two
-    // running sekens' subtitle texts shown or hidden.
+    // 0x001f95f0 CKSrvSekensor_SetSubtitlesEnabled_maybe (the options): +0x2c bit 0, then the two running sekens'
+    // subtitle texts shown or hidden.
     void SetSubtitlesEnabled(uint32_t enabled);
-    void DestroyService() override {}                   // vt+0x98 0x1f8ec0  STUB(C1.6)
+    // vt+0x98 0x001f8ec0 CKSrvSekensor_DestroyService: the engine's sekensor cleared, the GAME.KP3 words freed (the
+    // capacity kept), the stream wave of InitializeService destroyed.
+    void DestroyService() override;
+    // vt+0xa0 0x001f9c48 CKSrvSekensor_UpdateLocalizedData: the speech wave's file (the level and voice language).
+    void UpdateLocalizedData() override;
+    // vt+0xa8 0x001f9450 CKSrvSekensor_vfA8: CKSekens::ForEachLineCallVf54 on every sekens (no virtual call of this slot
+    // found in the original).
+    virtual void VfA8(uint8_t a, uint32_t b);
+    // vt+0xac 0x001f9770 CKSrvSekensor_RegisterSekens_maybe: the sekens appended to the list; returns 1 (no virtual call of
+    // this slot found in the original).
+    virtual int32_t RegisterSekens(IKSerializable* sekens);
+    void RecursiveRegistration(int32_t type) override;  // vt+0x24 0x001f94e8: every sekens' RecursiveRegistration
+    // 0x001f88f0 CKSrvSekensor_IsCurrentSekensRunningWithFlag14Bit4_maybe (CKFlashUICinematicBloc_Update 0x17b280):
+    // the current sekens' flags bit 4 while it runs, else 0.
+    uint32_t IsCurrentSekensRunningWithFlag14Bit4() const;
+    uint8_t IsCurrentSekensDone() const;                     // 0x001f8970 CKSrvSekensor_IsCurrentSekensDone
+    CKSekens* FindSekensByUuid(const uint32_t* uuid) const;  // 0x001f91d8 CKSrvSekensor_FindSekensByUuid_maybe
 
     // +0x0c CKSekens* (XXL2 TVector<CKSekens*, 5, true>; DotD grows by 8).
     TVector<IKSerializable*, 8> m_vSekensList;
@@ -75,7 +102,7 @@ public:
     float m_unk40;                       // +0x40 GAME.KP3 (30.0)
     float m_fRequestTime;                // +0x44 not set by the constructor or Load; the clock time of the last pending request
     float m_unk48;                       // +0x48 the constructor sets 0
-    IKSerializable* m_unk4c;             // +0x4c CKStreamWave (InitializeService)
+    IKSerializable* m_unk4c;             // +0x4c CKStreamWave (InitializeService): the level's speech file
 };
 DOTD_ASSERT_SIZE(CKSrvSekensor, 0x50);
 DOTD_ASSERT_OFFSET(CKSrvSekensor, m_ui32Priority, 0x08);
@@ -87,3 +114,9 @@ DOTD_ASSERT_OFFSET(CKSrvSekensor, m_unk3c, 0x3c);
 DOTD_ASSERT_OFFSET(CKSrvSekensor, m_unk40, 0x40);
 DOTD_ASSERT_OFFSET(CKSrvSekensor, m_unk48, 0x48);
 DOTD_ASSERT_OFFSET(CKSrvSekensor, m_unk4c, 0x4c);
+
+// 0x001f8518 Platform_GetFileTag_maybe: "PS2", "WIN", "GCN", "XBX", "PSP", "XEN", "REV", "PS3" for 0..7, else null
+// (CKCinematicStreamCpnt's stream paths take 7).
+const char* Platform_GetFileTag(int32_t index);
+void FormatSpeechExportWavPath(char* out, const char* root, int32_t language, int32_t sekens, int32_t line);  // 0x001f8e40
+void FormatSpeechExportDir(char* out, const char* root, int32_t language);                                  // 0x001f8e88

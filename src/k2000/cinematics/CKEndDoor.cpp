@@ -12,10 +12,10 @@
 //   [x] 0x16eac0  CKEndDoor_Start
 //   [x] 0x16eb30  CKEndDoor_Load
 //   [ ] 0x16eb58  CKEndDoor_Save
-//   [ ] 0x16eb80  CKEndDoor_RecursiveRegistration
+//   [x] 0x16eb80  CKEndDoor_RecursiveRegistration
 //   [x] 0x16ec10  CKEndDoor_DeleteArray
 //   [x] 0x16ecb8  CKEndDoor_Create
-//   [ ] 0x16ed18  CKEndDoor_Destroy
+//   [x] 0x16ed18  CKEndDoor_Destroy  (empty: the default)
 //   [x] 0x16ed20  CKEndDoor_CreateArray
 //
 //   [ ] 0x9a8e60  CKEndDoor_GetClassType  [inline]
@@ -24,6 +24,8 @@
 //   [ ] 0x9a8ec8  CKEndDoor_Destructor  [inline]
 //   [ ] 0x9a8ee8  CKEndDoor_DeletingDestructor  [inline]
 #include "k2000/cinematics/CKEndDoor.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 
 // 0x0016eb30 CKEndDoor_Load
 int32_t CKEndDoor::Load(IKFile* file, int32_t type) { return BasicLoadCinematicElement(file, type); }
@@ -32,4 +34,10 @@ int32_t CKEndDoor::Load(IKFile* file, int32_t type) { return BasicLoadCinematicE
 void CKEndDoor::Abort() {
     m_DataFlags &= 0xfffffffeu;
     m_ui32CurrentIncomingNumber = 0;
+}
+
+// 0x0016eb80 CKEndDoor_RecursiveRegistration
+void CKEndDoor::RecursiveRegistration(int32_t type) {
+    if (static_cast<uint32_t>(type - 4) > 3u) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);
+    IKLogicalDoor::RecursiveRegistration(type);  // 0x0018fc20
 }

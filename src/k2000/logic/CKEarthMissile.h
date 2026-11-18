@@ -10,11 +10,39 @@
 class CKEarthMissile : public CKProjectileElement {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x24e)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9bfb78
+        return key == 0x938c || key == 0xc || key == 0x934c || key == 0x90cc;
+    }
     DOTD_DECLARE_FACTORIES(CKEarthMissile)
 
     CKEarthMissile() {}  // 0x00392ac8 CKEarthMissile_Construct: the base constructor, then the vtable only
     ~CKEarthMissile() override {}
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00394778 CKEarthMissile_Load
+    // vt+0x30 0x00392a10 CKEarthMissile_PostLoad: the base's (ResetRuntime), then both charge nodes (+0x24c, +0x25c)
+    // put under sector 0's root (SceneNode_SetVisibleInLayer 1, 0, 0).
+    int32_t PostLoad(int32_t type) override;
+
+    uint8_t GetAbilityId() override { return 4; }  // vt+0x50 0x003928f0
+    // vt+0x58 0x003929c8 CKEarthMissile_Start: the base's, then (when it took the host) +0x274 cleared.
+    void Start(CKS08AbilityHostBase* host) override;
+    // vt+0x60 0x00392960 CKEarthMissile_Update: the effect collection (+0x244) advanced while it plays, then the base's.
+    uint8_t Update(float dt) override;
+    // vt+0x64 0x00392d28 CKEarthMissile_End: the effect collection stopped, both sounds of +0x26c stopped, both charge
+    // nodes put under sector 0's root, then the base's.
+    void End(int32_t forced) override;
+    // vt+0x6c 0x00393538 CKEarthMissile_UpdateCharge: the rock (+0x24c) appears under the hot spot with the charge
+    // (alpha, the charge sound's pitch 1 -> +0x270); once full the burst (+0x248), the charged sound, the rock's
+    // fade-out and the second node (+0x25c) under the hot spot.
+    void UpdateCharge(float dt) override;
+    // vt+0x70 0x00392918 CKEarthMissile_ResetRuntime: the base's, +0x274 cleared, the hot spot 2, the button 0.
+    void ResetRuntime(int32_t type) override;
+    // vt+0x78 0x00392f48 CKEarthMissile_Fire: one missile along the aim (to the locked target, else the host's aim
+    // direction) through the normal (+0x22c) or charged (+0x238) accessor; above level index 0 the effect collection
+    // plays, the charge nodes hide and the sounds stop.
+    uint8_t Fire() override;
+    // vt+0x7c 0x003928f8 CKEarthMissile_IsChargeDisabled_maybe: at level index 0 (abs(level) - 1 < 0).
+    uint8_t IsChargeDisabled() override { return m_unk04 == 0 ? 1 : 0; }
+    // (vt+0x80 0x009bfbd8 CKEarthMissile_StartEmitterFx only calls the base's.)
 
     float m_unk214[3];             // +0x214 (read interleaved with +0x220)
     float m_unk220[3];             // +0x220
@@ -32,8 +60,9 @@ public:
     uint32_t m_unk268;             // +0x268 (always 0)
     IKSerializable* m_unk26c;      // +0x26c CKSoundDictionaryID (live)
     float m_unk270;                // +0x270
-    uint32_t m_unk274;             // +0x274 (not read)
-    uint32_t m_unk278;             // +0x278 (not read; live: a CKObjectRoot pointer)
+    uint8_t m_unk274;              // +0x274 (not read) runtime: charged (UpdateCharge's burst done)
+    uint8_t m_pad275[3];
+    float m_unk278;                // +0x278 (not read) runtime: the rock's fade-out time left (0.3 at the burst)
 };
 DOTD_ASSERT_SIZE(CKEarthMissile, 0x27c);
 DOTD_ASSERT_OFFSET(CKEarthMissile, m_unk214, 0x214);

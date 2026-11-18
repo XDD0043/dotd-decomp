@@ -4,11 +4,11 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1bb408  CKFlashFxData_GetNodeClassKey
-//   [ ] 0x1bb410  CKFlashFxData_GetInfo
-//   [ ] 0x1bb418  CKFlashFxData_MessageProc
-//   [ ] 0x1bb7d8  CKFlashFxData_Destroy
+//   [x] 0x1bb410  CKFlashFxData_GetInfo  (the default (returns 1))
+//   [x] 0x1bb418  CKFlashFxData_MessageProc
+//   [x] 0x1bb7d8  CKFlashFxData_Destroy
 //   [x] 0x1bb820  CKFlashFxData_PostLoad
-//   [ ] 0x1bb848  CKFlashFxData_RecursiveRegistration
+//   [x] 0x1bb848  CKFlashFxData_RecursiveRegistration  (IKFxData's, nothing)
 //   [x] 0x1bb870  CKFlashFxData_Load
 //   [ ] 0x1bbe80  CKFlashFxData_Save
 //
@@ -24,6 +24,8 @@
 #include <cstring>
 
 #include "k2000/io/IKFile.h"
+#include "k2000/misc/Engine.h"
+#include "k2000/services/CKSrvFx.h"
 
 namespace {
 // One Read of count words, then every word byte-swapped in place (an lwbrx/stw loop on the PS3). The
@@ -65,4 +67,20 @@ int32_t CKFlashFxData::Load(IKFile* file, int32_t type) {
     ReadU8(file, &m_unk12);
     ReadWordsLE(file, m_unk24, 2);
     return 1;
+}
+
+// 0x001bb418 CKFlashFxData_MessageProc: 0x1b00 starts the effect (CKSrvFx::StartEffect inlined, the data as owner) and
+// returns 0; any other message returns 1.
+int32_t CKFlashFxData::MessageProc(uint16_t message, void* /*data*/) {
+    if (message != 0x1b00) return 1;
+    static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->StartEffect(this, this);
+    return 0;
+}
+
+// 0x001bb7d8 CKFlashFxData_Destroy: the texture reference released.
+void CKFlashFxData::Destroy() {
+    if (m_pTexture != nullptr) {
+        TextureRef_Release(m_pTexture);  // RwTextureDestroy
+        m_pTexture = nullptr;
+    }
 }

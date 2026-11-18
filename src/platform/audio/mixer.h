@@ -41,6 +41,7 @@ void Shutdown();
 
 // The port level (RwaPS3_SetPortLevel): scales the whole voice mix (not the streams: Bink has its own port).
 void SetVoiceMasterLevel(float level);
+float VoiceMasterLevel();
 
 // ---- voices (one per RWA voice) -----------------------------------------------------------------
 int32_t VoiceCreate();              // -1 when the table is full

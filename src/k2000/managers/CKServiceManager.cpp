@@ -4,18 +4,18 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x22cd0  CKServiceManager_Delete
+//   [x] 0x22cd0  CKServiceManager_Delete  (CKServiceManager::Delete, k2000/stubs/BootStubs.cpp: the deleting destructor)
 //   [ ] 0x22d20  CKServiceManager_Construct  [dead]
 //   [x] 0x22d40  CKServiceManager_GetServiceByClassId
 //   [ ] 0x22e20  CKServiceManager_Save
 //   [ ] 0x22e28  CKServiceManager_Construct_2  [dead]
-//   [ ] 0x22e48  RegisterCKServiceManagerType
+//   [x] 0x22e48  RegisterCKServiceManagerType  (the class registration: k2000/misc/ClassTable.cpp's row 0x40)
 //   [ ] 0x22ec0  _GLOBAL__I_22ec0
-//   [ ] 0x22ed0  CKServiceManager_DeleteArray
+//   [x] 0x22ed0  CKServiceManager_DeleteArray  (CKServiceManager::DeleteArray, CKServiceManager.h)
 //   [x] 0x22f78  CKServiceManager_InitializeModule
 //   [x] 0x230c8  CKServiceManager_Start
 //   [x] 0x23130  CKServiceManager_UpdateInitialize
-//   [ ] 0x23198  CKServiceManager_RecursiveRegistration
+//   [x] 0x23198  CKServiceManager_RecursiveRegistration
 //   [x] 0x23228  UpdateServiceManagerList
 //   [x] 0x232a0  CKServiceManager_Stop
 //   [x] 0x23308  CKServiceManager_Resume
@@ -24,21 +24,21 @@
 //   [x] 0x23440  CKServiceManager_BroadcastPostReinit_maybe
 //   [x] 0x234a8  CKServiceManager_PreRestart
 //   [x] 0x23510  CKServiceManager_Restart
-//   [ ] 0x23578  CKServiceManager_DestroyModule
-//   [ ] 0x23640  CKServiceManager_CreateArray
-//   [ ] 0x236f0  CreateCKServiceManager
+//   [x] 0x23578  CKServiceManager_DestroyModule
+//   [x] 0x23640  CKServiceManager_CreateArray  (CKServiceManager::CreateArray, CKServiceManager.h)
+//   [x] 0x236f0  CreateCKServiceManager  (CKServiceManager::Create, k2000/stubs/BootStubs.cpp)
 //   [x] 0x23740  DeserializeServiceManagerList
 //   [x] 0x238a8  CKServiceManager_SectorLoaded
 //   [x] 0x23920  CKServiceManager_SectorUnload
 //   [x] 0x23998  CKServiceManager_PostSectorUnload
-//   [ ] 0x23a10  CKServiceManager_PostLoad
+//   [x] 0x23a10  CKServiceManager_PostLoad  (PostLoad: 1, IKSerializable's default)
 //   [x] 0x23a18  CKServiceManager_SetDefaultState
 //   [x] 0x23a90  CKServiceManager_PreSectorLoaded
-//   [ ] 0x23b08  CKServiceManager_Destroy
-//   [ ] 0x23b10  CKServiceManager_Destructor
+//   [x] 0x23b08  CKServiceManager_Destroy  (Destroy: empty, IKBaseClass's default)
+//   [x] 0x23b10  CKServiceManager_Destructor  (~CKServiceManager (vtable stores))
 //   [ ] 0x23b30  CKServiceManager_Destructor_2  [dead]
-//   [ ] 0x23b50  CKServiceManager_DeletingDestructor
-//   [ ] 0x23b98  KStub_Return0_23b98
+//   [x] 0x23b50  CKServiceManager_DeletingDestructor  (~CKServiceManager, delete)
+//   [x] 0x23b98  KStub_Return0_23b98  (JobQueue_HoldsSounds, k2000/managers/CKSoundManager.cpp: 0)
 //   [ ] 0x23ba0  KStub_Nop_23ba0  [dead]
 //
 //   [ ] 0x993098  CKServiceManager_DestroyGame  [inline]
@@ -62,6 +62,7 @@
 #include "k2000/io/IKFile.h"
 #include "k2000/misc/Engine.h"
 #include "k2000/services/IKService.h"
+#include "k2000/system/Fps60Hz.h"
 
 // 0x00022d40 CKServiceManager_GetServiceByClassId
 IKSerializable* CKServiceManager::GetServiceByClassId(uint32_t id) {
@@ -97,6 +98,18 @@ int32_t CKServiceManager::InitializeModule(void* /*params*/) {
 CKServiceManager::CKServiceManager() {
     m_services = nullptr;
     m_lServiceList = nullptr;
+}
+
+// 0x00023578 CKServiceManager_DestroyModule
+void CKServiceManager::DestroyModule() {
+    for (uint32_t i = 0; i < m_serviceCount; ++i) {
+        IKService* service = m_services[i];
+        service->DestroyService();  // vt+0x98
+        ClassRegistry_DestroyObject(service);
+    }
+    if (m_services != nullptr) delete[] m_services;  // OperatorDeleteArray
+    m_lServiceList = nullptr;
+    m_services = nullptr;
 }
 
 // 0x00023740 DeserializeServiceManagerList: the service priority list (type 0 only). Each reference
@@ -174,9 +187,26 @@ void CKServiceManager::Resume() {
     for (IKService* service = m_lServiceList; service != nullptr; service = service->m_pNext) service->Resume();
 }
 
+namespace {
+// --fps N (not in the original): the services whose work moves through chains of states one update per link run whole
+// 60 Hz updates (k2000/system/Fps60Hz.h): the cinematic scenes (teleport, sekensor, camera, animation, path, pause and
+// event blocs and the logical doors that chain them) and the sekens lines (a line gets at least two updates).
+bool RunsOn60HzFrames(const IKService* service) {
+    return service == static_cast<const void*>(g_pEngine->m_srvCinematic) ||
+           service == static_cast<const void*>(g_pEngine->m_srvSekensor);
+}
+
+}  // namespace
+
 // 0x00023228 UpdateServiceManagerList: every service's Update (vt+0x7c), in list order.
 void CKServiceManager::Update(IKTime* frameClock) {
-    for (IKService* service = m_lServiceList; service != nullptr; service = service->m_pNext) service->Update(frameClock);
+    for (IKService* service = m_lServiceList; service != nullptr; service = service->m_pNext) {
+        if (dotd::fps::Unlocked() && RunsOn60HzFrames(service)) {
+            RunOn60HzFrames(frameClock, [service, frameClock] { service->Update(frameClock); });
+            continue;
+        }
+        service->Update(frameClock);
+    }
 }
 
 // 0x00023a90 CKServiceManager_PreSectorLoaded and 0x000238a8 CKServiceManager_SectorLoaded: every service's
@@ -186,4 +216,10 @@ void CKServiceManager::PreSectorLoaded(int32_t sector) {
 }
 void CKServiceManager::SectorLoaded(int32_t sector) {
     for (IKService* service = m_lServiceList; service != nullptr; service = service->m_pNext) service->SectorLoaded(sector);
+}
+
+// 0x00023198 CKServiceManager_RecursiveRegistration (C2.8 save-menu)
+void CKServiceManager::RecursiveRegistration(int32_t type) {
+    if (type != 4) return;
+    for (IKService* service = m_lServiceList; service != nullptr; service = service->m_pNext) service->RecursiveRegistration(4);
 }

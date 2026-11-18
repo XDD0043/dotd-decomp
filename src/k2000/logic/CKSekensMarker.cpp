@@ -8,13 +8,13 @@
 //   [ ] 0x1f80b8  _GLOBAL__I_1f80b8
 //   [x] 0x1f80c8  CKSekensMarker_Load
 //   [ ] 0x1f80f0  CKSekensMarker_Save
-//   [ ] 0x1f8118  CKSekensMarker_RecursiveRegistration
-//   [ ] 0x1f8140  CKSekensMarker_Destroy
-//   [ ] 0x1f8168  CKSekensMarker_DeletingDestructor
-//   [ ] 0x1f81b0  CKSekensMarker_Destructor
-//   [ ] 0x1f81e0  CKSekensMarker_DestructBody
+//   [x] 0x1f8118  CKSekensMarker_RecursiveRegistration  (the base's vf24: registers nothing; the default slot)
+//   [x] 0x1f8140  CKSekensMarker_Destroy  (the base's KStub_Nop_1fa770: the default slot)
+//   [x] 0x1f8168  CKSekensMarker_DeletingDestructor  (the destructor; delete)
+//   [x] 0x1f81b0  CKSekensMarker_Destructor  (C++ destructor chain: vtable stores only)
+//   [x] 0x1f81e0  CKSekensMarker_DestructBody  (C++ destructor chain: vtable stores only)
 //   [x] 0x1f8210  CKSekensMarker_Construct
-//   [ ] 0x1f8250  CKSekensMarker_Construct_2
+//   [x] 0x1f8250  CKSekensMarker_Construct_2  (the constructor, CKSekensMarker.h)
 //   [x] 0x1f8290  CKSekensMarker_DeleteArray
 //   [x] 0x1f8330  CKSekensMarker_Create
 //   [x] 0x1f8390  CKSekensMarker_CreateArray

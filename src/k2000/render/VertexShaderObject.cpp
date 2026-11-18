@@ -7,16 +7,16 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0xfeed0  UploadVertexProgramUniformBuffer
-//   [ ] 0xfef30  VertexShaderObject_UploadConstantParam_maybe
-//   [ ] 0xfef60  VertexShaderObject_ReleaseCgProgram_maybe
+//   [ ] 0xfeed0  UploadVertexProgramUniformBuffer  [platform]  (the PSGL / Cg program objects: platform/gfx compiles the translated GLSL programs (cg_program.h, cg_to_glsl.cpp) and binds their uniforms per program (CShaderManagerPSGL_2.cpp))
+//   [ ] 0xfef30  VertexShaderObject_UploadConstantParam_maybe  [platform]  (the PSGL / Cg program objects: platform/gfx compiles the translated GLSL programs (cg_program.h, cg_to_glsl.cpp) and binds their uniforms per program (CShaderManagerPSGL_2.cpp))
+//   [ ] 0xfef60  VertexShaderObject_ReleaseCgProgram_maybe  [platform]  (the PSGL / Cg program objects: platform/gfx compiles the translated GLSL programs (cg_program.h, cg_to_glsl.cpp) and binds their uniforms per program (CShaderManagerPSGL_2.cpp))
 //   [ ] 0xfefa8  FUN_000fefa8  [dead]
-//   [ ] 0xfeff0  VertexShaderObject_DeletingDestructor_maybe
-//   [ ] 0xff038  VertexShaderObject_Destruct_maybe
-//   [ ] 0xff068  VertexShaderObject_Destruct_2_maybe
-//   [ ] 0xff098  VertexShaderObject_Construct_maybe
-//   [ ] 0xff0d8  VertexShaderObject_Construct_2_maybe
-//   [ ] 0xff118  PrepareVertexProgramWorldMatrix
-//   [ ] 0xff1b8  VertexShaderObject_ReadCompiledCode_maybe
-//   [ ] 0xff258  VertexShaderObject_Compile_maybe
-//   [ ] 0xff2f0  CShaderManagerPSGL_LoadVertexShader_maybe
+//   [ ] 0xfeff0  VertexShaderObject_DeletingDestructor_maybe  [platform]  (the PSGL / Cg program objects: platform/gfx compiles the translated GLSL programs (cg_program.h, cg_to_glsl.cpp) and binds their uniforms per program (CShaderManagerPSGL_2.cpp))
+//   [ ] 0xff038  VertexShaderObject_Destruct_maybe  [platform]  (the PSGL / Cg program objects: platform/gfx compiles the translated GLSL programs (cg_program.h, cg_to_glsl.cpp) and binds their uniforms per program (CShaderManagerPSGL_2.cpp))
+//   [ ] 0xff068  VertexShaderObject_Destruct_2_maybe  [dead: no pointer to its descriptor 0xb56828, no call]
+//   [ ] 0xff098  VertexShaderObject_Construct_maybe  [platform]  (the PSGL / Cg program objects: platform/gfx compiles the translated GLSL programs (cg_program.h, cg_to_glsl.cpp) and binds their uniforms per program (CShaderManagerPSGL_2.cpp))
+//   [ ] 0xff0d8  VertexShaderObject_Construct_2_maybe  [dead: no pointer to its descriptor 0xb56838, no call]
+//   [ ] 0xff118  PrepareVertexProgramWorldMatrix  [platform]  (the PSGL / Cg program objects: platform/gfx compiles the translated GLSL programs (cg_program.h, cg_to_glsl.cpp) and binds their uniforms per program (CShaderManagerPSGL_2.cpp))
+//   [ ] 0xff1b8  VertexShaderObject_ReadCompiledCode_maybe  [platform]  (the PSGL / Cg program objects: platform/gfx compiles the translated GLSL programs (cg_program.h, cg_to_glsl.cpp) and binds their uniforms per program (CShaderManagerPSGL_2.cpp))
+//   [ ] 0xff258  VertexShaderObject_Compile_maybe  [platform]  (the PSGL / Cg program objects: platform/gfx compiles the translated GLSL programs (cg_program.h, cg_to_glsl.cpp) and binds their uniforms per program (CShaderManagerPSGL_2.cpp))
+//   [ ] 0xff2f0  CShaderManagerPSGL_LoadVertexShader_maybe  [platform]  (the PSGL / Cg program objects: platform/gfx compiles the translated GLSL programs (cg_program.h, cg_to_glsl.cpp) and binds their uniforms per program (CShaderManagerPSGL_2.cpp))

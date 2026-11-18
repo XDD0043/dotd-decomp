@@ -4,15 +4,15 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0xec920  NodeFx_EnqueueBase_maybe
-//   [ ] 0xeca50  INodeFx_LevelReset
-//   [ ] 0xeca78  CNodeFx_PostLoadBase_maybe
-//   [ ] 0xecbd8  INodeFx_GetInfo
+//   [x] 0xec920  NodeFx_EnqueueBase_maybe
+//   [x] 0xeca50  INodeFx_LevelReset  (RecursiveRegistration: CNode's 0xcbaa8, inherited)
+//   [x] 0xeca78  CNodeFx_PostLoadBase_maybe
+//   [x] 0xecbd8  INodeFx_GetInfo  (returns 1: the default, inherited)
 //   [ ] 0xecbe0  CNodeFx_Save
 //   [x] 0xeccd8  CNodeFx_Load
 //   [x] 0xecdd0  UpdateParticleNodesSerial
 //   [x] 0xece60  PrepareQueuedParticleNodes
-//   [ ] 0xed028  ShutdownParticleUpdateScheduler
+//   [x] 0xed028  ShutdownParticleUpdateScheduler
 //
 //   [ ] 0x9a5730  INodeFx_IsKindOf  [inline]
 //   [x] 0x9a5788  INodeFx_GetClassGroup  [inline]
@@ -32,7 +32,9 @@
 #include "k2000/fx/ParticleUpdateScheduler.h"
 #include "k2000/scenegraph/CParticlesNodeFx.h"
 
+#include "k2000/geometry/CGeometry.h"
 #include "k2000/io/IKFile.h"
+#include "k2000/render/CRenderer.h"
 
 // 0x000eccd8 CNodeFx_Load: the three bytes only in level files.
 int32_t INodeFx::Load(IKFile* file, int32_t type) {
@@ -43,6 +45,37 @@ int32_t INodeFx::Load(IKFile* file, int32_t type) {
         ReadU8(file, &m_unk2a);
     }
     return 1;
+}
+
+// 0x000eca78 INodeFx_PostLoad. As in CGeometry_Load, a byte above 1 also sets the bits above its own
+// (rlwinm/or: the byte shifted to the bit, masked to the bits from the top).
+int32_t INodeFx::PostLoad(int32_t type) {
+    if (type == 0) {
+        for (CGeometry* geometry = static_cast<CGeometry*>(m_lGeometryList); geometry != nullptr;
+             geometry = geometry->m_pNext) {
+            uint32_t flags = geometry->m_BitProperties;
+            flags = (flags & ~0x400000u) | ((static_cast<uint32_t>(m_unk28) << 22) & 0xffc00000u);
+            geometry->m_BitProperties = flags;
+            flags = (flags & ~0x800000u) | ((static_cast<uint32_t>(m_unk29) << 23) & 0xff800000u);
+            geometry->m_BitProperties = flags;
+            flags = (flags & ~0x2000000u) | ((static_cast<uint32_t>(m_unk2a) << 25) & 0xfe000000u);
+            geometry->m_BitProperties = flags;
+        }
+    }
+    for (CGeometry* geometry = static_cast<CGeometry*>(m_lGeometryList); geometry != nullptr;
+         geometry = geometry->m_pNext) {
+        geometry->Vf80((geometry->m_BitProperties & 0x80000) != 0 ? 0 : 2);  // vt+0x80
+    }
+    return CNode::PostLoad(type);
+}
+
+// 0x000ec920 NodeFx_EnqueueBase_maybe
+void INodeFx::EnqueueBase(RenderQueue** stages, IKTime* frameClock, RwCamera* camera) {
+    if ((m_sgProperties & 4) != 0) return;
+    if ((CullAndEnqueueGeometry(stages, frameClock, camera) & 0xff) != 0) m_ui16LastRenderedFrame = g_ui16RenderFrameCounter;
+    for (CSGLeaf* child = m_lChildList; child != nullptr; child = child->m_pNext) {
+        child->UpdateAndExtract(0.0f, stages, frameClock, camera, 0);  // vt+0x58
+    }
 }
 
 // ---- the particle scheduler's serial and preparing halves (ParticleUpdateScheduler.h) ----------------------
@@ -78,4 +111,12 @@ void PrepareQueuedParticleNodes(ParticleUpdateScheduler* scheduler) {
         node->m_ui32LastUpdateGeneration = scheduler->generation;
     }
     scheduler->workCount = 0;
+}
+
+// 0x000ed028 ShutdownParticleUpdateScheduler. With a worker (not natively, see ParticleUpdateScheduler.h) the worker
+// state becomes 2 under the mutex, the condition is signalled and the thread joined.
+void ShutdownParticleUpdateScheduler(ParticleUpdateScheduler* scheduler) {
+    if (scheduler->shutdownRequested != 0) return;
+    scheduler->shutdownRequested = 1;
+    if (scheduler->executionConcurrency > 1) scheduler->workerState = 2;
 }

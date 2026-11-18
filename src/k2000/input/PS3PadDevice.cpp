@@ -30,8 +30,8 @@
 //   [x] 0x10f910  PS3PadDevice_RefreshPadInfo_maybe
 //   [x] 0x10f948  PollPs3ControllerState
 //   [x] 0x10ffd8  PS3PadDevice_Construct_maybe
-//   [ ] 0x10fff8  PS3PadDevice_DeletingDestructor_maybe
-//   [ ] 0x110028  PS3PadDevice_Destructor_maybe
+//   [x] 0x10fff8  PS3PadDevice_DeletingDestructor_maybe  (~PS3PadDevice, PS3PadDevice.h: delete)
+//   [x] 0x110028  PS3PadDevice_Destructor_maybe  (~PS3PadDevice, PS3PadDevice.h (vtable store only))
 //
 //   [x] 0x9a6820  PS3PadDevice_GetCurrentState  [inline]
 //   [x] 0x9a6830  PS3PadDevice_GetPreviousState  [inline]

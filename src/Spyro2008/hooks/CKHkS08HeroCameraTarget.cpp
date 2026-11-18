@@ -17,6 +17,17 @@
 #include "k2000/misc/Engine.h"
 #include "k2000/system/CTimeManager.h"
 #include "k2000/system/IKTime.h"
+#include "Spyro2008/hooks/CKHkS08TransportableWeight.h"
+#include "Spyro2008/logic/CKS08CarrierHero.h"
+
+namespace {
+// The group's pair geometry stores floats in its word fields (+0x2d4..+0x318).
+float LoadFloat(const uint32_t* word) {
+    float value;
+    std::memcpy(&value, word, sizeof(value));
+    return value;
+}
+}  // namespace
 
 namespace {
 
@@ -77,11 +88,33 @@ void CKHkS08Hero::UpdateModeFlagsAndTetherTimers() {
     CKSrvCamera* camera = static_cast<CKSrvCamera*>(g_pEngine->m_srvCamera);
     uint32_t& cameraFlags = camera->m_baTemporaryFlags;
 
-    if (m_unkfb8 != nullptr) {
-        // The carried hero's tether timers (+0x1780 / +0x1784): the carrier's vt+0x80 / +0x104, the partner's
-        // climbing state and the group's maximum partner distance.
-        // STUB(C2.8, moved from C2.6: the carrier hero is a scripted event, none exists at the level start).
-        DOTD_STUB_ONCE("CKHkS08Hero_UpdateModeFlagsAndTetherTimers_maybe: carrier hero tether timers (C2.8, moved from C2.6)");
+    CKS08CarrierHero* carrier = static_cast<CKS08CarrierHero*>(m_unkfb8);
+    if (carrier != nullptr && carrier->GetCarriedObject() != nullptr) {  // vt+0x80
+        // The tether timers (+0x1780 / +0x1784) while the hero carries a weight (class 0x3142) heavier than 0.1: the
+        // partner (not the player's hero) farther than the group's maximum partner distance less 3 starts the
+        // 3-second timer, unless the partner is held (+0xec4 bit 22) or keeps climbing; else they are cleared.
+        const float toMiddle0 = LoadFloat(&group->m_unk2d4[16]);  // +0x314
+        const float toMiddle1 = LoadFloat(&group->m_unk318);      // +0x318
+        const float maxDistance = group->m_unk108;                 // 0x002ce518 GetMaxPartnerDistance
+        IKSerializable* carried = carrier->GetCarriedObject();
+        if (carried->IsKindOfClass(0x3142) != 0 && carrier->GetCarriedObject() != nullptr &&
+            static_cast<CKHkS08TransportableWeight*>(carrier->GetCarriedObject())->m_unk18c > 0.1f) {  // vt+0x104; TOC +0x1e4c
+            bool clear = true;
+            if (m_ui8Hero != m_ui8TrackedLeader && toMiddle1 + toMiddle0 > maxDistance - 3.0f) {  // TOC +0x1e50
+                CKHkS08Hero* partner = GetPartnerHero();  // 0x002f85f8
+                if ((partner->m_unkec4 & 0x400000u) == 0 && GetPartnerHero()->ShouldStayClimbing() == 0) {
+                    clear = false;
+                    if (!(m_unk1780 > 0.0f)) {
+                        m_unk1784 = 0;
+                        m_unk1780 = 3.0f;
+                    }
+                }
+            }
+            if (clear) {
+                m_unk1780 = 0.0f;  // TOC +0x1da4
+                m_unk1784 = 0;
+            }
+        }
     }
     if (m_unk1784 != 0) m_unk1788 = 3.0f;
 
@@ -268,8 +301,8 @@ void CKHkS08Hero::UpdateModeFlagsAndTetherTimers() {
             m_unk1814 = m_unk1813;
             m_unk1813 = 0;
         } else {
-            m_unk13d4 = m_unk13d4 + m_unk550;
-            if (m_unk13d4 < group->m_unk1b4 && m_unk88c < group->m_unk1b0) {
+            m_unk13d4 = m_unk13d4 + m_unk88c;  // the frame's dt
+            if (!(group->m_unk1b4 <= m_unk13d4) && !(m_unk550 >= group->m_unk1b0)) {  // ble / bge (0x002ddd88)
                 if ((m_unkec4 & 0x4000u) != 0) {
                     m_unk1815 = m_unk1814;
                     m_unk1814 = m_unk1813;

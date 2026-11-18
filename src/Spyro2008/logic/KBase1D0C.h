@@ -19,8 +19,20 @@ public:
     int32_t GetClassID() override { return 0x74; }     // vt+0x18 0x995750
     // vt+0x2c 0x000432a0 (Ghidra CKS08GameLevelCollectible_LoadBase_maybe)
     int32_t Load(IKFile* file, int32_t type) override;
-    // vt+0x58 0x43250 InitGameData and vt+0x5c 0x43228 InitLevelData only call IKGameObject's. Not
-    // ported: vt+0x10, +0x24, +0x28, +0x60 0x43200, +0x64 0x431d8, +0x68 0x431c8 (STUB(C1.6)).
+    // vt+0x58 0x43250 InitGameData and vt+0x5c 0x43228 InitLevelData only call IKGameObject's.
+    void Destroy() override { IKGameObject::Destroy(); }      // vt+0x10 0x000433d0 KBase1D0C_Destroy (Ghidra ..._ClearReferences)
+    // vt+0x24 0x000433a8 KBase1D0C_vf24 / vt+0x28 0x00043380 KBase1D0C_vf28 / vt+0x30 0x00043278 KBase1D0C_PostLoad:
+    // IKGameObject's RecursiveRegistration (0x42e38), Save (0x42e30) and PostLoad (0x42e40), which do nothing; 1.
+    void RecursiveRegistration(int32_t) override {}
+    int32_t Save(IKFile*, int32_t) override { return 1; }
+    int32_t PostLoad(int32_t) override { return 1; }
+    void DestroyLevelData() override { IKGameObject::DestroyLevelData(); }  // vt+0x60 0x00043200 KBase1D0C_ClearLevelData
+    void DestroyGameData() override { IKGameObject::DestroyGameData(); }    // vt+0x64 0x000431d8 KBase1D0C_vf64
+    void ApplyGameStateToLevel() override {}                                // vt+0x68 0x000431c8 KBase1D0C_vf68 (empty)
+    int32_t MessageProc(uint16_t, void*) override { return 1; }  // vt+0x1c 0x00043478 KStub_Return1_43478
+    virtual void Vf70() {}  // vt+0x70 0x000431d0 (Ghidra CKS08GameLevelCollectible_vf70; empty)
+    // vt+0x54 0x00043160 CKS08GameLevelCollectible_IsCurrentLevel (KBase1D0C's slot): its level is the loaded one.
+    uint8_t GetMatchesThisLevel() override;
 
     // +0x18 the collectible's level (type-8 block; the constructor sets 0). Name ours: the struct draft
     // types it CKS08GameLevel*, whose +0x88 list holds the collectibles.

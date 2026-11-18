@@ -4,8 +4,8 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1bef50  CKHDRNodeFx_Delete
-//   [ ] 0x1befa0  CKHDRNodeFx_Destroy
-//   [ ] 0x1befa8  CKHDRNodeFx_RecursiveRegistration
+//   [x] 0x1befa0  CKHDRNodeFx_Destroy  (empty)
+//   [x] 0x1befa8  CKHDRNodeFx_RecursiveRegistration
 //   [x] 0x1bf088  CKHDRNodeFx_PostLoad
 //   [x] 0x1bf0b0  CKHDRNodeFx_Start
 //   [x] 0x1bf0c0  CKHDRNodeFx_Interrupt_maybe  (header)
@@ -16,12 +16,12 @@
 //   [x] 0x1bf420  CKHDRNodeFx_DeleteArray
 //   [x] 0x1bf4c8  CKHDRNodeFx_Create
 //   [x] 0x1bf528  CKHDRNodeFx_Stop
-//   [ ] 0x1bf650  CKHDRNodeFx_StopWithFadeTime_maybe  (STUB(C2.7): CKHDRFxData's messages)
+//   [x] 0x1bf650  CKHDRNodeFx_StopWithFadeTime_maybe
 //   [x] 0x1bf700  CKHDRNodeFx_Update
 //   [x] 0x1bf9e8  CKHDRNodeFx_CreateArray
 //   [x] 0x1bfab0  CKHDRNodeFx_Load
 //   [x] 0x1bfc00  CKHDRNodeFx_SetDataAndOwner
-//   [ ] 0x1c0200  CKHDRNodeFx_StartBlendToSetting_maybe  (STUB(C2.7): the fury and CKHDRFxData's messages)
+//   [x] 0x1c0200  CKHDRNodeFx_StartBlendToSetting_maybe
 //
 //   [ ] 0x9ac420  CKHDRNodeFx_IsKindOfClass  [inline]
 //   [x] 0x9ac458  CKHDRNodeFx_GetClassType  [inline]
@@ -42,6 +42,7 @@
 #include "k2000/graphical/render/CPostRenderingFx.h"
 #include "k2000/io/IKFile.h"
 #include "k2000/logic/CKCoreManager.h"
+#include "k2000/logic/CKSavingManager.h"
 #include "k2000/logic/fx/CKHDRFxData.h"
 #include "k2000/misc/Engine.h"
 #include "k2000/system/IKTime.h"
@@ -290,4 +291,84 @@ int32_t CKHDRNodeFx::Load(IKFile* file, int32_t type) {
     IKFile_ReadRef(file, &m_pHDRCurData);
     IKFile_ReadRef(file, &m_pHDRDefaultData);
     return 1;
+}
+
+namespace {
+// The inlined copy of a CHDRData's blend mode, luminance flag, colour and intensity (in the original's order).
+void CopyHdrData(CHDRData* to, const CHDRData* from) {
+    to->m_eBlendMode = from->m_eBlendMode;
+    to->m_bExtractLuminance = from->m_bExtractLuminance;
+    std::memcpy(to->m_cHDRColor, from->m_cHDRColor, 4);
+    to->m_fHDRIntensity = from->m_fHDRIntensity;
+}
+}  // namespace
+
+// 0x001bf650 CKHDRNodeFx_StopWithFadeTime_maybe. The list's entries go back to the free list 0x00ceaa40.
+void CKHDRNodeFx::StopWithFadeTime(float fade) {
+    m_fDefaultIntensitySpeed = fade;
+    if (m_lDataList != nullptr) {
+        if (fade > 0.0f) CopyHdrData(m_pHDRDefaultData, m_pHDRCurData);  // TOC -0x1f60
+        for (SDataNode* node = m_lDataList; node != nullptr;) {
+            SDataNode* next = node->m_pNext;
+            delete node;
+            node = next;
+        }
+        m_lDataList = nullptr;
+    }
+    m_pOwner = nullptr;
+    m_pData = nullptr;
+}
+
+// 0x001c0200 CKHDRNodeFx_StartBlendToSetting_maybe. The removed entry goes back to the free list (FreeListPool 0x00ceaa20
+// +0x24).
+void CKHDRNodeFx::StartBlendToSetting(IKSerializable* data, const IKSerializable* owner) {
+    SDataNode* previous = nullptr;
+    SDataNode* node = m_lDataList;
+    while (node != nullptr && !(node->m_pData == data && node->m_pOwner == owner)) {
+        previous = node;
+        node = node->m_pNext;
+    }
+    if (node == nullptr) return;
+    const CKHDRFxData* fxData = static_cast<const CKHDRFxData*>(data);
+    const CHDRData* hdr = static_cast<const CHDRData*>(fxData->m_pHDRData);
+    const float zero = 0.0f;     // TOC -0x1f60
+    const float scale = 255.0f;  // TOC -0x1f64
+    if (node->m_pNext == nullptr && m_lDataList == node) {
+        // The last entry: the default data blends from where the current data is towards `data`.
+        const float fade = fxData->m_unk10;
+        m_fDefaultColorSpeed = (ColorDistance(hdr->m_cHDRColor, m_pHDRDefaultData->m_cHDRColor) / fade) / scale;
+        m_fDefaultIntensitySpeed = std::fabs((m_pHDRDefaultData->m_fHDRIntensity - hdr->m_fHDRIntensity) / fxData->m_unk10);
+        StartSmoothedColor(&m_scCurColor, m_pHDRDefaultData->m_cHDRColor);
+        if (m_fDefaultColorSpeed <= zero && m_fDefaultIntensitySpeed <= zero) {  // cror lt|eq
+            CopyHdrData(m_pHDRDefaultData, m_pHDRCurData);
+        }
+        m_pOwner = owner;
+    } else if (m_fCurColorSpeed <= zero && m_fCurIntensitySpeed <= zero) {
+        // Another entry, the current data at rest: it blends towards `data`.
+        const float fade = fxData->m_unk10;
+        m_fCurColorSpeed = (ColorDistance(hdr->m_cHDRColor, m_pHDRCurData->m_cHDRColor) / fade) / scale;
+        m_fCurIntensitySpeed = (m_pHDRCurData->m_fHDRIntensity - hdr->m_fHDRIntensity) / fxData->m_unk10;
+        // BUG(original): the colour speed is then replaced by the absolute default intensity speed (+0x18).
+        const float defaultSpeed = m_fDefaultIntensitySpeed;
+        m_fCurColorSpeed = defaultSpeed < zero ? -defaultSpeed : defaultSpeed;
+        StartSmoothedColor(&m_scCurColor, m_pHDRCurData->m_cHDRColor);
+        if (m_fCurColorSpeed <= zero) {  // cror lt|eq
+            std::memcpy(m_pHDRCurData->m_cHDRColor, hdr->m_cHDRColor, 4);
+            m_pHDRCurData->m_fHDRIntensity = hdr->m_fHDRIntensity;
+        }
+    }
+    if (m_lDataList == node) {
+        m_lDataList = node->m_pNext;
+    } else {
+        previous->m_pNext = node->m_pNext;
+    }
+    delete node;
+}
+
+// 0x001befa8 CKHDRNodeFx_RecursiveRegistration: registered with the saving manager (vt+0x24, no owner), then the current
+// (+0x48) and default (+0x44) HDR settings' registrations (their vt+0x24) when present.
+void CKHDRNodeFx::RecursiveRegistration(int32_t type) {
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    if (m_pHDRCurData != nullptr) m_pHDRCurData->RecursiveRegistration(type);
+    if (m_pHDRDefaultData != nullptr) m_pHDRDefaultData->RecursiveRegistration(type);
 }

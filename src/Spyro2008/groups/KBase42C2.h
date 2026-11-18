@@ -40,6 +40,16 @@ public:
     }
 
     void Start() override;       // vt+0x50 0x00445c70 KBase42C2_ResetRuntime_maybe (C2.2)
+    // vt+0x94 0x00445c48 KBase42C2_vf94 / vt+0x98 0x00445c18 KBase42C2_vf98 (woken / put to sleep by the life
+    // service): the node (+0x1c) shown / hidden (scene flag 4).
+    void Vf94() override;
+    void Vf98() override;
+    // vt+0xf0: whether a spawned member may go back to its group (KBase1944_Update). The base answers 0.
+    virtual uint8_t VfF0() { return 0; }
+    // vt+0x1c 0x00445ca0 KBase42C2_HandleMessage (Ghidra KBase42C2_MessageProc): 1 for every message (the actor base's
+    // scripted messages are not handled).
+    int32_t MessageProc(uint16_t /*message*/, void* /*data*/) override { return 1; }
+    // vt+0x68 0x00445988 KBase42C2_OnLevelExit_maybe: empty (IKHook's Stop).
 
     uint32_t m_unk20;            // +0x20
     uint32_t m_unk24;            // +0x24 not set by the constructor or Load

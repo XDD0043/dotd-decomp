@@ -9,17 +9,17 @@
 //   [ ] 0xba040  CSpawnPoolRenderParam_UpdateInvRange_maybe  [dead]
 //   [ ] 0xba060  RegisterCSpawnPoolRenderParamClass
 //   [ ] 0xba0d8  _GLOBAL__I_ba0d8
-//   [ ] 0xba0e8  CSpawnPoolRenderParam_Destructor
+//   [x] 0xba0e8  CSpawnPoolRenderParam_Destructor  (C++ destructor chain: vtable stores only)
 //   [x] 0xba100  CSpawnPoolRenderParam_DeleteArray
 //   [x] 0xba1a8  CSpawnPoolRenderParam_CreateArray
 //   [x] 0xba240  CSpawnPoolRenderParam_Create
-//   [ ] 0xba278  CSpawnPoolRenderParam_RecursiveRegistration
-//   [ ] 0xba2d8  CSpawnPoolRenderParam_Destroy
+//   [x] 0xba278  CSpawnPoolRenderParam_RecursiveRegistration  (CSpawnPoolRenderParam::RecursiveRegistration)
+//   [x] 0xba2d8  CSpawnPoolRenderParam_Destroy  (Destroy: empty, the default slot)
 //   [x] 0xba2e0  CSpawnPoolRenderParam_Load
 //   [ ] 0xba408  CSpawnPoolRenderParam_Save
 //   [x] 0xba518  CSpawnPoolRenderParam_PostLoad
 //   [ ] 0xba540  CSpawnPoolRenderParam_Destructor_2  [dead]
-//   [ ] 0xba558  CSpawnPoolRenderParam_DeletingDestructor
+//   [x] 0xba558  CSpawnPoolRenderParam_DeletingDestructor  (the destructor; delete)
 //
 //   [ ] 0x9a10a8  CSpawnPoolRenderParam_GetClassType  [inline]
 //   [ ] 0x9a10b0  CSpawnPoolRenderParam_GetClassID  [inline]
@@ -42,4 +42,12 @@ int32_t CSpawnPoolRenderParam::Load(IKFile* file, int32_t type) {
 int32_t CSpawnPoolRenderParam::PostLoad(int32_t /*type*/) {
     m_fInvRange = 1.0f / (m_fFar - m_fNear);
     return 1;
+}
+
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
+
+// 0x000ba278 CSpawnPoolRenderParam_RecursiveRegistration
+void CSpawnPoolRenderParam::RecursiveRegistration(int32_t type) {
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
 }

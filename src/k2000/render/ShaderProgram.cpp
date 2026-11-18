@@ -7,16 +7,16 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0xfe7b8  ShaderGen_CompileCgSource_maybe
+//   [ ] 0xfe7b8  ShaderGen_CompileCgSource_maybe  [platform]  (the embedded Cg compiler: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
 //   [ ] 0xfea40  ShaderGen_BuildSourceFilePath_maybe  [dead]
-//   [ ] 0xfeb90  ShaderProgram_DeletingDestructor_maybe
-//   [ ] 0xfebd8  ShaderProgram_Destruct_maybe
-//   [ ] 0xfec08  ShaderProgram_Destruct_2_maybe
-//   [ ] 0xfec38  ShaderProgram_Construct_2_maybe
-//   [ ] 0xfec70  ShaderProgram_Construct_maybe
-//   [ ] 0xfeca8  ShaderProgram_SubmitCompileRequest_maybe
-//   [ ] 0xfed80  Cg_CreateProgramFromSource_maybe
+//   [ ] 0xfeb90  ShaderProgram_DeletingDestructor_maybe  [platform]  (a Cg shader object of the PS3 program cache: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
+//   [ ] 0xfebd8  ShaderProgram_Destruct_maybe  [platform]  (a Cg shader object of the PS3 program cache: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
+//   [ ] 0xfec08  ShaderProgram_Destruct_2_maybe  [platform]  (a Cg shader object of the PS3 program cache: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
+//   [ ] 0xfec38  ShaderProgram_Construct_2_maybe  [dead: no pointer to its descriptor 0xb56400, no call]
+//   [ ] 0xfec70  ShaderProgram_Construct_maybe  [platform]  (a Cg shader object of the PS3 program cache: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
+//   [ ] 0xfeca8  ShaderProgram_SubmitCompileRequest_maybe  [platform]  (the shader compile request (CKShaderRequestQueue): replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
+//   [ ] 0xfed80  Cg_CreateProgramFromSource_maybe  [platform]  (cgCreateProgram from source: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
 //   [ ] 0xfee50  KStub_Return0_fee50  [dead]
-//   [ ] 0xfee58  VertexShaderObject_SetCgProgram_maybe
-//   [ ] 0xfee60  VertexShaderObject_Init_maybe
-//   [ ] 0xfee90  PSGLVertexProgram_BindAndEnable_maybe
+//   [ ] 0xfee58  VertexShaderObject_SetCgProgram_maybe  [platform]  (a Cg shader object of the PS3 program cache: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
+//   [ ] 0xfee60  VertexShaderObject_Init_maybe  [platform]  (a Cg shader object of the PS3 program cache: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
+//   [ ] 0xfee90  PSGLVertexProgram_BindAndEnable_maybe  [platform]  (the PSGL vertex program bind: CShaderManagerPSGL_2.cpp binds the GLSL program)

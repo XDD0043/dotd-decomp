@@ -5,9 +5,9 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0xb4808  CPostRenderingFx_Delete
-//   [ ] 0xb4858  CPostRenderingFx_RecursiveRegistration
+//   [x] 0xb4858  CPostRenderingFx_RecursiveRegistration  (CPostRenderingFx::RecursiveRegistration)
 //   [ ] 0xb48f0  CPostRenderingFx_Save
-//   [ ] 0xb48f8  CPostRenderingFx_vf78
+//   [x] 0xb48f8  CPostRenderingFx_vf78  (CPostRenderingFx::Vf78, empty in the header)
 //   [ ] 0xb4900  RegisterCPostRenderingFxClass
 //   [ ] 0xb4978  _GLOBAL__I_b4978
 //   [ ] 0xb4988  CPostRenderingFx_RegisterRenderTargets_maybe  [dead]
@@ -15,21 +15,22 @@
 //   [x] 0xb4a78  CPostRenderingFx_Create
 //   [x] 0xb4ad0  CPostRenderingFx_Enqueue  (UpdateAndExtract)
 //   [x] 0xb4c78  CPostRenderingFx_CreateArray
-//   [x] 0xb4d28  CPostRenderingFx_Draw  (Render; the blur branch 0x100 is STUB(C2.7))
-//   [ ] 0xb57a0  CPostRenderingFx_Destroy
+//   [x] 0xb4d28  CPostRenderingFx_Draw  (Render)
+//   [x] 0xb57a0  CPostRenderingFx_Destroy  (inherited: IRendableObject_Destroy)
 //   [x] 0xb57c8  CPostRenderingFx_PostLoad
 //   [x] 0xb58c0  CPostRenderingFx_Load
-//   [ ] 0xb5bd0  CBlurData_Delete
-//   [ ] 0xb5c20  CHDRData_Delete
+//   [x] 0xb5bd0  CBlurData_Delete  (the registry factory: DOTD_DECLARE_FACTORIES(CBlurData))
+//   [x] 0xb5c20  CHDRData_Delete  (the registry factory: DOTD_DECLARE_FACTORIES(CHDRData))
 //
 //   [x] 0x9a0c58  CPostRenderingFx_GetClassType  [inline]
 //   [x] 0x9a0c60  CPostRenderingFx_GetClassID  [inline]
 //   [x] 0x9a0c68  CPostRenderingFx_GetSerializationFlags  [inline]
 //   [x] 0x9a0c70  CPostRenderingFx_IsKindOfClass  [inline]
-//   [ ] 0x9a0ca8  CPostRenderingFx_DeletingDestructor  [inline]
-//   [ ] 0x9a0cf0  CPostRenderingFx_Destructor  [inline]
+//   [x] 0x9a0ca8  CPostRenderingFx_DeletingDestructor  [inline]
+//   [x] 0x9a0cf0  CPostRenderingFx_Destructor  [inline]
 #include "k2000/graphical/render/CPostRenderingFx.h"
 
+#include <cmath>
 #include <cstring>
 
 #include "Renderware/rwcore/RwCamera.h"
@@ -38,6 +39,7 @@
 #include "crt/ppc_ops.h"
 #include "k2000/cameras/CameraContext.h"
 #include "k2000/core/Stub.h"
+#include "k2000/graphical/CBlurData.h"
 #include "k2000/graphical/CDistortionScreenFx.h"
 #include "k2000/graphical/CHDRData.h"
 #include "k2000/graphical/memory/CKPBuffer.h"
@@ -47,6 +49,7 @@
 #include "k2000/render/CRenderer.h"
 #include "k2000/render/CShaderManagerPSGL.h"
 #include "k2000/render/MeshShaderPassState.h"
+#include "k2000/system/IKTime.h"
 #include "platform/gfx/mesh.h"
 
 namespace {
@@ -105,8 +108,9 @@ void CPostRenderingFx::UpdateAndExtract(float, RenderQueue** stages, IKTime* fra
 // shared raster (DownSampleAndBlurRaster_maybe); the HDR effect (0x200) then adds that blurred image over the frame
 // `intensity` times (whole passes at full alpha, the remainder at its fraction of 255) in the HDR data's blend mode with
 // its colour, in the shader mode that keeps the vertex alpha (5). The blur (0x100, motion blur from the camera's motion)
-// and the distortion are the FX nodes' (STUB(C2.7)); the depth of field (0x400) draws the alternative scene raster.
-void CPostRenderingFx::Render() {
+// is a blur node's (its radial blur, RenderMultiTapScreenBlur, drawn over the frame); the distortion grid (CDistortionScreenFx_Draw, with the queue's frame clock) is drawn
+// while a distortion node runs; the depth of field (0x400) draws the alternative scene raster.
+void CPostRenderingFx::Render(IKTime* frameClock) {
     if ((g_pEngine->m_graphic->m_baHardwareCaps & 0x400) == 0) return;
     const CHDRData* hdr = static_cast<const CHDRData*>(m_pHDRData);
     PushRenderStates(g_pRenderStateRenderer);
@@ -135,7 +139,8 @@ void CPostRenderingFx::Render() {
             flags = m_BitProperties;
         }
     }
-    (void)blurPasses;
+    float blurStrength = 1.0f;     // f31: the blur's strength (1 without the motion settings)
+    RwRaster* blurRaster = nullptr;  // r29: the blur target (set when the blur runs)
     if ((flags & 0x100) == 0) {
         const RwMatrix& frame = MainCameraFrameMatrix();
         m_v3PreviousCameraPos.x = frame.pos.x;
@@ -145,16 +150,55 @@ void CPostRenderingFx::Render() {
         m_v3PreviousCameraAt.z = frame.at.z;
         m_v3PreviousCameraAt.y = frame.at.y;
     } else {
-        // STUB(C2.7): the blur effect (the CBlurData of a blur node, CKSrvFx): the camera motion since the last frame
-        // scaled by the data's coefficients, RenderMultiTapScreenBlur 0x95f40 into the blur target, the camera kept.
-        DOTD_STUB_ONCE("CPostRenderingFx_Draw: the blur effect (RenderMultiTapScreenBlur, C2.7)");
+        // The blur (a blur node's CBlurData): with the motion settings the camera's turn since the last frame (its at
+        // axis' change along its right / up axes, per second: at most 100 per second) moves the blur's centre off the
+        // middle and, with the forward speed over the data's maximum, sets the strength (at most 1) and scales the
+        // ring step; the radial blur of the shared raster into the blur target (RenderMultiTapScreenBlur), the camera
+        // kept for the next frame.
+        const CBlurData* blur = static_cast<const CBlurData*>(m_pBlurData);
         const RwMatrix& frame = MainCameraFrameMatrix();
+        float center[2] = {0.5f, 0.5f};  // TOC -0x5c7c
+        const float start = blur->m_fBlurStartOffset;
+        float step = blur->m_fBlurIncOffset;
+        blurStrength = 1.0f;  // TOC -0x5c78
+        if (blur->m_bActivateMotionSettings != 0) {
+            const float dt = frameClock->m_afDeltaTime[0];
+            const float atX = frame.at.x - m_v3PreviousCameraAt.x;
+            const float atY = frame.at.y - m_v3PreviousCameraAt.y;
+            const float atZ = frame.at.z - m_v3PreviousCameraAt.z;
+            const float moveX = frame.pos.x - m_v3PreviousCameraPos.x;
+            const float moveY = frame.pos.y - m_v3PreviousCameraPos.y;
+            const float moveZ = frame.pos.z - m_v3PreviousCameraPos.z;
+            float perSecond = 9.99999924e+01f;  // TOC -0x5c70
+            if (dt > 0.01f || dt == 0.01f) perSecond = 1.0f / dt;  // bge; TOC -0x5c74
+            const float side = perSecond * ppc::fmadds(atZ, frame.right.z, ppc::fmadds(atX, frame.right.x, atY * frame.right.y));
+            center[0] = 0.5f - side * blur->m_fCenterCoefficient;
+            float strength = std::fabs(side * blur->m_fRotationSpeedCoefficient);
+            const float lift = perSecond * ppc::fmadds(atZ, frame.up.z, ppc::fmadds(atX, frame.up.x, atY * frame.up.y));
+            center[1] = 0.5f - lift * blur->m_fCenterCoefficient;
+            const float turn = std::fabs(lift * blur->m_fRotationSpeedCoefficient);
+            if (strength < turn) strength = turn;  // bge
+            const float forward = ppc::fmadds(moveZ, frame.at.z, ppc::fmadds(moveX, frame.at.x, moveY * frame.at.y)) *
+                                  (perSecond * blur->m_fSpeedCoefficient);
+            float scale = strength;
+            if (strength < std::fabs(forward)) scale = std::fabs(forward);  // bge
+            step = step * scale;
+            const float speed = std::fabs(forward / blur->m_fMaxEffectSpeed);
+            if (strength < speed) strength = speed;  // bge
+            if (!(strength < 1.0f)) strength = 1.0f;  // blt
+            blurStrength = strength;
+        }
         m_v3PreviousCameraPos.z = frame.pos.z;
         m_v3PreviousCameraPos.x = frame.pos.x;
         m_v3PreviousCameraPos.y = frame.pos.y;
         m_v3PreviousCameraAt.z = frame.at.z;
         m_v3PreviousCameraAt.x = frame.at.x;
         m_v3PreviousCameraAt.y = frame.at.y;
+        CKPBuffer::SRenderTarget& target = CKPBuffer::m_saRenderTargets[m_tBlurExternalRaster];
+        ++target.m_i32RefCount;
+        blurRaster = target.m_pRaster;
+        RenderMultiTapScreenBlur(CKPBuffer::m_spaSharedRasters[blurPasses], blurRaster, blur->m_ui8NbRadialPasses, center,
+                                 start, step, blur->m_fBlurBorderIntensity, blur->m_fBlurCenterIntensity, 1);  // 0x00095f40
     }
     RwRaster* hdrRaster = nullptr;
     if ((m_BitProperties & 0x200) != 0) {
@@ -180,11 +224,18 @@ void CPostRenderingFx::Render() {
     BeginRenderCameraUpdate(camera);
     if (sceneCopy != nullptr) DrawFullscreenRasterQuad(sceneCopy, 2, 1, kColorWhite, 1, 0);
     if ((m_BitProperties & 0x100) != 0) {
-        // STUB(C2.7): the blur target drawn over the frame (mode 5, the blur data's blend and colour), its use count back.
+        // The blur target over the frame in the shader mode that keeps the vertex alpha (5): the data's colour, its alpha
+        // the strength times 255 times the global intensity (+0x1c), the data's blend; its use count back.
+        const CBlurData* blur = static_cast<const CBlurData*>(m_pBlurData);
+        uint8_t color[4];
+        std::memcpy(color, blur->m_cBlurColor, 4);
+        color[3] = static_cast<uint8_t>(ppc::fctiwz(blurStrength * 255.0f * blur->m_fBlurGlobalIntensity));  // TOC -0x5c60
+        g_pShaderManager->m_ui32Immediate2DMode = 5;
+        DrawFullscreenRasterQuad(blurRaster, kBlendTableSrc[blur->m_eBlendMode], kBlendTableDest[blur->m_eBlendMode], color, 1, 1);
         --CKPBuffer::m_saRenderTargets[m_tBlurExternalRaster].m_i32RefCount;
     }
     CDistortionScreenFx* distortion = m_pDistortionFx;
-    if ((distortion->m_BitProperties & 0x100) != 0) distortion->Render();  // vt+0x5c (the distortion grid: C2.7)
+    if ((distortion->m_BitProperties & 0x100) != 0) distortion->Render(frameClock);  // vt+0x5c (the distortion grid)
     if (DepthOfFieldPath(m_BitProperties)) {
         // The blurred image on texture unit 1 (RwPSGL_SetActiveTextureUnit / SetTextureRasterInternal), the main camera
         // back on the final colour, the alternative scene raster's full-size copy through the post depth of field shader
@@ -193,7 +244,10 @@ void CPostRenderingFx::Render() {
         dotd::gfx::DrawState sampler;
         sampler.linear = true;
         sampler.addressU = sampler.addressV = dotd::gfx::Address::kClamp;
-        dotd::gfx::BindTextureUnit(1, RwDevice_GetRasterTexture(reinterpret_cast<RwShim_DdsRaster*>(blurred)), sampler);
+        const uint32_t blurredTexture = RwDevice_GetRasterTexture(blurred);
+        const int activeUnit = dotd::gfx::ActiveTextureUnit();  // RwPSGL_GetActiveTextureUnit_maybe, set back after the bind
+        dotd::gfx::BindTextureUnit(1, blurredTexture, sampler);
+        dotd::gfx::SetActiveTextureUnit(activeUnit);
         CameraContext* context = Context();
         RwCameraEndUpdate(context->m_pMainCamera);
         context->m_pMainCamera->frameBuffer = context->m_pFinalColorRaster;
@@ -257,4 +311,13 @@ int32_t CPostRenderingFx::Load(IKFile* file, int32_t type) {
     m_pBlurData = nullptr;
     m_pHDRData = nullptr;
     return 1;
+}
+
+#include "k2000/logic/CKSavingManager.h"
+
+// 0x000b4858 CPostRenderingFx_RecursiveRegistration
+void CPostRenderingFx::RecursiveRegistration(int32_t type) {
+    if (type != 0) return;
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    m_pPBuffer->RecursiveRegistration(0);
 }

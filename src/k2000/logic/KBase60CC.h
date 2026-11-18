@@ -5,6 +5,9 @@
 
 #include "k2000/core/IKSerializable.h"
 #include "k2000/core/Layout.h"
+#include "k2000/util/TVector.h"
+
+class KBase610C;
 
 class KBase60CC : public IKSerializable {
 public:
@@ -18,7 +21,12 @@ public:
     virtual void OnActivate() = 0;           // vt+0x50
     virtual void OnDeactivate() = 0;         // vt+0x54
     virtual void Update(float dt) = 0;       // vt+0x58
-    // vt+0x5c / +0x60 (CKInputBlockSequential_CollectAnchors_maybe 0x207c38, _vf60 0x206aa8): not ported.
+    // vt+0x5c (pure): the block's anchors appended to `out` (KBase628C 0x209dd0, CKInputBlockSequential 0x207c38).
+    // vt+0x60 (pure): every link of the block's anchors removed (KBase628C 0x209998, CKInputBlockSequential 0x206aa8).
+    // CKLogicalBlock: KBase640C_CollectAnchors_maybe 0x20fe70, KBase640C_vf60 0x20fdd0. The defaults are empty (every
+    // class overrides them). Names ours.
+    virtual void CollectAnchors(TVector<KBase610C*, 1>* out);
+    virtual void DisconnectAnchors();
     virtual void Evaluate(uint8_t value) = 0;  // vt+0x64: an input anchor's value changed (CKInputAnchor vt+0x5c)
     // vt+0x68 0x002034c8 KBase60CC_Activate_maybe: once (+0x0e), into the parent block's active children
     // (+0x08) or, without a parent, the input service's active list.

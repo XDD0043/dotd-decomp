@@ -10,19 +10,19 @@
 //   [ ] 0xf30b0  ShaderUniformRecord_ConstructEmpty_maybe  [dead]
 //   [ ] 0xf30d0  ShaderUniformRecord_ConstructEmpty_2_maybe  [dead]
 //   [ ] 0xf30f0  ConstructShaderUniformRecord_2  [dead]
-//   [ ] 0xf3108  ConstructShaderUniformRecord
+//   [ ] 0xf3108  ConstructShaderUniformRecord  [platform]  (the Cg parameter records and their buffers: the uniforms are filled from the pass state straight into each GL program's uniforms (CShaderManagerPSGL_2.cpp))
 //   [ ] 0xf3120  ShaderUniformRecord_ConstructCopy_maybe  [dead]
 //   [ ] 0xf3148  ShaderUniformRecord_ConstructCopy_2_maybe  [dead]
-//   [ ] 0xf3170  BindShaderUniformBufferLocation
-//   [ ] 0xf31b8  ShaderUniformRecord_Reset_maybe
-//   [ ] 0xf31e0  ShaderUniformTable_SetSlotByte_maybe
+//   [ ] 0xf3170  BindShaderUniformBufferLocation  [platform]  (the Cg parameter records and their buffers: the uniforms are filled from the pass state straight into each GL program's uniforms (CShaderManagerPSGL_2.cpp))
+//   [ ] 0xf31b8  ShaderUniformRecord_Reset_maybe  [platform]  (the Cg parameter records and their buffers: the uniforms are filled from the pass state straight into each GL program's uniforms (CShaderManagerPSGL_2.cpp))
+//   [ ] 0xf31e0  ShaderUniformTable_SetSlotByte_maybe  [platform]  (the Cg parameter records and their buffers: the uniforms are filled from the pass state straight into each GL program's uniforms (CShaderManagerPSGL_2.cpp))
 //   [ ] 0xf3238  KStub_Return0_f3238  [dead]
 //   [ ] 0xf3240  KStub_Return0_f3240  [dead]
 //   [ ] 0xf3248  FUN_000f3248  [dead]
-//   [ ] 0xf3280  ShaderUniformTable_GetFragmentPassConstantSlot_maybe
-//   [ ] 0xf32b8  Vt_b19018_DeletingDestructor_maybe
-//   [ ] 0xf32f8  Vt_b19018_Destructor_maybe
+//   [ ] 0xf3280  ShaderUniformTable_GetFragmentPassConstantSlot_maybe  [platform]  (the Cg parameter records and their buffers: the uniforms are filled from the pass state straight into each GL program's uniforms (CShaderManagerPSGL_2.cpp))
+//   [ ] 0xf32b8  Vt_b19018_DeletingDestructor_maybe  [platform]  (the Cg parameter records and their buffers: the uniforms are filled from the pass state straight into each GL program's uniforms (CShaderManagerPSGL_2.cpp))
+//   [ ] 0xf32f8  Vt_b19018_Destructor_maybe  [platform]  (the Cg parameter records and their buffers: the uniforms are filled from the pass state straight into each GL program's uniforms (CShaderManagerPSGL_2.cpp))
 //   [ ] 0xf3318  Vt_b19018_Destructor_2_maybe  [dead]
-//   [ ] 0xf3338  ShaderUniforms_FreeBuiltinBuffers_maybe
-//   [ ] 0xf33e0  ShaderUniformPool_Init_maybe
-//   [ ] 0xf3470  ShaderParamList_GetUniformAt_maybe
+//   [ ] 0xf3338  ShaderUniforms_FreeBuiltinBuffers_maybe  [platform]  (the Cg parameter records and their buffers: the uniforms are filled from the pass state straight into each GL program's uniforms (CShaderManagerPSGL_2.cpp))
+//   [ ] 0xf33e0  ShaderUniformPool_Init_maybe  [platform]  (the Cg parameter records and their buffers: the uniforms are filled from the pass state straight into each GL program's uniforms (CShaderManagerPSGL_2.cpp))
+//   [ ] 0xf3470  ShaderParamList_GetUniformAt_maybe  [platform]  (the Cg parameter records and their buffers: the uniforms are filled from the pass state straight into each GL program's uniforms (CShaderManagerPSGL_2.cpp))

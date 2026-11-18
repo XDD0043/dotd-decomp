@@ -4,9 +4,9 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x52970  KMemoryManager_DumpBlockMapToFile_maybe
+//   [ ] 0x52970  KMemoryManager_DumpBlockMapToFile_maybe  [dead: no pointer to its descriptor 0xb3eaf8, no call]
 //   [ ] 0x52a18  KMemoryManager_FreeFromPool_maybe  [dead]
-//   [ ] 0x52a58  MemHeap_AllocFromPoolWithFallback_maybe
+//   [ ] 0x52a58  MemHeap_AllocFromPoolWithFallback_maybe  [dead: no pointer to its descriptor 0xb3eb08, no call]
 //   [ ] 0x52b58  FUN_00052b58  [dead]
 //   [ ] 0x52b88  KMemoryManager_InitHeap_maybe  [dead]
 //   [ ] 0x52c10  KMemoryManager_ReleaseHeap_maybe  [dead]
@@ -14,21 +14,21 @@
 //   [ ] 0x52cc0  KMemoryManager_Construct_maybe  [dead]
 //   [ ] 0x52d30  FUN_00052d30  [dead]
 //   [ ] 0x52d50  KMemoryManager_Construct_2_maybe  [dead]
-//   [ ] 0x52dc0  KMemoryManager_DeletingDestructor_maybe
-//   [ ] 0x52e48  KMemoryManager_Destructor_maybe
-//   [ ] 0x52eb8  KMemoryManager_GetLargestFreeBlockSize_maybe
+//   [ ] 0x52dc0  KMemoryManager_DeletingDestructor_maybe  [platform]  (the heap object's destructor: the heap is platform by design (Mem.h); its constructors 0x52cc0 / 0x52d50 are dead, no object is built)
+//   [ ] 0x52e48  KMemoryManager_Destructor_maybe  [platform]  (the heap object's destructor: the heap is platform by design (Mem.h); its constructors 0x52cc0 / 0x52d50 are dead, no object is built)
+//   [ ] 0x52eb8  KMemoryManager_GetLargestFreeBlockSize_maybe  [dead: no pointer to its descriptor 0xb3eb58, no call]
 //   [ ] 0x52f20  FUN_00052f20  [dead]
 //   [ ] 0x52f28  FUN_00052f28  [dead]
-//   [ ] 0x52f30  KMemoryManager_LinearAlloc_maybe
+//   [ ] 0x52f30  KMemoryManager_LinearAlloc_maybe  [dead: no pointer to its descriptor 0xb3eb88, no call]
 //   [x] 0x52fb8  Mem_FreeAligned16
-//   [ ] 0x52ff0  KMemoryManager_FreeLinearBuffer_maybe
+//   [ ] 0x52ff0  KMemoryManager_FreeLinearBuffer_maybe  [dead: no pointer to its descriptor 0xb3eba8, no call]
 //   [ ] 0x53040  KMemoryManager_FreeBlock_maybe  [dead]
 //   [x] 0x53098  Mem_ReallocateAligned
 //   [x] 0x53190  Mem_ReallocAligned16
 //   [x] 0x53198  Mem_AllocAligned16
 //   [x] 0x531f8  Mem_CallocAligned16
 //   [ ] 0x53280  KMemoryManager_InitLinearBuffer_maybe  [dead]
-//   [ ] 0x53300  MemHeap_Realloc_maybe
+//   [ ] 0x53300  MemHeap_Realloc_maybe  [dead: no pointer to its descriptor 0xb3ec08, no call]
 //   [x] 0x53460  Thread_SleepMs_maybe
 //   [x] 0x53498  Sysutil_PollCallbacks
 //   [x] 0x534c8  Thread_YieldDuringLoad
@@ -39,6 +39,7 @@
 
 #include "platform/cell/sys_thread.h"
 #include "platform/cell/sysutil.h"
+#include "platform/heap_fill.h"
 
 // Block layout. The original keeps {u32 total size, u32 alignment} at the malloc'd start and the raw
 // pointer in the 4 bytes below the aligned pointer. Host pointers can be 8 bytes, so the header here
@@ -70,7 +71,9 @@ void* RawOf(void* block) {
 void* Mem_AllocAligned16(uint32_t size) {
     const size_t total = size + sizeof(BlockHeader) + sizeof(void*) + 15;
     void* raw = std::malloc(total);
-    return PlaceAligned(raw, total, 16);
+    void* block = PlaceAligned(raw, total, 16);
+    dotd::HeapFill(block, size);  // zeroed by default (platform/heap_fill.h)
+    return block;
 }
 
 // 0x000531f8 Mem_CallocAligned16
@@ -87,6 +90,7 @@ void* Mem_ReallocateAligned(void* block, uint32_t size, uint32_t alignment) {
     const size_t total = size + sizeof(BlockHeader) + sizeof(void*) + align;
     void* raw = std::malloc(total);
     void* moved = PlaceAligned(raw, total, align);
+    dotd::HeapFill(moved, size);  // zeroed by default (platform/heap_fill.h); the copy below overwrites the start
     if (block != nullptr) {
         void* oldRaw = RawOf(block);
         // The original copies min(size, bytes from the old pointer to the end of the old malloc block),

@@ -10,6 +10,9 @@
 class CKS08HeroDamage : public CKS08StunDamage {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x266)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9c02c0
+        return key == 0x998c || key == 0xc || key == 0x9acc || key == 0x970c || key == 0x96cc;
+    }
     DOTD_DECLARE_FACTORIES(CKS08HeroDamage)
 
     CKS08HeroDamage() {}  // 0x003c9cf8 CKS08HeroDamage_Construct: CKS08StunDamage_Construct, then the vtable

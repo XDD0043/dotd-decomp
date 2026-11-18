@@ -16,13 +16,24 @@ struct RpPrtStdEmitter;
 class CParticlesNodeFx : public INodeFx {
 public:
     DOTD_CLASS_KEY(kCategoryNode, 0x13)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a54b0
+        return key == 0x4cb || key == 0x50b || key == 0xcb || key == 0x24b || key == 0x20b || key == 0x14b || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CParticlesNodeFx)
 
     CParticlesNodeFx();  // inlined in 0x000e6200 CreateCParticlesNodeFx
     ~CParticlesNodeFx() override {}
+    // vt+0x10 0x000e6598 CParticlesNodeFx_Destroy: the engine's particle scheduler emptied (its work and active counts),
+    // CNode's, then no emitter and no point list.
+    void Destroy() override;
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x000e6a00 CParticlesNodeFx_Load
     int32_t PostLoad(int32_t type) override;             // vt+0x30 0x000e65f0 CParticlesNodeFx_PostLoad
+    // vt+0x1c 0x000e6868 CParticlesNodeFx_MessageProc: 0x1a00 (data: a byte): emitting (0x400) follows the byte, 0x80000
+    // off; a 0 byte also clears the emitter's emit flag (0x8) and returns 0. 0x1a01: shown and emitting (0x200 | 0x400),
+    // 0x80000 off. Both then (unless the 0 byte) take the speed adjustment to 0 and the emitter active and emitting
+    // (0xa), returning 0; other messages 1.
+    int32_t MessageProc(uint16_t message, void* data) override;
     // vt+0x58 0x000e5fe0 EnqueueParticleNodeRenderWork: the node queued in the engine's particle scheduler
     // (prepared before the stages run), its children traversed, flag 0x80000 cleared.
     void UpdateAndExtract(float maxDistanceSquared, RenderQueue** stages, IKTime* frameClock, RwCamera* camera,
@@ -32,7 +43,11 @@ public:
     // (flags 0x80400 cleared), is updated once with twice its particle life as the time, and the atomic's
     // radius grows by the node's.
     void StopEmitting();
-    float m_fBoundingRadius;               // +0x2c DotD; name from the Ghidra struct (flBoundingRadius)
+    // 0x000e64b0 CParticlesNodeFx_TransformEmitPointsToWorld_maybe (not virtual): up to `maxPoints` emit points (and up
+    // to `maxDirs` directions) of the point list (+0x54) through the node's world matrix (frame +0x50); returns the count
+    // of the last transform done (0 without either). Callers: CKHkActivator_Update 0x3fa618 (R03).
+    uint32_t TransformEmitPointsToWorld(CVector3* points, uint32_t maxPoints, CVector3* dirs, uint32_t maxDirs);
+    float m_fBoundingRadius;              // +0x2c DotD; name from the Ghidra struct (flBoundingRadius)
     float m_fCompensationCoeff;            // +0x30
     CVector3 m_oldPosition;                // +0x34 Load: g_nullVector
     CVector3 m_oldSpeed;                   // +0x40 Load: g_nullVector

@@ -17,10 +17,31 @@ public:
         return key == 0x79cc || key == 0x114c || key == 0x730c || key == 0xc;
     }
     int32_t Load(IKFile* file, int32_t type) override;                                   // vt+0x2c 0x5354c8 CKS08InGameInterfaceCenter_Load
-    // 0x00536310 CKS08InGameInterfaceCenter_QueueMessage_maybe / 0x005364e0 ShowOrQueueMessagePair_maybe: the centre
-    // messages. STUB(C2.7 step 7, HUD): not ported yet.
+    // 0x00536310 CKS08InGameInterfaceCenter_QueueMessage_maybe: `text` under the default title (game manager vt+0x214),
+    // shown now when no message is (+0x240 not positive), else queued (at most 4). 0x005364e0
+    // ShowOrQueueMessagePair_maybe: the same with both texts given.
     void QueueMessage(IKSerializable* text);
     void ShowOrQueueMessagePair(IKSerializable* first, IKSerializable* second);
+    // ---- C2.7 step 7 ----
+    uint8_t OnMenuState(int32_t phase, uint8_t other) override;  // vt+0xdc 0x00536cf0 CKS08InGameInterfaceCenter_Update_maybe
+    void ResetWidgets() override;                                 // vt+0x98 0x00537558 CKS08InGameInterfaceCenter_ResetWidgets_maybe
+    // vt+0xb0 0x00535980 CKS08InGameInterfaceCenter_UpdateVisibility_maybe: the base's SetVisible, hidden also outside
+    // game state 7, while the clock or a video holds, or with the game manager's +0x64 bit 26; a shown screen after a
+    // fight takes the fury gauge down.
+    uint8_t SetVisible(uint8_t visible) override;
+    // 0x00535d00 CKS08InGameInterfaceCenter_UpdateMessageDisplay_maybe: the two message texts (slots 4 / 5) shown and
+    // faded in / out over +0x254 / +0x25c with the shake +0x264; when the time is up the next queued pair is shown.
+    void UpdateMessageDisplay(float dt);
+    // 0x005369b0 CKS08InGameInterfaceCenter_RebuildWidgetCat1Tables_maybe: group 1 rebuilt with the fury marks (message
+    // outs 1..11) the two gauges' displayed values reach.
+    void RebuildFuryMarks();
+    // 0x00534810 CKS08InGameInterfaceCenter_RefreshTextElementsB8C0_maybe: both message texts given the default text
+    // and hidden.
+    void RefreshTextElements();
+    // 0x005353d0 / 0x005352e8 CKS08InGameInterfaceCenter_ShowFuryGauge(_2)_maybe: while visible (+0x268), message out 12
+    // posted and the fury gauge shown (the first also sets the timed bit and restarts +0x208).
+    void ShowFuryGauge();
+    void ShowFuryGauge2();
     uint32_t GetWidgetSlotCount() override { return 6; }                                 // vt+0x68 0x9c9398
     WidgetSlot* GetWidgetSlots() override { return m_aWidgetSlots; }                     // vt+0x6c 0x9c93a0
     uint8_t Vf84() override { return 3; }                                                // vt+0x84 0x9c93b0
@@ -54,7 +75,7 @@ public:
     // 0x00535238 CKS08InGameInterfaceCenter_HideFuryGauge_maybe: the "hide" flash message (message out 13), the
     // shown byte (+0x201, bits 16-23 of the word at +0x200) cleared. IsFuryGaugeShown: that byte.
     void HideFuryGauge();
-    bool IsFuryGaugeShown() const { return ((m_unk200 >> 16) & 0xffu) != 0; }
+    bool IsFuryGaugeShown() const { return m_ui8FuryShown201 != 0; }
 
     WidgetSlot m_aWidgetSlots[6];                // +0x94
     IKSerializable* m_apMessageIns[10];          // +0xc4 CKFlashMessageIn
@@ -68,16 +89,19 @@ public:
     GroupState m_aGroup1States[11];              // +0x19c
     IKSerializable* m_apGroup2Refs[1];           // +0x1f4
     GroupState m_aGroup2States[1];               // +0x1f8
-    uint32_t m_unk200;                           // +0x200
+    uint8_t m_ui8Flags200;                       // +0x200 bit 0 the fury gauge is up for a fight (timed by +0x204)
+    uint8_t m_ui8FuryShown201;                   // +0x201 the fury gauge is shown
+    uint8_t m_pad202[2];
     float m_fUnk204;                             // +0x204 read by the Load
-    uint32_t m_unk208;                           // +0x208
+    float m_fFuryTime208;                        // +0x208 the time without a fight
     IKSerializable* m_pGauge20c;                 // +0x20c CKSuperGaugeCpnt (struct draft)
     IKSerializable* m_pGaugeUpdater210;          // +0x210 CKSuperGaugeCpntUpdater
     IKSerializable* m_pGauge214;                 // +0x214 CKSuperGaugeCpnt
     IKSerializable* m_pGaugeUpdater218;          // +0x218 CKSuperGaugeCpntUpdater
-    int32_t m_aUnk21c[8];                        // +0x21c not read (-1/-2 style values in the draft)
-    uint32_t m_unk23c;                           // +0x23c
-    float m_fUnk240;                             // +0x240 not read
+    IKSerializable* m_apQueue[4][2];             // +0x21c the queued message pairs (title, text)
+    uint8_t m_ui8QueueCount;                     // +0x23c
+    uint8_t m_pad23d[3];
+    float m_fUnk240;                             // +0x240 the message's time (+0x254 + +0x258 + +0x25c when shown)
     float m_fUnk244[2];                          // +0x244 one 8-byte read, both words swapped
     float m_fUnk24c[2];                          // +0x24c one 8-byte read, both words swapped
     float m_fUnk254;                             // +0x254
@@ -85,7 +109,8 @@ public:
     float m_fUnk25c;                             // +0x25c
     IKSerializable* m_pQuake;                    // +0x260 CKQuakeCpnt (struct draft)
     IKSerializable* m_pQuakeUpdater;             // +0x264 CKQuakeCpntUpdater
-    uint32_t m_unk268;                           // +0x268
+    uint8_t m_ui8Visible268;                     // +0x268 SetVisible's argument
+    uint8_t m_pad269[3];
 };
 DOTD_ASSERT_SIZE(CKS08InGameInterfaceCenter, 0x26c);
 DOTD_ASSERT_OFFSET(CKS08InGameInterfaceCenter, m_aWidgetSlots, 0x94);

@@ -3,14 +3,14 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x301408  CKHkS08Hero_AdvanceAnimTimeUnlessMarkOverride_maybe
-//   [ ] 0x301458  CKHkS08Hero_GetCurrentAnimResource_maybe
-//   [ ] 0x3014b8  CKHkS08Hero_PlayAnimationFromHost
+//   [x] 0x301408  CKHkS08Hero_AdvanceAnimTimeUnlessMarkOverride_maybe
+//   [x] 0x301458  CKHkS08Hero_GetCurrentAnimResource_maybe  (inline in its callers: CKHkS08Hero_11.cpp ActiveController / WrappedAnimTime)
+//   [x] 0x3014b8  CKHkS08Hero_PlayAnimationFromHost  (inline in its caller: Spyro2008/misc/CKS08HeroAbilityHost.cpp PlayAbilityAnim)
 //   [x] 0x301508  CKHkS08Hero_GetAnimBlendSlot
 //   [x] 0x301528  CKHkS08Hero_GetInactiveAnimBlendSlot
 //   [x] 0x301550  CKHkS08Hero_SkipAnimToEnd_maybe
 //   [x] 0x301578  CKHkS08Hero_AdvanceAnimTime
-//   [ ] 0x3015a0  CKHkS08Hero_UpdateSecondBlendSlotCrossfade_maybe
+//   [ ] 0x3015a0  CKHkS08Hero_UpdateSecondBlendSlotCrossfade_maybe  [dead: no pointer to its descriptor 0xb99f78, no call]
 //   [x] 0x3015d0  CKHkS08Hero_PlayAnimation
 //   [x] 0x301640  CKHkS08Hero_UpdateAnimationMarkFlags
 //   [x] 0x301e70  CKHkS08Hero_AdvanceAnimScaled
@@ -28,12 +28,12 @@
 //   [x] 0x302bb0  CKHkS08Hero_FlyAnimState14_Anim52
 //   [x] 0x302c98  CKHkS08Hero_FlyAnimState12_Anim4A
 //   [x] 0x302de0  CKHkS08Hero_FlyAnimState09_Grounded_maybe
-//   [ ] 0x302f90  StaticInitAndDestruction_302f90
+//   [x] 0x302f90  StaticInitAndDestruction_302f90  (the two file statics at the end)
 //   [ ] 0x302fc0  _GLOBAL__D_302fc0
 //   [ ] 0x302fd0  _GLOBAL__I_302fd0
 //   [x] 0x302fe0  CKHkS08Hero_FlyAnimState07_Anim40
 //   [x] 0x303168  CKHkS08Hero_GroundAnimState03_JumpTakeOff_maybe
-//   [ ] 0x303368  CKHkS08Hero_GetCurrentAnimTime
+//   [x] 0x303368  CKHkS08Hero_GetCurrentAnimTime  (inline in its callers: CKHkS08Hero_11.cpp WrappedAnimTime, CKHkS08Hero_14.cpp, _15.cpp)
 //   [ ] 0x3033c8  FUN_003033c8  [dead]
 //   [x] 0x303448  CKHkS08Hero_GroundAnimState04_Anim10_11
 //   [x] 0x303698  CKHkS08Hero_ClimbAnimState06_NoAnim
@@ -41,9 +41,9 @@
 //   [x] 0x303a78  CKHkS08Hero_GetAnimParams13to18
 //   [x] 0x303d48  CKHkS08Hero_FlyAnimState06_Anim3E_3F
 //   [x] 0x304090  CKHkS08Hero_FlyAnimState13_NoAnim
-//   [ ] 0x3043d0  CKHkS08Hero_GetAnimParam8
+//   [ ] 0x3043d0  CKHkS08Hero_GetAnimParam8  [dead: no pointer to its descriptor 0xb9a0c8, no call]
 //   [ ] 0x304488  FUN_00304488  [dead]
-//   [ ] 0x3045e8  CKHkS08Hero_GetCinematicAnimSlots
+//   [x] 0x3045e8  CKHkS08Hero_GetCinematicAnimSlots
 //   [x] 0x3046a8  CKHkS08Hero_DynamicStageTail_maybe
 //   [x] 0x3047a8  CKHkS08Hero_ClimbAnimState04_NoAnim
 //   [x] 0x304a30  CKHkS08Hero_GroundAnimState00_Anim01
@@ -135,6 +135,15 @@ AnimBlendSlot* CKHkS08Hero::GetAnimBlendSlot() { return m_unk138 + m_animBlendSl
 
 // 0x00301528 CKHkS08Hero_GetInactiveAnimBlendSlot: the other one.
 AnimBlendSlot* CKHkS08Hero::GetInactiveAnimBlendSlot() { return m_unk138 + (m_animBlendSlot10f0.m_unk10 ^ 1u); }
+
+// 0x003045e8 CKHkS08Hero_GetCinematicAnimSlots (vt+0xbc): the cinematic blocs reach the hero's animation through its own
+// blend slots, not its node's (the hero node's blend mode is 3, so CAnimatedNode_Load never loads the node's slot): the
+// group's slot count for this hero (vt+0x134, 2 in DotD) and the playing slot, then the other one.
+void CKHkS08Hero::GetBlendSlot(AnimBlendSlot** slots, int32_t* count) {
+    *count = static_cast<IKGrpHero*>(m_pGrpHero)->GetNbAnimBlendSlots(m_ui8Hero);
+    slots[0] = m_unk138 + m_animBlendSlot10f0.m_unk10;
+    slots[1] = m_unk138 + (m_animBlendSlot10f0.m_unk10 ^ 1u);
+}
 
 // 0x00301578 CKHkS08Hero_AdvanceAnimTime (vt+0x188): the base's.
 void CKHkS08Hero::AdvanceAnimTime(float dt) { AdvanceAnimTimeBase(dt); }  // 0x0034f970
@@ -2084,3 +2093,16 @@ uint8_t CKHkS08Hero::AnimLocomotionFlying(IKTime* clock, int32_t phase, uint8_t 
     m_unkecc &= 0xffffe7ffu;
     return 0;
 }
+
+// 0x00301408 CKHkS08Hero_AdvanceAnimTimeUnlessMarkOverride_maybe: the animation time advanced (vt+0x188) unless +0x1838.
+void CKHkS08Hero::AdvanceAnimTimeUnlessMarkOverride(float dt) {
+    if (m_unk1838 != 0) return;
+    AdvanceAnimTime(dt);  // vt+0x188
+}
+
+// 0x00302f90 StaticInitAndDestruction_302f90: two file statics (0x00ceae04, 0x00ceae08) set to -1.0f. Nothing in the game
+// reads them (their only references are the initialiser's TOC entries).
+namespace {
+[[maybe_unused]] float s_unkceae04 = -1.0f;
+[[maybe_unused]] float s_unkceae08 = -1.0f;
+}  // namespace

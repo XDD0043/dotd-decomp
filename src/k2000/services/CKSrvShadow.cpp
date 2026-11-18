@@ -6,16 +6,16 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1fa938  CKSrvShadow_Delete
 //   [ ] 0x1fa988  CKSrvShadow_Construct  [dead]
-//   [ ] 0x1fa9f0  CKSrvShadow_RecursiveRegistration
+//   [x] 0x1fa9f0  CKSrvShadow_RecursiveRegistration  (returns 1: the root's empty slot)
 //   [ ] 0x1fa9f8  CKSrvShadow_Save
 //   [x] 0x1faa00  CKSrvShadow_EntryHasTexture_maybe
-//   [ ] 0x1faa50  CKSrvShadow_Pause
-//   [ ] 0x1faa58  CKSrvShadow_Resume
+//   [x] 0x1faa50  CKSrvShadow_Pause
+//   [x] 0x1faa58  CKSrvShadow_Resume
 //   [x] 0x1faa60  CKSrvShadow_MarkCasterGeometryRecursive_maybe
 //   [ ] 0x1fabd0  CKSrvShadow_RemovePendingNodeByCaster_maybe  [dead]
 //   [ ] 0x1fac78  CKSrvShadow_FindPendingNodeByCaster_maybe  [dead]
-//   [ ] 0x1facc8  ShadowAtlas_GetUVMin_maybe
-//   [ ] 0x1face0  ShadowAtlas_GetUVMax_maybe
+//   [x] 0x1facc8  ShadowAtlas_GetUVMin_maybe
+//   [x] 0x1face0  ShadowAtlas_GetUVMax_maybe
 //   [ ] 0x1facf8  ShadowAtlas_GetCellCount_maybe  [dead]
 //   [ ] 0x1fad00  FUN_001fad00  [dead]
 //   [ ] 0x1fad10  FUN_001fad10  [dead]
@@ -26,7 +26,7 @@
 //   [x] 0x1fae10  CKSrvShadow_DeleteArray
 //   [x] 0x1faeb0  CKSrvShadow_DestroyService
 //   [x] 0x1faed8  CKSrvShadow_InitializeService
-//   [ ] 0x1faf00  CKSrvShadow_Start
+//   [x] 0x1faf00  CKSrvShadow_Start
 //   [x] 0x1fafb8  CKSrvShadow_GetEntryFloat1C_maybe
 //   [x] 0x1faff0  CKSrvShadow_GetEntryFloat18_maybe
 //   [x] 0x1fb028  CKSrvShadow_GetEntryFloat14_maybe
@@ -41,24 +41,24 @@
 //   [ ] 0x1fb520  FUN_001fb520  [dead]
 //   [ ] 0x1fb558  CKSrvShadow_PushConfigValueToProjectors_maybe  [dead]
 //   [ ] 0x1fb5f0  CKSrvShadow_Construct_2  [dead]
-//   [ ] 0x1fb658  CKSrvShadow_SectorUnload
-//   [ ] 0x1fb660  CKSrvShadow_SectorLoaded
+//   [x] 0x1fb658  CKSrvShadow_SectorUnload  (empty: IKUpdatable's default)
+//   [x] 0x1fb660  CKSrvShadow_SectorLoaded
 //   [x] 0x1fb6f8  CKSrvShadow_RegisterCaster
 //   [ ] 0x1fb968  CKSrvShadow_RegisterPendingNode_maybe  [dead]
 //   [x] 0x1fb988  CKSrvShadow_IsShadowModeEnabled_maybe
 //   [x] 0x1fb9e0  CKSrvShadow_UpdateActiveSectorShadowTexture_maybe
-//   [ ] 0x1fbb38  CKSrvShadow_DemoteCasterToPending
+//   [x] 0x1fbb38  CKSrvShadow_DemoteCasterToPending
 //   [x] 0x1fbe98  CKSrvShadow_Create
 //   [x] 0x1fbf40  CKSrvShadow_CreateArray
 //   [x] 0x1fc060  CKSrvShadow_Load
 //   [ ] 0x1fcb10  CKSrvShadow_RemoveActiveNodeByCaster_maybe  [dead]
 //   [x] 0x1fcc58  CKSrvShadow_Stop
-//   [ ] 0x1fd068  CKSrvShadow_Destroy
-//   [ ] 0x1fd658  CKSrvShadow_DeletingDestructor
+//   [x] 0x1fd068  CKSrvShadow_Destroy
+//   [x] 0x1fd658  CKSrvShadow_DeletingDestructor  (the destructor; delete)
 //   [x] 0x1fd6f0  CKSrvShadow_UnregisterCaster
-//   [ ] 0x1fdd68  UpdateCKSrvShadow
-//   [ ] 0x1fe668  CKSrvShadow_Destructor
-//   [ ] 0x1fe6f8  CKSrvShadow_Destructor_2
+//   [x] 0x1fdd68  UpdateCKSrvShadow
+//   [x] 0x1fe668  CKSrvShadow_Destructor
+//   [x] 0x1fe6f8  CKSrvShadow_Destructor_2  (= 0x1fe668)
 //
 //   [ ] 0x9b10f8  CKSrvShadow_IsKindOfClass  [inline]
 //   [ ] 0x9b1130  CKSrvShadow_GetClassType  [inline]
@@ -89,6 +89,10 @@
 #include "k2000/logic/render/CMaterial.h"
 #include "k2000/scenegraph/CNode.h"
 #include "k2000/scenegraph/CSGBranch.h"
+#include "k2000/scenegraph/CSGMovable.h"
+#include "k2000/system/IKTime.h"
+#include "Renderware/rpworld/RpAtomic.h"
+#include "crt/ppc_ops.h"
 
 CKSrvShadow* g_pSrvShadow = nullptr;  // 0x00cea928
 
@@ -145,7 +149,7 @@ void CKSrvShadow::RegisterCaster(IKSerializable* shadowCpnt, IKSerializable* nod
     spot->m_pShadowCpnt = shadowCpnt;
     spot->m_pShadowedLeaf = node;
     spot->m_pShadowGround = ground;
-    spot->m_pShadow->m_unk4c = (spot->m_pShadow->m_unk4c & 0x00ffffffu) | 0x01000000u;  // the byte at +0x4c = 1
+    spot->m_pShadow->m_bDrawn = 1;
     if (priority == 0) {
         spot->m_pShadow->SetShadowHided(0);  // vt+0x14
         spot->m_pNext = m_lDrawingShadowHighPriority;
@@ -161,17 +165,24 @@ namespace {
 // The test UnregisterCaster 0x1fd6f0 puts a waiting caster through before it takes a freed spot: its leaf was queued this
 // frame and is within its component's shadow distance of the focus point (the service camera's real position, +0x598), or
 // the component asks to be always visible (+0x2a).
+// The distance from a caster's leaf (its frame's stored LTM position, frame +0x80) to the focus point, as UnregisterCaster
+// and UpdateCKSrvShadow compute it: y first, fused, Math_Sqrtf (fsqrts).
+float FocusDistance(const void* leaf, const CVector3& focus) {
+    const RwV3d& pos = FrameLtm(static_cast<const CSGLeaf*>(leaf)->m_pRwFrame)->pos;
+    const float dy = pos.y - focus.y;
+    const float dx = pos.x - focus.x;
+    const float dz = pos.z - focus.z;
+    return std::sqrt(ppc::fmadds(dz, dz, ppc::fmadds(dx, dx, dy * dy)));
+}
+const CVector3& FocusPoint() { return static_cast<const CKSrvCamera*>(g_pEngine->m_srvCamera)->m_v3RealPos; }
+
+// (The original computes the distance before the frame test; it has no side effect.)
 bool WaitingCasterIsNear(const CKSrvShadow::CKShadowDataWaiting* waiting) {
     const CSGLeaf* leaf = static_cast<const CSGLeaf*>(waiting->m_pShadowedLeaf);
     if (leaf->m_ui16LastRenderedFrame != g_ui16RenderFrameCounter) return false;
+    const float distance = FocusDistance(waiting->m_pShadowedLeaf, FocusPoint());
     const CKShadowCpnt* component = static_cast<const CKShadowCpnt*>(waiting->m_pShadowCpnt);
-    const CKSrvCamera* camera = static_cast<const CKSrvCamera*>(g_pEngine->m_srvCamera);
-    const RwMatrix* pose = RwFrameGetLTM(const_cast<RwFrame*>(leaf->m_pRwFrame));
-    const float dy = pose->pos.y - camera->m_v3RealPos.y;
-    const float dx = pose->pos.x - camera->m_v3RealPos.x;
-    const float dz = pose->pos.z - camera->m_v3RealPos.z;
-    const double distance = static_cast<float>(std::sqrt(static_cast<double>(dz * dz + dx * dx + dy * dy)));  // Math_Sqrtf
-    return distance < static_cast<double>(component->m_fShadowDistanceMax) || component->m_bAlwaysVisible != 0;
+    return component->m_fShadowDistanceMax > distance || component->m_bAlwaysVisible != 0;
 }
 
 // A waiting slot taken out of its list and put on the unused list.
@@ -197,10 +208,7 @@ void ReleaseWaitingSlot(CKSrvShadow::CKShadowDataWaiting*& list, CKSrvShadow::CK
 // the head of the high-priority waiting list, then of the low-priority one, when that caster was queued this frame and is
 // near enough (a taker is registered again on the spot, forced); otherwise the spot goes back to the free list. A ground that
 // is not drawing but waiting just leaves the waiting list.
-// STUB(C2.7): the spots' per-frame update (UpdateCKSrvShadow 0x1fdd68 with CKShadowSpot_Update 0x1ff2c0), the other half of the
-// bookkeeping (promoting waiting casters, demoting out-of-range ones: CKSrvShadow_DemoteCasterToPending 0x1fbb38, only
-// called from there) is with the shadow spots' draw: the spots are particles (the shadow CParticleGeometry's PTank arrays,
-// +0x24, drawn by the shared PTank pipeline); the ground probe it uses (CKSrvCollision GroundProbePoints) is ported (step 3).
+// The other half of the bookkeeping (promoting waiting casters, demoting the spots that stop drawing) is UpdateCKSrvShadow's.
 void CKSrvShadow::UnregisterCaster(CKShadowGround* ground, IKSerializable* shadowCpnt) {
     const uint8_t priority = static_cast<CKShadowCpnt*>(shadowCpnt)->m_ui8Priority;
     if (priority > 1) return;
@@ -271,16 +279,11 @@ void ReadWordsLE(IKFile* file, uint32_t* words, uint32_t count) {
 }
 }  // namespace
 
-// Inlined in CKSrvShadow_Load's new[] loop (0x1fca20): the IKShadow part, then the spot's defaults.
+// Inlined in CKSrvShadow_Load's new[] loop (0x1fca20): the IKShadow part, then the spot's defaults (the ground probe's
+// masks 1, 8; no ground, face -1, status 3, sector 0: the two contact structures' constructors).
 CKShadowSpot::CKShadowSpot() {
     m_pNext = nullptr;
     m_pShadowCpnt = nullptr;
-    m_unk5c = 8;
-    m_unk58 = 1;
-    m_unk88 = 0;
-    m_unk60 = 0;
-    m_unk64 = -1;
-    m_unk74 = 3;
 }
 
 // Inlined in 0x001fbe98 CKSrvShadow_Create (0x1fa988 CKSrvShadow_Construct is an unreferenced copy): the
@@ -420,6 +423,232 @@ void ReleaseWaiting(CKSrvShadow::CKShadowDataWaiting*& list, CKSrvShadow::CKShad
 }
 }  // namespace
 
+// 0x001faf00 CKSrvShadow_Start
+void CKSrvShadow::Start() {
+    static_cast<CSGMovable*>(m_pShadowSpotNode)->SetIdentity();  // 0xd08f0
+    if (m_unk15 == 0) return;
+    for (uint32_t i = 0; i != m_unk30.m_ui32NbUsedElt; ++i) {
+        const Entry& entry = m_unk30.m_pBlock[i];
+        if (entry.m_unk24 == 0 || entry.m_unk28 == nullptr) continue;
+        CSGLeaf* node = static_cast<CSGLeaf*>(entry.m_unk28);
+        node->m_sgProperties = (node->m_sgProperties & ~4u) | 4u;
+    }
+}
+
+// 0x001fbb38 CKSrvShadow_DemoteCasterToPending
+void CKSrvShadow::DemoteCasterToPending(IKSerializable* leaf, IKSerializable* shadowCpnt) {
+    const uint8_t priority = static_cast<const CKShadowCpnt*>(shadowCpnt)->m_ui8Priority;
+    // BUG(original): another priority reads an unset register (the caller's: UpdateCKSrvShadow's service pointer) as the
+    // spot to give back, which would overwrite the service's first word. The game's components are 0 or 1; nothing here.
+    if (priority > 1) return;
+    CKShadowDataSpot*& drawing = priority == 0 ? m_lDrawingShadowHighPriority : m_lDrawingShadowLowPriority;
+    CKShadowDataWaiting*& waitingList = priority == 0 ? m_lShadowWaitingHighPriority : m_lShadowWaitingLowPriority;
+    CKShadowDataSpot* spot = drawing;
+    while (spot != nullptr && spot->m_pShadowedLeaf != leaf) spot = spot->m_pNext;
+    if (spot == nullptr) return;
+    CKShadowDataWaiting* waiting = m_lShadowWaitingUnused;
+    if (waiting != nullptr) {
+        CKShadowDataWaiting* following = waiting->m_pNext;
+        if (following == nullptr) {
+            m_lShadowWaitingUnused = nullptr;
+        } else {
+            waiting->m_pNext = nullptr;
+            m_lShadowWaitingUnused = following;
+        }
+        spot->m_pShadow->SetShadowHided(1);  // vt+0x14
+        CKShadowDataSpot* head = drawing;
+        if (head != nullptr) {
+            if (spot == head) {
+                drawing = spot->m_pNext;
+                spot->m_pNext = nullptr;
+            } else {
+                for (CKShadowDataSpot* previous = head; previous->m_pNext != nullptr; previous = previous->m_pNext) {
+                    if (previous->m_pNext != spot) continue;
+                    previous->m_pNext = spot->m_pNext;
+                    spot->m_pNext = nullptr;
+                    break;
+                }
+            }
+        }
+        waiting->m_pShadowCpnt = shadowCpnt;
+        waiting->m_pShadowedLeaf = spot->m_pShadowedLeaf;
+        waiting->m_pShadowGround = spot->m_pShadowGround;
+        waiting->m_pNext = waitingList;
+        waitingList = waiting;
+        spot->m_pShadowGround = nullptr;
+        spot->m_pShadowCpnt = nullptr;
+        spot->m_pShadowedLeaf = nullptr;
+        spot->m_pShadow->m_pShadowCpnt = nullptr;
+    }
+    // BUG(original): without a free waiting slot the spot is given back while still linked in its drawing list.
+    spot->m_pNext = m_lShadowUnused;
+    m_lShadowUnused = spot;
+}
+
+namespace {
+// UpdateCKSrvShadow's promotion of one waiting caster: a caster drawn this frame (or always visible) within its component's
+// shadow distance leaves its list (searched from the head) for the unused list and is registered again, forced. The next
+// caster (read before) is returned.
+CKSrvShadow::CKShadowDataWaiting* PromoteIfNear(CKSrvShadow* service, CKSrvShadow::CKShadowDataWaiting*& list,
+                                                CKSrvShadow::CKShadowDataWaiting* entry, const CVector3& focus) {
+    const float distance = FocusDistance(entry->m_pShadowedLeaf, focus);
+    const CKShadowCpnt* component = static_cast<const CKShadowCpnt*>(entry->m_pShadowCpnt);
+    CKSrvShadow::CKShadowDataWaiting* next = entry->m_pNext;
+    if (static_cast<const CSGLeaf*>(entry->m_pShadowedLeaf)->m_ui16LastRenderedFrame != g_ui16RenderFrameCounter &&
+        component->m_bAlwaysVisible == 0) {
+        return next;
+    }
+    if (!(component->m_fShadowDistanceMax > distance)) return next;
+    CKSrvShadow::CKShadowDataWaiting* head = list;
+    if (head != nullptr) {
+        if (entry == head) {
+            list = next;
+        } else {
+            for (CKSrvShadow::CKShadowDataWaiting* previous = head; previous->m_pNext != nullptr; previous = previous->m_pNext) {
+                if (previous->m_pNext != entry) continue;
+                previous->m_pNext = entry->m_pNext;
+                break;
+            }
+        }
+    }
+    entry->m_pNext = service->m_lShadowWaitingUnused;
+    service->m_lShadowWaitingUnused = entry;
+    service->RegisterCaster(entry->m_pShadowCpnt, static_cast<IKSerializable*>(entry->m_pShadowedLeaf), entry->m_pShadowGround,
+                            1, nullptr, 0);  // 0x1fb6f8
+    return next;
+}
+
+// UpdateCKSrvShadow's queueing of the drawn spots past the limit (from `spot` on): each gets a waiting slot (while there are
+// free ones) with its caster, at the head of `waitingList`; the spots stay in their drawing list.
+void QueueOverflow(CKSrvShadow* service, CKSrvShadow::CKShadowDataSpot* spot, CKSrvShadow::CKShadowDataWaiting*& waitingList) {
+    for (; spot != nullptr; spot = spot->m_pNext) {
+        CKSrvShadow::CKShadowDataWaiting* waiting = service->m_lShadowWaitingUnused;
+        if (waiting == nullptr) continue;
+        CKSrvShadow::CKShadowDataWaiting* following = waiting->m_pNext;
+        if (following != nullptr) {
+            waiting->m_pNext = nullptr;
+            service->m_lShadowWaitingUnused = following;
+        } else {
+            service->m_lShadowWaitingUnused = nullptr;
+        }
+        waiting->m_pShadowCpnt = spot->m_pShadowCpnt;
+        waiting->m_pShadowedLeaf = spot->m_pShadowedLeaf;
+        waiting->m_pShadowGround = spot->m_pShadowGround;
+        waiting->m_pNext = waitingList;
+        waitingList = waiting;
+    }
+}
+
+// The PTank array slots of the next drawn spot.
+struct SpotSlots {
+    uint8_t* matrices;  // 0x40 bytes per spot (an RwMatrix)
+    uint8_t* uvs;       // 0x10 (four floats)
+    uint8_t* colors;    // 4 (RwRGBA)
+};
+
+// UpdateCKSrvShadow's update of one drawing list: every spot updated (vt+0x10) until `drawn` reaches the service's spot count;
+// a spot drawn (0) takes the next slots, one that stops drawing (1) is demoted if it was drawn, one that asks (2) is
+// unregistered. The spots past the limit are queued as waiting again (`waitingList`).
+void UpdateDrawingList(CKSrvShadow* service, CKSrvShadow::CKShadowDataSpot* spot, CKSrvShadow::CKShadowDataWaiting*& waitingList,
+                       IKTime* clock, SpotSlots* slots, uint32_t* drawn) {
+    if (spot == nullptr) return;
+    if (!(service->m_ui32NbShadowSpot > *drawn)) {
+        QueueOverflow(service, spot, waitingList);
+        return;
+    }
+    for (;;) {
+        const int32_t result = spot->m_pShadow->Update(clock, reinterpret_cast<CMatrix34*>(slots->matrices),
+                                                       reinterpret_cast<float*>(slots->uvs), slots->colors);  // vt+0x10
+        CKSrvShadow::CKShadowDataSpot* next = spot->m_pNext;
+        if (result == 1) {
+            CKShadowSpot* shadow = spot->m_pShadow;
+            if (shadow->m_bDrawn != 0) {
+                shadow->m_bDrawn = 0;
+                service->DemoteCasterToPending(spot->m_pShadow->m_pLeaf, spot->m_pShadowCpnt);  // 0x1fbb38
+            }
+        } else if (result == 2) {
+            service->UnregisterCaster(static_cast<CKShadowGround*>(spot->m_pShadow->m_pGround), spot->m_pShadowCpnt);  // 0x1fd6f0
+        } else if (result == 0) {
+            slots->matrices += 0x40;
+            slots->uvs += 0x10;
+            slots->colors += 4;
+            *drawn = *drawn + 1;
+            spot->m_pShadow->m_bDrawn = 1;
+        }
+        if (next == nullptr) return;
+        spot = next;
+        if (!(service->m_ui32NbShadowSpot > *drawn)) {
+            QueueOverflow(service, spot, waitingList);
+            return;
+        }
+    }
+}
+}  // namespace
+
+// 0x001fdd68 UpdateCKSrvShadow
+void CKSrvShadow::Update(IKTime* clock) {
+    if (clock->m_eCurrentState != 0) return;
+    const CVector3& focus = FocusPoint();
+    CParticleGeometry* geometry = static_cast<CParticleGeometry*>(m_pShadowParticuleGeometry);
+    RpPTankLockStruct lock;
+    SpotSlots slots;
+    slots.matrices = RpPTankAtomicLock(geometry->m_pRpAtomic, &lock, 8, 0x40000000) != 0 ? lock.data : nullptr;  // rpPTANKDFLAGMATRIX
+    slots.uvs = RpPTankAtomicLock(geometry->m_pRpAtomic, &lock, 0x80, 0x40000000) != 0 ? lock.data : nullptr;  // VTX2TEXCOORDS
+    slots.colors = RpPTankAtomicLock(geometry->m_pRpAtomic, &lock, 2, 0x40000000) != 0 ? lock.data : nullptr;  // COLOR
+
+    // A full set of spots: each high-priority waiting caster drawn this frame and near enough takes the spot of the
+    // low-priority drawn caster at the same place in its list.
+    if (m_lShadowWaitingHighPriority != nullptr && m_lDrawingShadowLowPriority != nullptr && m_lShadowUnused == nullptr) {
+        CKShadowDataWaiting* waiting = m_lShadowWaitingHighPriority;
+        CKShadowDataSpot* drawing = m_lDrawingShadowLowPriority;
+        for (;;) {
+            const float distance = FocusDistance(waiting->m_pShadowedLeaf, focus);
+            CKShadowDataSpot* next = drawing->m_pNext;
+            if (static_cast<const CSGLeaf*>(waiting->m_pShadowedLeaf)->m_ui16LastRenderedFrame == g_ui16RenderFrameCounter &&
+                static_cast<const CKShadowCpnt*>(waiting->m_pShadowCpnt)->m_fShadowDistanceMax > distance) {
+                DemoteCasterToPending(drawing->m_pShadow->m_pLeaf, drawing->m_pShadowCpnt);  // 0x1fbb38
+            }
+            drawing = next;
+            waiting = waiting->m_pNext;
+            if (waiting == nullptr || drawing == nullptr) break;
+        }
+    }
+
+    // The waiting casters that are near (high, then low priority) registered again; the count is read after each.
+    if (m_ui32NbShadowSpot != 0) {
+        bool lowPriority = true;
+        for (CKShadowDataWaiting* waiting = m_lShadowWaitingHighPriority; waiting != nullptr;) {
+            waiting = PromoteIfNear(this, m_lShadowWaitingHighPriority, waiting, focus);
+            if (m_ui32NbShadowSpot == 0) {
+                lowPriority = false;
+                break;
+            }
+        }
+        if (lowPriority) {
+            for (CKShadowDataWaiting* waiting = m_lShadowWaitingLowPriority; waiting != nullptr;) {
+                waiting = PromoteIfNear(this, m_lShadowWaitingLowPriority, waiting, focus);
+                if (m_ui32NbShadowSpot == 0) break;
+            }
+        }
+    }
+
+    uint32_t drawn = 0;
+    UpdateDrawingList(this, m_lDrawingShadowHighPriority, m_lShadowWaitingHighPriority, clock, &slots, &drawn);
+    UpdateDrawingList(this, m_lDrawingShadowLowPriority, m_lShadowWaitingLowPriority, clock, &slots, &drawn);
+
+    // RpPTankAtomicSetActiveParticlesCount (the changed-count flag 0x800000, the count), then the unlock (vt+0x8c).
+    geometry = static_cast<CParticleGeometry*>(m_pShadowParticuleGeometry);
+    geometry->m_pRpAtomic->ptank->flags40 |= 0x800000u;
+    geometry->m_pRpAtomic->ptank->numPrt = drawn;
+    static_cast<CParticleGeometry*>(m_pShadowParticuleGeometry)->UnlockPTank();
+    CSGLeaf* node = static_cast<CSGLeaf*>(m_pShadowSpotNode);
+    if (drawn == 0) {
+        node->m_sgProperties = (node->m_sgProperties & ~4u) | 4u;
+    } else {
+        node->m_sgProperties &= ~4u;
+    }
+}
+
 // 0x001fcc58 CKSrvShadow_Stop: every shadow being drawn (high, then low priority) and every waiting one
 // (high, then low) given back to its unused list.
 void CKSrvShadow::Stop() {
@@ -427,6 +656,92 @@ void CKSrvShadow::Stop() {
     ReleaseDrawing(m_lDrawingShadowLowPriority, m_lShadowUnused);
     ReleaseWaiting(m_lShadowWaitingHighPriority, m_lShadowWaitingUnused);
     ReleaseWaiting(m_lShadowWaitingLowPriority, m_lShadowWaitingUnused);
+}
+
+// 0x001fd068 CKSrvShadow_Destroy (the level unload): IKService's part (empty) first; every drawn spot of the two
+// priority lists hidden and given back, every spot's Destroy (a byte counter, as the original), the spot, data-spot and
+// waiting arrays deleted, the waiting lists given back and cleared, the shadow texture destroyed (the pointer is kept:
+// BUG(original), as the original), the texture coordinates deleted; with the sector textures (+0x15) every present
+// entry's node destroyed (vt+0x10) and the entry vector freed.
+void CKSrvShadow::Destroy() {
+    IKService::Destroy();
+    CKShadowDataSpot** const drawing[2] = {&m_lDrawingShadowHighPriority, &m_lDrawingShadowLowPriority};
+    for (CKShadowDataSpot** list : drawing) {
+        while (*list != nullptr) {
+            CKShadowDataSpot* node = *list;
+            node->m_pShadow->SetShadowHided(1);
+            *list = node->m_pNext;
+            node->m_pNext = m_lShadowUnused;
+            m_lShadowUnused = node;
+        }
+    }
+    if (m_ui32NbShadowSpot != 0) {
+        uint8_t i = 0;
+        do {
+            m_aShadowSpot[i].Destroy();
+            ++i;
+        } while (i < m_ui32NbShadowSpot);
+    }
+    m_ui32NbShadowSpot = 0;
+    if (m_aShadowSpot != nullptr) {
+        delete[] m_aShadowSpot;  // the destructors (vt+0x00) last to first, then OperatorDeleteArray
+        m_aShadowSpot = nullptr;
+    }
+    if (m_aShadowDataSpot != nullptr) {
+        delete[] m_aShadowDataSpot;
+        m_aShadowDataSpot = nullptr;
+    }
+    m_lShadowUnused = nullptr;
+    CKShadowDataWaiting** const waiting[2] = {&m_lShadowWaitingHighPriority, &m_lShadowWaitingLowPriority};
+    for (CKShadowDataWaiting** list : waiting) {
+        while (*list != nullptr) {
+            CKShadowDataWaiting* node = *list;
+            *list = node->m_pNext;
+            node->m_pNext = m_lShadowWaitingUnused;
+            m_lShadowWaitingUnused = node;
+        }
+    }
+    if (m_aShadowWaiting != nullptr) delete[] m_aShadowWaiting;
+    m_aShadowWaiting = nullptr;
+    m_lShadowWaitingHighPriority = nullptr;
+    m_lShadowWaitingLowPriority = nullptr;
+    m_lShadowWaitingUnused = nullptr;
+    if (m_pShadowTexture != nullptr) RwTextureDestroy(static_cast<RwTexture*>(m_pShadowTexture));
+    if (m_aTextureCoord != nullptr) {
+        delete[] m_aTextureCoord;
+        m_aTextureCoord = nullptr;
+    }
+    if (m_unk15 != 0) {
+        Entry* block = m_unk30.m_pBlock;
+        uint32_t count = m_unk30.m_ui32NbUsedElt;
+        if (count != 0) {
+            uint8_t i = 0;
+            do {
+                if (block[i].m_unk24 != 0 && block[i].m_unk28 != nullptr) {
+                    block[i].m_unk28->Destroy();  // vt+0x10
+                    count = m_unk30.m_ui32NbUsedElt;
+                    block = m_unk30.m_pBlock;
+                }
+                ++i;
+            } while (i < count);
+        }
+        m_unk30.m_ui32NbUsedElt = 0;
+        if (block != nullptr) {
+            Mem_FreeAligned16(block);
+            m_unk30.m_pBlock = nullptr;
+        }
+        m_unk30.m_ui32NbUsedElt = 0;
+        m_unk30.m_pBlock = nullptr;
+    }
+}
+
+// 0x001fe668 CKSrvShadow_Destructor (0x1fe6f8 _Destructor_2 the same, 0x1fd658 _DeletingDestructor then the delete):
+// the global cleared, the entry vector's block freed, its length and block cleared.
+CKSrvShadow::~CKSrvShadow() {
+    g_pSrvShadow = nullptr;
+    if (m_unk30.m_pBlock != nullptr) Mem_FreeAligned16(m_unk30.m_pBlock);
+    m_unk30.m_ui32NbUsedElt = 0;
+    m_unk30.m_pBlock = nullptr;
 }
 
 // 0x001faa60 CKSrvShadow_MarkCasterGeometryRecursive_maybe
@@ -547,6 +862,19 @@ void CKSrvShadow::RefreshEntryTexturesOfPresent() {
         Entry* entry = &m_unk30.m_pBlock[i];
         if (entry->m_unk24 == 0) continue;
         if (static_cast<CNode*>(entry->m_unk28)->m_lGeometryList != nullptr) entry->m_unk00 = GetMaterialTexture(EntryMaterial(*entry));
+    }
+}
+
+// 0x001fb660 CKSrvShadow_SectorLoaded (the bound is unsigned: sector <= count - 1).
+void CKSrvShadow::SectorLoaded(int32_t sector) {
+    if (m_unk15 == 0 || m_unk30.m_pBlock == nullptr) return;
+    if (static_cast<uint32_t>(sector) > m_unk30.m_ui32NbUsedElt - 1u) return;
+    Entry* entry = &m_unk30.m_pBlock[sector];
+    if (entry->m_unk24 == 0) return;
+    if (static_cast<CNode*>(entry->m_unk28)->m_lGeometryList == nullptr) {
+        entry->m_unk00 = nullptr;
+    } else {
+        entry->m_unk00 = GetMaterialTexture(EntryMaterial(*entry));
     }
 }
 

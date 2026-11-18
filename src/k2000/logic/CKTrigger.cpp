@@ -6,15 +6,15 @@
 //   [x] 0x2336a0  CKTrigger_Delete
 //   [ ] 0x2336f0  RegisterCKTriggerClass
 //   [ ] 0x233768  _GLOBAL__I_233768
-//   [ ] 0x233778  CKTrigger_RecursiveRegistration
+//   [x] 0x233778  CKTrigger_RecursiveRegistration  (the domain list's KStub_Return1_2361b0: registers nothing; the default slot)
 //   [x] 0x2337a8  CKTrigger_DeleteArray
 //   [x] 0x233850  CKTrigger_Create
 //   [x] 0x233888  CKTrigger_CreateArray
-//   [ ] 0x233920  CKTrigger_GetInfo
+//   [x] 0x233920  CKTrigger_GetInfo  (returns 1: the default slot)
 //   [x] 0x233928  CKTrigger_Load
 //   [ ] 0x233af0  CKTrigger_Save
-//   [ ] 0x233b20  CKTrigger_PostLoad
-//   [ ] 0x233b50  CKTrigger_Destroy
+//   [x] 0x233b20  CKTrigger_PostLoad  (empty / no effect: inherited)
+//   [x] 0x233b50  CKTrigger_Destroy  (empty: the default slot)
 //   [ ] 0x233b58  KStub_Return1_233b58  [dead]
 //   [x] 0x233b60  CKTrigger_LoadAction
 //

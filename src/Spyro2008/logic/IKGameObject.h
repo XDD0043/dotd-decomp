@@ -30,8 +30,10 @@ public:
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x42f38 IKGameObject_Load
     const uint32_t* GetGuid() override { return m_guidIdentifier; }  // vt+0x44 0x993d60
     void SetGuid(const uint32_t* guid) override;                     // vt+0x48 0x993dc8
-    // vt+0x4c 0x42f10 IKGameObject_GetName: ClassRegistry_GetObjectDebugName (0x113e8). Not ported: the
-    // IKSerializable default is used.
+    // vt+0x4c 0x42f10 IKGameObject_GetName: ClassRegistry_GetObjectDebugName (0x113e8), the same body as the
+    // IKSerializable default (0x990d58: the class manager's GetObjectDebugName), which is used.
+    // vt+0x24 0x42e38 RecursiveRegistration, vt+0x28 0x42e30 Save, vt+0x30 0x42e40 PostLoad: 1 (the subclasses call them
+    // as their base's); the IKSerializable defaults do the same.
 
     // vt+0x50 0x993d70 (Ghidra IsPersistent_maybe): bit 0 of the flags. Set, the level files carry no
     // copy of the game-structure block for this object (Load, K_LEVEL_PLATEFORMS).

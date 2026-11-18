@@ -6,7 +6,7 @@
 //
 // The effect keeps the post-rendering object's HDR on (CPostRenderingFx +0x14 bit 0x200) and points its HDR data
 // (+0x44) at the default data, or at the current data while a list of data is active, while it blends their
-// intensities and colours towards the data the spawn points (and the fury, messages: C2.7) give it.
+// intensities and colours towards the data the spawn points (and the fury, its own messages) give it.
 #pragma once
 #include <cstdint>
 
@@ -19,6 +19,9 @@ class IKTime;
 class CKHDRNodeFx : public IKNodeFx {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x3e)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9ac420
+        return key == 0xf8c || key == 0x148c || key == 0x154c || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKHDRNodeFx)
 
     // XXL2 CSmoothedCColorLinear (0x1c bytes): a colour moving towards its target at m_fCurrentSpeed (in units of 255
@@ -44,6 +47,8 @@ public:
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001bfab0 CKHDRNodeFx_Load
     int32_t PostLoad(int32_t type) override;            // vt+0x30 0x001bf088 CKHDRNodeFx_PostLoad
+    void Destroy() override {}                          // vt+0x10 0x001befa0 CKHDRNodeFx_Destroy (empty: the node kept)
+    void RecursiveRegistration(int32_t type) override;  // vt+0x24 0x001befa8
     void Vf64() override;                               // vt+0x64 0x001bf0b0 CKHDRNodeFx_Start
     void Vf68() override { Stop(); }                    // vt+0x68 0x001bf0c0 CKHDRNodeFx_Interrupt_maybe: vt+0x6c
     void Stop() override;                               // vt+0x6c 0x001bf528 CKHDRNodeFx_Stop
@@ -52,6 +57,13 @@ public:
     void SetDataAndOwner(IKFxData* data, const IKSerializable* owner) override;  // vt+0x8c 0x001bfc00
 
     void Update(IKTime* frameClock) override;           // vt+0x78 0x001bf700 CKHDRNodeFx_Update
+    // 0x001bf650 CKHDRNodeFx_StopWithFadeTime_maybe: the default intensity speed = `fade`; a data list let go (the
+    // current data copied into the default data first when `fade` is above 0); the owner and the default data cleared.
+    void StopWithFadeTime(float fade);
+    // 0x001c0200 CKHDRNodeFx_StartBlendToSetting_maybe: the list entry of (`data`, `owner`) removed; the last entry blends
+    // the default data from the current data towards `data` (the owner taken), another one (when the current data is
+    // not moving) the current data towards `data`.
+    void StartBlendToSetting(IKSerializable* data, const IKSerializable* owner);
 
     // 0x001bf188 CKHDRNodeFx_StepColorTowardTarget_maybe: `target`'s intensity moved towards `source`'s (or 0) by
     // intensitySpeed * dt and its colour to the smoothed colour, which moves towards `source`'s colour (or white) by

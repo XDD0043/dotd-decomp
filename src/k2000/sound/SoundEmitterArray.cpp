@@ -5,13 +5,13 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [ ] 0x115b70  SoundEmitterArray_Construct_2_maybe  [dead]
-//   [ ] 0x115b98  SoundEmitterArray_LevelReset_maybe
-//   [ ] 0x115c38  StaticInitAndDestruction_115c38
+//   [x] 0x115b98  SoundEmitterArray_LevelReset_maybe  (CKSoundStreamManager::RecursiveRegistration)
+//   [x] 0x115c38  StaticInitAndDestruction_115c38  (s_streamTypeHashes)
 //   [ ] 0x115cb8  _GLOBAL__I_115cb8
-//   [ ] 0x115cc8  PtrList_FindByNameHash_maybe
+//   [x] 0x115cc8  PtrList_FindByNameHash_maybe
 //   [x] 0x115d60  CKSoundStreamManager_FindOrCreateType_maybe
 //   [x] 0x115f38  SoundEmitterArray_TestAllGroups_maybe
-//   [ ] 0x1160c8  SoundEmitterArray_FreeArrays_maybe
+//   [x] 0x1160c8  SoundEmitterArray_FreeArrays_maybe
 //   [ ] 0x116158  SoundEmitterArray_Destruct_2_maybe  [dead]
 //   [x] 0x1161d8  SoundEmitterArray_Init_maybe
 //   [x] 0x116250  SoundEmitterArray_SnapVolumes_maybe
@@ -19,14 +19,14 @@
 //   [x] 0x116308  SoundEmitterArray_Unsuspend_maybe
 //   [x] 0x116388  SoundEmitterArray_ResumeAll_maybe
 //   [x] 0x1163f8  SoundEmitterArray_PauseAll_maybe
-//   [ ] 0x116468  SoundList_ResetEntries_maybe
+//   [x] 0x116468  SoundList_ResetEntries_maybe
 //   [x] 0x1164d8  SoundStreams_CallNopHookOnEntries_maybe
 //   [x] 0x116548  SoundStreams_UpdateAll_maybe
-//   [ ] 0x1165e0  SoundEmitterArray_DeleteAll_maybe
+//   [x] 0x1165e0  SoundEmitterArray_DeleteAll_maybe  (CKSoundStreamManager::DeleteAll)
 //   [x] 0x116690  SoundEmitterArray_Suspend_maybe
 //   [ ] 0x116728  SoundEmitterArray_CountStreamsInState3_maybe  [dead]
 //   [x] 0x1167a8  SoundEmitterArray_Construct_maybe
-//   [ ] 0x1167d0  SoundEmitterArray_Destruct_maybe
+//   [x] 0x1167d0  SoundEmitterArray_Destruct_maybe
 //   [x] 0x116850  CKSoundStreamManager_Load_maybe
 //   [ ] 0x116ad0  CKSoundStreamManager_Save_maybe  [dead]
 //   [x] 0x116cb8  SoundEmitterArray_GetMusicVolume_maybe
@@ -35,13 +35,13 @@
 //   [x] 0x116ef0  SoundEmitterArray_GetSpeechVolume_maybe
 //   [x] 0x116f98  SoundEmitterArray_GetSpeechCurrentVolume_maybe
 //   [x] 0x117040  SoundEmitterArray_SetMusicVolume_maybe
-//   [ ] 0x117100  SoundEmitterArray_UpdateStreamsAndCheckAll_maybe
+//   [ ] 0x117100  SoundEmitterArray_UpdateStreamsAndCheckAll_maybe  [dead: no pointer to its descriptor; its only call is from the dead 0x113f00 FUN_00113f00]
 //   [ ] 0x1172f0  KStub_Return128_1172f0  [dead]
-//   [ ] 0x1172f8  KStub_Nop_1172f8
+//   [x] 0x1172f8  KStub_Nop_1172f8  (empty: CKSoundManager::Start's call (its note))
 //   [x] 0x117300  SoundVoicePool_FindFree_maybe
-//   [ ] 0x117368  SoundVoiceManager_LevelReset_maybe
-//   [ ] 0x1173c0  KStub_Nop_1173c0
-//   [ ] 0x1173c8  SoundList_Remove
+//   [x] 0x117368  SoundVoiceManager_LevelReset_maybe  (SoundVoiceManager::RecursiveRegistration)
+//   [x] 0x1173c0  KStub_Nop_1173c0  (CKSoundManager::SectorUnload's empty call)
+//   [x] 0x1173c8  SoundList_Remove
 #include "k2000/sound/CKSoundStreamManager.h"
 
 #include <cstring>
@@ -49,6 +49,7 @@
 #include "k2000/core/IKSerializable.h"
 #include "k2000/io/IKFile.h"
 #include "k2000/memory/Mem.h"
+#include "k2000/dictionaries/CKSoundDictionaryID.h"
 #include "k2000/misc/CKGameLoop.h"
 #include "k2000/misc/Engine.h"
 #include "k2000/sound/SoundStreamType.h"
@@ -83,9 +84,59 @@ const char kSpeech[] = "Speech";  // 0x00ac6a68 (0x00c4b158)
 // silent. The platform sends no such event.
 uint8_t g_systemMusicPlaying = 0;
 
+// 0x00115c38 StaticInitAndDestruction_115c38 (P21): the two type names' hashes (Str_HashXor4) in the static pair of TOC
+// -0x44bc. Only this initialiser loads that slot; the volume functions hash the names again.
+[[maybe_unused]] const uint32_t s_streamTypeHashes[2] = {Str_HashXor4(kMusics), Str_HashXor4(kSpeech)};
+
 }  // namespace
 
+// 0x00115b98 SoundEmitterArray_LevelReset_maybe
+void CKSoundStreamManager::RecursiveRegistration(int32_t type) {
+    for (uint32_t i = 0; i < m_vpStreamWaves.m_ui32NbUsedElt; ++i) m_vpStreamWaves.m_pBlock[i]->RecursiveRegistration(type);
+}
+
+// 0x001165e0 SoundEmitterArray_DeleteAll_maybe
+void CKSoundStreamManager::DeleteAll() {
+    for (uint32_t i = 0; i < m_vpStreamTypes.m_ui32NbUsedElt; ++i) {
+        SoundStreamType* streamType = m_vpStreamTypes.m_pBlock[i];
+        if (streamType != nullptr) delete streamType;  // vt+0x04 (the block's slot is left)
+    }
+    m_vpStreamTypes.m_ui32NbUsedElt = 0;
+    m_vpStreamWaves.m_ui32NbUsedElt = 0;
+}
+
+// 0x00117368 SoundVoiceManager_LevelReset_maybe (P21): type 0: the coded dictionary's RecursiveRegistration(0).
+void SoundVoiceManager::RecursiveRegistration(int32_t type) {
+    if (type == 0) m_pSoundCodedDictionaryID->RecursiveRegistration(0);
+}
+
 // 0x001167a8 SoundEmitterArray_Construct_maybe. The stores in the original's order.
+// 0x001160c8 SoundEmitterArray_FreeArrays_maybe
+void CKSoundStreamManager::FreeArrays() {
+    if (m_vpStreamTypes.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_vpStreamTypes.m_pBlock);
+        m_vpStreamTypes.m_pBlock = nullptr;
+    }
+    m_vpStreamTypes.m_pBlock = nullptr;
+    m_vpStreamTypes.m_ui32NbUsedElt = 0;
+    if (m_vpStreamWaves.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_vpStreamWaves.m_pBlock);
+        m_vpStreamWaves.m_pBlock = nullptr;
+    }
+    m_vpStreamWaves.m_ui32NbUsedElt = 0;
+    m_vpStreamWaves.m_pBlock = nullptr;
+}
+
+// 0x001167d0 SoundEmitterArray_Destruct_maybe: the same, the wave references first.
+CKSoundStreamManager::~CKSoundStreamManager() {
+    if (m_vpStreamWaves.m_pBlock != nullptr) Mem_FreeAligned16(m_vpStreamWaves.m_pBlock);
+    m_vpStreamWaves.m_ui32NbUsedElt = 0;
+    m_vpStreamWaves.m_pBlock = nullptr;
+    if (m_vpStreamTypes.m_pBlock != nullptr) Mem_FreeAligned16(m_vpStreamTypes.m_pBlock);
+    m_vpStreamTypes.m_ui32NbUsedElt = 0;
+    m_vpStreamTypes.m_pBlock = nullptr;
+}
+
 CKSoundStreamManager::CKSoundStreamManager() {
     m_vpStreamTypes.m_pBlock = nullptr;
     m_vpStreamTypes.m_ui32NbUsedElt = 0;
@@ -166,7 +217,7 @@ void CKSoundStreamManager::SnapVolumes() {
     for (uint32_t i = 0; i < m_vpStreamTypes.m_ui32NbUsedElt; ++i) m_vpStreamTypes.m_pBlock[i]->SnapVolumeToTarget();
 }
 
-// 0x001162c0 SoundEmitterArray_SumVoiceCounts_maybe: the stream players of all types (+0x110 each).
+// 0x001162c0 SoundEmitterArray_SumVoiceCounts_maybe: the stream players of all types (+0x110 each; one RWA voice each).
 uint32_t CKSoundStreamManager::SumVoiceCounts() {
     uint32_t sum = 0;
     for (uint32_t i = 0; i < m_vpStreamTypes.m_ui32NbUsedElt; ++i) sum += m_vpStreamTypes.m_pBlock[i]->m_vpStreams.m_ui32NbUsedElt;
@@ -183,6 +234,9 @@ void CKSoundStreamManager::PauseAll() {
     for (uint32_t i = 0; i < m_vpStreamTypes.m_ui32NbUsedElt; ++i) m_vpStreamTypes.m_pBlock[i]->PauseInstances();
 }
 
+// 0x00116468 SoundList_ResetEntries_maybe (CKSoundManager_Restart): KStub_Nop_11d638 on every type.
+void CKSoundStreamManager::ResetEntries() {}
+
 // 0x001164d8 SoundStreams_CallNopHookOnEntries_maybe: KStub_Nop_11d630 on every type.
 void CKSoundStreamManager::CallNopHookOnEntries() {}
 
@@ -192,6 +246,7 @@ void CKSoundStreamManager::UpdateAll(IKTime* clock) {
     for (uint32_t i = 0; i < m_vpStreamTypes.m_ui32NbUsedElt; ++i) m_vpStreamTypes.m_pBlock[i]->Update(clock);
 }
 
+// 0x00115cc8 PtrList_FindByNameHash_maybe: the first type whose name hash (+0x104) is the name's; null when none.
 SoundStreamType* CKSoundStreamManager::FindTypeByName(const char* name) {
     const uint32_t hash = Str_HashXor4(name);
     for (uint32_t i = 0; i < m_vpStreamTypes.m_ui32NbUsedElt; ++i) {
@@ -240,12 +295,23 @@ SoundVoice* SoundVoiceManager::FindFreeVoice() {
 }
 
 // 0x00115f38 SoundEmitterArray_TestAllGroups_maybe: every type's stream players pass the test (with no
-// type, 1). The per-type tests (0x11d980 / 0x11de70 / 0x11dad0) loop over the players and are 1 without
-// any; STUB(C2): no player exists yet (SoundStreamType::SetStreamCount).
+// type, 1): 0 no player has an object (0x11d980), 1 every busy player has reached its state (0x11de70),
+// 2 every player has no media (0x11dad0); other values: a count-down loop without effect, 1.
 uint8_t CKSoundStreamManager::TestAllGroups(int32_t test) {
-    for (uint32_t i = 0; i < m_vpStreamTypes.m_ui32NbUsedElt; ++i) {
-        if (test < 0 || test > 2) break;  // other values: a count-down loop without effect
-        if (m_vpStreamTypes.m_pBlock[i]->m_vpStreams.m_ui32NbUsedElt != 0) return 0;
+    const uint32_t count = m_vpStreamTypes.m_ui32NbUsedElt;
+    if (count == 0) return 1;
+    if (test == 0) {
+        for (uint32_t i = 0; i < m_vpStreamTypes.m_ui32NbUsedElt; ++i) {
+            if (m_vpStreamTypes.m_pBlock[i]->AreAllVoicesInactive() == 0) return 0;
+        }
+    } else if (test == 1) {
+        for (uint32_t i = 0; i < m_vpStreamTypes.m_ui32NbUsedElt; ++i) {
+            if (m_vpStreamTypes.m_pBlock[i]->AreAllVoicesSettled() == 0) return 0;
+        }
+    } else if (test == 2) {
+        for (uint32_t i = 0; i < m_vpStreamTypes.m_ui32NbUsedElt; ++i) {
+            if (m_vpStreamTypes.m_pBlock[i]->AreAllVoicesState9() == 0) return 0;
+        }
     }
     return 1;
 }
@@ -258,4 +324,17 @@ void CKSoundStreamManager::Unsuspend() { m_unk18 = 0; }
 void CKSoundStreamManager::Suspend() {
     g_pEngine->m_soundManager->m_pVoiceManager->StopFlaggedSounds();
     m_unk18 = 1;
+}
+
+// 0x001173c8 SoundList_Remove: the first entry equal to `sound` takes the last entry's value (unless it is the last).
+void SoundVoiceManager::RemoveSound(CKSound* sound) {
+    const uint32_t count = m_vpSounds.m_ui32NbUsedElt;
+    if (count == 0) return;
+    uint32_t index = 0;
+    while (m_vpSounds.m_pBlock[index] != sound) {
+        if (++index == count) return;
+    }
+    m_vpSounds.m_ui32NbUsedElt = count - 1;
+    if (count - 1 == index) return;
+    m_vpSounds.m_pBlock[index] = m_vpSounds.m_pBlock[count - 1];
 }

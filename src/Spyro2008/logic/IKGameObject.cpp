@@ -8,25 +8,25 @@
 //   [x] 0x42db0  IKGameObject_InitGameData
 //   [x] 0x42dc0  IKGameObject_ConstructBase
 //   [ ] 0x42df8  IKGameObject_ConstructBase_2  [dead]
-//   [ ] 0x42e30  KStub_Return1_42e30
-//   [ ] 0x42e38  IKGameObject_vf24
-//   [ ] 0x42e40  IKGameObject_PostLoad
+//   [x] 0x42e30  KStub_Return1_42e30  (vt+0x28 Save: 1, IKSerializable's default the same)
+//   [x] 0x42e38  IKGameObject_vf24  (vt+0x24 RecursiveRegistration: IKSerializable's default the same)
+//   [x] 0x42e40  IKGameObject_PostLoad  (vt+0x30 PostLoad: 1, IKSerializable's default the same)
 //   [x] 0x42e48  IKGameObject_Destroy
 //   [x] 0x42ed0  IKGameObject_DestroyGame
-//   [ ] 0x42f10  IKGameObject_GetName
+//   [x] 0x42f10  IKGameObject_GetName  (IKSerializable::GetName, the same body)
 //   [x] 0x42f38  IKGameObject_Load
-//   [ ] 0x43160  CKS08GameLevelCollectible_IsCurrentLevel
-//   [ ] 0x431c8  KBase1D0C_vf68
-//   [ ] 0x431d0  CKS08GameLevelCollectible_vf70
-//   [ ] 0x431d8  KBase1D0C_vf64
-//   [ ] 0x43200  KBase1D0C_ClearLevelData
+//   [x] 0x43160  CKS08GameLevelCollectible_IsCurrentLevel
+//   [x] 0x431c8  KBase1D0C_vf68
+//   [x] 0x431d0  CKS08GameLevelCollectible_vf70
+//   [x] 0x431d8  KBase1D0C_vf64
+//   [x] 0x43200  KBase1D0C_ClearLevelData
 //   [x] 0x43228  KBase1D0C_InitLevelData
 //   [x] 0x43250  KBase1D0C_InitGameData
-//   [ ] 0x43278  KBase1D0C_PostLoad
+//   [x] 0x43278  KBase1D0C_PostLoad
 //   [x] 0x432a0  CKS08GameLevelCollectible_LoadBase_maybe
-//   [ ] 0x43380  KBase1D0C_vf28
-//   [ ] 0x433a8  KBase1D0C_vf24
-//   [ ] 0x433d0  KBase1D0C_ClearReferences
+//   [x] 0x43380  KBase1D0C_vf28
+//   [x] 0x433a8  KBase1D0C_vf24
+//   [x] 0x433d0  KBase1D0C_ClearReferences
 //
 //   [x] 0x993d60  IKGameObject_GetGuid  [inline]
 //   [x] 0x993d70  IKGameObject_IsPersistent_maybe  [inline]
@@ -112,6 +112,12 @@ int32_t IKGameObject::Load(IKFile* file, int32_t type) {
 
 #include "Spyro2008/logic/CKS08GameLevel.h"
 #include "k2000/io/IKFile.h"
+
+// 0x00043160 CKS08GameLevelCollectible_IsCurrentLevel (KBase1D0C's vt+0x54)
+uint8_t KBase1D0C::GetMatchesThisLevel() {
+    if (m_pLevel == nullptr) return 0;
+    return m_pLevel->GetMatchesThisLevel() != 0 ? 1 : 0;  // vt+0x54
+}
 
 // 0x000432a0 (Ghidra CKS08GameLevelCollectible_LoadBase_maybe): KBase1D0C's Load.
 int32_t KBase1D0C::Load(IKFile* file, int32_t type) {

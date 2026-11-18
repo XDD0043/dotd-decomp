@@ -12,6 +12,7 @@
 class CKBeaconKluster : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x49)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x124c || key == 0xc; }  // vt+0x08 0x993e28
     DOTD_DECLARE_FACTORIES(CKBeaconKluster)
 
     CKBeaconKluster() { m_pNext = nullptr; }  // inlined in 0x0002ea78 CKBeaconKluster_Create

@@ -8,8 +8,8 @@
 //   [ ] 0x553cc0  FUN_00553cc0  [dead]
 //   [ ] 0x553d70  CKS08MenuGame_IsOnlyComboButtonPressed_maybe  [dead]
 //   [ ] 0x553ee0  CKS08MenuGame_SetAllUnlockFlags_maybe  [dead]
-//   [ ] 0x554148  CKS08MenuGame_RecursiveRegistration
-//   [ ] 0x5541b8  CKS08MenuGame_Destroy
+//   [x] 0x554148  CKS08MenuGame_RecursiveRegistration
+//   [x] 0x5541b8  CKS08MenuGame_Destroy  (inherited: CKMenuBase114c::Destroy)
 //   [x] 0x5541e0  CKS08MenuGame_DeleteArray
 //   [ ] 0x554280  RegisterCKS08MenuGameClass
 //   [ ] 0x554308  _GLOBAL__D_554308
@@ -23,9 +23,9 @@
 //   [ ] 0x554ab0  CKS08MenuGame_Save
 //   [x] 0x554b90  CKS08MenuGame_vfEC
 //   [ ] 0x554de8  CKS08MenuGame_UpdateSecretCodeInput_maybe  [dead]
-//   [ ] 0x555120  CKS08MenuGame_DeletingDestructor
-//   [ ] 0x555258  CKS08MenuGame_Destructor
-//   [ ] 0x555390  CKS08MenuGame_Destructor_2
+//   [x] 0x555120  CKS08MenuGame_DeletingDestructor  (implicit destructor: CKMenuBase114c's inlined)
+//   [x] 0x555258  CKS08MenuGame_Destructor  (implicit destructor: CKMenuBase114c's inlined)
+//   [x] 0x555390  CKS08MenuGame_Destructor_2  (implicit destructor: CKMenuBase114c's inlined)
 //
 //   [x] 0x9c9a10  CKS08MenuGame_IsKindOfClass  [inline]
 //   [x] 0x9c9a50  CKS08MenuGame_GetClassType  [inline]
@@ -148,4 +148,10 @@ void CKS08MenuGame::VfEC(IKSerializable* button) {
     SetStateText(first->m_aStates[0], text);
     SetStateText(first->m_aStates[2], text);
     SetStateText(first->m_aStates[4], text);
+}
+
+// 0x00554148 CKS08MenuGame_RecursiveRegistration: the referenced objects' registration, then the base.
+void CKS08MenuGame::RecursiveRegistration(int32_t type) {
+    m_pText->RecursiveRegistration(type);
+    CKMenuBase114c::RecursiveRegistration(type);
 }

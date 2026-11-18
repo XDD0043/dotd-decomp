@@ -6,7 +6,7 @@
 //   [x] 0x1225b0  CKWave_Delete
 //   [ ] 0x122600  CKWave_Construct  [dead]
 //   [ ] 0x122618  CKWave_Construct_2  [dead]
-//   [ ] 0x122630  CKWave_RecursiveRegistration
+//   [x] 0x122630  CKWave_RecursiveRegistration
 //   [ ] 0x122690  RegisterCKWaveClass
 //   [ ] 0x122708  _GLOBAL__I_122708
 //   [x] 0x122718  CKWave_DeleteArray
@@ -17,15 +17,22 @@
 //
 //   [ ] 0x9a6df0  CKWave_GetClassType  [inline]
 //   [ ] 0x9a6df8  CKWave_GetClassID  [inline]
-//   [ ] 0x9a6e00  CKWave_Destructor  [inline]
+//   [x] 0x9a6e00  CKWave_Destructor  [inline]
 //   [ ] 0x9a6e18  CKWave_IsKindOfClass  [inline]
-//   [ ] 0x9a6e38  CKWave_DeletingDestructor  [inline]
+//   [x] 0x9a6e38  CKWave_DeletingDestructor  [inline]
 #include "k2000/logic/sound/CKWave.h"
 
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 
 // 0x001227b8 CKWave_Create (the constructor is inlined there; 0x122600 CKWave_Construct is dead)
 CKWave::CKWave() { m_pRwaWave = nullptr; }
+
+// 0x00122630 CKWave_RecursiveRegistration
+void CKWave::RecursiveRegistration(int32_t type) {
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+}
 
 // 0x00122970 CKWave_Load
 int32_t CKWave::Load(IKFile* file, int32_t type) {

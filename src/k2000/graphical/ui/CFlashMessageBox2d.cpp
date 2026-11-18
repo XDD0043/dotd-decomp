@@ -11,10 +11,10 @@
 //   [x] 0x52a2d8  CFlashMessageBox2d_vf78
 //   [x] 0x52a2e0  CFlashMessageBox2d_ShowMessageLoc_maybe
 //   [x] 0x52a3b8  CFlashMessageBox2d_ShowMessageModalLoc_maybe
-//   [ ] 0x52a490  CFlashMessageBox2d_SetBoxText_maybe  (only its OPD refers to it: not ported)
-//   [ ] 0x52a4c0  CFlashMessageBox2d_SetButtonLayout_maybe  (only its OPD refers to it: not ported)
+//   [x] 0x52a490  CFlashMessageBox2d_SetBoxText_maybe  (no caller: only its OPD)
+//   [x] 0x52a4c0  CFlashMessageBox2d_SetButtonLayout_maybe  (no caller: only its OPD)
 //   [x] 0x52a4e8  CFlashMessageBox2d_Close_maybe
-//   [ ] 0x52a600  CFlashMessageBox2d_Show_maybe  (XXL2 StartMessageBox; only its OPD refers to it: not ported)
+//   [x] 0x52a600  CFlashMessageBox2d_Show_maybe  (XXL2 StartMessageBox; no caller: only its OPD)
 //   [x] 0x52a688  CFlashMessageBox2d_DeleteArray
 //   [x] 0x52a730  CFlashMessageBox2d_CloseMessage_maybe
 //   [x] 0x52a778  CFlashMessageBox2d_ShowWidget_maybe
@@ -30,7 +30,7 @@
 //   [x] 0x52af20  CFlashMessageBox2d_Destroy
 //   [x] 0x52af80  CFlashMessageBox2d_CreateArray
 //   [x] 0x52b058  CFlashMessageBox2d_Create
-//   [ ] 0x52b0b8  CFlashMessageBox2d_SetLocText_maybe  (only its OPD refers to it: not ported)
+//   [x] 0x52b0b8  CFlashMessageBox2d_SetLocText_maybe  (no caller: only its OPD)
 //   [x] 0x52b148  CFlashMessageBox2d_StateWaitAnswer_maybe
 //   [x] 0x52b678  CFlashMessageBox2d_ShowMessageModal_maybe
 //   [x] 0x52ba30  CFlashMessageBox2d_SetText_maybe
@@ -114,9 +114,9 @@ void Draw2d_FullScreenColorQuad(const uint8_t* color) {
 int32_t KStub_Return1_1e418(CKGameLoop* /*loop*/) { return 1; }
 
 // vt+0x320 0x004f8b50 CKS08GameManager_vf320: the two CKSrvInput input blocks' vt+0x58 with the real dt,
-// then a per-player slot for players 0 and 1. STUB(C1.6 gm): the game manager family declares it.
-void CKS08GameManager_Vf320(IKSerializable* /*manager*/) {
-    DOTD_STUB_ONCE("CKS08GameManager_vf320 0x4f8b50 (gm family; from CKMenuMessageBox_UpdateTimer_maybe)");
+// then a per-player slot for players 0 and 1 (CKS08GameManager_3.cpp).
+void CKS08GameManager_Vf320(IKSerializable* manager) {
+    static_cast<CKS08GameManager*>(manager)->Vf320();
 }
 
 // ---- CKMenuMessageBox's code the box calls (logic/ui/CKMenuMessageBox.cpp, not ported there yet) ----
@@ -384,6 +384,33 @@ int32_t CFlashMessageBox2d::ShowMessageModalLoc(CKLocText* text, int32_t type, i
                                                 float unk, float timeout) {
     const uint16_t* wide = text != nullptr ? ::LocString_GetText(text) : kEmptyText;
     return ShowMessageModal(wide, type, button, interrupt, unk, timeout, 0);  // vt+0x54
+}
+
+// 0x0052a490 CFlashMessageBox2d_SetBoxText_maybe (no caller in the binary)
+void CFlashMessageBox2d::SetBoxText(const uint16_t* text, int32_t /*unused*/, uint32_t type) {
+    CKMenuMessageBox_SetText(m_pMenu, text, type);  // 0x52ce60
+}
+
+// 0x0052a4c0 CFlashMessageBox2d_SetButtonLayout_maybe (no caller in the binary)
+void CFlashMessageBox2d::SetButtonLayout(uint32_t type, int32_t button) {
+    CKMenuMessageBox_SetButtonLayout(m_pMenu, type, button);  // 0x52d858
+}
+
+// 0x0052a600 CFlashMessageBox2d_Show_maybe (XXL2 StartMessageBox; no caller in the binary)
+void CFlashMessageBox2d::StartMessageBox(uint8_t timer) {
+    g_pEngine->m_input->SetMappingEnabled(1, 1);  // 0x107618
+    g_pEngine->m_flashManager->m_bLockInputUpdate = 1;
+    if (m_pMenu != nullptr) CKMenuMessageBox_Show(m_pMenu, timer);  // 0x52ccb8
+}
+
+// 0x0052b0b8 CFlashMessageBox2d_SetLocText_maybe (no caller in the binary)
+void CFlashMessageBox2d::SetLocText(CKLocText* text, int32_t /*unused*/, uint32_t type) {
+    static const uint16_t kNoTrc[] = {'-', 'N', 'O', ' ', 'T', 'R', 'C', ' ', 'D', 'E', 'F', 'I', 'N', 'E', 'D', '-', 0};  // 0x00c2964c
+    if (text != nullptr) {
+        CKMenuMessageBox_SetText(m_pMenu, ::LocString_GetText(text), type);  // 0x35d28, 0x52ce60
+        return;
+    }
+    CKMenuMessageBox_SetText(m_pMenu, kNoTrc, type);
 }
 
 // 0x0052a4e8 CFlashMessageBox2d_Close_maybe (XXL2 StopMessageBox): with a CKS08GameManager (0x3b0c) its two

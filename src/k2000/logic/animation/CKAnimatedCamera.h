@@ -12,6 +12,7 @@ class IKFile;
 class CKAnimatedCamera : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x271)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x9c4c || key == 0xc; }  // vt+0x08 0x9cd240
     DOTD_DECLARE_FACTORIES(CKAnimatedCamera)
 
     // 0x005c00e8 CKAnimatedCamera_Create: the vtable only (as the dead CKAnimatedCamera_Construct 0x5bf928).

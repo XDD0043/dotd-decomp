@@ -5,17 +5,17 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1d8898  CKNodeFx3d_ConstructBase
-//   [ ] 0x1d88b0  CKNodeFx3d_ClearReferences
-//   [ ] 0x1d88c0  CKNodeFx3d_LevelReset
+//   [x] 0x1d88b0  CKNodeFx3d_ClearReferences
+//   [x] 0x1d88c0  CKNodeFx3d_LevelReset  (IKNodeFx::RecursiveRegistration, by P06)
 //   [x] 0x1d8918  CKNodeFx3d_ShowSceneNode
 //   [x] 0x1d8940  CKNodeFx3d_Load
 //   [ ] 0x1d8a20  CKNodeFx3d_Save
 //   [ ] 0x1d8b00  CKNodeFx3d_ConstructBase_2  [dead]
 //   [x] 0x1d8b18  CKNodeFx3d_HideSceneNode
 //   [x] 0x1d8b48  CKNodeFx3d_PostLoad
-//   [ ] 0x1d8b50  CKSrvFxParticlesAccessor_Delete
-//   [ ] 0x1d8ba0  CKSrvFxParticlesAccessor_vf50
-//   [ ] 0x1d8ba8  CKSrvFxParticlesAccessor_vf54
+//   [x] 0x1d8b50  CKSrvFxParticlesAccessor_Delete  (DOTD_DECLARE_FACTORIES, CKSrvFxParticlesAccessor.h)
+//   [x] 0x1d8ba0  CKSrvFxParticlesAccessor_vf50  (CKSrvFxParticlesAccessor.h)
+//   [x] 0x1d8ba8  CKSrvFxParticlesAccessor_vf54  (CKSrvFxParticlesAccessor.h)
 //   [ ] 0x1d8bb0  FUN_001d8bb0  [dead]
 //
 //   [ ] 0x9ab4a8  CKNodeFx3d_SetDataAndOwner  [inline]
@@ -29,7 +29,7 @@
 //   [ ] 0x9ada28  CKNodeFx3d_IsKindOf  [inline]
 //   [x] 0x9ada50  CKNodeFx3d_GetClassGroup  [inline]
 //   [x] 0x9ada58  CKNodeFx3d_GetClassId  [inline]
-//   [ ] 0x9ada60  CKNodeFx3d_Start  [inline]
+//   [x] 0x9ada60  CKNodeFx3d_Start  [inline]
 //   [ ] 0x9ada70  CKNodeFx3d_Update  [inline]
 //   [ ] 0x9ada78  CKNodeFx3d_Stop  [inline]
 //   [ ] 0x9ada90  CKNodeFx3d_DeletingDestruct  [inline]
@@ -38,6 +38,11 @@
 
 #include "k2000/io/IKFile.h"
 #include "k2000/scenegraph/CNode.h"
+
+// 0x001d88c0 CKNodeFx3d_RecursiveRegistration (C2.8 port-all P06: the node effects' registrations call it)
+void IKNodeFx::RecursiveRegistration(int32_t type) {
+    if (m_pNode != nullptr) m_pNode->RecursiveRegistration(type);  // vt+0x24
+}
 
 // 0x001d8898 CKNodeFx3d_ConstructBase
 IKNodeFx::IKNodeFx() { m_pNode = nullptr; }

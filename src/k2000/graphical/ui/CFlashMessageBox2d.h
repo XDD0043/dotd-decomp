@@ -124,7 +124,7 @@ public:
     void Destroy() override;                                                // vt+0x10 0x0052af20 CFlashMessageBox2d_Destroy
     int32_t MessageProc(uint16_t message, void* data) override;            // vt+0x1c 0x0052ace0 CFlashMessageBox2d_MessageProc
     void RecursiveRegistration(int32_t type) override;                      // vt+0x24 0x0052ae58 CFlashMessageBox2d_RecursiveRegistration
-    int32_t Save(IKFile* /*file*/) override { return 1; }                   // vt+0x28 0x0052ac48 CFlashMessageBox2d_Save
+    int32_t Save(IKFile* /*file*/, int32_t /*type*/) override { return 1; }                   // vt+0x28 0x0052ac48 CFlashMessageBox2d_Save
     int32_t Load(IKFile* file, int32_t type) override;                      // vt+0x2c 0x0052ac50 CFlashMessageBox2d_Load
     int32_t PostLoad(int32_t type) override;                                // vt+0x30 0x0052ad38 CFlashMessageBox2d_PostLoad
 
@@ -159,6 +159,17 @@ public:
 
     // 0x0052b148 CFlashMessageBox2d_StateWaitAnswer_maybe: the only state (installed by PostLoad).
     uint8_t StateWaitAnswer(int32_t phase, uint8_t other);
+
+    // ---- C2.8 port-rest R03: four helpers nothing in the binary calls (only their OPDs exist, no vtable slot) ----
+    // 0x0052a490 CFlashMessageBox2d_SetBoxText_maybe: the menu's text (the third argument, r6, is the type; r5 unused).
+    void SetBoxText(const uint16_t* text, int32_t unused, uint32_t type);
+    // 0x0052a4c0 CFlashMessageBox2d_SetButtonLayout_maybe: the menu's buttons.
+    void SetButtonLayout(uint32_t type, int32_t button);
+    // 0x0052a600 CFlashMessageBox2d_Show_maybe (XXL2 StartMessageBox): input configuration 1 on, the Flash input
+    // locked, the menu shown.
+    void StartMessageBox(uint8_t timer);
+    // 0x0052b0b8 CFlashMessageBox2d_SetLocText_maybe: the text's string (or "-NO TRC DEFINED-") as the menu's text.
+    void SetLocText(CKLocText* text, int32_t unused, uint32_t type);
 
     CKMenuMessageBox* m_pMenu;      // +0x04 a reference: the "Menu Message Box" screen (CKMenuMessageBox, 0x734c)
     int32_t m_i32SelectedButton;    // +0x08 XXL2 m_i32SelectedButton: the button the menu validated (MessageProc 0x2301), -1 none

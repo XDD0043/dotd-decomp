@@ -18,6 +18,16 @@ class CKSoundStreamManager {
 public:
     CKSoundStreamManager();                    // 0x001167a8 SoundEmitterArray_Construct_maybe
     void Init();                               // 0x001161d8 SoundEmitterArray_Init_maybe
+    ~CKSoundStreamManager();                   // 0x001167d0 SoundEmitterArray_Destruct_maybe
+    // 0x001160c8 SoundEmitterArray_FreeArrays_maybe (CKSoundManager_DestroyModule): both vectors' blocks freed, their
+    // lengths and blocks cleared. The stream types themselves are not deleted.
+    void FreeArrays();
+    // 0x00115b98 SoundEmitterArray_LevelReset_maybe (CKSoundManager's RecursiveRegistration, P21): every stream wave's
+    // RecursiveRegistration(type).
+    void RecursiveRegistration(int32_t type);
+    // 0x001165e0 SoundEmitterArray_DeleteAll_maybe (CKSoundManager_DestroyGame, P21): every stream type deleted (vt+0x04),
+    // both lengths 0 (the blocks kept).
+    void DeleteAll();
     int32_t Load(IKFile* file, int32_t type);  // 0x00116850 CKSoundStreamManager_Load_maybe
     // 0x00115d60 CKSoundStreamManager_FindOrCreateType_maybe
     SoundStreamType* FindOrCreateType(const char* name, uint32_t streamCount);
@@ -25,6 +35,7 @@ public:
     uint32_t SumVoiceCounts();                  // 0x001162c0 SoundEmitterArray_SumVoiceCounts_maybe
     void ResumeAll();                           // 0x00116388 SoundEmitterArray_ResumeAll_maybe
     void PauseAll();                            // 0x001163f8 SoundEmitterArray_PauseAll_maybe
+    void ResetEntries();                        // 0x00116468 SoundList_ResetEntries_maybe
     void CallNopHookOnEntries();                // 0x001164d8 SoundStreams_CallNopHookOnEntries_maybe
     void UpdateAll(IKTime* clock);              // 0x00116548 SoundStreams_UpdateAll_maybe
     // the "Musics" / "Speech" types' volumes (found by name hash; the PS3 reads a null type's fields

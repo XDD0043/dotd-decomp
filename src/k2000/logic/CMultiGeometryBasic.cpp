@@ -4,16 +4,16 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x245038  CMultiGeometryBasic_Delete
-//   [ ] 0x245088  CMultiGeometryBasic_RecursiveRegistration
+//   [x] 0x245088  CMultiGeometryBasic_RecursiveRegistration  (CMultiGeometryBasic.h)
 //   [ ] 0x2450e8  RegisterCMultiGeometryBasicClass
 //   [ ] 0x245160  _GLOBAL__I_245160
 //   [x] 0x245170  CMultiGeometryBasic_DeleteArray
 //   [x] 0x245210  CMultiGeometryBasic_Create
 //   [x] 0x245248  CMultiGeometryBasic_CreateArray
-//   [ ] 0x2452d8  CMultiGeometryBasic_Destroy
+//   [x] 0x2452d8  CMultiGeometryBasic_Destroy  (empty)
 //   [x] 0x2452e0  CMultiGeometryBasic_LoadShape
 //   [x] 0x2455c8  CMultiGeometryBasic_Load
-//   [ ] 0x245650  CMultiGeometryBasic_SaveShape_maybe
+//   [ ] 0x245650  CMultiGeometryBasic_SaveShape_maybe  [left: save-only: only CMultiGeometryBasic_Save calls it, and Save is left out]
 //   [ ] 0x245b30  CMultiGeometryBasic_Save
 //
 //   [ ] 0x9b9d18  CMultiGeometryBasic_GetClassType  [inline]
@@ -24,6 +24,8 @@
 #include "k2000/logic/CMultiGeometryBasic.h"
 
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 
 // 0x002452e0 CMultiGeometryBasic_LoadShape
 void CMultiGeometryBasic::LoadShape(IKFile* file) {
@@ -48,4 +50,9 @@ int32_t CMultiGeometryBasic::Load(IKFile* file, int32_t type) {
         LoadShape(file);
     }
     return 1;
+}
+
+// 0x00245088 CMultiGeometryBasic_RecursiveRegistration (also CMultiGeometry's 0x1aa6d0)
+void CMultiGeometryBasic::RecursiveRegistration(int32_t type) {
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
 }

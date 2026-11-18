@@ -16,6 +16,12 @@ public:
         return key == 0xa9cc || key == 0x114c || key == 0x730c || key == 0xc;
     }
     int32_t Load(IKFile* file, int32_t type) override;                                   // vt+0x2c 0x569960 CKS08MenuStatsLevel_Load
+    // vt+0x24 0x5693c0 CKS08MenuStatsLevel_RecursiveRegistration: the reference +0x128 first (no null test), then CKMenuBase114c's
+    // (0x513c38: KBase730C's, nothing).
+    void RecursiveRegistration(int32_t type) override {
+        m_pText->RecursiveRegistration(type);
+        CKMenuBase114c::RecursiveRegistration(type);
+    }
     uint32_t GetWidgetSlotCount() override { return 13; }                                // vt+0x68 0x9ca688
     WidgetSlot* GetWidgetSlots() override { return m_aWidgetSlots; }                     // vt+0x6c 0x9ca690
     const char* GetMenuName() override { return "Menu Stats Level"; }                    // vt+0xb8 0x9ca638
@@ -25,6 +31,14 @@ public:
     IKSerializable** VfC8() override { return m_apMessageIns; }                          // vt+0xc8 0x9ca650
     uint8_t* VfCC() override { return m_abMessageInFlags; }                              // vt+0xcc 0x9ca660
     int32_t GetMenuId() override { return 0x15; }                                        // vt+0xe0 0x9ca640
+    uint8_t GetSelection(uint8_t /*player*/) override { return 0xff; }                   // vt+0xe4 0x9ca6a0
+
+    // ---- C2.8 menus-load (CKS08MenuStatsLevel.cpp) ----
+    uint8_t OnMenuState(int32_t phase, uint8_t other) override;            // vt+0xdc 0x0056ab38
+    void OnItemState(uint8_t item, uint8_t state, uint8_t arg) override;   // vt+0xe8 0x005695a0 (Ghidra OnItemEvent)
+    void PollBackButton();                                                 // 0x00568fd8
+    void HandleInput();                                                    // 0x00569138
+    void RefreshStatTexts(uint8_t mainLevel);                              // 0x00569f90
 
     WidgetSlot m_aWidgetSlots[13];               // +0x94
     IKSerializable* m_apMessageIns[6];           // +0xfc

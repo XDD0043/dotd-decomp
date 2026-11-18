@@ -13,7 +13,7 @@
 //   [x] 0x75640  CKFlashMessageOut_DeleteArray
 //   [x] 0x756e8  CKFlashMessageOut_CreateArray
 //   [x] 0x75790  CKFlashMessageOut_Create
-//   [ ] 0x757d8  CKFlashMessageOut_RecursiveRegistration
+//   [x] 0x757d8  CKFlashMessageOut_RecursiveRegistration  (CKFlashMessageOut::RecursiveRegistration)
 //   [ ] 0x75860  CKFlashMessageOut_Save
 //   [x] 0x75888  CKFlashMessageOut_Load
 //   [x] 0x758b0  CKFlashMessageOut_PostLoad
@@ -24,7 +24,7 @@
 //   [x] 0x999388  CKFlashMessageOut_GetClassType  [inline]
 //   [x] 0x999390  CKFlashMessageOut_GetClassID  [inline]
 //   [x] 0x999398  CKFlashMessageOut_IsKindOfClass  [inline]
-//   [ ] 0x9993d0  CKFlashMessageOut_Destroy  [inline]
+//   [x] 0x9993d0  CKFlashMessageOut_Destroy  [inline]  (inherited: IKFlashObject_Destroy)
 #include "k2000/graphical/ui/CKFlashMessageOut.h"
 
 #include "k2000/graphical/ui/CKFlashUI.h"
@@ -39,4 +39,13 @@ int32_t CKFlashMessageOut::Load(IKFile* file, int32_t type) {
 // 0x00075610 CKFlashMessageOut_Send_maybe (XXL2 PostFlashMessage)
 void CKFlashMessageOut::PostFlashMessage() {
     static_cast<CKFlashUI*>(m_pFlashUI)->PostMessage(static_cast<int32_t>(m_ui32LabelId));
+}
+
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
+
+// 0x000757d8 CKFlashMessageOut_RecursiveRegistration
+void CKFlashMessageOut::RecursiveRegistration(int32_t type) {
+    IKFlashObject::RecursiveRegistration(type);
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);
 }

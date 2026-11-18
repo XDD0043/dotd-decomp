@@ -7,6 +7,10 @@
 #include <cstring>
 
 #include "Renderware/rpworld/RpLight.h"
+#include "Renderware/rpworld/RpWorld.h"
+#include "k2000/managers/CKGraphic.h"
+#include "k2000/misc/Engine.h"
+#include "k2000/render/CRenderer.h"
 #include "k2000/graphical/render/CLightManager.h"
 #include "k2000/graphical/render/CLightSet.h"
 #include "k2000/logic/render/CLightComponent.h"
@@ -35,6 +39,16 @@ CLightComponent* Component(uint8_t r, uint8_t g, uint8_t b, uint8_t a, float dx,
 }  // namespace
 
 int main() {
+    // The renderer's world the rig's lights go into (InitializeRendererStages creates it; RpWorldAddLight 0x6b2e68).
+    GameEngineContext engine;
+    CKGraphic graphic;
+    CRenderer renderer;
+    RwBBox box;
+    box.inf = RwV3d{-100000.0f, -100000.0f, -100000.0f};
+    box.sup = RwV3d{100000.0f, 100000.0f, 100000.0f};
+    renderer.m_pWorld = RpWorldCreate(&box);
+    graphic.m_renderer = &renderer;
+    engine.m_graphic = &graphic;
     CLightManager manager;
     manager.CreateWorldLights();
     Expect(manager.ComputeLightCount() == 0, "a fresh rig has no light");

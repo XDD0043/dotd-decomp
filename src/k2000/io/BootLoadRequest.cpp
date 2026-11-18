@@ -4,17 +4,17 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x34388  BootLoadRequest_Execute_maybe
+//   [ ] 0x34388  BootLoadRequest_Execute_maybe  [platform]  (BootStubs.cpp stand-in: the RWS pre-open, the save device and the Cg shader cache are the PS3 file / save / shader stack)
 //   [x] 0x343f0  BootLoadRequest_Reset_maybe
 //   [x] 0x34418  BootLoadRequest_CheckDone_maybe
 //   [x] 0x34478  BootLoadRequest_Post_maybe
-//   [ ] 0x344e8  BootLoadRequest_DeletingDestructor_maybe
-//   [ ] 0x34530  BootLoadRequest_Destructor_maybe
-//   [ ] 0x34560  BootLoadRequest_Destructor_2_maybe
+//   [x] 0x344e8  BootLoadRequest_DeletingDestructor_maybe  (the deleting form of the implicit destructor)
+//   [x] 0x34530  BootLoadRequest_Destructor_maybe
+//   [x] 0x34560  BootLoadRequest_Destructor_2_maybe  (the same as 0x34530 BootLoadRequest_Destructor_maybe)
 //   [x] 0x34590  BootLoadRequest_Construct_maybe
-//   [ ] 0x345d0  BootLoadRequest_Construct_2_maybe
-//   [ ] 0x34610  CKLoadRequestQueue_JoinThreads
-//   [ ] 0x34650  CKLoadRequestQueue_Abort
+//   [x] 0x345d0  BootLoadRequest_Construct_2_maybe  (the same as 0x34590 BootLoadRequest_Construct_maybe)
+//   [x] 0x34610  CKLoadRequestQueue_JoinThreads
+//   [x] 0x34650  CKLoadRequestQueue_Abort
 //   [ ] 0x34688  CKLoadRequestQueue_CancelRequest_maybe  [dead]
 //   [x] 0x346b0  CKLoadRequestQueue_Enqueue
 //   [ ] 0x346d8  FUN_000346d8  [dead]

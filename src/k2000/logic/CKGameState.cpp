@@ -11,33 +11,33 @@
 //   [ ] 0x3db60  RegisterCKGameStateClass
 //   [ ] 0x3dbd8  _GLOBAL__I_3dbd8
 //   [x] 0x3dbe8  CKGameState_InitLevelData_maybe
-//   [ ] 0x3dc10  CKGameState_PostLoad
-//   [ ] 0x3dc38  CKGameState_Destroy
+//   [x] 0x3dc10  CKGameState_PostLoad  (= the inherited slot)
+//   [x] 0x3dc38  CKGameState_Destroy  (inherited: IKGameObject_Destroy)
 //   [x] 0x3dc60  CKGameState_DeleteArray
 //   [x] 0x3dd08  CKGameState_Create
-//   [ ] 0x3de18  CKGameState_CountCompletedTrackedModules_maybe
-//   [ ] 0x3dea0  CKGameState_RecursiveRegistration
+//   [x] 0x3de18  CKGameState_CountCompletedTrackedModules_maybe
+//   [x] 0x3dea0  CKGameState_RecursiveRegistration
 //   [x] 0x3df80  CKGameState_ApplyStateToObjects_maybe
-//   [ ] 0x3e300  CKGameState_ResetStateFlags_maybe
+//   [x] 0x3e300  CKGameState_ResetStateFlags_maybe
 //   [x] 0x3e400  CKGameState_vf9C
 //   [x] 0x3e478  CKGameState_vf94
 //   [x] 0x3e4f0  CKGameState_vf8C
 //   [x] 0x3e598  CKGameState_ClearLevelData_maybe
 //   [x] 0x3e7f8  CKGameState_CaptureStateFromObjects_maybe
-//   [ ] 0x3eaf0  CKGameState_IsCurrentLevel
+//   [x] 0x3eaf0  CKGameState_IsCurrentLevel
 //   [x] 0x3eb68  CKGameState_CopyFrom_maybe
-//   [ ] 0x3ed78  CKGameState_MessageProc
-//   [ ] 0x3ed80  CKGameState_SaveStateByte_maybe
-//   [ ] 0x3edd0  CKGameState_Save
+//   [x] 0x3ed78  CKGameState_MessageProc
+//   [x] 0x3ed80  CKGameState_SaveStateByte_maybe
+//   [x] 0x3edd0  CKGameState_Save
 //   [x] 0x3eff8  CKGameState_vfBC
 //   [x] 0x3f048  CKGameState_vfB4
 //   [x] 0x3f098  CKGameState_ReadModuleValue_maybe
 //   [x] 0x3f140  CKGameState_LoadStateByte_maybe
-//   [ ] 0x3f190  CKGameState_vfB8
-//   [ ] 0x3f1e0  CKGameState_vfB0
-//   [ ] 0x3f230  CKGameState_vfA8
+//   [x] 0x3f190  CKGameState_vfB8
+//   [x] 0x3f1e0  CKGameState_vfB0
+//   [x] 0x3f230  CKGameState_vfA8
 //   [x] 0x3f2d8  CKGameState_InitGameData
-//   [ ] 0x3f458  CKGameState_ClearGameData_maybe
+//   [x] 0x3f458  CKGameState_ClearGameData_maybe
 //   [x] 0x3f618  CKGameState_vf98
 //   [x] 0x3f750  CKGameState_CreateArray
 //   [x] 0x3f8e0  CKGameState_AddModuleValue_maybe
@@ -49,31 +49,31 @@
 //   [x] 0x40594  CKGameState_Load_SplitTail_40594_maybe
 //   [x] 0x405dc  CKGameState_Load_SplitTail_405dc_maybe
 //   [ ] 0x40624  FUN_00040624  [dead]
-//   [ ] 0x40bd0  IKGameStructure_vf50
-//   [ ] 0x40bd8  IKGameStructure_vf54
+//   [x] 0x40bd0  IKGameStructure_vf50
+//   [x] 0x40bd8  IKGameStructure_vf54
 //   [ ] 0x40be0  KStub_Nop_40be0  [dead]
 //   [x] 0x40be8  CKDefaultGameStructure_GetCurrentLevel
-//   [ ] 0x40cc8  KStub_Nop_40cc8
+//   [x] 0x40cc8  KStub_Nop_40cc8  (empty: IKGameManager_Stop's call, nothing in CDefaultGameManager_2.cpp)
 //   [x] 0x40cd0  IKGameStructure_vf60
 //   [ ] 0x40d18  CKDefaultGameStructure_HasModuleById_Arr48_maybe  [dead]
-//   [ ] 0x40dd0  CKDefaultGameStructure_CountTrackedActiveModules_maybe
+//   [x] 0x40dd0  CKDefaultGameStructure_CountTrackedActiveModules_maybe
 //   [x] 0x40e68  CKDefaultGameStructure_RefreshModuleTriggerDomains_maybe
-//   [ ] 0x40f58  CKDefaultGameStructure_CountTrackedModules_maybe
+//   [x] 0x40f58  CKDefaultGameStructure_CountTrackedModules_maybe
 //   [ ] 0x40ff0  CKDefaultGameStructure_CountModules_Arr3c  [dead]
 //   [ ] 0x41098  CKDefaultGameStructure_CountModules_Arr54  [dead]
 //   [ ] 0x41140  CKDefaultGameStructure_CountModules_Arr48  [dead]
 //   [ ] 0x411e8  CKDefaultGameStructure_CountModules  [dead]
-//   [ ] 0x41290  IKGameStructure_vf68
+//   [x] 0x41290  IKGameStructure_vf68
 //   [x] 0x41310  IKGameStructure_MarkVideoSeenInAllLevels_maybe
 //   [x] 0x413a8  IKGameStructure_SetCurrentSpawnPoint_maybe
-//   [ ] 0x413c8  CKDefaultGameStructure_CountLevels
+//   [x] 0x413c8  CKDefaultGameStructure_CountLevels
 //   [x] 0x41448  CKDefaultGameStructure_vf58
 //   [x] 0x414e8  CKDefaultGameStructure_FindLevelById_maybe
 //   [ ] 0x41538  CKDefaultGameStructure_HasLevelById_maybe  [dead]
 //   [x] 0x41598  CKDefaultGameStructure_vf5C
 //
 //   [x] 0x9948c8  IKGameStructure_GetSerializationFlags  [inline]
-//   [ ] 0x9948d0  IKGameStructure_vf64  [inline]
+//   [x] 0x9948d0  IKGameStructure_vf64  [inline]
 //   [x] 0x9948d8  IKGameStructure_vf70  [inline]
 //   [ ] 0x9948e0  CKDefaultGameStructure_IsKindOfClass  [inline]
 //   [ ] 0x994908  CKDefaultGameStructure_GetClassType  [inline]
@@ -84,13 +84,14 @@
 //   [x] 0x9950b8  CKGameState_GetClassType  [inline]
 //   [x] 0x9950c0  CKGameState_GetClassID  [inline]
 //   [x] 0x9950c8  CKGameState_vf74  [inline]
-//   [ ] 0x9950d0  CKGameState_DeletingDestructor  [inline]
-//   [ ] 0x995290  CKGameState_Destructor  [inline]
+//   [x] 0x9950d0  CKGameState_DeletingDestructor  [inline]  (the destructor; delete)
+//   [x] 0x995290  CKGameState_Destructor  [inline]  (written out below (C2.8 port-all P12))
 //   [x] 0x995440  IKGameStructure_vf14  [inline]
 //   [x] 0x995448  IKGameStructure_vf18  [inline]
 //   [ ] 0x995450  IKGameStructure_vf8  [inline]
-//   [ ] 0x995470  IKGameStructure_Destructor  [inline]
-//   [ ] 0x995528  IKGameStructure_DeletingDestructor  [inline]
+//   [x] 0x995470  IKGameStructure_Destructor  [inline]  (written out below (C2.8 port-all P12))
+//   [x] 0x995528  IKGameStructure_DeletingDestructor  [inline]  (the destructor; delete)
+#include "k2000/memory/Mem.h"
 #include "k2000/logic/CKGameState.h"
 
 #include "k2000/io/IKFile.h"
@@ -290,6 +291,69 @@ void CKGameState::DestroyLevelData() {
     IKGameObject::DestroyLevelData();  // 0x42d90
 }
 
+// 0x0003ed80 CKGameState_SaveStateByte_maybe
+void CKGameState::WriteStageData(IKFile* file, int32_t, uint32_t index) { file->Write(m_vbCinematicStates.m_pBlock + index, 1); }
+
+// 0x0003f230 CKGameState_vfA8
+void CKGameState::WriteModuleData(IKFile* file, int32_t, uint32_t index) {
+    file->Write(m_vbModuleStates.m_pBlock + index, 1);
+    file->Write(m_vbUnk50.m_pBlock + index, 1);
+}
+
+// 0x0003f1e0 CKGameState_vfB0
+void CKGameState::WriteUnk5cData(IKFile* file, int32_t, uint32_t index) { file->Write(m_vbUnk68.m_pBlock + index, 1); }
+
+// 0x0003f190 CKGameState_vfB8
+void CKGameState::WriteUnk74Data(IKFile* file, int32_t, uint32_t index) { file->Write(m_vbUnk80.m_pBlock + index, 1); }
+
+// 0x0003eaf0 CKGameState_IsCurrentLevel
+uint8_t CKGameState::GetMatchesThisLevel() {
+    if (m_pGameSpawnPoint == nullptr) return 0;
+    CKGameLevel* stage = m_pGameSpawnPoint->m_pGameStage;
+    if (stage == nullptr) return 0;
+    return stage->GetMatchesThisLevel() != 0 ? 1 : 0;  // vt+0x54
+}
+
+namespace {
+// A list freed and emptied (the block freed when there is one, the length and the block cleared).
+template <class T>
+void FreeGameList(TVector<T, 8>* list) {
+    if (list->m_pBlock != nullptr) {
+        Mem_FreeAligned16(list->m_pBlock);
+        list->m_pBlock = nullptr;
+    }
+    list->m_ui32NbUsedElt = 0;
+    list->m_pBlock = nullptr;
+}
+}  // namespace
+
+// 0x0003f458 CKGameState_ClearGameData_maybe
+void CKGameState::DestroyGameData() {
+    FreeGameList(&m_vpStages);
+    FreeGameList(&m_vbCinematicStates);
+    FreeGameList(&m_vpModules);
+    FreeGameList(&m_vbModuleStates);
+    FreeGameList(&m_vbUnk50);
+    FreeGameList(&m_vpUnk5c);
+    FreeGameList(&m_vbUnk68);
+    FreeGameList(&m_vpUnk74);
+    FreeGameList(&m_vbUnk80);
+    IKGameObject::DestroyGameData();  // 0x42da0
+}
+
+// 0x0003e300 CKGameState_ResetStateFlags_maybe: each list from the last entry down; the module count gives both
+// module state lists.
+void CKGameState::Vf6C() {
+    m_pGameSpawnPoint = nullptr;
+    for (uint32_t i = m_vpModules.m_ui32NbUsedElt; i != 0; --i) {
+        m_vbModuleStates.m_pBlock[i - 1] = 0;
+        m_vbUnk50.m_pBlock[i - 1] = 0;
+    }
+    for (uint32_t i = m_vpUnk5c.m_ui32NbUsedElt; i != 0; --i) m_vbUnk68.m_pBlock[i - 1] = 0;
+    for (uint32_t i = m_vpUnk74.m_ui32NbUsedElt; i != 0; --i) m_vbUnk80.m_pBlock[i - 1] = 0;
+    for (uint32_t i = m_vpStages.m_ui32NbUsedElt; i != 0; --i) m_vbCinematicStates.m_pBlock[i - 1] = 0;
+}
+
 // 0x0003fd18 CKGameState_Load
 int32_t CKGameState::Load(IKFile* file, int32_t type) {
     IKGameObject::Load(file, type);
@@ -435,6 +499,30 @@ void IKGameStructure::RefreshModuleTriggerDomains() {
     }
 }
 
+// 0x00040dd0 CKDefaultGameStructure_CountTrackedActiveModules_maybe
+uint32_t IKGameStructure::CountTrackedActiveModules() {
+    uint32_t count = 0;
+    for (uint32_t i = m_vpStages.m_ui32NbUsedElt; i != 0; --i) count += m_vpStages.m_pBlock[i - 1]->CountTrackedActiveModules();
+    return count;
+}
+
+// 0x00040f58 CKDefaultGameStructure_CountTrackedModules_maybe
+uint32_t IKGameStructure::CountTrackedModules() {
+    uint32_t count = 0;
+    for (uint32_t i = m_vpStages.m_ui32NbUsedElt; i != 0; --i) count += m_vpStages.m_pBlock[i - 1]->CountTrackedModules();
+    return count;
+}
+
+// 0x00041290 IKGameStructure_vf68
+uint32_t IKGameStructure::CountGameStates(const uint8_t* filter) {
+    if (filter == nullptr) return m_vpStates.m_ui32NbUsedElt;
+    uint32_t count = 0;
+    for (uint32_t i = m_vpStates.m_ui32NbUsedElt; i != 0; --i) {
+        if ((m_vpStates.m_pBlock[i - 1]->m_baFlags & 1u) == *filter) ++count;
+    }
+    return count;
+}
+
 // 0x00041310 IKGameStructure_MarkVideoSeenInAllLevels_maybe
 void IKGameStructure::SetModuleFlag2InAllLevels(const void* video) {
     for (uint32_t i = m_vpStages.m_ui32NbUsedElt; i != 0; --i) {
@@ -452,4 +540,93 @@ void IKGameStructure::MarkSekensSeenInCurrentLevel(const void* sekens) {
         if (stage != nullptr) stage->MarkSekensSeen(sekens);
         return;
     }
+}
+
+// 0x0003edd0 CKGameState_Save (C2.8 save-menu). IKGameObject's Save (KStub_Return1_42e30) first.
+#include "k2000/logic/CKSavingManager.h"
+int32_t CKGameState::Save(IKFile* file, int32_t type) {
+    if (type != K_GAME_MEMCARD) return 1;
+    IKSerializable* spawnPoint = m_pGameSpawnPoint;
+    if (spawnPoint == nullptr || (m_pGameSpawnPoint->m_baFlags & 1u) == 0) spawnPoint = nullptr;
+    if (file->m_pSavingInterfaces != nullptr) {
+        file->m_pSavingInterfaces->WriteAsHandle(file, spawnPoint);  // vt+0x48
+    } else {
+        const uint32_t raw = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(spawnPoint));  // the pointer's word
+        const uint8_t b[4] = {static_cast<uint8_t>(raw >> 24), static_cast<uint8_t>(raw >> 16), static_cast<uint8_t>(raw >> 8),
+                              static_cast<uint8_t>(raw)};
+        file->Write(b, 4);
+    }
+    file->Write(m_vbModuleStates.m_pBlock, m_vbModuleStates.m_ui32NbUsedElt);
+    file->Write(m_vbUnk50.m_pBlock, m_vbUnk50.m_ui32NbUsedElt);
+    file->Write(m_vbUnk68.m_pBlock, m_vbUnk68.m_ui32NbUsedElt);
+    file->Write(m_vbUnk80.m_pBlock, m_vbUnk80.m_ui32NbUsedElt);
+    file->Write(m_vbCinematicStates.m_pBlock, m_vbCinematicStates.m_ui32NbUsedElt);
+    return 1;
+}
+
+#include "k2000/misc/Engine.h"
+
+// 0x0003dea0 CKGameState_RecursiveRegistration
+void CKGameState::RecursiveRegistration(int32_t type) {
+    if (type == K_GAME_MEMCARD && (m_baFlags & 4u) != 0) {
+        CKGameSpawnPoint* spawnPoint = m_pGameSpawnPoint;
+        if (spawnPoint != nullptr && (spawnPoint->m_baFlags & 1u) != 0) {
+            g_pEngine->m_pSavingManager->RegisterSerializableObject(spawnPoint, nullptr);  // vt+0x24
+            IKGameObject::RecursiveRegistration(K_GAME_MEMCARD);
+            return;
+        }
+    }
+    IKGameObject::RecursiveRegistration(type);
+}
+
+// 0x0003de18 CKGameState_CountCompletedTrackedModules_maybe
+int32_t CKGameState::CountCompletedTrackedModules() {
+    int32_t count = 0;
+    for (uint32_t i = m_vpModules.m_ui32NbUsedElt; i != 0; --i) {
+        CKGameModule* module = m_vpModules.m_pBlock[i - 1];
+        if ((module->m_baFlags & 1u) != 0 && module->m_unk1c != 0 && m_vbUnk50.m_pBlock[i - 1] != 0) ++count;
+    }
+    return count;
+}
+
+// 0x000413c8 CKDefaultGameStructure_CountLevels (IKGameStructure's; IKGameManager_vfD8 calls it, CDefaultGameManager.cpp
+// inlines the null-filter case): the stages' count; with a filter, the stages whose flag bit 0 equals *filter (counted
+// from the last).
+uint32_t IKGameStructure::CountLevels(const uint8_t* filter) {
+    if (filter == nullptr) return m_vpStages.m_ui32NbUsedElt;
+    uint32_t count = 0;
+    for (uint32_t i = m_vpStages.m_ui32NbUsedElt; i != 0; --i) {
+        if (((*filter ^ m_vpStages.m_pBlock[i - 1]->m_baFlags) & 1u) == 0) ++count;
+    }
+    return count;
+}
+
+// 0x00995290 CKGameState_Destructor [inline] (written out in CKS08GameState_Destructor 0x50e928; C2.8 port-all P12):
+// the nine vectors' blocks freed, from +0x80 down to +0x20, each length and block cleared.
+namespace {
+template <class T>
+void FreeGameStateVector(T& v) {
+    if (v.m_pBlock != nullptr) Mem_FreeAligned16(v.m_pBlock);
+    v.m_ui32NbUsedElt = 0;
+    v.m_pBlock = nullptr;
+}
+}  // namespace
+CKGameState::~CKGameState() {
+    FreeGameStateVector(m_vbUnk80);
+    FreeGameStateVector(m_vpUnk74);
+    FreeGameStateVector(m_vbUnk68);
+    FreeGameStateVector(m_vpUnk5c);
+    FreeGameStateVector(m_vbUnk50);
+    FreeGameStateVector(m_vbModuleStates);
+    FreeGameStateVector(m_vpModules);
+    FreeGameStateVector(m_vbCinematicStates);
+    FreeGameStateVector(m_vpStages);
+}
+
+// 0x00995470 IKGameStructure_Destructor [inline] (written out in CKS08GameStructure_Destructor 0x510da0; C2.8 port-all
+// P12): the three vectors' blocks freed (+0x24, +0x18, +0x0c), each length and block cleared.
+IKGameStructure::~IKGameStructure() {
+    FreeGameStateVector(m_vpUnk24);
+    FreeGameStateVector(m_vpStates);
+    FreeGameStateVector(m_vpStages);
 }

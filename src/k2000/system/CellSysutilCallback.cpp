@@ -13,6 +13,7 @@
 #include "k2000/misc/Engine.h"
 #include "platform/cell/sysmodule.h"
 #include "platform/cell/sysutil.h"
+#include "platform/frame_loop.h"
 
 uint8_t g_exitGameRequested = 0;  // 0x00ceac58
 uint8_t g_systemMenuOpen = 0;     // 0x00ceac59
@@ -23,6 +24,20 @@ int32_t g_padRumbleEnabled = 0;   // 0x00cea850
 namespace {
 constexpr uint16_t kModuleL10n = 0x1e;          // CELL_SYSMODULE_L10N
 constexpr uint16_t kModuleAvconfExt = 0x31;     // CELL_SYSMODULE_SYSUTIL_AVCONF_EXT
+
+// One pass of main's loop (0x253870): false when Run() says the game is over.
+bool GameMain_Frame() {
+    if (g_exitGameRequested != 0) g_pEngine->m_gameLoop->RequestExit();
+    return (Run() & 0xff) != 0;
+}
+
+// main's tail, after the loop.
+void GameMain_End() {
+    Cleanup();
+    cellSysmoduleUnloadModule(kModuleAvconfExt);
+    cellSysmoduleUnloadModule(kModuleL10n);
+    cellSysutilUnregisterCallback(0);
+}
 }  // namespace
 
 // 0x00253790 CellSysutilCallback
@@ -68,18 +83,12 @@ int32_t GameMain(int32_t argc, const char* const* argv) {
     config->bitsPerPixel = 0;
     config->unk18 = 0;
     if (Main_InitGame() != 0) {
-        for (;;) {
-            if (g_exitGameRequested == 0) {
-                if ((Run() & 0xff) == 0) break;
-                continue;
-            }
-            g_pEngine->m_gameLoop->RequestExit();
-            if ((Run() & 0xff) == 0) break;
-        }
+        // The original: for (;;) { if (g_exitGameRequested != 0) RequestExit(); if ((Run() & 0xff) == 0) break; }
+        // The loop is the platform's (platform/frame_loop.h): a native build runs it as written, the web build
+        // one pass per browser frame (there RunFrames does not return, and GameMain_End runs after the last pass).
+        dotd::platform::RunFrames(&GameMain_Frame, &GameMain_End);
+        return 0;
     }
-    Cleanup();
-    cellSysmoduleUnloadModule(kModuleAvconfExt);
-    cellSysmoduleUnloadModule(kModuleL10n);
-    cellSysutilUnregisterCallback(0);
+    GameMain_End();
     return 0;
 }

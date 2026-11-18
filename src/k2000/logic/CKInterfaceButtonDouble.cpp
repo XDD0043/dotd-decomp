@@ -15,10 +15,10 @@
 //   [x] 0x520810  CKInterfaceButtonDouble_ChangeValue_maybe
 //   [x] 0x520d98  CKInterfaceButtonDouble_SetVisualState
 //   [ ] 0x521ac0  CKInterfaceButtonDouble_Save
-//   [ ] 0x521ae8  CKInterfaceButtonDouble_RecursiveRegistration
+//   [x] 0x521ae8  CKInterfaceButtonDouble_RecursiveRegistration
 //   [x] 0x5220d0  CKInterfaceButtonDouble_DeleteArray
-//   [ ] 0x522178  CKInterfaceButtonDouble_Construct_2
-//   [ ] 0x5222a8  CKInterfaceButtonDouble_BaseDestructor
+//   [x] 0x522178  CKInterfaceButtonDouble_Construct_2  (the same code as 0x522ef8 CKInterfaceButtonDouble_Construct)
+//   [x] 0x5222a8  CKInterfaceButtonDouble_BaseDestructor  (C++ destructor chain: vtable stores only)
 //   [x] 0x5222d8  CKInterfaceButtonDouble_SetDisabled
 //   [x] 0x5223e0  CKInterfaceButtonDouble_SetInteractionState
 //   [x] 0x5224d0  CKInterfaceButtonDouble_SetPosition
@@ -26,8 +26,8 @@
 //   [x] 0x522e68  CKInterfaceButtonDouble_StartFadeOut
 //   [x] 0x522ef8  CKInterfaceButtonDouble_Construct
 //   [x] 0x523028  CKInterfaceButtonDouble_Close
-//   [ ] 0x523280  CKInterfaceButtonDouble_DeletingDestructor
-//   [ ] 0x5232c8  CKInterfaceButtonDouble_Destructor
+//   [x] 0x523280  CKInterfaceButtonDouble_DeletingDestructor  (C++ destructor chain: vtable stores only)
+//   [x] 0x5232c8  CKInterfaceButtonDouble_Destructor  (C++ destructor chain: vtable stores only)
 //   [x] 0x5232f8  CKInterfaceButtonDouble_PostLoad
 //   [x] 0x523300  CKInterfaceButtonDouble_Open
 //   [x] 0x523690  CKInterfaceButtonDouble_Destroy
@@ -36,7 +36,7 @@
 //   [x] 0x523d00  CKInterfaceButtonDouble_CreateArray
 //   [x] 0x523f08  CKInterfaceButtonDouble_Create
 //   [x] 0x524060  CKInterfaceButtonDouble_Load
-//   [ ] 0x5252f8  CKInterfaceScrollingMenu_Delete
+//   [x] 0x5252f8  CKInterfaceScrollingMenu_Delete  (DOTD_DECLARE_FACTORIES in CKInterfaceScrollingMenu.h: F05's class)
 //   [ ] 0x525348  FUN_00525348  [dead]
 //   [ ] 0x525470  FUN_00525470  [dead]
 //
@@ -54,6 +54,7 @@
 #include <cstdio>
 #include <cstring>
 
+#include "Renderware/rpprtstd/RpPrtStd.h"
 #include "Renderware/rt2d/Rt2d.h"
 #include "Renderware/rt2d/Rt2dTypes.h"
 #include "Spyro2008/logic/CKMenuBase114c.h"
@@ -74,6 +75,7 @@
 #include "k2000/misc/Engine.h"
 #include "k2000/misc/FloatApproach.h"
 #include "k2000/misc/Wcs.h"
+#include "k2000/scenegraph/CParticlesNodeFx.h"
 #include "k2000/system/CTimeManager.h"
 #include "k2000/system/IKTime.h"
 
@@ -139,13 +141,6 @@ int32_t VideoModeIndex(CDefaultGameManager* gm) { return static_cast<int32_t>(st
 void IKGameManager_ApplyEditedOptions(CDefaultGameManager* gm) { gm->ApplyEditedOptions(); }  // 0x13c18 (and _2/_3/_4)
 void CDefaultGameManager_TogglePlayerVibration(CDefaultGameManager* gm, int32_t player) { gm->TogglePlayerVibration(player); }
 void CDefaultGameManager_ToggleVibrationBothPlayers(CDefaultGameManager* gm) { gm->ToggleVibrationBothPlayers(); }
-// 0x00015240 FindVideoModeMatchingAspect_maybe: the next video mode from `index` in direction `down` with
-// the aspect; 1 and *found when there is one. STUB(C1.6): the video modes are not ported (none found).
-uint8_t FindVideoModeMatchingAspect(CDefaultGameManager* /*gm*/, uint8_t /*down*/, int32_t /*index*/,
-                                    uint8_t /*aspect*/, int32_t* /*found*/) {
-    DOTD_STUB_ONCE("FindVideoModeMatchingAspect_maybe 0x15240 (C1.6)");
-    return 0;
-}
 void IKGameManager_ToggleSubtitlesOption(CDefaultGameManager* gm) { gm->ToggleSubtitlesOption(); }
 void IKGameManager_CycleLanguageOption(CDefaultGameManager* gm, uint8_t down) { gm->CycleLanguageOption(down); }
 void IKGameManager_ToggleMotionSensorOption(CDefaultGameManager* gm, uint8_t player) { gm->ToggleMotionSensorOption(player); }
@@ -177,6 +172,49 @@ void CKGraphic_GetVideoModeResolution(int32_t /*mode*/, int32_t* width, int32_t*
     *rate = 0;
 }
 
+// 0x00059a88 Graphics_GetNumVideoModes_maybe: RwEngineGetNumVideoModes 0x74a388 (through 0x98d6f0), the
+// PSGL device system's request 5 (RwPSGLDeviceSystem_maybe 0x739050): the count its open (request 0) sets at
+// 0x00c45990, 1 (the one mode of the device it creates).
+int32_t Graphics_GetNumVideoModes() { return 1; }
+
+// 0x00a6f394: the aspect ratios by the aspect option (0: 4/3 0x3faaaaab, 1: 16/9 0x3fe38e39; the option is 0 or 1).
+const float kAspectRatios[2] = {0x1.555556p+0f, 0x1.c71c72p+0f};
+
+// 0x00015240 FindVideoModeMatchingAspect_maybe (a CDefaultGameManager method, vtable 0xb35840): from `index`,
+// stepping down (`down`) or up, the first video mode of depth 32, more than 600 pixels wide, whose
+// lroundf(width / height x 1000) equals lroundf(the aspect's ratio x 1000); 1 and *found (when not null) then,
+// 0 past the ends. The mode's width, height and depth come from CKGraphic_GetVideoModeInfos 0x59618, empty on
+// the PS3: BUG(original) the stack words it should fill are read as they are (0 here, as above: no mode
+// matches).
+uint8_t FindVideoModeMatchingAspect(CDefaultGameManager* /*gm*/, uint8_t down, int32_t index, uint8_t aspect,
+                                    int32_t* found) {
+    const int32_t count = Graphics_GetNumVideoModes();
+    if (down == 0) {
+        if (!(count > index)) return 0;
+    } else if (index < 0) {
+        return 0;
+    }
+    for (;;) {
+        int32_t width;
+        int32_t height;
+        int32_t depth;
+        CKGraphic_GetVideoModeResolution(index, &width, &height, &depth);
+        const float ratio = static_cast<float>(static_cast<double>(width)) / static_cast<float>(static_cast<double>(height));
+        const int32_t rounded = crt::lroundf(ratio * 1000.0f);  // TOC1 -0x7ecc; lroundf_maybe 0x77ed68
+        if (depth == 0x20 && width > 600 && rounded == crt::lroundf(kAspectRatios[aspect] * 1000.0f)) {
+            if (found != nullptr) *found = index;
+            return 1;
+        }
+        if (down == 0) {
+            ++index;
+            if (!(count > index)) return 0;
+        } else {
+            --index;
+            if (index < 0) return 0;
+        }
+    }
+}
+
 // ---- Callees in other classes that are not ported yet (local copies).
 
 // 0x00066cb8 BillboardBrush_SetTexture (IKBillboard2d vt+0x3c): the brush's texture when it differs.
@@ -200,26 +238,9 @@ void CBillboard2d_SetSpriteSheetRows(CBillboard2d* billboard, int32_t rows) { bi
 // 0x0005b158 CBillboard2d_SetSpriteSheetColumns_maybe
 void CBillboard2d_SetSpriteSheetColumns(CBillboard2d* billboard, int32_t columns) { billboard->SetSpriteSheetColumns(static_cast<int32_t>(columns)); }
 
-// 0x00066300 CText2d_SetTextAscii (CText2d vt+0x90): through the linked text (+0x740) when +0x744 is set
-// and that text is enabled, else 0x6b1b8 TextData_SetTextAscii: widened, then CText2d vt+0x8c
-// (SetTextWide, through the text part's vt+0x38 thunk).
-void CText2d_SetTextAscii(CText2d* text, const char* ascii) {
-    if (text->m_unk744 != nullptr) {
-        IKNode2d* linked = static_cast<IKNode2d*>(text->m_unk740);
-        if (linked != nullptr && ((linked->m_baFlags >> 1) & 1) != 0) {
-            CText2d_SetTextAscii(static_cast<CText2d*>(linked), ascii);
-            return;
-        }
-    }
-    uint16_t wide[404];
-    if (std::strlen(ascii) < 400) {
-        WStr_FromAscii(wide, ascii);
-    } else {
-        // STUB(C1.6): 400 characters or more copy a TOC string instead; the buttons format at most "%dx%d".
-        wide[0] = 0;
-    }
-    text->SetTextWide(wide);
-}
+// 0x00066300 CText2d_SetTextAscii (CText2d vt+0x90): the CText2d port (through the linked text, else
+// TextData_SetTextAscii 0x6b1b8, whose strings of 400 characters or more become the TOC string "text too big").
+void CText2d_SetTextAscii(CText2d* text, const char* ascii) { text->SetTextAscii(ascii); }
 
 // 0x00514668 KBase730C_CallOwnerVfDCObjectVf78AfterVf308_maybe: the menus' interface video stopped, its
 // segment kept as the current one (game manager vt+0xdc, vt+0x308, the video's vt+0x78).
@@ -235,20 +256,38 @@ void KBase730C_StopInterfaceVideo(IKSerializable* menu) {
 CKSound* CKSoundDictionaryID_GetSound(IKSerializable* dictionary, uint32_t index) {
     return static_cast<CKSoundDictionaryID*>(dictionary)->GetSound(index);  // the audio port
 }
-// 0x00111b70 CKSound_ResetPan_maybe / 0x00111230 CKSound_Play. STUB(C1.6): the sounds are not ported.
+// 0x00111b70 CKSound_ResetPan_maybe / 0x00111230 CKSound_Play (CKSound::ResetPan / Play, k2000/logic/sound/CKSound.cpp).
 void CKSound_ResetPan(CKSound* sound, uint8_t pan) { sound->ResetPan(static_cast<int32_t>(pan)); }  // the audio port
 void CKSound_Play(CKSound* sound, float delay) { sound->Play(delay); }  // the audio port
 
-// RecordB::m_unk3c (unidentified class, null in every front-end item). STUB(C1.6).
-// SetVisualState: when its +0x50 count is below 0x40, the TOC1 vector 0x00c50d64 appended to +0x54's
-// +0x10 table (0xc bytes each), +0x10 |= 0x2000, the count + 1; then +0x10 = (+0x10 | 0x600) & ~0x80000,
-// +0x4c = 0 and +0x58's +4 |= 0xa.
+// RecordB::m_unk3c: a CParticlesNodeFx (the fields the two inlined blocks touch are CParticlesNodeFx's, the
+// same blocks as CKInterfaceButton's and CKInterfaceCheckBox's state effects; null in every front-end item).
+// SetVisualState (0x5215c8): below 64 points, the null vector (0x00c50d64, (0, 0, 0)) appended to the
+// emitter's point list (m_pAdvEmtPointList->pointList, 12 bytes each) with property 0x2000; then properties
+// 0x200 | 0x400 set and 0x80000 cleared, the emission speed adjustment 0, the RpPrtStdEmitter's flags |= 0xa
+// (ACTIVE | EMIT).
 void StateEffect_Start(IKSerializable* effect) {
-    if (effect != nullptr) DOTD_STUB_ONCE("CKInterfaceButtonDouble: state effect start (C1.6)");
+    if (effect == nullptr) return;
+    static const RwV3d kNullVector = {0.0f, 0.0f, 0.0f};  // g_nullVector 0x00c50d64
+    CParticlesNodeFx* fx = static_cast<CParticlesNodeFx*>(effect);
+    if (fx->m_ui8NbActivePoints <= 0x3f) {
+        fx->m_pAdvEmtPointList->pointList[fx->m_ui8NbActivePoints] = kNullVector;
+        fx->m_sgProperties = (fx->m_sgProperties & ~0x2000u) | 0x2000u;
+        fx->m_ui8NbActivePoints = static_cast<uint8_t>(fx->m_ui8NbActivePoints + 1);
+    }
+    uint32_t properties = fx->m_sgProperties;
+    properties = (properties & ~0x200u) | 0x200u;
+    properties = (properties & ~0x400u) | 0x400u;
+    fx->m_sgProperties = properties & ~0x80000u;
+    fx->m_fEmissionSpeedAdjustment = 0.0f;  // stw 0
+    fx->m_pRpPrtStdEmitter->flag |= rpPRTSTDEMITTERFLAGACTIVE | rpPRTSTDEMITTERFLAGEMIT;
 }
-// Open: +0x10 &= 0xfff7fbff and +0x58's +4 &= ~8.
+// Open (0x5234a4): properties 0x80400 cleared, the emitter's EMIT flag (8) cleared.
 void StateEffect_Reset(IKSerializable* effect) {
-    if (effect != nullptr) DOTD_STUB_ONCE("CKInterfaceButtonDouble: state effect reset (C1.6)");
+    if (effect == nullptr) return;
+    CParticlesNodeFx* fx = static_cast<CParticlesNodeFx*>(effect);
+    fx->m_sgProperties &= 0xfff7fbffu;
+    fx->m_pRpPrtStdEmitter->flag &= ~static_cast<uint32_t>(rpPRTSTDEMITTERFLAGEMIT);
 }
 
 // Local copy of 0x0077ed68 lroundf_maybe (bridge 0x0098d3a0; the same body as TextData.cpp's copy: src/crt
@@ -1021,4 +1060,38 @@ int32_t CKInterfaceButtonDouble::Load(IKFile* file, int32_t type) {
         CKInterfaceButton_LoadTextEntries(&e.m_vImages, file);
     }
     return 1;
+}
+
+namespace {
+void RegisterIfDouble(IKSerializable* object, int32_t type) {
+    if (object != nullptr) object->RecursiveRegistration(type);  // vt+0x24
+}
+}  // namespace
+
+// 0x00521ae8 CKInterfaceButtonDouble_RecursiveRegistration (each table from its last element down)
+void CKInterfaceButtonDouble::RecursiveRegistration(int32_t type) {
+    CKInterfaceButtonBase::RecursiveRegistration(type);  // 0x00067fe8
+    for (int k = 5; k >= 0; --k) RegisterIfDouble(m_aRecordsB[k].m_unk3c, type);
+    m_pLabelText->RecursiveRegistration(type);
+    RegisterIfDouble(m_pLabel, type);
+    RegisterIfDouble(m_pValueText, type);
+    RegisterIfDouble(m_pValueImage, type);
+    RegisterIfDouble(m_apUnk50[1], type);
+    RegisterIfDouble(m_apUnk50[0], type);
+    RegisterIfDouble(m_apUnk58[1], type);
+    RegisterIfDouble(m_apUnk58[0], type);
+    m_pSounds->RecursiveRegistration(type);
+    for (uint32_t k = m_ui8NbEntries; k != 0; --k) {
+        Entry& e = m_aEntries[k - 1];
+        e.m_pText->RecursiveRegistration(type);
+        for (uint32_t i = e.m_vVideos.m_ui32NbUsedElt; i != 0; --i) {
+            RegisterIfDouble(e.m_vVideos.m_pBlock[i - 1].m_first, type);
+            RegisterIfDouble(e.m_vVideos.m_pBlock[i - 1].m_second, type);
+        }
+        for (uint32_t i = e.m_vTexts.m_ui32NbUsedElt; i != 0; --i) {
+            e.m_vTexts.m_pBlock[i - 1].m_second->RecursiveRegistration(type);
+            RegisterIfDouble(e.m_vTexts.m_pBlock[i - 1].m_first, type);
+        }
+        for (uint32_t i = e.m_vImages.m_ui32NbUsedElt; i != 0; --i) RegisterIfDouble(e.m_vImages.m_pBlock[i - 1].m_pText, type);
+    }
 }

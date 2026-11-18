@@ -9,6 +9,8 @@
 
 #include "k2000/core/IKBaseClass.h"
 
+struct IKInfo;
+
 class IKFile;
 
 // C2.2 gm: XXL2 SApplyGameState (8 bytes): the info id and the game-state id an object is set to
@@ -36,7 +38,9 @@ public:
     // vt+0x24  0x990b48. XXL2: RecursiveRegistration(ESerializationType): registers the object (and the
     // objects it owns) with the saving manager.
     virtual void RecursiveRegistration(int32_t /*type*/) {}
-    virtual int32_t Save(IKFile* /*file*/) { return 1; }      // vt+0x28  0x990b50 (arguments unverified)
+    // vt+0x28  0x990b50. XXL2 Save(IKFile*, ESerializationType): writes this object's data for a save of `type`
+    // (CKSavingManager_WriteObjectList passes the type its SaveObjects got); 1 = ok.
+    virtual int32_t Save(IKFile* /*file*/, int32_t /*type*/) { return 1; }
     // vt+0x2c  0x990b58. Reads this object's data from the file; 1 = ok. type: ESerializationType, or
     // DotD's 7/8 (8 = the game-structure block).
     virtual int32_t Load(IKFile* /*file*/, int32_t /*type*/) { return 1; }
@@ -44,7 +48,8 @@ public:
     virtual int32_t GetSerializationFlags() { return 1; }      // vt+0x34  0x990b68
     virtual void SetDefaultState(int32_t /*flag*/) {}         // vt+0x38  0x990b70 (XXL2: Bool)
     virtual int32_t SetGameState(const SApplyGameState* /*state*/) { return 1; }  // vt+0x3c  0x990b78 (XXL2: const SApplyGameState*)
-    virtual int32_t GetInfo() { return 1; }                    // vt+0x40  0x990b80 (XXL2: IKInfo*, EGetInfoRequestType)
+    // vt+0x40 0x990b80 (XXL2 GetInfo(IKInfo*, EGetInfoRequestType)): 1 = the value id is unknown (k2000/core/IKInfo.h).
+    virtual int32_t GetInfo(struct IKInfo* /*info*/, int32_t /*request*/) { return 1; }
     // vt+0x44  0x990b88 (default: null). GUID classes (IKGameObject) return this+4 (0x993d60).
     virtual const uint32_t* GetGuid() { return nullptr; }
     // vt+0x48  0x990ce8 (default: nothing). GUID classes copy it to this+4 (0x993dc8).

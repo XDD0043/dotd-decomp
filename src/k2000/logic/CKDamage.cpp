@@ -6,10 +6,10 @@
 //   [x] 0x253a00  CKDamage_Delete
 //   [ ] 0x253a50  CKDamage_Construct_2  [dead]
 //   [ ] 0x253a60  CKDamage_CopyConstruct  [dead]
-//   [ ] 0x253a88  CKDamage_Assign
+//   [x] 0x253a88  CKDamage_Assign  (the implicit copy assignment: the three members)
 //   [ ] 0x253ab8  RegisterCKDamageClass
 //   [ ] 0x253b30  _GLOBAL__I_253b30
-//   [ ] 0x253b40  CKDamage_Destructor
+//   [x] 0x253b40  CKDamage_Destructor  (C++ destructor chain: vtable stores only)
 //   [x] 0x253b58  CKDamage_DeleteArray
 //   [x] 0x253bf8  CKDamage_Construct
 //   [ ] 0x253c08  CKDamage_CopyConstruct_2  [dead]
@@ -17,11 +17,11 @@
 //   [x] 0x253cc0  CKDamage_Create
 //   [x] 0x253cf8  CKDamage_Load
 //   [ ] 0x253df8  CKDamage_Save
-//   [ ] 0x253e00  CKDamage_RecursiveRegistration
-//   [ ] 0x253e08  CKDamage_PostLoad
-//   [ ] 0x253e10  CKDamage_Destroy
-//   [ ] 0x253e18  CKDamage_BaseDestructor
-//   [ ] 0x253e30  CKDamage_DeletingDestructor
+//   [x] 0x253e00  CKDamage_RecursiveRegistration  (returns 1: the root's empty slot)
+//   [x] 0x253e08  CKDamage_PostLoad  (returns 1: the root's default)
+//   [x] 0x253e10  CKDamage_Destroy  (empty)
+//   [x] 0x253e18  CKDamage_BaseDestructor  (C++ destructor chain: vtable stores only)
+//   [x] 0x253e30  CKDamage_DeletingDestructor  (C++ deleting destructor)
 //
 //   [ ] 0x9ba6d0  CKDamage_GetClassType  [inline]
 //   [ ] 0x9ba6d8  CKDamage_GetClassID  [inline]

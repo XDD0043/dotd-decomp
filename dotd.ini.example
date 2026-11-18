@@ -13,9 +13,15 @@ window_width = 1280
 window_height = 720
 fullscreen = 0
 
-# Frames per second the game runs at. The original runs at 60 and its menu animations step once per
+# Frames per second the game runs at. The original runs at 60 and some of its systems step once per
 # frame, so anything else changes behaviour. 0 = uncapped (experiments only).
 frame_rate = 60
+# Run at another frame rate with the game's timings kept as at 60 fps: physics, cinematics, fades, frame
+# counters and the other once-per-frame systems advance by 60 Hz frames (src/platform/fps.h). fps replaces
+# frame_rate; 0 = no cap (with vsync = 1 the display's refresh, with vsync = 0 as fast as possible);
+# 60 = off (the original timing). Above the display's refresh vsync is off (a variable-refresh display
+# avoids tearing). Command line: --fps N.
+# fps = 144
 # Used for pacing only when the display refresh is a multiple of frame_rate (60/120/240 Hz);
 # otherwise a timer paces the frames with vsync off.
 vsync = 1

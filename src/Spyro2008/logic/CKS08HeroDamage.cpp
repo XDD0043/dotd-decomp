@@ -6,15 +6,15 @@
 //   [x] 0x3c9a68  CKS08HeroDamage_Delete
 //   [ ] 0x3c9ab8  RegisterCKS08HeroDamageClass
 //   [ ] 0x3c9b30  _GLOBAL__I_3c9b30
-//   [ ] 0x3c9b40  CKS08HeroDamage_Destroy
-//   [ ] 0x3c9b68  CKS08HeroDamage_PostLoad
+//   [x] 0x3c9b40  CKS08HeroDamage_Destroy  (inherited: CKS08StunDamage_Destroy)
+//   [x] 0x3c9b68  CKS08HeroDamage_PostLoad  (= the inherited slot)
 //   [x] 0x3c9b90  CKS08HeroDamage_Load
 //   [ ] 0x3c9bb8  CKS08HeroDamage_Save
-//   [ ] 0x3c9be0  CKS08HeroDamage_RecursiveRegistration
-//   [ ] 0x3c9c08  CKS08HeroDamage_Assign
-//   [ ] 0x3c9c50  CKS08HeroDamage_DeletingDestructor
-//   [ ] 0x3c9c98  CKS08HeroDamage_Destructor
-//   [ ] 0x3c9cc8  CKS08HeroDamage_DestructBody
+//   [x] 0x3c9be0  CKS08HeroDamage_RecursiveRegistration  (CKS08StunDamage's (nothing registered), then 1)
+//   [x] 0x3c9c08  CKS08HeroDamage_Assign
+//   [x] 0x3c9c50  CKS08HeroDamage_DeletingDestructor  (the destructor; delete)
+//   [x] 0x3c9c98  CKS08HeroDamage_Destructor  (C++ destructor chain: vtable stores only)
+//   [x] 0x3c9cc8  CKS08HeroDamage_DestructBody  (C++ destructor chain: vtable stores, then CKS08StunDamage_BaseDestructor)
 //   [x] 0x3c9cf8  CKS08HeroDamage_Construct  [dead]
 //   [ ] 0x3c9d30  CKS08HeroDamage_Construct_2  [dead]
 //   [ ] 0x3c9d68  CKS08HeroDamage_Construct_3  [dead]

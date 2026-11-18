@@ -11,12 +11,15 @@ class CKLocSpeaker;
 class CKStdText : public CKLocText {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x1a2)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x994550
+        return key == 0x688c || key == 0x680c || key == 0x700c || key == 0x330c || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKStdText)
 
     // The live constructor is inlined in CKStdText_Create 0x36a30 / CreateArray 0x36970 (CKStdText_Construct
     // 0x367c8 is dead): CKLocText_Construct, the vtable, then +0x1c = 0.
     CKStdText() { m_pSpeaker = nullptr; }
-    ~CKStdText() override {}  // vt+0x00 / +0x04  0x36790 / 0x36920
+    ~CKStdText() override { m_pSpeaker = nullptr; }  // vt+0x00 / +0x04  0x36790 / 0x36920
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00036600 CKStdText_Load
     void InitializeGameData() override;                 // vt+0x58 0x00036758 CKStdText_InitGameData

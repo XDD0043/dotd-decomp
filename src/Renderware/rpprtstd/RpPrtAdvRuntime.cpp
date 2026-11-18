@@ -5,6 +5,8 @@
 //
 //   [x] 0x6f00d8  RW_CacheParticlePropertyOffsets2_maybe
 //   [x] 0x6f26c8  PrtStdEmitterProp1000006_Emit_maybe
+//   [x] 0x6f31b8  PrtStdEmitterProp1000001_Emit_maybe
+//   [x] 0x6f3348  PrtStdEmitterProp1000001_Update_maybe
 //   [x] 0x6f41b0  PrtStdEmitterProp1000002_3_5_Emit_maybe
 //   [x] 0x6f50e0  PrtStdParticleKeyFrames_Update_maybe
 //   [x] 0x6f5df0  PrtStdParticleTexCoordKeyFrames_Update_maybe
@@ -33,19 +35,28 @@
 //   segment before key 0 is written into the standard particle colour / texcoords / size property itself.
 //   KeyFramesUpdate copies segment `index` into that standard property once the particle's time reaches
 //   times[index].
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 
 #include "Renderware/rpprtstd/RpPrtStd.h"
 #include "Renderware/rpprtstd/RpPrtStdInternal.h"
 #include "Renderware/rpprtstd/RpPrtStdRuntime.h"
+#include "Renderware/rpworld/RpAtomic.h"
+#include "Renderware/rwcore/RwCamera.h"
+#include "Renderware/rwcore/RwFrameList.h"
 #include "Renderware/rwcore/RwMatrix.h"
 #include "crt/ppc_ops.h"
+#include "crt/xsin.h"
 
 namespace rpprtstd {
 
 // 0x00cf9e10..0x00cf9ebc. The table pointers start null, so the first call fills every offset.
-AdvCachedOffsets g_advOffsets = {};
+thread_local AdvCachedOffsets g_advOffsets = {};  // per thread (RpPrtStdRuntime.h, g_offsets)
+
+namespace {
+thread_local uint32_t t_advSeenGeneration = 0;  // g_advOffsets' view of g_propTabDestroyGeneration
+}  // namespace
 
 namespace {
 
@@ -323,6 +334,12 @@ void EmitMultiSize(uint8_t* particle, uint8_t* prop, uint32_t timesBytes, uint32
 RpPrtStdEmitter* CacheAdvPropertyOffsets(RpPrtStdEmitter* emitter) {
     AdvCachedOffsets& o = g_advOffsets;
     const RpPrtStdPropertyTable* emitterTable = emitter->emtClass->propTab;
+    const uint32_t generation = g_propTabDestroyGeneration.load(std::memory_order_acquire);
+    if (t_advSeenGeneration != generation) {  // DEV: a table was destroyed (maybe by another thread)
+        t_advSeenGeneration = generation;
+        o.emitterTable = nullptr;
+        o.particleTable = nullptr;
+    }
     if (o.emitterTable != emitterTable) {
         o.emitterTable = emitterTable;
         o.emtStd = RpPrtStdPropTabGetPropOffset(emitterTable, rpPRTSTDPROPERTYCODEEMITTERSTANDARD);
@@ -668,6 +685,435 @@ RpPrtStdParticleBatch* TexCoordStepUpdate(RpPrtStdEmitter* emitter, RpPrtStdPart
         if (--left == 0) break;
         particle += prtSize;
     }
+    return batch;
+}
+
+namespace {
+
+// The shape emits' PTank out pointer and stride, moved back over this frame's `count` particles: the position
+// array (data flag 1, the first), replaced by the matrix array (flag 8, after the colour and size arrays)
+// when that is locked too (as in 0x6f26c8; one pointer serves both, see PointListEmit's BUG note).
+void ShapeTankOut(const RpPrtStdEmitterPTank* ptank, int32_t count, uint8_t** out, int32_t* stride) {
+    *out = nullptr;
+    *stride = 0;
+    if (ptank == nullptr) return;
+    const uint32_t flags = ptank->dataFlags;
+    int32_t index = 0;
+    if ((flags & 0x1u) != 0) {
+        *stride = ptank->dataStride[0];
+        *out = RewindTank(ptank->dataOutPtrs[0], count, *stride);
+        index = 1;
+    }
+    index += static_cast<int32_t>((flags >> 1) & 1u);
+    index += static_cast<int32_t>((flags >> 2) & 1u);
+    if ((flags & 0x8u) != 0) {
+        *stride = ptank->dataStride[index];
+        *out = RewindTank(ptank->dataOutPtrs[index], count, *stride);
+    }
+}
+
+// The shape emits' tail for one particle: the position into the particle's position property, then into the
+// PTank's position array (update and data flag 1) and its matrix's pos (flag 8), each moving the out pointer.
+void ShapeStorePosition(uint8_t* particle, const RwV3d& position, const RpPrtStdEmitterPTank* ptank, uint8_t** out,
+                        int32_t stride) {
+    const AdvCachedOffsets& o = g_advOffsets;
+    if (o.prtPosition >= 0) {
+        float* const p = FloatsAt(particle, o.prtPosition);
+        p[2] = position.z;
+        p[0] = position.x;
+        p[1] = position.y;
+    }
+    if (ptank == nullptr) return;
+    if ((ptank->updateFlags & ptank->dataFlags & 1u) != 0) {
+        float* const p = reinterpret_cast<float*>(*out);
+        *out += stride;
+        p[2] = position.z;
+        p[0] = position.x;
+        p[1] = position.y;
+    }
+    if ((ptank->updateFlags & ptank->dataFlags & 8u) != 0) {
+        float* const p = reinterpret_cast<float*>(*out + 0x30);
+        *out += stride;
+        p[2] = position.z;
+        p[0] = position.x;
+        p[1] = position.y;
+    }
+}
+
+// The emitter's seed sign-extended (extsw before fcfid), frsp: the shapes' radius weight's source.
+inline float SignedSeedToFloat(uint32_t seed) {
+    return ppc::frsp(static_cast<double>(static_cast<int32_t>(seed)));
+}
+
+// The particle's velocity from the shape's unit direction `dir` (normalised, through the LTM when there is
+// one): dir * (prtInitVel + prtInitVelBias * [-1, 1)), one more random number (shared by the three axes).
+void ShapeVelocity(uint8_t* particle, RwV3d* dir, const RwMatrix* ltm, const RpPrtStdEmitterStandard* standard,
+                   int32_t* seed) {
+    float* const velocity = FloatsAt(particle, g_advOffsets.prtVelocity);
+    RwV3dNormalize(dir, dir);
+    if (ltm != nullptr) RwV3dTransformVector(dir, dir, ltm);
+    const float w = SignedRandom(seed);
+    velocity[0] = dir->x * ppc::fmadds(w, standard->prtInitVelBias, standard->prtInitVel);
+    velocity[1] = dir->y * ppc::fmadds(w, standard->prtInitVelBias, standard->prtInitVel);
+    velocity[2] = dir->z * ppc::fmadds(w, standard->prtInitVelBias, standard->prtInitVel);
+}
+
+// TOC -0x3c04 / -0x3bf0: pi as the shape emits have it (0x40490fda, one ulp below the float pi).
+const float kShapePi = 0x1.921fb4p+1f;
+
+}  // namespace
+
+// 0x006f1110 PrtStdEmitterProp1000008_Emit_maybe (sphere, rpprtadv.h RpPrtAdvEmtSphere {radius, radiusGap,
+// useSphereEmission}): every particle the standard emit made this frame is put on the sphere: an angle
+// pi * [-1, 1), a height u in [-1, 1), a radius weight r in [0, 1) (the seed signed + 0.5): the point
+// (cos a * sqrt(1 - u^2) * R, sin a * sqrt(1 - u^2) * R, u * R), R = radius + r * radiusGap, through the
+// standard property's LTM; with useSphereEmission the particle's velocity points away from the centre. Nothing
+// is drawn for a particle class without a velocity property (the position stays the previous particle's).
+RpPrtStdEmitter* SphereEmit(RpAtomic*, RpPrtStdEmitter* emitter, void*) {
+    CacheAdvPropertyOffsets(emitter);
+    const AdvCachedOffsets& o = g_advOffsets;
+    const RpPrtStdEmitterPTank* const ptank =
+        o.emtPTank >= 0 ? reinterpret_cast<const RpPrtStdEmitterPTank*>(PropertyAt(emitter, o.emtPTank)) : nullptr;
+    const float* const sphere = o.emtSphere >= 0 ? FloatsAt(PropertyAt(emitter, 0), o.emtSphere) : nullptr;
+    RpPrtStdParticleBatch* const batch = static_cast<RpPrtStdParticleBatch*>(emitter->activeBatch);
+    if (batch == nullptr) return emitter;
+    const int32_t first = batch->newPrt;
+    if (first == -1) return emitter;
+    const int32_t count = batch->numPrt - first;
+    uint8_t* tankOut = nullptr;
+    int32_t tankStride = 0;
+    ShapeTankOut(ptank, count, &tankOut, &tankStride);
+    RpPrtStdEmitterStandard* const standard = reinterpret_cast<RpPrtStdEmitterStandard*>(PropertyAt(emitter, o.emtStd));
+    const int32_t prtSize = emitter->prtClass->objSize;
+    const RwMatrix* const ltm = standard->ltm;
+    int32_t seed = standard->seed;
+    if (count > 0) {
+        // BUG(original): the position (stack +0x7c) is only written through the LTM; without one (or without a
+        // velocity property) a particle gets the previous one's, the first uninitialised stack (zeros here).
+        RwV3d position = {0.0f, 0.0f, 0.0f};
+        RwV3d point = {0.0f, 0.0f, 0.0f};  // stack +0x70
+        uint8_t* particle = RpPrtStdBatchParticles(batch) + static_cast<intptr_t>(first) * prtSize;
+        for (int32_t i = 0;;) {
+            if (o.prtVelocity >= 0) {
+                const float angle = SignedRandom(&seed) * kShapePi;
+                const float s = ppc::frsp(crt::Sin(static_cast<double>(angle), 0));
+                const float c = ppc::frsp(crt::Sin(static_cast<double>(angle), 1));
+                const float u = SignedRandom(&seed);
+                const float root = rwSqrt(1.0f - u * u);
+                const float r = ppc::fmadds(SignedSeedToFloat(static_cast<uint32_t>(NextSeed(&seed))), 0x1p-32f, 0.5f);
+                point.x = c * (root * ppc::fmadds(r, sphere[1], sphere[0]));
+                point.y = s * (root * ppc::fmadds(r, sphere[1], sphere[0]));
+                point.z = u * ppc::fmadds(r, sphere[1], sphere[0]);
+                if (ltm != nullptr) RwV3dTransformPoint(&position, &point, ltm);
+                uint32_t useEmission;
+                std::memcpy(&useEmission, &sphere[2], 4);
+                if (useEmission == 1) ShapeVelocity(particle, &point, ltm, standard, &seed);
+            }
+            ShapeStorePosition(particle, position, ptank, &tankOut, tankStride);
+            if (++i == count) break;
+            particle += prtSize;
+        }
+    }
+    standard->seed = seed;
+    return emitter;
+}
+
+// 0x006f1a00 PrtStdEmitterProp1000007_Emit_maybe (circle, rpprtadv.h RpPrtAdvEmtCircle {radius, radiusGap,
+// height, useCircleEmission, dirRotation}): every particle the standard emit made this frame is put on the
+// circle: an angle pi * [-1, 1), a radius weight r in [0, 1) (the seed signed + 0.5), a height h in [-1, 1):
+// (sin a * R, cos a * R, h * height), R = radius + r * radiusGap, through the LTM; with useCircleEmission the
+// velocity is (sin a sin d, cos a sin d, cos d) + prtInitDirBias * [-1, 1) per axis, d = dirRotation.
+RpPrtStdEmitter* CircleEmit(RpAtomic*, RpPrtStdEmitter* emitter, void*) {
+    CacheAdvPropertyOffsets(emitter);
+    const AdvCachedOffsets& o = g_advOffsets;
+    const RpPrtStdEmitterPTank* const ptank =
+        o.emtPTank >= 0 ? reinterpret_cast<const RpPrtStdEmitterPTank*>(PropertyAt(emitter, o.emtPTank)) : nullptr;
+    const float* const circle = o.emtCircle >= 0 ? FloatsAt(PropertyAt(emitter, 0), o.emtCircle) : nullptr;
+    RpPrtStdParticleBatch* const batch = static_cast<RpPrtStdParticleBatch*>(emitter->activeBatch);
+    if (batch == nullptr) return emitter;
+    const int32_t first = batch->newPrt;
+    if (first == -1) return emitter;
+    const int32_t count = batch->numPrt - first;
+    uint8_t* tankOut = nullptr;
+    int32_t tankStride = 0;
+    ShapeTankOut(ptank, count, &tankOut, &tankStride);
+    RpPrtStdEmitterStandard* const standard = reinterpret_cast<RpPrtStdEmitterStandard*>(PropertyAt(emitter, o.emtStd));
+    const int32_t prtSize = emitter->prtClass->objSize;
+    const RwMatrix* const ltm = standard->ltm;
+    int32_t seed = standard->seed;
+    if (count > 0) {
+        // BUG(original): as SphereEmit's position.
+        RwV3d position = {0.0f, 0.0f, 0.0f};
+        RwV3d point = {0.0f, 0.0f, 0.0f};  // stack +0x70
+        uint8_t* particle = RpPrtStdBatchParticles(batch) + static_cast<intptr_t>(first) * prtSize;
+        for (int32_t i = 0;;) {
+            if (o.prtVelocity >= 0) {
+                const float angle = SignedRandom(&seed) * kShapePi;
+                const float s = ppc::frsp(crt::Sin(static_cast<double>(angle), 0));
+                const float c = ppc::frsp(crt::Sin(static_cast<double>(angle), 1));
+                const float r = ppc::fmadds(SignedSeedToFloat(static_cast<uint32_t>(NextSeed(&seed))), 0x1p-32f, 0.5f);
+                const float h = SignedRandom(&seed);
+                point.x = s * ppc::fmadds(r, circle[1], circle[0]);
+                point.y = c * ppc::fmadds(r, circle[1], circle[0]);
+                point.z = h * circle[2];
+                if (ltm != nullptr) RwV3dTransformPoint(&position, &point, ltm);
+                uint32_t useEmission;
+                std::memcpy(&useEmission, &circle[3], 4);
+                if (useEmission == 1) {
+                    const float sd = ppc::frsp(crt::Sin(static_cast<double>(circle[4]), 0));
+                    const float cd = ppc::frsp(crt::Sin(static_cast<double>(circle[4]), 1));
+                    const float y0 = c * sd;
+                    const float x0 = s * sd;
+                    const float wx = SignedRandom(&seed);
+                    const float wy = SignedRandom(&seed);
+                    const float wz = SignedRandom(&seed);
+                    point.x = ppc::fmadds(wx, standard->prtInitDirBias.x, x0);
+                    point.y = ppc::fmadds(wy, standard->prtInitDirBias.y, y0);
+                    point.z = ppc::fmadds(wz, standard->prtInitDirBias.z, cd);
+                    ShapeVelocity(particle, &point, ltm, standard, &seed);
+                }
+            }
+            ShapeStorePosition(particle, position, ptank, &tankOut, tankStride);
+            if (++i == count) break;
+            particle += prtSize;
+        }
+    }
+    standard->seed = seed;
+    return emitter;
+}
+
+// 0x006f5898 PrtStdEmitterProp1000004_Emit_maybe (multi texcoords step, 0x1000004; keys of 0x28 at the
+// property's +0x1c: {time, timeBias, uv0 (2), uv0Bias (2), uv1 (2), uv1Bias (2)}): once the standard emission
+// time is reached, the seed moves on once, then every particle emitted this frame (current time exactly 0)
+// gets per key j: times[j] = (time + timeBias * w) * the particle's end time, UV0[j] = uv0 + uv0Bias * w and
+// UV1[j] = uv1 + uv1Bias * w (w in [-1, 1), five numbers per key in that order), its step index 0 and the
+// standard texcoords' +0x10..+0x1c cleared. The particle's times and end time are read at its start (+4, +8).
+RpPrtStdEmitter* TexCoordsStepEmit(RpAtomic*, RpPrtStdEmitter* emitter, void*) {
+    CacheAdvPropertyOffsets(emitter);
+    const AdvCachedOffsets& o = g_advOffsets;
+    uint8_t* const prop = o.emtMultiTexCoordsStep >= 0 ? PropertyAt(emitter, o.emtMultiTexCoordsStep) : nullptr;
+    uint32_t uv1Bytes = 0;    // n << 3
+    uint32_t timesBytes = 0;  // n << 2
+    if (prop != nullptr) {
+        uv1Bytes = WordAt(prop, 0) << 3;
+        timesBytes = WordAt(prop, 0) << 2;
+    }
+    RpPrtStdEmitterStandard* const standard = reinterpret_cast<RpPrtStdEmitterStandard*>(PropertyAt(emitter, o.emtStd));
+    if (!(standard->currTime >= standard->emtEmitTime)) return emitter;
+    RpPrtStdParticleBatch* const batch = static_cast<RpPrtStdParticleBatch*>(emitter->activeBatch);
+    if (batch == nullptr) return emitter;
+    const int32_t first = batch->newPrt;
+    if (first == -1) return emitter;
+    int32_t seed = standard->seed;
+    NextSeed(&seed);
+    const int32_t count = batch->numPrt - first;
+    const int32_t prtSize = emitter->prtClass->objSize;
+    if (count > 0) {
+        uint8_t* particle = RpPrtStdBatchParticles(batch) + static_cast<intptr_t>(first) * prtSize;
+        const uint8_t* const keys = prop + kTexCoordsKeys;  // PS3: lwz 0x4(prop)
+        for (int32_t i = 0;;) {
+            const float* const head = reinterpret_cast<const float*>(particle);
+            if (head[1] == 0.0f && o.prtMultiTexCoordsStep >= 0) {
+                uint8_t* const keyed = particle + o.prtMultiTexCoordsStep;
+                float* const times = reinterpret_cast<float*>(keyed + 4);
+                float* const uv0 = reinterpret_cast<float*>(keyed + 4 + timesBytes);
+                float* const uv1 = reinterpret_cast<float*>(keyed + 4 + timesBytes + uv1Bytes);
+                float* const tex = FloatsAt(particle, o.prtTexCoords);
+                const int32_t last = static_cast<int32_t>(WordAt(prop, 0)) - 1;
+                const float* key = Key(keys, kTexCoordsKeySize, 0);
+                float time = ppc::fmadds(SignedRandom(&seed), key[1], key[0]);
+                float u0 = ppc::fmadds(SignedRandom(&seed), key[4], key[2]);
+                float v0 = ppc::fmadds(SignedRandom(&seed), key[5], key[3]);
+                float u1 = ppc::fmadds(SignedRandom(&seed), key[8], key[6]);
+                float v1 = ppc::fmadds(SignedRandom(&seed), key[9], key[7]);
+                int32_t j = 0;
+                while (j < last) {
+                    times[j] = head[2] * time;
+                    uv0[2 * j + 1] = v0;
+                    uv1[2 * j + 1] = v1;
+                    uv0[2 * j] = u0;
+                    uv1[2 * j] = u1;
+                    key = Key(keys, kTexCoordsKeySize, j + 1);
+                    time = ppc::fmadds(SignedRandom(&seed), key[1], key[0]);
+                    u0 = ppc::fmadds(SignedRandom(&seed), key[4], key[2]);
+                    v0 = ppc::fmadds(SignedRandom(&seed), key[5], key[3]);
+                    u1 = ppc::fmadds(SignedRandom(&seed), key[8], key[6]);
+                    v1 = ppc::fmadds(SignedRandom(&seed), key[9], key[7]);
+                    ++j;
+                }
+                times[j] = head[2] * time;
+                uv0[2 * j + 1] = v0;
+                uv0[2 * j] = u0;
+                uv1[2 * j + 1] = v1;
+                uv1[2 * j] = u1;
+                WordAt(keyed, 0) = 0;
+                tex[7] = 0.0f;
+                tex[4] = 0.0f;
+                tex[5] = 0.0f;
+                tex[6] = 0.0f;
+            }
+            if (++i == count) break;
+            particle += prtSize;
+        }
+    }
+    standard->seed = seed;
+    return emitter;
+}
+
+// 0x006f31b8 PrtStdEmitterProp1000001_Emit_maybe (particle emitter, emit slot): every particle the standard
+// emit made this frame (the active ring's head from its new index on) gets its first sub-emission time, its
+// current time + time + timeBias * [-1, 1), and its gap, timeGap + timeGapBias * [-1, 1) (two numbers of the
+// standard property's seed, both fused). The seed is stored back once a new index was set. BUG(original): the
+// property is read without a check (an emitter class with 0x100 always has it).
+RpPrtStdEmitter* PrtEmitterEmit(RpAtomic*, RpPrtStdEmitter* emitter, void*) {
+    CacheAdvPropertyOffsets(emitter);
+    const AdvCachedOffsets& o = g_advOffsets;
+    const RpPrtAdvEmtPrtEmt* const prop =
+        o.emtPrtEmitter >= 0 ? reinterpret_cast<const RpPrtAdvEmtPrtEmt*>(PropertyAt(emitter, o.emtPrtEmitter)) : nullptr;
+    int32_t* const seedWord = reinterpret_cast<int32_t*>(PropertyAt(emitter, o.emtStd));  // the standard seed (+0)
+    int32_t seed = *seedWord;
+    RpPrtStdParticleBatch* const batch = static_cast<RpPrtStdParticleBatch*>(emitter->activeBatch);
+    if (batch == nullptr) return emitter;
+    const int32_t first = batch->newPrt;
+    if (first == -1) return emitter;
+    const int32_t prtSize = emitter->prtClass->objSize;
+    if (first < 0) return emitter;
+    const int32_t count = batch->numPrt - first;
+    if (count > 0) {
+        uint8_t* particle = RpPrtStdBatchParticles(batch) + static_cast<intptr_t>(first) * prtSize;
+        for (int32_t i = 0; i < count; ++i) {
+            const float* const prtStd = FloatsAt(particle, o.prtStd);
+            float* const times = FloatsAt(particle, o.prtPrtEmitter);  // RpPrtAdvPrtEmitter {emtEmitTime, gap}
+            const float start = prtStd[1] + prop->time;
+            float a = SeedToFloat(NextSeed(&seed)) * 0x1p-32f;
+            float b = SeedToFloat(NextSeed(&seed)) * 0x1p-32f;
+            a = a + a;
+            b = b + b;
+            a = a - 1.0f;
+            b = b - 1.0f;
+            times[0] = ppc::fmadds(a, prop->timeBias, start);
+            times[1] = ppc::fmadds(b, prop->timeGapBias, prop->timeGap);
+            particle += prtSize;
+        }
+    }
+    *seedWord = seed;
+    return emitter;
+}
+
+// 0x006f3348 PrtStdEmitterProp1000001_Update_maybe (particle update slot, before the standard update): every
+// live particle of the batch whose current time has passed its next sub-emission time drives the sub-emitter
+// (the 0x1000001 property's, the emitter's next in the atomic's list until set) for one update-and-emit pass
+// (0x72b3a0) from the particle: the atomic's frame takes a matrix along the particle's velocity at its PTank
+// position, the sub-emitter's standard times become the particle's (put back afterwards) and its flags emit
+// without updating its own particles (put back too); the particle's next time moves on by its gap. Then the
+// frame gets its modelling matrix back, is marked and its LTM synced, and the standard offset cache refilled
+// (the sub-emitter's pass changed it). Nothing without a PTank property.
+RpPrtStdParticleBatch* PrtEmitterUpdate(RpPrtStdEmitter* emitter, RpPrtStdParticleBatch* batch, void* data) {
+    float* const deltaTime = static_cast<float*>(data);
+    RpAtomic* const atomic = emitter->atomic;
+    CacheAdvPropertyOffsets(emitter);
+    AdvCachedOffsets& o = g_advOffsets;
+    RpPrtStdEmitterPTank* const ptank =
+        o.emtPTank >= 0 ? reinterpret_cast<RpPrtStdEmitterPTank*>(PropertyAt(emitter, o.emtPTank)) : nullptr;
+    RpPrtAdvEmtPrtEmt* prop = nullptr;
+    RpPrtStdEmitter* sub = nullptr;
+    if (o.emtPrtEmitter >= 0) {
+        prop = reinterpret_cast<RpPrtAdvEmtPrtEmt*>(PropertyAt(emitter, o.emtPrtEmitter));
+        if (prop->emitter == nullptr) prop->emitter = emitter->next;
+        sub = prop->emitter;
+    }
+    // BUG(original): without the property the sub-emitter is null and read.
+    const RpPrtStdPropertyTable* subTable = sub->emtClass->propTab;
+    if (o.subEmitterTable != subTable) {
+        o.subEmtStd = RpPrtStdPropTabGetPropOffset(subTable, rpPRTSTDPROPERTYCODEEMITTERSTANDARD);
+        o.subEmitterTable = sub->emtClass->propTab;
+    }
+    RpPrtStdEmitterStandard* const subStd = reinterpret_cast<RpPrtStdEmitterStandard*>(PropertyAt(sub, o.subEmtStd));
+    if (ptank == nullptr) return batch;
+    // The PTank's position array (data flag 1, the first array) and its stride. BUG(original): without
+    // positions (a PTank of matrices) both stay 0 and the matrix position is read at address 0.
+    const uint8_t* position = nullptr;
+    int32_t positionStride = 0;
+    if ((ptank->dataFlags & 1) != 0) {
+        positionStride = ptank->dataStride[0];
+        position = ptank->dataInPtrs[0];
+    }
+    const int32_t prtSize = emitter->prtClass->objSize;
+    const int32_t num = batch->numPrt;
+    RwFrame* const frame = atomic->frame;
+    RwMatrix saved;
+    std::memcpy(&saved, &frame->modelling, sizeof saved);  // lvx / stvx of the 64 bytes
+    if (num > 0) {
+        uint8_t* const particles = RpPrtStdBatchParticles(batch);
+        for (int32_t i = 0; i < num; ++i, position += positionStride) {
+            uint8_t* const particle = particles + static_cast<intptr_t>(i) * prtSize;
+            // The live test reads the standard particle property at the particle's start (+4 current time,
+            // +8 end time), the time test at its cached offset.
+            const float* const head = reinterpret_cast<const float*>(particle);
+            if (!(head[1] < head[2])) continue;
+            const float* const currTime = FloatsAt(particle, o.prtStd) + 1;
+            float* const times = FloatsAt(particle, o.prtPrtEmitter);
+            if (!(*currTime > times[0])) continue;
+            sub = prop->emitter;
+            RwV3d at;
+            RwV3dNormalize(&at, reinterpret_cast<const RwV3d*>(particle + o.prtVelocity));
+            const float x = at.x, y = at.y, z = at.z;
+            const float ax = std::fabs(x), ay = std::fabs(y), az = std::fabs(z);
+            // The helper axis: (u0, u1, u2) = (0, 0, 1) when |x| is the smallest, (1, 0, 0) when |y| is (|x|
+            // above it), else (0, 1, 0) (fcmpu with cror: NaN goes the "else" way).
+            float u0, u1, u2;
+            if (ax <= ay) {
+                if (ax <= az) {
+                    u0 = 0.0f; u1 = 0.0f; u2 = 1.0f;
+                } else {
+                    u0 = 0.0f; u1 = 1.0f; u2 = 0.0f;
+                }
+            } else if (ay <= az) {
+                u0 = 1.0f; u1 = 0.0f; u2 = 0.0f;
+            } else {
+                u0 = 0.0f; u1 = 1.0f; u2 = 0.0f;
+            }
+            RwMatrix m;
+            const float v2 = ppc::fmsubs(u2, y, u0 * x);
+            const float v0 = ppc::fmsubs(u0, z, u1 * y);
+            const float v1 = ppc::fmsubs(u1, x, u2 * z);
+            m.right.x = v0;
+            m.right.y = v1;
+            m.right.z = v2;
+            m.up.y = ppc::fmsubs(z, v0, x * v2);
+            m.up.z = ppc::fmsubs(x, v1, y * v0);
+            m.up.x = ppc::fmsubs(v2, y, z * v1);
+            m.at = at;
+            const float* const p = reinterpret_cast<const float*>(position);
+            m.pos.x = p[0];
+            m.pos.y = p[1];
+            m.pos.z = p[2];
+            // BUG(original): the flags and pad words are the stack's leftovers (RwFrameTransform copies them);
+            // natively 0 (a general matrix).
+            m.flags = 0;
+            m.pad1 = 0;
+            m.pad2 = 0;
+            m.pad3 = 0;
+            RwFrameTransform(frame, &m, rwCOMBINEREPLACE);
+            RwMatrix* const ltm = RwFrameGetLTM(frame);
+            const float savedTime = subStd->currTime;
+            const float savedEmitTime = subStd->emtEmitTime;
+            subStd->ltm = ltm;
+            subStd->currTime = *currTime;
+            subStd->emtEmitTime = *currTime;
+            // Emit (0x8) and 0x100 on, the particles' own update (0x20) off.
+            sub->flag = (sub->flag | 0x108u) & ~0x20u;
+            EmitterUpdate(atomic, sub, deltaTime);
+            sub->flag = (sub->flag & ~0x108u) | 0x20u;
+            subStd->currTime = savedTime;
+            subStd->emtEmitTime = savedEmitTime;
+            times[0] = times[0] + times[1];
+        }
+    }
+    RwFrameTransform(frame, &saved, rwCOMBINEREPLACE);
+    RwFrameUpdateObjects(frame);
+    RwFrameGetLTM(frame);
+    CacheParticlePropertyOffsets(emitter);
     return batch;
 }
 

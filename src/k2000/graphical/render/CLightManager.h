@@ -27,10 +27,12 @@ public:
     DOTD_DECLARE_FACTORIES(CLightManager)
 
     CLightManager();                  // 0x0009c660 CLightManager_Create (inlined; = CLightManager_Construct 0x97e50)
-    ~CLightManager() override {}      // STUB(C1.6): 0x9deb8 / 0x9ddb0
+    ~CLightManager() override;        // 0x0009deb8 / 0x0009ddb0 CLightManager_Destructor / _DeletingDestructor
     // vt+0x08 0x99c9f0
     int32_t IsKindOfClass(uint32_t key) override { return key == 0x90d || key == 0xa8d || key == 0xc; }
     void Destroy() override;  // vt+0x10 0x0009c068 CLightManager_Destroy
+    // vt+0x24 0x00097ef8 CLightManager_RecursiveRegistration: type 0 only, itself registered, then every light set's (0).
+    void RecursiveRegistration(int32_t type) override;
     int32_t Load(IKFile* file, int32_t type) override;      // vt+0x2c 0x0009c988 CLightManager_Load
     int32_t GetSerializationFlags() override { return 0; }  // vt+0x34 0x99ca28
     // vt+0x54 0x0009afe0 CLightManager_PreUpdate: the rig black (ApplyLightingZone with no zone), every light set's world
@@ -40,7 +42,7 @@ public:
     // lights near the focus chosen, the point light nodes' own update.
     void UpdateAndExtract(float maxDistanceSquared, RenderQueue** stages, IKTime* frameClock, RwCamera* camera,
                           int32_t distanceCull) override;
-    void Render() override {}                               // vt+0x5c 0x99ca30 (empty)
+    void Render(IKTime* /*frameClock*/) override {}                               // vt+0x5c 0x99ca30 (empty)
     // vt+0x70 0x0009b0d8 CLightManager_CanBeUpdated: the renderer's bit 1 (the scene roots are not extracted) is clear.
     int32_t CanBeUpdated() override;
 

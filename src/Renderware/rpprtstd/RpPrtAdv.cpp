@@ -1,8 +1,8 @@
 // RpPrtAdv.cpp - the advanced emitter properties (RpPrtAdv) and the emitter class callback builder DotD
 // installs, ported from the PS3 library code (TOC 0xc25974, 0x6ef3b0-0x6f5df0): the create, stream read
 // and copy callbacks of each property; their emit / update callbacks are in RpPrtAdvRuntime.cpp. STUB(C2):
-// the sphere, circle, particle emitter and texcoords step emits (0x6f1110, 0x6f1a00, 0x6f31b8, 0x6f5898)
-// and the stream write/size callbacks are not ported.
+// the stream write / size callbacks (slots 8 / 9) are not ported (nothing in the game writes RenderWare
+// streams).
 //
 //   [x] 0x6ef410  RpPrtStdPClass_BuildStdCallBackArray_maybe
 //   [x] 0x6ef7c8  RpPrtStdEClass_BuildStdCallBackArray_maybe
@@ -26,7 +26,6 @@
 #include "Renderware/rpprtstd/RpPrtStd.h"
 #include "Renderware/rpprtstd/RpPrtStdInternal.h"
 #include "Renderware/rpprtstd/RpPrtStdRuntime.h"
-#include "k2000/core/Stub.h"
 
 namespace rpprtstd {
 
@@ -47,6 +46,25 @@ void InitKeys(uint8_t* prop, uint32_t keys, uint32_t count) {
     StoreSelfPointer(prop + 4, prop + keys);
     WordAt(prop, 0) = count;
     WordAt(prop, 8) = 4;
+}
+
+// The stride words a version < 3 stream gets again in 0x6f3d58, from the streamed key count (the time
+// offset 4, then the particle arrays after the n times): colour start / delta (16 bytes per key), texcoords
+// UV0 start / delta and UV1 start / delta (8 each), size start / delta (8).
+void LegacyStrides(uint8_t* prop, int32_t propID, uint32_t count) {
+    const uint32_t first = count * 4 + 4;
+    WordAt(prop, 8) = 4;
+    WordAt(prop, 0xc) = first;
+    if (propID == rpPRTADVPROPERTYCODEEMITTERPRTMULTICOLOR) {
+        WordAt(prop, 0x10) = first + count * 0x10;
+    } else if (propID == rpPRTADVPROPERTYCODEEMITTERPRTMULTITEXCOORDS) {
+        const uint32_t step = count * 8;
+        WordAt(prop, 0x10) = first + step;
+        WordAt(prop, 0x14) = first + step + step;
+        WordAt(prop, 0x18) = first + step + step + step;
+    } else {
+        WordAt(prop, 0x10) = first + count * 8;
+    }
 }
 
 }  // namespace
@@ -165,7 +183,7 @@ RpPrtStdEmitter* PrtEmitterCopy(RpAtomic*, RpPrtStdEmitter* emitter, void* data)
     if (from >= 0 && to >= 0) {
         uint8_t* target = PropertyAt(clone, to);
         std::memcpy(target, PropertyAt(emitter, from), 0x10);
-        WordAt(target, 0x10) = 0;
+        reinterpret_cast<RpPrtAdvEmtPrtEmt*>(target)->emitter = nullptr;
     }
     return clone;
 }
@@ -223,7 +241,7 @@ RpPrtStdEmitter* MultiStreamRead(RpAtomic*, RpPrtStdEmitter* emitter, void* data
         const uint32_t count = WordAt(prop, 0);
         if (count == 0) continue;
         stream->ReadWords(prop + keys.keys, count * keys.keySize);
-        if (g_streamVersion < 3) DOTD_STUB_ONCE("RpPrtAdv multi keys: legacy (version < 3) strides (C2)");
+        if (g_streamVersion < 3) LegacyStrides(prop, keys.propID, count);
     }
     return emitter;
 }
@@ -278,7 +296,13 @@ RpPrtStdEmitter* TexCoordsStepStreamRead(RpAtomic*, RpPrtStdEmitter* emitter, vo
     const uint32_t count = WordAt(prop, 0);
     if (count != 0) {
         stream->ReadWords(prop + 0x1c, count * 0x28);
-        if (g_streamVersion < 3) DOTD_STUB_ONCE("RpPrtAdv texcoords step: legacy (version < 3) strides (C2)");
+        // Version < 3 streams: the stride words set again (the time offset 4, the UV0 array after the
+        // times, the UV1 array 8 bytes per key after it; +0x10 and +0x18 are left).
+        if (g_streamVersion < 3) {
+            WordAt(prop, 8) = 4;
+            WordAt(prop, 0xc) = count * 4 + 4;
+            WordAt(prop, 0x14) = count * 4 + 4 + count * 8;
+        }
     }
     return emitter;
 }
@@ -315,11 +339,13 @@ RpPrtStdEmitterClass* EClassBuildCallBackArray(RpPrtStdEmitterClass* eClass) {
             count = 2;
             break;
         case 0x20000u:
+            features[0].callback[rpPRTSTDEMITTERCALLBACKEMIT] = CircleEmit;
             features[0].callback[rpPRTSTDEMITTERCALLBACKSTREAMREAD] = CircleStreamRead;
             features[0].callback[rpPRTSTDEMITTERCALLBACKCLONE] = CircleCopy;
             count = 2;
             break;
         case 0x30000u:
+            features[0].callback[rpPRTSTDEMITTERCALLBACKEMIT] = SphereEmit;
             features[0].callback[rpPRTSTDEMITTERCALLBACKSTREAMREAD] = SphereStreamRead;
             features[0].callback[rpPRTSTDEMITTERCALLBACKCLONE] = SphereCopy;
             count = 2;
@@ -328,6 +354,7 @@ RpPrtStdEmitterClass* EClassBuildCallBackArray(RpPrtStdEmitterClass* eClass) {
             break;
     }
     if ((id & 0x100u) != 0) {
+        features[count - 1].callback[rpPRTSTDEMITTERCALLBACKEMIT] = PrtEmitterEmit;
         features[count - 1].callback[rpPRTSTDEMITTERCALLBACKSTREAMREAD] = PrtEmitterStreamRead;
         features[count - 1].callback[rpPRTSTDEMITTERCALLBACKCLONE] = PrtEmitterCopy;
         ++count;
@@ -340,6 +367,7 @@ RpPrtStdEmitterClass* EClassBuildCallBackArray(RpPrtStdEmitterClass* eClass) {
         ++count;
     }
     if ((id & 0x800u) != 0) {
+        features[count - 1].callback[rpPRTSTDEMITTERCALLBACKEMIT] = TexCoordsStepEmit;
         features[count - 1].callback[rpPRTSTDEMITTERCALLBACKCREATE] = TexCoordsStepInit;
         features[count - 1].callback[rpPRTSTDEMITTERCALLBACKSTREAMREAD] = TexCoordsStepStreamRead;
         features[count - 1].callback[rpPRTSTDEMITTERCALLBACKCLONE] = TexCoordsStepCopy;
@@ -360,8 +388,8 @@ RpPrtStdEmitterClass* EClassBuildCallBackArray(RpPrtStdEmitterClass* eClass) {
 
 // 0x006ef410 RpPrtStdPClass_BuildStdCallBackArray_maybe: per slot, the particle emitter feature's callback
 // (0x100) before the standard one, then the multi (0x1600) and texcoords step (0x800) features'. Only the
-// update slot has callbacks: the standard update (0x734188), 0x1000001's (0x6f3348, STUB(C2): not ported,
-// no DotD menu class uses it), the key frames (0x6f50e0), the texcoord steps (0x6f5df0).
+// update slot has callbacks: 0x1000001's (0x6f3348, RpPrtAdvRuntime.cpp), the standard update (0x734188),
+// the key frames (0x6f50e0), the texcoord steps (0x6f5df0).
 // The count is 1 + one per feature present.
 RpPrtStdParticleClass* PClassBuildCallBackArray(RpPrtStdParticleClass* pClass) {
     const uint32_t id = static_cast<uint32_t>(pClass->id);
@@ -369,7 +397,7 @@ RpPrtStdParticleClass* PClassBuildCallBackArray(RpPrtStdParticleClass* pClass) {
     RpPrtStdParticleCallBack post[2] = {};
     int32_t count = 1;
     if ((id & 0x100u) != 0) {
-        pre = nullptr;  // PrtStdEmitterProp1000001_Update_maybe 0x6f3348: STUB(C2)
+        pre = PrtEmitterUpdate;  // 0x6f3348 PrtStdEmitterProp1000001_Update_maybe
         count = 2;
     }
     if ((id & 0x1600u) != 0) {
@@ -380,7 +408,6 @@ RpPrtStdParticleClass* PClassBuildCallBackArray(RpPrtStdParticleClass* pClass) {
         post[1] = TexCoordStepUpdate;  // 0x6f5df0
         ++count;
     }
-    if ((id & 0x100u) != 0) DOTD_STUB_ONCE("RpPrtStdPClass: 0x1000001 particle emitter update (C2)");
     RpPrtStdParticleCallBackArray packed[4] = {};
     int32_t used = 0;
     if (pre != nullptr) packed[used++].callback[rpPRTSTDPARTICLECALLBACKUPDATE] = pre;

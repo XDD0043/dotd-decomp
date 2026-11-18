@@ -5,7 +5,7 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x326b8  CKSas_Delete
-//   [ ] 0x32708  CKSas_RecursiveRegistration
+//   [x] 0x32708  CKSas_RecursiveRegistration
 //   [ ] 0x32768  RegisterCKSasClass
 //   [ ] 0x327e0  _GLOBAL__I_327e0
 //   [x] 0x327f0  CKSas_DeleteArray
@@ -15,11 +15,11 @@
 //   [x] 0x32970  CKSas_Load
 //   [x] 0x32b00  CKSas_PostLoad
 //   [ ] 0x32b08  CKSas_IsPointInBoxForSector_maybe  [dead]
-//   [ ] 0x32bb0  CKSas_Destroy
-//   [ ] 0x32bb8  CKSector_Delete
+//   [x] 0x32bb0  CKSas_Destroy  (empty: the default)
+//   [x] 0x32bb8  CKSector_Delete  (CKSector DOTD_DECLARE_FACTORIES Delete: vt+0x04 when not null)
 //   [x] 0x32c08  CKSector_SetActive_maybe  (inline in CKSector.h)
-//   [ ] 0x32c20  CKSector_vf54
-//   [ ] 0x32c28  CKSector_vf58
+//   [x] 0x32c20  CKSector_vf54  (CKSector.h SectorLoaded: empty)
+//   [x] 0x32c28  CKSector_vf58  (CKSector.h SectorUnload: empty)
 //   [ ] 0x32c30  FUN_00032c30  [dead]
 //   [ ] 0x32c40  FUN_00032c40  [dead]
 //
@@ -32,6 +32,8 @@
 #include "k2000/logic/CKSas.h"
 
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 
 // 0x00032970 CKSas_Load: the two sector numbers, then the two boxes (twelve floats). The original reads the bytes
 // raw and swaps each word.
@@ -39,4 +41,9 @@ int32_t CKSas::Load(IKFile* file, int32_t /*type*/) {
     ReadU32LEWords(file, &m_ui32SectorA, 2);
     ReadU32LEWords(file, reinterpret_cast<uint32_t*>(&m_boxA), 12);
     return 1;
+}
+
+// 0x00032708 CKSas_RecursiveRegistration
+void CKSas::RecursiveRegistration(int32_t type) {
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
 }

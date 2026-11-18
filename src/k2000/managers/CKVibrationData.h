@@ -11,11 +11,17 @@
 class CKVibrationData : public IKComponent {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x33)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a63c8
+        return key == 0xccc || key == 0x6 || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKVibrationData)
 
     CKVibrationData() {}  // 0x00107940 CKVibrationData_Create: the vtable only
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00108768 CKVibrationData_Load
+    // vt+0x24 0x00107a60 CKVibrationData_RecursiveRegistration (P21, CKInput.cpp): type 0 registers it with the saving
+    // manager. Returns 1.
+    void RecursiveRegistration(int32_t type) override;
 
     IKSerializable* m_pOwner;  // +0x04 Load sets null
     uint8_t m_ui8OwnerIndex;   // +0x08 Load sets 0

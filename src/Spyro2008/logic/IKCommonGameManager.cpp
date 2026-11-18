@@ -34,6 +34,13 @@
 #include "k2000/render/CRenderer.h"
 #include "k2000/ui/IKNode2d.h"
 #include "k2000/math/CVector2.h"
+#include "k2000/fx/IKFx.h"
+#include "k2000/graphical/fx/CColorizedScreenData.h"
+#include "k2000/graphical/fx/CColorizedScreenFx.h"
+#include "k2000/logic/IKFxData.h"
+#include "k2000/managers/CKSoundManager.h"
+#include "k2000/services/CKSrvFx.h"
+#include "k2000/sound/CKSoundOutput.h"
 
 // 0x004f4708 IKCommonGameManager_State6_maybe. Update: the +0x2a8 billboard placed at player 0's
 // position (reset to (-1, -1) through vt+0x31c when vt+0x310(0) is clear) and shown. Leave: both billboards
@@ -59,8 +66,9 @@ uint8_t CKS08GameManager::State6Common(int32_t phase, uint8_t /*other*/) {
     return 6;
 }
 
-// 0x004f48d0 IKCommonGameManager_StateHeroDeath_maybe. STUB(C1.6).
-uint8_t CKS08GameManager::StateHeroDeathCommon(int32_t, uint8_t) { return 9; }
+// 0x004f48d0 IKCommonGameManager_StateHeroDeath_maybe: 9 on enter and leave (any phase but 0), 0 on update: the
+// common state ends at once (CKS08GameManager's StateHeroDeath does not call it).
+uint8_t CKS08GameManager::StateHeroDeathCommon(int32_t phase, uint8_t) { return phase != 0 ? 9 : 0; }
 // 0x004f48f0 KStub_Return10_4f48f0
 uint8_t CKS08GameManager::StateReturn10(int32_t, uint8_t) { return 10; }
 // 0x004f48f8 KStub_Return11_4f48f8
@@ -176,5 +184,60 @@ uint8_t CKS08GameManager::StateInGameCommon(int32_t phase, uint8_t) {
     }
     return 7;
 }
-// 0x004f5128 CKS08GameManager_StateMenuCommon_maybe. STUB(C1.6): the pause menu.
-uint8_t CKS08GameManager::StateMenuCommon(int32_t, uint8_t) { return 8; }
+// 0x004f5128 CKS08GameManager_StateMenuCommon_maybe: the pause (game state 8) common part. Enter: the sound output's
+// environment kept (+0x324) and environment 0 selected, the game paused (the loop's pause count), the pause tint
+// (+0x4bc with the data +0x4c0, shown: bit 8) when vt+0x358, the effect of the FX data +0x4c4 started for the manager
+// (+0x4c8, run while paused). Leave: the tint hidden, the effect released, both pointer billboards hidden, the game
+// resumed, the kept environment back. Update: the pointer billboard of the player +0x4d4 placed at its pointer
+// (reset to (-1, -1) when the pointer is off, vt+0x310 / +0x314 / +0x31c) and shown.
+uint8_t CKS08GameManager::StateMenuCommon(int32_t phase, uint8_t) {
+    if (phase == 1) {
+        CKSoundOutput* output = g_pEngine->m_soundManager->m_pOutput;
+        m_unk324 = output->m_pCurrentEffect;
+        output->SelectEffectByIndex(0);  // 0x114b30
+        Engine_PushGamePause(this);      // 0x14dc8
+        if (Vf358() != 0) {
+            CColorizedScreenFx* tint = static_cast<CColorizedScreenFx*>(m_unk4BC);
+            tint->ApplyData(static_cast<CColorizedScreenData*>(m_unk4C0));  // 0xb0b00
+            tint->m_BitProperties = (tint->m_BitProperties & ~0x100u) | 0x100u;
+        }
+        if (m_unk4C4 == nullptr) return 8;
+        // The inlined CKSrvFx_AcquireFx (0x9bdc18) for the manager.
+        IKFx* fx = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(static_cast<IKFxData*>(m_unk4C4), this);
+        m_unk4C8 = fx;
+        if (fx != nullptr) fx->SetUpdateWhenPaused(1);  // vt+0x90
+        return 8;
+    }
+    if (phase == 2) {
+        if (Vf358() != 0) {
+            CColorizedScreenFx* tint = static_cast<CColorizedScreenFx*>(m_unk4BC);
+            tint->m_BitProperties &= ~0x100u;
+        }
+        if (m_unk4C8 != nullptr) {
+            static_cast<IKFx*>(m_unk4C8)->StopAndRelease(this);  // vt+0x58
+            m_unk4C8 = nullptr;
+        }
+        static_cast<IKNode2d*>(m_unk2A8[1])->Disable();  // vt+0x68
+        static_cast<IKNode2d*>(m_unk2A8[0])->Disable();
+        Engine_PopGamePause(this);  // 0x14d98
+        if (m_unk324 == nullptr) return 8;
+        g_pEngine->m_soundManager->m_pOutput->SetCurrentEffect(m_unk324);  // 0x114578
+        m_unk324 = nullptr;
+        return 8;
+    }
+    if (phase != 0) return 8;
+    const int32_t player = m_ui8PausePlayer != 0 ? 1 : 0;
+    if (Vf310(player) == 0 || g_pEngine->m_gameLoop->m_unk5c != 0) {
+        Vf314(player, 1);
+        const CVector2 pointer = GetPointerPosition(player);  // vt+0x31c
+        m_afUnk298[player * 2] = pointer.m_fX;
+        m_afUnk298[player * 2 + 1] = pointer.m_fY;
+    }
+    IKNode2d* billboard = static_cast<IKNode2d*>(m_unk2A8[player]);
+    CVector2 position;
+    position.m_fX = m_afUnk298[player * 2];
+    position.m_fY = m_afUnk298[player * 2 + 1];
+    billboard->SetPos(position);  // vt+0x74
+    billboard->Enable();          // vt+0x64
+    return 8;
+}

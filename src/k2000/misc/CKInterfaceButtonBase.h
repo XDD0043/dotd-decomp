@@ -35,7 +35,7 @@ public:
     int32_t GetClassType() override { return kCategoryLogic; }  // vt+0x14 0x9984d8 (unregistered key 0x63cc)
     int32_t GetClassID() override { return 0x18f; }             // vt+0x18 0x9984e0
     void RecursiveRegistration(int32_t /*type*/) override {}  // vt+0x24 0x67fe8 (returns 1)
-    int32_t Save(IKFile* /*file*/) override { return 1; }                   // vt+0x28 0x67fe0
+    int32_t Save(IKFile* /*file*/, int32_t /*type*/) override { return 1; }                   // vt+0x28 0x67fe0
     int32_t Load(IKFile* file, int32_t type) override;          // vt+0x2c 0x00068010 CKInterfaceButtonBase_63cc_maybe_Load
 
     // vt+0x50 0x000682e0 CKInterfaceButtonBase_63cc_maybe_Open: `focused` is 1 when a player's selection is

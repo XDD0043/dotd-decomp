@@ -63,6 +63,29 @@ RwStream* HAnimStreamRead(RwStream* stream, RwInt32 /*length*/, RwFrame* frame) 
     return stream;
 }
 
+// 0x006e8330 HAnimFrameDestructor_maybe
+void HAnimFrameDestructor(RwFrame* frame) {
+    RpHAnimHierarchy* hierarchy = frame->hanimHierarchy;
+    if (hierarchy != nullptr) {
+        for (RwInt32 i = 0; i < hierarchy->numNodes; ++i) hierarchy->pNodeInfo[i].pFrame = nullptr;
+        RwFrame* parent = hierarchy->parentFrame;
+        if (parent == frame) {
+            if ((hierarchy->flags & 1) == 0) {  // not a sub-hierarchy (rpHANIMHIERARCHYSUBHIERARCHY)
+                if ((hierarchy->flags & 2) == 0) RwFree(hierarchy->pMatrixArrayUnaligned);  // rpHANIMHIERARCHYNOMATRICES
+                RwFree(hierarchy->pNodeInfo);
+            }
+            hierarchy->pMatrixArrayUnaligned = nullptr;
+            hierarchy->pMatrixArray = nullptr;
+            hierarchy->pNodeInfo = nullptr;
+            RtAnimInterpolatorDestroy(hierarchy->currentAnim);
+            RwFree(hierarchy);  // RwFreeListFree (the hierarchy free list: the host heap here)
+            if (parent != nullptr) parent->hanimHierarchy = nullptr;
+        }
+        frame->hanimHierarchy = nullptr;
+    }
+    frame->hanimID = -1;
+}
+
 // 0x006e62f8 RpHAnimFrameGetHierarchy
 RpHAnimHierarchy* RpHAnimFrameGetHierarchy(RwFrame* frame) { return frame->hanimHierarchy; }
 

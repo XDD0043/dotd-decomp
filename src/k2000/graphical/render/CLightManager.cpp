@@ -6,7 +6,7 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [ ] 0x97e50  CLightManager_Construct  [dead]
 //   [ ] 0x97ee8  CLightSet_GetOwnerSector_maybe  [dead]
-//   [ ] 0x97ef8  CLightManager_RecursiveRegistration
+//   [x] 0x97ef8  CLightManager_RecursiveRegistration  (CLightManager::RecursiveRegistration)
 //   [ ] 0x97ff0  CLightManager_RemovePointLight_maybe  [dead]
 //   [ ] 0x98090  RegisterCLightManagerAndCLightSetClasses
 //   [ ] 0x98148  _GLOBAL__I_98148
@@ -31,14 +31,14 @@
 //   [x] 0x9b0d8  CLightManager_vf70
 //   [ ] 0x9b0f8  CLightManager_Construct_2  [dead]
 //   [ ] 0x9b190  CLightManager_GetPointLightPosition_maybe  [dead]
-//   [ ] 0x9b200  CLightManager_PostLoad
+//   [x] 0x9b200  CLightManager_PostLoad  (PostLoad: returns 1, the default slot)
 //   [x] 0x9b208  CLightManager_ComputeLightCount_maybe
 //   [ ] 0x9b338  CLightSet_InitBounds_2_maybe  [dead]
 //   [x] 0x9b3a8  CLightManager_DestroyRwLights_maybe
 //   [ ] 0x9b5d0  CLightManager_GetPointLightColor_maybe  [dead]
-//   [ ] 0x9b628  CLightSet_RecursiveRegistration
+//   [x] 0x9b628  CLightSet_RecursiveRegistration
 //   [x] 0x9b770  CLightSet_Create
-//   [ ] 0x9b7d8  CLightSet_Destroy
+//   [x] 0x9b7d8  CLightSet_Destroy  (Destroy: empty, the default slot)
 //   [x] 0x9b7e0  CLightSet_InitLightLists_maybe
 //   [x] 0x9ba90  CLightSet_GrowZoneArrays_maybe
 //   [ ] 0x9bc88  CLightSet_Save
@@ -49,20 +49,20 @@
 //   [x] 0x9c660  CLightManager_Create
 //   [x] 0x9c730  CLightManager_CreateArray
 //   [ ] 0x9c860  FUN_0009c860  [dead]
-//   [ ] 0x9c8d8  CLightSet_PostLoad
+//   [x] 0x9c8d8  CLightSet_PostLoad  (CLightSet::PostLoad)
 //   [x] 0x9c988  CLightManager_Load
 //   [x] 0x9cd28  CLightSet_Load
 //   [x] 0x9d1a0  CLightManager_Enqueue
 //   [ ] 0x9d7b0  CLightManager_Destructor_2  [dead]
 //   [x] 0x9d8a8  CSGLight_ComputeZoneOverlapWeights_maybe
-//   [ ] 0x9ddb0  CLightManager_DeletingDestructor
-//   [ ] 0x9deb8  CLightManager_Destructor
+//   [x] 0x9ddb0  CLightManager_DeletingDestructor
+//   [x] 0x9deb8  CLightManager_Destructor
 //   [ ] 0x9dfb0  FUN_0009dfb0  [dead]
 //   [ ] 0x9e010  KStub_Return1_9e010  [dead]
-//   [ ] 0x9e018  CMaterialMode7or8SharedState_Load_maybe
-//   [ ] 0x9e100  CMaterialMode7or8SharedState_Release_maybe
+//   [x] 0x9e018  CMaterialMode7or8SharedState_Load_maybe  (CMaterialSharedState::Load, CMaterial.cpp)
+//   [x] 0x9e100  CMaterialMode7or8SharedState_Release_maybe
 //   [ ] 0x9e128  KStub_Return2_9e128  [dead]
-//   [ ] 0x9e130  CRenderer_Destroy
+//   [x] 0x9e130  CRenderer_Destroy  (the registry factory: CRenderer::Delete, CRenderer.cpp)
 //   [ ] 0x9e180  FUN_0009e180  [dead]
 //
 //   [x] 0x99c9f0  CLightManager_IsKindOfClass  [inline]
@@ -73,8 +73,8 @@
 //   [x] 0x99ca38  CLightSet_GetClassType  [inline]
 //   [x] 0x99ca40  CLightSet_GetClassID  [inline]
 //   [x] 0x99ca48  CLightSet_IsKindOfClass  [inline]
-//   [ ] 0x99ca68  CLightSet_DeletingDestructor  [inline]
-//   [ ] 0x99cbd0  CLightSet_Destructor  [inline]
+//   [x] 0x99ca68  CLightSet_DeletingDestructor  [inline]
+//   [x] 0x99cbd0  CLightSet_Destructor  [inline]
 #include "k2000/graphical/render/CLightManager.h"
 
 #include <cstring>
@@ -150,6 +150,21 @@ CLightManager::CLightManager() {
     m_aHardwareDirectionalLights[0] = nullptr;
     m_aHardwareDirectionalLights[1] = nullptr;
     m_aHardwareDirectionalLights[2] = nullptr;
+}
+
+// 0x0009deb8 CLightManager_Destructor: the four vectors' blocks freed (Destroy has normally done it), last
+// declared first; the light-set vector's fields are left.
+CLightManager::~CLightManager() {
+    if (m_vUnk3c.m_pBlock != nullptr) Mem_FreeAligned16(m_vUnk3c.m_pBlock);
+    m_vUnk3c.m_pBlock = nullptr;
+    m_vUnk3c.m_ui32NbUsedElt = 0;
+    if (m_vUnk30.m_pBlock != nullptr) Mem_FreeAligned16(m_vUnk30.m_pBlock);
+    m_vUnk30.m_pBlock = nullptr;
+    m_vUnk30.m_ui32NbUsedElt = 0;
+    if (m_vUnk24.m_pBlock != nullptr) Mem_FreeAligned16(m_vUnk24.m_pBlock);
+    m_vUnk24.m_ui32NbUsedElt = 0;
+    m_vUnk24.m_pBlock = nullptr;
+    if (m_vLightSets.m_pBlock != nullptr) Mem_FreeAligned16(m_vLightSets.m_pBlock);
 }
 
 // 0x0009c068 CLightManager_Destroy: the light-set list and the three other lists freed.
@@ -356,11 +371,13 @@ void SetRigDirection(RpLight* light, const CVector3& direction) {
     frame->ltm.at.z = direction.z;
 }
 
+// The renderer's world (renderer +0x34, RpWorld.h), the one the rig's lights are added to.
+RpWorld* RendererWorld() { return g_pEngine->m_graphic->m_renderer->m_pWorld; }
 void RemoveFromWorld(RpLight* light) {
-    if (RpLightGetWorld(light) != nullptr) RpWorldRemoveLight(nullptr, light);
+    if (RpLightGetWorld(light) != nullptr) RpWorldRemoveLight(RendererWorld(), light);
 }
 void AddToWorld(RpLight* light) {
-    if (RpLightGetWorld(light) == nullptr) RpWorldAddLight(nullptr, light);
+    if (RpLightGetWorld(light) == nullptr) RpWorldAddLight(RendererWorld(), light);
 }
 bool IsBlack(const uint8_t rgba[4]) { return std::memcmp(rgba, kColorBlack, 4) == 0; }
 
@@ -400,7 +417,7 @@ uint32_t PackedColor(const RpLight* light) {
 // one black and in the world.
 void CLightManager::CreateWorldLights() {
     auto blacken = [](RpLight* light, ColorForm form) {
-        RpWorldAddLight(nullptr, light);
+        RpWorldAddLight(RendererWorld(), light);
         light->object.flags = 1;  // rpLIGHTLIGHTATOMICS
         SetRigColor(light, kColorBlack, form);
     };
@@ -416,7 +433,7 @@ void CLightManager::CreateWorldLights() {
 // 0x0009b3a8 CLightManager_DestroyRwLights_maybe
 void CLightManager::DestroyRwLights() {
     if (m_pAmbientLight != nullptr) {
-        RpWorldRemoveLight(nullptr, m_pAmbientLight);
+        RpWorldRemoveLight(RendererWorld(), m_pAmbientLight);
         RpLightDestroy(m_pAmbientLight);
         m_pAmbientLight = nullptr;
     }
@@ -832,8 +849,7 @@ void CSGLight::ComputeZoneOverlapWeights() {
                 continue;  // no overlap
             }
             // AABB_ContainsAABB(zone box, light box) 0x23c280: the zone lies inside the light's box.
-            const bool zoneInside = box.m_sup.x <= light.m_sup.x && box.m_sup.y <= light.m_sup.y && box.m_sup.z <= light.m_sup.z &&
-                                    light.m_inf.x <= box.m_inf.x && light.m_inf.y <= box.m_inf.y && light.m_inf.z <= box.m_inf.z;
+            const bool zoneInside = AABB_ContainsAABB(&box, &light);
             if (zoneInside) {
                 ratio = 1.0f;
             } else {
@@ -867,4 +883,37 @@ void CSGLight::ComputeZoneOverlapWeights() {
         }
         ratios.m_pBlock[ratios.m_ui32NbUsedElt++] = ratio;
     }
+}
+
+// 0x0009b628 CLightSet_RecursiveRegistration (C2.8 save-menu)
+#include "k2000/graphical/render/CLightSet.h"
+#include "k2000/logic/CKSavingManager.h"
+void CLightSet::RecursiveRegistration(int32_t type) {
+    if (type != 0) return;
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    for (CLightComponent* component : m_apLightComponent) component->RecursiveRegistration(0);
+}
+
+// 0x00097ef8 CLightManager_RecursiveRegistration
+void CLightManager::RecursiveRegistration(int32_t type) {
+    if (type != 0) return;
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    const uint32_t count = m_vLightSets.m_ui32NbUsedElt;
+    for (uint32_t i = 0; i < count; ++i) m_vLightSets.m_pBlock[i]->RecursiveRegistration(0);
+}
+
+// 0x0009c8d8 CLightSet_PostLoad: the half extents (sup - inf) * 0.5 (TOC1 -0x62e4), each a fsubs then a fmuls.
+int32_t CLightSet::PostLoad(int32_t /*type*/) {
+    if ((m_baProperties & 3u) != 2u) {
+        m_unk74 = -1;
+        m_pFollowedLeaf = nullptr;
+        return 1;
+    }
+    static const CVector3 kNullVector = {0.0f, 0.0f, 0.0f};  // 0x00c50d64
+    CVector3 half;
+    half.x = (m_xLocalInfluenceBox.m_sup.x - m_xLocalInfluenceBox.m_inf.x) * 0.5f;
+    half.y = (m_xLocalInfluenceBox.m_sup.y - m_xLocalInfluenceBox.m_inf.y) * 0.5f;
+    half.z = (m_xLocalInfluenceBox.m_sup.z - m_xLocalInfluenceBox.m_inf.z) * 0.5f;
+    BBox_SetFromCenterExtents(&m_xLocalInfluenceBox, &kNullVector, &half);  // 0x0023d550
+    return 1;
 }

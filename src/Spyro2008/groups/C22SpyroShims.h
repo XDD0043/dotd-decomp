@@ -50,24 +50,9 @@ inline void ListenerSetOrientationFollowCamera(CKListener* listener, int32_t fol
     listener->m_unk3c = follow != 0 ? 0u : 1u;
 }
 
-// 0x004497d0 CKHkHeroActivator_SetEnabled (k2000/hooks/CKHkHeroActivator.cpp, family hooks) for enabled == 0,
-// the only way the C2.2 spyro code calls it (vt+0xcc). Local copy.
-// STUB(C2.2): SetMarkerFx(0) 0x4494c0 releases the marker node fx with its vt+0x58 when m_unk94 is set; the
-// activators start with it clear (PostLoad), so only that branch is left out.
-inline void HeroActivatorDisable(CKHkHeroActivator* activator) {
-    activator->m_bitArray = activator->m_bitArray & 0xfffffeffu;  // enabled bit (bit 8) = 0
-    activator->m_bitArray = activator->m_bitArray & 0xfffff9ffu;
-    activator->m_unk94 = 0;
-    if (activator->m_unk60 != nullptr) {
-        CParticlesNodeFx* marker = static_cast<CParticlesNodeFx*>(activator->m_unk60);
-        marker->m_sgProperties = marker->m_sgProperties & 0xfff7fbffu;  // bits 10 and 19
-        marker->m_pRpPrtStdEmitter->flag = marker->m_pRpPrtStdEmitter->flag & 0xfffffff7u;
-    }
-    if (activator->m_pKGLObject != nullptr) {
-        CSGLeaf* object = static_cast<CSGLeaf*>(activator->m_pKGLObject);
-        object->m_sgProperties = (object->m_sgProperties & 0xfffffffbu) | 4u;  // (enabled ^ 1) << 2
-    }
-}
+// 0x00448038 CKHkHeroActivator_CallSetEnabled with 0: the activator's vt+0xcc (0x004497d0 CKHkHeroActivator_SetEnabled,
+// k2000/hooks/CKHkHeroActivator.cpp), which also releases the input-icon effect (SetMarkerFx(0) 0x4494c0).
+inline void HeroActivatorDisable(CKHkHeroActivator* activator) { CKHkHeroActivator_CallSetEnabled(activator, 0); }
 
 // 0x001920e8 CKSrvCollision_DisableVolume (k2000/services/CKSrvCollision.cpp, family svc). Local copy.
 inline void CollisionDisableVolume(CKSrvCollision* service, IKBoundingVolume* volume) {

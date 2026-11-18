@@ -5,15 +5,25 @@
 #include <cstdint>
 
 #include "k2000/core/Layout.h"
+#include "k2000/hooks/GroundContact.h"
 #include "k2000/math/CMatrix34.h"
 #include "k2000/services/IKService.h"
 #include "k2000/util/TVector.h"
 
-// The ground a shadow is cast on (XXL2 CKShadowGround). Only the in-use byte is known.
+class IKTime;
+
+// The ground a shadow is cast on (XXL2 CKShadowGround), embedded in the casters (IKHkEnemy +0x190, CKHkMovableCharacter
+// +0xd4). CKShadowSpot_Update fills it from its ground probe.
 struct CKShadowGround {
-    uint8_t m_unk00[0x1d];
+    CVector3 m_v3Position;  // +0x00 the shadow's point on the ground (the probe's start)
+    CVector3 m_v3Normal;    // +0x0c the ground's normal there
+    float m_fUnk18;         // +0x18 the height above the ground (the contact's m_fdH); the shadow shrinks above 0.05
+    // +0x1c bit 0 probe the ground, 1 keep the normal, 2 keep +0x18, 3 probe from the leaf's position, 4 no shadow
+    uint8_t m_ui8Flags;
     uint8_t m_bUsed_maybe;  // +0x1d CKSrvShadow_Stop clears it
 };
+DOTD_ASSERT_OFFSET(CKShadowGround, m_fUnk18, 0x18);
+DOTD_ASSERT_OFFSET(CKShadowGround, m_ui8Flags, 0x1c);
 DOTD_ASSERT_OFFSET(CKShadowGround, m_bUsed_maybe, 0x1d);
 
 // XXL2 CKShadowSpot (an IKShadow): one shadow quad, 0x8c bytes on the PS3, vtable 0xb1ede0 (Ghidra:
@@ -27,7 +37,12 @@ public:
     // component, the shadowed leaf and the ground. The shadow texture is bound to the spot node's
     // material, which is rendering state.
     virtual void SetData(IKSerializable* shadowCpnt, IKSerializable* leaf, void* ground);
-    virtual void Update() {}             // +0x10 0x1ff2c0  STUB(C1.6) (arguments unverified)
+    // +0x10 0x001ff2c0 ShadowProjector_Update (UpdateCKSrvShadow): the spot's quad for this frame into the shadow
+    // PTank's arrays (`matrix`, `uv` four floats, `color` four bytes): the ground probed (ground flag 0), the quad laid
+    // on the ground's normal (smoothed with +0x2b), lifted towards the camera, scaled by the component (and its height),
+    // the alpha faded with the distance, the normal and the colour smoothed. 1 when the spot is not drawn (no shadow,
+    // not drawn this frame, no ground, a ground the game manager refuses, too far), 0 when it wrote the arrays.
+    virtual int32_t Update(IKTime* clock, CMatrix34* matrix, float* uv, uint8_t* color);
     // +0x14 0x1fee18 CKShadowSpot_SetShadowHided_maybe: with `hided` 0 the spot loses its flag byte (+0x1b) and
     // its word at +0x2c (the CKSrvShadow_Stop call passes 1: nothing happens).
     virtual void SetShadowHided(int32_t hided) {
@@ -36,38 +51,39 @@ public:
         m_afColor[3] = 0.0f;
     }
 
+    // 0x001feff0 ShadowProjector_BuildGroundAlignedMatrix_maybe (the spot is not read): `matrix`'s basis with `at` (the
+    // ground normal) as its at axis and the leaf's modelling at axis as its up hint, or its modelling up when the at
+    // axis is (nearly) parallel to the normal; a modelling matrix not flagged normalised has the hint normalised first.
+    void BuildGroundAlignedMatrix(CMatrix34* matrix, IKSerializable* leaf, const CVector3* at);
+
     CKShadowSpot* m_pNext;               // +0x04 IKShadow's CSBaseNode
     IKSerializable* m_pShadowCpnt;       // +0x08 CKShadowCpnt
     IKSerializable* m_pLeaf;             // +0x0c SetData's second argument (the shadowed CSGLeaf)
     void* m_pGround;                     // +0x10 SetData's third argument (the CKShadowGround)
-    uint32_t m_unk14;                    // +0x14 the component's +0x1c word
-    uint8_t m_cColor[4];                 // +0x18 the same word as bytes
-    float m_fUnk1c;                      // +0x1c the component's +0x20 float
-    float m_afColor[4];                  // +0x20 the colour bytes as floats
-    CVector3 m_v30;                      // +0x30 (0, 1, 0)
-    CVector3 m_v3c;                      // +0x3c (0, 1, 0)
-    float m_fUnk48;                      // +0x48 the component's +0x24 float
-    uint32_t m_unk4c;                    // +0x4c not set by the constructor
-    float m_fUnk50;                      // +0x50 SetData: 0.2f
-    uint32_t m_unk54;                    // +0x54 SetData: 0
-    uint32_t m_unk58;                    // +0x58 the constructor sets 1
-    uint32_t m_unk5c;                    // +0x5c the constructor sets 8
-    uint32_t m_unk60;                    // +0x60 the constructor sets 0
-    int32_t m_unk64;                     // +0x64 the constructor sets -1
-    uint32_t m_unk68[3];                 // +0x68 not set by the constructor
-    uint32_t m_unk74;                    // +0x74 the constructor sets 3
-    uint32_t m_unk78[4];                 // +0x78 not set by the constructor
-    uint8_t m_unk88;                     // +0x88 the constructor sets 0
-    uint8_t m_pad89[3];                  // +0x89
+    uint8_t m_cTargetColor[4];           // +0x14 the colour the spot fades to: the component's (its alpha faded)
+    uint8_t m_cColor[4];                 // +0x18 the colour drawn (RGBA bytes)
+    float m_fUnk1c;                      // +0x1c the component's colour smoothing speed (+0x20)
+    float m_afColor[4];                  // +0x20 the colour drawn as floats
+    CVector3 m_v30;                      // +0x30 the ground normal the spot turns to (0, 1, 0)
+    CVector3 m_v3c;                      // +0x3c the smoothed normal (0, 1, 0)
+    float m_fUnk48;                      // +0x48 the component's normal smoothing speed (+0x24)
+    uint8_t m_bDrawn;                    // +0x4c the spot was drawn (UpdateCKSrvShadow); not set by the constructor
+    uint8_t m_pad4d[3];
+    CGroundContactDatasIn m_groundIn;    // +0x50 the ground probe's settings: SetData 0.2, 0; masks 1, 8
+    CGroundContactDatasInOut m_groundContact;  // +0x60 the ground probe's result
 };
 DOTD_ASSERT_SIZE(CKShadowSpot, 0x8c);
-DOTD_ASSERT_OFFSET(CKShadowSpot, m_unk58, 0x58);
-DOTD_ASSERT_OFFSET(CKShadowSpot, m_unk74, 0x74);
-DOTD_ASSERT_OFFSET(CKShadowSpot, m_unk88, 0x88);
+DOTD_ASSERT_OFFSET(CKShadowSpot, m_cTargetColor, 0x14);
+DOTD_ASSERT_OFFSET(CKShadowSpot, m_bDrawn, 0x4c);
+DOTD_ASSERT_OFFSET(CKShadowSpot, m_groundIn, 0x50);
+DOTD_ASSERT_OFFSET(CKShadowSpot, m_groundContact, 0x60);
 
 class CKSrvShadow : public IKService {
 public:
     DOTD_CLASS_KEY(kCategoryService, 0xc)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9b10f8
+        return key == 0x301 || key == 0x1 || key == 0x3fe || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKSrvShadow)
 
     // XXL2 CKShadowDataSpot (a CSBaseNode): 0x14 bytes on the PS3.
@@ -115,7 +131,9 @@ public:
     };
 
     CKSrvShadow();  // inlined in 0x001fbe98 CKSrvShadow_Create
-    ~CKSrvShadow() override {}
+    ~CKSrvShadow() override;  // 0x001fe668 CKSrvShadow_Destructor
+
+    void Destroy() override;  // vt+0x10 0x001fd068 CKSrvShadow_Destroy
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001fc060 CKSrvShadow_Load
     // 0x001faa60 CKSrvShadow_MarkCasterGeometryRecursive_maybe: every geometry of a node (class key 0xcb) whose
@@ -153,11 +171,29 @@ public:
     // the bound sector 99, the current sector 0.
     int32_t PostLoad(int32_t type) override;
     void RefreshEntryTexturesOfPresent();  // PostLoad's loop (inlined there)
-    void Start() override {}                            // vt+0x50 0x1faf00  STUB(C1.6)
+    // vt+0x88 0x001fb660 CKSrvShadow_SectorLoaded: with the sector textures (+0x15) the loaded sector's present entry
+    // takes its node's material texture again (null without a geometry).
+    void SectorLoaded(int32_t sector) override;
+    // vt+0x50 0x001faf00 CKSrvShadow_Start: the spot node's frame back to the identity; with the sector textures (+0x15)
+    // every present entry's node hidden (its scene-graph property bit 2).
+    void Start() override;
     void Stop() override;                               // vt+0x68 0x1fcc58 CKSrvShadow_Stop
-    void Pause() override {}                            // vt+0x70 0x1faa50  STUB(C1.6)
-    void Resume() override {}                           // vt+0x78 0x1faa58  STUB(C1.6)
-    void Update(IKTime*) override {}                    // vt+0x7c 0x1fdd68 UpdateCKSrvShadow  STUB(C1.6)
+    void Pause() override {}                            // vt+0x70 0x1faa50 CKSrvShadow_Pause (empty)
+    void Resume() override {}                           // vt+0x78 0x1faa58 CKSrvShadow_Resume (empty)
+    // vt+0x7c 0x001fdd68 UpdateCKSrvShadow: while the clock runs: the shadow PTank's matrix, tex-coord and colour arrays
+    // locked; near high-priority waiting casters take the spots of low-priority ones (demoted); near waiting casters
+    // (high, then low) registered on free spots; every drawn spot updated (Update vt+0x10) into the next array slots, at
+    // most m_ui32NbShadowSpot (the rest queued as waiting again), the ones that stop drawing demoted, the ones that ask
+    // unregistered; the PTank's particle count set and unlocked; the spot node hidden without any.
+    void Update(IKTime* clock) override;
+    // 0x001facc8 ShadowAtlas_GetUVMin_maybe / 0x001face0 ShadowAtlas_GetUVMax_maybe: shadow `index`'s corners in the
+    // shadow texture (its two texture coordinates).
+    const CTexCoord* GetUVMin(uint8_t index) const { return &m_aTextureCoord[index * 2u]; }
+    const CTexCoord* GetUVMax(uint8_t index) const { return &m_aTextureCoord[index * 2u + 1u]; }
+    // 0x001fbb38 CKSrvShadow_DemoteCasterToPending: the drawn spot of `leaf` in the list of the component's priority
+    // (0 high, 1 low) hidden, unlinked and given back, its caster queued at the head of that priority's waiting list (when a
+    // waiting slot is free; without one the spot is given back while still linked, as the original does).
+    void DemoteCasterToPending(IKSerializable* leaf, IKSerializable* shadowCpnt);
     // vt+0x94 0x1faed8 CKSrvShadow_InitializeService: Engine_SetShadowService(this), returns 1.
     int32_t InitializeService() override;
     // vt+0x98 0x1faeb0 CKSrvShadow_DestroyService: Engine_SetShadowService(null).

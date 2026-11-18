@@ -7,6 +7,7 @@
 #include <cstdint>
 
 #include "k2000/core/Layout.h"
+#include "k2000/math/CMatrix34.h"
 #include "k2000/graphical/IRendableObject.h"
 #include "k2000/util/TVector.h"
 
@@ -17,12 +18,13 @@ public:
 
     // An entry of m_vUnk20 (0x1c bytes on the PS3): Load reads only the reference. Name ours.
     struct SEntry {
-        IKSerializable* m_pObject;  // +0x00
-        uint32_t m_unk04[6];        // +0x04 not written by Load
+        IKSerializable* m_pObject;  // +0x00 a scene node (its frame at +4)
+        CVector3 m_vPos;            // +0x04 not written by Load; the node's last position (UpdateAndExtract)
+        CVector3 m_vDir;            // +0x10 not written by Load; its normalised motion since then
     };
 
     CSpawnManager();                  // 0x000b9638 CSpawnManager_Create (inlined; = CSpawnManager_Construct 0xb8da0)
-    ~CSpawnManager() override {}      // STUB(C1.6): 0xb9e70 / 0xb96c0
+    ~CSpawnManager() override;        // 0x000b9e70 / 0x000b96c0 CSpawnManager_Destructor / _DeletingDestructor
     // vt+0x08 0x9a1060
     int32_t IsKindOfClass(uint32_t key) override { return key == 0xb8d || key == 0xa8d || key == 0xc; }
     void Destroy() override;                                // vt+0x10 0x000b92c8 CSpawnManager_Destroy
@@ -32,10 +34,24 @@ public:
     // 0x000b93c8 CSpawnManager_StartPoolShakeCaches_maybe (CKGraphic_PreSectorLoaded): every pool's slot started.
     void StartPoolShakeCaches(int32_t slot);
     void Init();                                            // 0x000b90e8 CSpawnManager_Init_maybe
+    // 0x000b9270 CSpawnManager_Shutdown_maybe (CRenderer_Shutdown_maybe): m_vUnk20's block freed, the vector emptied.
+    void Shutdown();
     int32_t GetSerializationFlags() override { return 0; }  // vt+0x34 0x9a1098
-    void PreUpdate(IKTime*) override {}                     // vt+0x54 0xb91c8  STUB(C1.4)
-    void UpdateAndExtract(float, RenderQueue**, IKTime*, RwCamera*, int32_t) override {}                     // vt+0x58 0xb9780  STUB(C1.4)
-    void Render() override {}                               // vt+0x5c 0x9a10a0  STUB(C1.4)
+    // vt+0x1c 0x000b9528 CSpawnManager_MessageProc: 1.
+    int32_t MessageProc(uint16_t /*message*/, void* /*data*/) override { return 1; }
+    // vt+0x24 0x000b91a0 CSpawnManager_RecursiveRegistration: IRendableObject's (0xa71e8), then 1.
+    void RecursiveRegistration(int32_t type) override { IRendableObject::RecursiveRegistration(type); }
+    int32_t PostLoad(int32_t /*type*/) override { return 1; }  // vt+0x30 0x000b9530 CSpawnManager_PostLoad
+    // vt+0x70 0x000b8e00 CSpawnManager_CanBeUpdated: the renderer's bit 1 (the scene roots are not extracted) is clear.
+    int32_t CanBeUpdated() override;
+    // 0x000b8e20 KStub_Nop_b8e20 (CKGraphic_PostSectorUnload calls it on the spawn manager): nothing.
+    void PostSectorUnload() {}
+    // vt+0x54 0x000b91c8 CSpawnManager_Update: each pool param with its +0x04 bit 0 set gets KStub_Nop_b7b70 (nothing).
+    void PreUpdate(IKTime*) override {}
+    // vt+0x58 0x000b9780 CSpawnManager_Enqueue: every entry's node position remembered with its motion direction (none
+    // on the first frame after a reset: +0x14 bit 8); then bit 8 cleared.
+    void UpdateAndExtract(float, RenderQueue**, IKTime*, RwCamera*, int32_t) override;
+    void Render(IKTime* /*frameClock*/) override {}                               // vt+0x5c 0x009a10a0 CSpawnManager_Render: a bare blr
 
     uint32_t m_ui32NbPool;                             // +0x18
     IKSerializable** m_apSpawnPool;                    // +0x1c CKSpawnPool references (Mem_AllocAligned16)

@@ -4,17 +4,17 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x26a1b8  CKGrpS08ShieldPool_Delete
-//   [ ] 0x26a208  CKGrpS08ShieldPool_vfB8
-//   [ ] 0x26a210  CKGrpS08ShieldPool_PostLoad
+//   [x] 0x26a208  CKGrpS08ShieldPool_vfB8  (returns 99: undeclared slot, see CKGrpS08ShieldPool.h)
+//   [x] 0x26a210  CKGrpS08ShieldPool_PostLoad  (header)
 //   [ ] 0x26a238  RegisterCKGrpS08ShieldPoolClass
 //   [ ] 0x26a2b0  _GLOBAL__I_26a2b0
 //   [x] 0x26a2c0  CKGrpS08ShieldPool_DeleteArray
 //   [x] 0x26a360  CKGrpS08ShieldPool_Create
 //   [x] 0x26a3d8  CKGrpS08ShieldPool_CreateArray
-//   [ ] 0x26a4a8  CKGrpS08ShieldPool_RecursiveRegistration
+//   [x] 0x26a4a8  CKGrpS08ShieldPool_RecursiveRegistration
 //   [x] 0x26a530  CKGrpS08ShieldPool_Load
 //   [ ] 0x26a558  CKGrpS08ShieldPool_Save
-//   [ ] 0x26a580  CKGrpS08ShieldPool_Destroy
+//   [x] 0x26a580  CKGrpS08ShieldPool_Destroy  (DestroyGroupLists, CKGrpS08ShieldPool.h)
 //
 //   [x] 0x9bb930  CKGrpS08ShieldPool_GetClassType  [inline]
 //   [x] 0x9bb938  CKGrpS08ShieldPool_GetClassID  [inline]
@@ -25,8 +25,17 @@
 //   [ ] 0x9bb9f8  CKGrpS08ShieldPool_Destructor  [inline]
 #include "Spyro2008/groups/CKGrpS08ShieldPool.h"
 
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
+
 // 0x0026a530 CKGrpS08ShieldPool_Load: GroupBasicLoad only.
 int32_t CKGrpS08ShieldPool::Load(IKFile* file, int32_t type) {
     GroupBasicLoad(file, type);
     return 1;
+}
+
+// 0x0026a4a8 CKGrpS08ShieldPool_RecursiveRegistration (vt+0x24)
+void CKGrpS08ShieldPool::RecursiveRegistration(int32_t type) {
+    IKBaseGroup::RecursiveRegistration(type);  // 0x00012a68 IKGroup_LevelReset
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
 }

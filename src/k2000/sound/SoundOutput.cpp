@@ -7,18 +7,18 @@
 //   [x] 0x114510  SoundOutput_GetMasterVolume_maybe
 //   [x] 0x114518  SoundOutput_SetMasterVolume_maybe
 //   [x] 0x114578  SoundOutputEffectMgr_SetCurrent_maybe
-//   [ ] 0x1145a8  SoundOutput_GetOutputMode_maybe
-//   [ ] 0x114660  SoundOutput_SetOutputMode_maybe
+//   [x] 0x1145a8  SoundOutput_GetOutputMode_maybe  (SoundOutput_GetOutputMode, k2000/stubs/BootStubs.cpp: the PS3 driver's 6 through the table: 5)
+//   [x] 0x114660  SoundOutput_SetOutputMode_maybe  (SoundOutput_SetOutputMode, k2000/stubs/BootStubs.cpp: KStub_Nop_6eb040 on the PS3)
 //   [ ] 0x114720  FUN_00114720  [dead]
-//   [ ] 0x114738  SoundOutput_LevelReset_maybe
+//   [x] 0x114738  SoundOutput_LevelReset_maybe  (CKSoundOutput::RecursiveRegistration)
 //   [x] 0x114858  SoundOutput_Construct_maybe
 //   [ ] 0x114890  SoundOutput_Construct_2_maybe  [dead]
-//   [ ] 0x1148c8  SoundOutput_ClearEffectRefs_maybe
+//   [x] 0x1148c8  SoundOutput_ClearEffectRefs_maybe
 //   [x] 0x1148d8  SoundOutput_Init_maybe
-//   [ ] 0x114980  SoundOutput_ShutdownDriver_maybe
-//   [ ] 0x114a30  SoundOutput_FreeEffectArrays_maybe
+//   [x] 0x114980  SoundOutput_ShutdownDriver_maybe
+//   [x] 0x114a30  SoundOutput_FreeEffectArrays_maybe
 //   [ ] 0x114ab0  SoundOutput_FreeEffectArrays_2_maybe  [dead]
-//   [ ] 0x114b30  SoundOutputEffectMgr_SelectByIndex_maybe
+//   [x] 0x114b30  SoundOutputEffectMgr_SelectByIndex_maybe
 //   [x] 0x114b80  SoundOutput_ResetOutputEffect_maybe
 //   [x] 0x114bd0  SoundOutput_LoadEffectRefs_maybe
 //   [ ] 0x114e78  SoundOutput_SaveEffectRefs_maybe  [dead]
@@ -51,6 +51,33 @@ void SoundOutput_SetMasterVolume(float volume, CKSoundManager* manager) {
 }
 
 // 0x00114858 SoundOutput_Construct_maybe. The stores in the original's order.
+// 0x00114980 SoundOutput_ShutdownDriver_maybe
+void CKSoundOutput::ShutdownDriver() {
+    if (m_rwaOutput != nullptr) RwaPS3Driver_Destroy(m_rwaOutput);  // RwaObject_Destroy_maybe(driver, 0, 0)
+    if (m_vpUnk18.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_vpUnk18.m_pBlock);
+        m_vpUnk18.m_pBlock = nullptr;
+    }
+    m_vpUnk18.m_pBlock = nullptr;
+    m_vpUnk18.m_ui32NbUsedElt = 0;
+    if (m_vpEnvironment.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_vpEnvironment.m_pBlock);
+        m_vpEnvironment.m_pBlock = nullptr;
+    }
+    m_vpEnvironment.m_ui32NbUsedElt = 0;
+    m_vpEnvironment.m_pBlock = nullptr;
+}
+
+// 0x00114a30 SoundOutput_FreeEffectArrays_maybe
+CKSoundOutput::~CKSoundOutput() {
+    if (m_vpUnk18.m_pBlock != nullptr) Mem_FreeAligned16(m_vpUnk18.m_pBlock);
+    m_vpUnk18.m_pBlock = nullptr;
+    m_vpUnk18.m_ui32NbUsedElt = 0;
+    if (m_vpEnvironment.m_pBlock != nullptr) Mem_FreeAligned16(m_vpEnvironment.m_pBlock);
+    m_vpEnvironment.m_ui32NbUsedElt = 0;
+    m_vpEnvironment.m_pBlock = nullptr;
+}
+
 CKSoundOutput::CKSoundOutput() {
     m_vpEnvironment.m_pBlock = nullptr;
     m_vpEnvironment.m_ui32NbElt = 1;
@@ -110,6 +137,19 @@ int32_t CKSoundOutput::Load(IKFile* file, int32_t type) {
 void CKSoundOutput::SetCurrentEffect(CKSoundOutputEffect* effect) {
     m_pCurrentEffect = effect;
     RwaPS3Driver_SetOutputEffect(m_rwaOutput, effect->m_rwaOutputEffect);
+}
+
+// 0x00114b30 SoundOutputEffectMgr_SelectByIndex_maybe (the game manager's pause menu selects environment 0).
+void CKSoundOutput::SelectEffectByIndex(uint32_t index) {
+    CKSoundOutputEffect* effect = static_cast<CKSoundOutputEffect*>(m_vpEnvironment.m_pBlock[index]);
+    m_pCurrentEffect = effect;
+    RwaPS3Driver_SetOutputEffect(m_rwaOutput, effect->m_rwaOutputEffect);  // TocBridge 0x98efe0
+}
+
+// 0x00114738 SoundOutput_LevelReset_maybe (P21)
+void CKSoundOutput::RecursiveRegistration(int32_t type) {
+    for (uint32_t i = 0; i < m_vpEnvironment.m_ui32NbUsedElt; ++i) m_vpEnvironment.m_pBlock[i]->RecursiveRegistration(type);
+    for (uint32_t i = 0; i < m_vpUnk18.m_ui32NbUsedElt; ++i) m_vpUnk18.m_pBlock[i]->RecursiveRegistration(type);
 }
 
 // 0x00114b80 SoundOutput_ResetOutputEffect_maybe: the first environment once, then none current.

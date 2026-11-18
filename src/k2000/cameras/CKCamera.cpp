@@ -8,9 +8,9 @@
 //   [x] 0x13d920  CKCamera_vf5C  (empty: IKCamera::Resume)
 //   [ ] 0x13d928  RegisterCKCameraClass
 //   [ ] 0x13d9a0  _GLOBAL__I_13d9a0
-//   [ ] 0x13d9b0  CKCamera_RecursiveRegistration
+//   [x] 0x13d9b0  CKCamera_RecursiveRegistration  (inherited: IKCamera_LevelReset 0x144108, a tail call)
 //   [x] 0x13d9d8  CKCamera_Activate_maybe
-//   [ ] 0x13da10  CKCamera_Destroy
+//   [x] 0x13da10  CKCamera_Destroy  (inherited: CKCameraTrack_ClearReferences_BaseNop_maybe)
 //   [x] 0x13da38  CKCamera_DeleteArray
 //   [x] 0x13dae0  CKCamera_Create
 //   [x] 0x13db38  CKCamera_ResetTrack_maybe
@@ -47,19 +47,18 @@ const CVector3 kAxisY = {0.0f, 1.0f, 0.0f};
 
 }  // namespace
 
-// 0x0013d9d8 CKCamera_Activate_maybe. CKCamera_StartAttachedFx_maybe (0x1441e8): with an attached fx
-// (+0x50) the running fx start time is taken from it and CKSrvFx_StartCameraFx_maybe (0x1afaf8) starts it.
-// STUB(C2.7, the FX service): the camera fx (DOF) belong to the fx service's rendering; none of the LVL010 cameras has one.
+// 0x0013d9d8 CKCamera_Activate_maybe. CKCamera_StartAttachedFx_maybe (0x1441e8): with an attached fx (+0x50; none of
+// the game's cameras has one) +0x54 is taken from it and CKSrvFx_StartCameraFx_maybe (0x1afaf8) starts it.
 void CKCamera::Start(const CVector3* /*startPosition*/) {
-    if (m_unk50 != nullptr) DOTD_STUB_ONCE("CKCamera_StartAttachedFx_maybe: CKSrvFx_StartCameraFx_maybe 0x1afaf8 (C2.7)");
+    StartAttachedFx();  // 0x001441e8
     m_fMoveElapsed = 0.0f;  // (a word store of 0)
 }
 
 // 0x0013db90 CKCamera_Deactivate_maybe. CKCamera_StopAttachedFx_maybe (0x144238) is CKSrvFx_StopCameraFx_maybe
-// 0x1affd8 on the attached fx (STUB(C2.7), as Start). The reset only runs for a camera with a move
-// duration and a move offset other than the null vector (0x00c50d64).
+// 0x1affd8 on the attached fx. The reset only runs for a camera with a move duration and a move offset other than the
+// null vector (0x00c50d64).
 void CKCamera::Stop() {
-    if (m_unk50 != nullptr) DOTD_STUB_ONCE("CKCamera_StopAttachedFx_maybe: CKSrvFx_StopCameraFx_maybe 0x1affd8 (C2.7)");
+    StopAttachedFx();  // 0x00144238
     if (m_fMoveDuration != 0.0f && (m_v3MoveOffset.x != 0.0f || m_v3MoveOffset.y != 0.0f || m_v3MoveOffset.z != 0.0f)) {
         m_WorldPosition.x = m_unk5c.x;
         m_WorldPosition.z = m_unk5c.z;

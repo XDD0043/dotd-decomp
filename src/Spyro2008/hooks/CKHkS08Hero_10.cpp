@@ -6,7 +6,7 @@
 //   [ ] 0x31b368  FUN_0031b368  [dead]
 //   [x] 0x31b450  CKHkS08Hero_AccumulateVelocityDisplacement_maybe
 //   [ ] 0x31b520  FUN_0031b520  [dead]
-//   [ ] 0x31b608  StaticInitAndDestruction_31b608
+//   [x] 0x31b608  StaticInitAndDestruction_31b608  (the two file statics at the end)
 //   [ ] 0x31b638  _GLOBAL__D_31b638
 //   [ ] 0x31b648  _GLOBAL__I_31b648
 //   [x] 0x31b658  CKHkS08Hero_LocoState3_TakeOffToPartner
@@ -273,12 +273,12 @@ void CKHkS08Hero::UpdateTakeOffToPartnerLocomotion(float dt) {
     float tilt;
     if (!(e < 0.0f)) {
         if (m_unk1614 != 0) m_unk1610 = 0;
-        tilt = m_unkd58 * 1.74532923847436905e-2f;  // TOC +0x24bc
+        tilt = m_unkd58 * 1.74532905220985413e-2f;  // TOC +0x24bc
         m_unk1614 = 0;
     } else {
         if (m_unk1614 == 0) m_unk1610 = 0;
         m_unk1614 = 1;
-        tilt = -(m_unkd58 * 1.74532923847436905e-2f);
+        tilt = -(m_unkd58 * 1.74532905220985413e-2f);
     }
     float px;
     float py;
@@ -464,7 +464,9 @@ void CKHkS08Hero::DynamicStage1TakeOffToPartner(float dt) {
         const float distance = targetPart + ownPart;
         const float limit = m_unkd60;
         if (std::fabs(distance) > limit) {
-            float over = distance > 0.0f ? distance - limit : distance + limit;
+            // BUG(original): the limit is added on the positive side and subtracted on the other (0x31ca6c fadds /
+            // 0x31cdf0 fsubs), so beyond it the pull is the whole distance plus the limit.
+            float over = distance > 0.0f ? distance + limit : distance - limit;
             over = -over;
             const float k = over * m_unkd50;
             pz = k * nz;
@@ -656,3 +658,10 @@ void CKHkS08Hero::UpdateTakeOffToPartnerMovement(float dt) {
         m_unk12e4 = roll;
     }
 }
+
+// 0x0031b608 StaticInitAndDestruction_31b608: two file statics (0x00ceae34, 0x00ceae38) set to -1.0f. Nothing in the game
+// reads them (their only references are the initialiser's TOC entries).
+namespace {
+[[maybe_unused]] float s_unkceae34 = -1.0f;
+[[maybe_unused]] float s_unkceae38 = -1.0f;
+}  // namespace

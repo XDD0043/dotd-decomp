@@ -9,13 +9,21 @@
 class CKBlenderController : public KBase98D {
 public:
     DOTD_CLASS_KEY(kCategoryGraphical, 0x35)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9997e8
+        return key == 0xd4d || key == 0x98d || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKBlenderController)
 
     CKBlenderController() {}  // 0x0007b7d8 CKBlenderController_Create: KBase98D's constructor only
     ~CKBlenderController() override {}
+    // vt+0x10 0x0007b6f0 CKBlenderController_Destroy: the base's references, both controllers and the weight cleared.
+    void Destroy() override;
 
     // vt+0x2c 0x0007b518 CKBlenderController_Load: the base's, then the two controllers and a float.
     int32_t Load(IKFile* file, int32_t type) override;
+    // vt+0x24 0x0007b658 CKBlenderController_RecursiveRegistration: KBase98D's (0x7cff8), then both controllers' own
+    // with the same type (not null-checked).
+    void RecursiveRegistration(int32_t type) override;
     // vt+0x30 0x0007b4f0 CKBlenderController_PostLoad: KBase98D::PostLoadBase. 1.
     int32_t PostLoad(int32_t type) override;
 

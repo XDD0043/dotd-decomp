@@ -1,6 +1,7 @@
 // Layout.h - compile-time checks that a class keeps its PS3 layout.
-// Active only in 32-bit builds (DOTD_PS3_LAYOUT=1: Win32 parity preset, wasm32), where pointers are
-// 4 bytes like on the PS3. In 64-bit builds pointer-holding classes are larger and the checks are off.
+// Active only with DOTD_PS3_LAYOUT=1 (the Win32 parity preset), where pointers are 4 bytes like on the PS3.
+// In 64-bit builds pointer-holding classes are larger and the checks are off; the web build (wasm32) leaves
+// them off too (CMakeLists.txt).
 #pragma once
 #include <cstddef>
 

@@ -118,12 +118,6 @@ struct RwSphere {
     RwReal radius;
 };
 
-// RwBBox: sup (the maxima) then inf (the minima).
-struct RwBBox {
-    RwV3d sup;
-    RwV3d inf;
-};
-
 // RpMorphTarget (PS3 0x1c).
 struct RpMorphTarget {
     RpGeometry* parentGeom;   // +0x00
@@ -264,6 +258,9 @@ DOTD_ASSERT_OFFSET(RpGeometry, texCoords, 0x34);
 DOTD_ASSERT_OFFSET(RpGeometry, morphTarget, 0x5c);
 
 RpGeometry* RpGeometryCreate(RwInt32 numVerts, RwInt32 numTriangles, RwUInt32 format);
+// 0x006a1eb0 RW_CreateEmptyGeometryWithRadius_maybe (RW 3.7 RpGeometryCreateSpace): an empty geometry whose morph
+// target's sphere is (0, 0, 0, radius), unlocked; null when the unlock fails (the geometry is destroyed).
+RpGeometry* RpGeometryCreateSpace(RwReal radius);
 RwBool RpGeometryDestroy(RpGeometry* geometry);
 // 0x006a2248 RpGeometryStreamRead (rpworld/RpGeometryStream.cpp; RW 3.7 bageomet.c with the PS3 build's
 // plugins: bin mesh 0x50e, native data 0x510, skin 0x116). The caller has found the geometry chunk (0xf).
@@ -292,6 +289,9 @@ const std::vector<RpGeometryReadRecord>& RpGeometryReadLog();
 // RpGeometryAddMorphTargets (RW 3.7): `mtsToAdd` more morph targets with their vertices and normals.
 RwInt32 RpGeometryAddMorphTargets(RpGeometry* geometry, RwInt32 mtsToAdd);
 RpGeometry* RpGeometryUnlock(RpGeometry* geometry);
+// 0x006a0e28 RpGeometryLock (the PS3 build): a polygon lock (lockMode bit 0) marks everything to re-instance (0xfff)
+// and destroys the bin mesh; any other lock marks everything but the polygons (0xffe).
+RpGeometry* RpGeometryLock(RpGeometry* geometry, RwInt32 lockMode);
 RpGeometry* RpGeometryTriangleSetVertexIndices(const RpGeometry* geometry, RpTriangle* triangle, RwUInt16 vert1,
                                                RwUInt16 vert2, RwUInt16 vert3);
 RpGeometry* RpGeometryTriangleSetMaterial(RpGeometry* geometry, RpTriangle* triangle, RpMaterial* material);
@@ -310,12 +310,21 @@ RwInt32 _rpMaterialListFindMaterialIndex(const RpMaterialList* matList, const Rp
 RwInt32 _rpMaterialListAppendMaterial(RpMaterialList* matList, RpMaterial* material);
 
 RpAtomic* RpAtomicCreate();
+// The default render callback RpAtomicCreate gives an atomic (+0x48): 0x0069d180 RW_RenderAtomicThroughPipeline (the
+// function descriptor TOC -0x5a00 CGeometry_SetupMaterialShader_maybe stores).
+RpAtomicCallBackRender RpAtomicGetDefaultRenderCallBack();
 // 0x0069ff28 RpAtomicStreamRead (rpworld/RpGeometryStream.cpp), after RwStreamFindChunk(0x14): the atomic with its
 // geometry and plugin data.
 RpAtomic* RpAtomicStreamRead(RwStream* stream);
 RpAtomic* RpAtomicSetFrame(RpAtomic* atomic, RwFrame* frame);
 RpAtomic* RpAtomicSetGeometry(RpAtomic* atomic, RpGeometry* geometry, RwUInt32 flags);
 RwBool RpAtomicDestroy(RpAtomic* atomic);
+// 0x0069bbe0 _rpAtomicResyncInterpolatedSphere (Ghidra RW_UpdateAtomicMorphBoundingSphere; RW 3.7 baclump.c):
+// without a geometry nothing; else the bounding sphere from the interpolator's morph target (interpolated
+// between two), the dirty-sphere flag (2) cleared and the world bound marked dirty (private flag 1).
+void _rpAtomicResyncInterpolatedSphere(RpAtomic* atomic);
+// 0x0069dd20 RpAtomicGetWorldBoundingSphere: the world sphere (centre, radius), brought up to date first.
+const float* RpAtomicGetWorldBoundingSphere(RpAtomic* atomic);
 
 // DEV (C1.5): one recorded atomic render (C1.4: also drawn when it is recorded).
 struct RpAtomicDraw {

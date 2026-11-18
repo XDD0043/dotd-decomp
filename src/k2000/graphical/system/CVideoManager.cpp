@@ -7,22 +7,22 @@
 //   [x] 0xa81c0  CVideoManager_RemoveActiveVideo_maybe
 //   [ ] 0xa8250  RegisterCVideoManagerClass
 //   [ ] 0xa82c8  _GLOBAL__I_a82c8
-//   [ ] 0xa82d8  VideoCodec_Alloc_maybe
+//   [ ] 0xa82d8  VideoCodec_Alloc_maybe  [platform]  (the Bink allocator callback (BinkSetMemory, Mem_AllocAligned16); platform/video/bink allocates for itself)
 //   [ ] 0xa8300  CVideoManager_Save
 //   [x] 0xa8328  VideoSystem_Shutdown_maybe
 //   [x] 0xa8350  SoundSuspend_Acquire_maybe
 //   [x] 0xa83a8  CVideoManager_InitRenderer_maybe
 //   [x] 0xa83d0  CVideoManager_InitCodec_maybe
-//   [ ] 0xa8428  VideoCodec_Free_maybe
+//   [ ] 0xa8428  VideoCodec_Free_maybe  [platform]  (the Bink free callback (BinkSetMemory, Mem_FreeAligned16); platform/video/bink frees for itself)
 //   [x] 0xa8450  CVideoManager_Destroy
 //   [x] 0xa8488  CVideoManager_Construct
-//   [ ] 0xa8500  CVideoManager_Construct_2
+//   [x] 0xa8500  CVideoManager_Construct_2  (the stores of 0xa8488 CVideoManager_Construct: CVideoManager(); no reference to it)
 //   [x] 0xa8578  CVideoManager_DeleteArray
 //   [x] 0xa8618  CVideoManager_Update
 //   [x] 0xa8698  CVideoManager_HasFullscreenVideo_maybe
 //   [x] 0xa86e0  CVideoManager_PauseAllVideos_maybe
-//   [ ] 0xa87b0  GraphicObjectList_ResumeAll_maybe
-//   [ ] 0xa8820  GraphicObjectList_PauseAll_maybe
+//   [x] 0xa87b0  GraphicObjectList_ResumeAll_maybe
+//   [x] 0xa8820  GraphicObjectList_PauseAll_maybe
 //   [ ] 0xa8890  CVideoManager_CloseAllBinkVideos_maybe  [dead]
 //   [ ] 0xa88e8  FUN_000a88e8  [dead]
 //   [ ] 0xa89a0  CVideoManager_HasVideoWithoutFlag1000_maybe  [dead]
@@ -35,25 +35,25 @@
 //   [x] 0xa8ba0  SoundSuspend_AreStreamsState9_maybe
 //   [x] 0xa8bd8  CVideoManager_SetSpeechVolume_maybe
 //   [x] 0xa8c78  CVideoManager_SetMusicVolume_maybe
-//   [ ] 0xa8d18  CVideoManager_ForEachVideoNopHook_maybe
+//   [x] 0xa8d18  CVideoManager_ForEachVideoNopHook_maybe  (empty / no effect: inherited)
 //   [x] 0xa8da8  Video_GetMusicVolume_maybe
 //   [ ] 0xa8de0  CVideoManager_StartScreenFade_maybe  [dead]
 //   [x] 0xa8e80  CVideoManager_ResumeAllVideos_maybe
 //   [x] 0xa8f18  CVideoManager_StopFirstActiveVideoWithoutFlag40_maybe
-//   [ ] 0xa8f80  CVideoManager_MessageProc
+//   [x] 0xa8f80  CVideoManager_MessageProc  (MessageProc: returns 1, the default slot)
 //   [ ] 0xa8f88  AudioFormat_Write_maybe  [dead]
-//   [ ] 0xa9060  CVideoManager_PostLoad
-//   [ ] 0xa9068  CVideoManager_DestroyGame
+//   [x] 0xa9060  CVideoManager_PostLoad  (PostLoad: returns 1, the default slot)
+//   [x] 0xa9068  CVideoManager_DestroyGame  (CVideoManager::DestroyGame)
 //   [x] 0xa90c0  CVideoManager_AddActiveVideo_maybe
 //   [ ] 0xa91c8  AudioFormat_Read_maybe  [dead]
 //   [x] 0xa92a0  CVideoManager_Load
 //   [x] 0xa94f8  CVideoManager_StopAllVideos_maybe
-//   [ ] 0xa9660  CVideoManager_DestructBody
+//   [x] 0xa9660  CVideoManager_DestructBody  (~CVideoManager)
 //   [x] 0xa9708  CVideoManager_CreateArray
 //   [x] 0xa9820  CVideoManager_Create
 //   [x] 0xa98b0  CVideoManager_Draw
-//   [ ] 0xa99e8  CVideoManager_DeletingDestructor
-//   [ ] 0xa9a98  CVideoManager_Destructor
+//   [x] 0xa99e8  CVideoManager_DeletingDestructor
+//   [x] 0xa9a98  CVideoManager_Destructor
 //
 //   [x] 0x9a0628  CVideoManager_IsKindOfClass  [inline]
 //   [x] 0x9a0650  CVideoManager_GetClassType  [inline]
@@ -95,6 +95,20 @@ CVideoManager::CVideoManager() {
     m_pFadeFx = nullptr;
     m_pLoadingVideo = nullptr;
     m_unk28 = 0;
+}
+
+// 0x000a9a98 CVideoManager_Destructor: the engine's video manager cleared, the paused count cleared, the running
+// list's nodes back to their pool (FreeListPool 0x00ceaa30; here plain deletes, as AddActiveVideo allocates them).
+CVideoManager::~CVideoManager() {
+    Engine_SetVideoManager(nullptr);
+    m_ui32PausedNb = 0;
+    VideoNode* node = m_lRunningVideo;
+    while (node != nullptr) {
+        VideoNode* next = node->m_pNext;
+        delete node;
+        node = next;
+    }
+    m_lRunningVideo = nullptr;
 }
 
 // 0x000a8450 CVideoManager_Destroy: the fade (a level object) forgotten.
@@ -193,7 +207,7 @@ void CVideoManager::UpdateAndExtract(float /*maxDistanceSquared*/, RenderQueue**
 }
 
 // 0x000a98b0 CVideoManager_Render (Ghidra CVideoManager_Draw in the checklist)
-void CVideoManager::Render() {
+void CVideoManager::Render(IKTime* /*frameClock*/) {
     IKTime* frameClock = FrameClock();
     VideoNode* node = m_lRunningVideo;
     while (node != nullptr) {
@@ -232,6 +246,24 @@ void CVideoManager::StopFirstActiveVideoWithoutFlag40() {
             video->Stop();  // vt+0x78
             return;
         }
+    }
+}
+
+// 0x000a87b0 GraphicObjectList_ResumeAll_maybe
+void CVideoManager::ResumeRunningVideos() {
+    for (VideoNode* node = m_lRunningVideo; node != nullptr;) {
+        IKVideo* video = node->m_pVideo;
+        node = node->m_pNext;
+        video->Resume();  // vt+0x80
+    }
+}
+
+// 0x000a8820 GraphicObjectList_PauseAll_maybe
+void CVideoManager::PauseRunningVideos() {
+    for (VideoNode* node = m_lRunningVideo; node != nullptr;) {
+        IKVideo* video = node->m_pVideo;
+        node = node->m_pNext;
+        video->Pause();  // vt+0x7c
     }
 }
 
@@ -327,5 +359,14 @@ void CVideoManager_SetMusicVolume(float volume, CVideoManager* manager) {
     for (uint32_t i = 0; i < manager->m_ui32VideoNb; ++i) {
         IKVideo* video = manager->m_apVideoArray[i];
         if ((video->m_baData & 4u) != 0) PS3_CKVideo_SetTrackVolume(volume, video);
+    }
+}
+
+// 0x000a9068 CVideoManager_DestroyGame
+void CVideoManager::DestroyGame() {
+    m_pFadeFx = nullptr;
+    if (m_apVideoArray != nullptr) {
+        Mem_FreeAligned16(m_apVideoArray);
+        m_apVideoArray = nullptr;
     }
 }

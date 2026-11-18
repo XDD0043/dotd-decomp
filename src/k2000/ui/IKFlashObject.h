@@ -24,7 +24,7 @@ public:
     int32_t GetClassType() override { return kCategoryGraphical; }          // vt+0x14 0x999430 (unregistered key 0x74d)
     int32_t GetClassID() override { return 0x1d; }                          // vt+0x18 0x999438
     void RecursiveRegistration(int32_t /*type*/) override {}                // vt+0x24 0x77b78 (returns 1)
-    int32_t Save(IKFile* /*file*/) override { return 1; }                   // vt+0x28 0x77950
+    int32_t Save(IKFile* /*file*/, int32_t /*type*/) override { return 1; }                   // vt+0x28 0x77950
     int32_t Load(IKFile* file, int32_t type) override;                      // vt+0x2c 0x77958 IKFlashObject_Load
     int32_t PostLoad(int32_t /*type*/) override { return 1; }               // vt+0x30 0x77b80
     // vt+0x50 0x9991b8 (empty; Ghidra: IKFlashMessage_vf50). XXL2: GetRt2dObject(VectorOfRt2dObject&):

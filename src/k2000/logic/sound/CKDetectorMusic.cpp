@@ -6,17 +6,17 @@
 //   [x] 0x1a9ff0  CKDetectorMusic_Delete
 //   [ ] 0x1aa040  RegisterCKDetectorMusicClass
 //   [ ] 0x1aa0b8  _GLOBAL__I_1aa0b8
-//   [ ] 0x1aa0c8  CKDetectorMusic_SetEnabled_maybe
-//   [ ] 0x1aa0f0  CKDetectorMusic_CheckAndTriggerMusic_maybe
-//   [ ] 0x1aa210  CKDetectorMusic_GetInfo
-//   [ ] 0x1aa238  CKDetectorMusic_MessageProc
-//   [ ] 0x1aa260  CKDetectorMusic_PostLoad
-//   [ ] 0x1aa288  CKDetectorMusic_RecursiveRegistration
+//   [x] 0x1aa0c8  CKDetectorMusic_SetEnabled_maybe
+//   [x] 0x1aa0f0  CKDetectorMusic_CheckAndTriggerMusic_maybe
+//   [x] 0x1aa210  CKDetectorMusic_GetInfo  (CKDetectorBase::GetInfo)
+//   [x] 0x1aa238  CKDetectorMusic_MessageProc
+//   [x] 0x1aa260  CKDetectorMusic_PostLoad
+//   [x] 0x1aa288  CKDetectorMusic_RecursiveRegistration  (the base's: returns 1)
 //   [x] 0x1aa2b0  CKDetectorMusic_DeleteArray
 //   [x] 0x1aa350  CKDetectorMusic_CreateArray
 //   [x] 0x1aa3e0  CKDetectorMusic_Create
 //   [x] 0x1aa418  CKDetectorMusic_Load
-//   [ ] 0x1aa550  CKDetectorMusic_Save
+//   [ ] 0x1aa550  CKDetectorMusic_Save  [never runs: the music detectors register nothing with the saving manager]
 //
 //   [ ] 0x9ab0a8  CKDetectorMusic_IsKindOfClass  [inline]
 //   [ ] 0x9ab0d0  CKDetectorMusic_GetClassType  [inline]
@@ -26,6 +26,23 @@
 #include "k2000/logic/sound/CKDetectorMusic.h"
 
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/sound/CKMusicPlayList.h"
+#include "k2000/misc/Engine.h"
+#include "k2000/services/CKSrvMusic.h"
+
+// 0x001aa0f0 CKDetectorMusic_CheckAndTriggerMusic_maybe
+int32_t CKDetectorMusic::Detect() {
+    if ((CKDetectorBase::Detect() & 0xff) == 0) return 0;  // 0x1a8c70
+    if ((GetDetectionType(1) & 0xff) == 0) return 1;
+    CKSrvMusic* music = static_cast<CKSrvMusic*>(g_pEngine->m_srvMusic);
+    if (m_eActionType == 0) {
+        music->RequestTrack(music->GetPlayList(m_ui32Index), m_bClear);  // 0x2100d0, 0x210358
+    } else if (m_eActionType == 1) {
+        music->RequestPriorityPlaylist(m_ui32Index, m_bClear);  // 0x2109a8
+    }
+    music->m_bDectectionFound = 1;
+    return 1;
+}
 
 // 0x001aa418 CKDetectorMusic_Load
 int32_t CKDetectorMusic::Load(IKFile* file, int32_t type) {

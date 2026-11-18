@@ -20,6 +20,8 @@ public:
 
     ICollisionMesh() {}  // inlined in the derived Creates: no stores
     ~ICollisionMesh() override {}
+    // vt+0x10 0x001a6c50 ICollisionMesh_Destroy: MyDestroy (vt+0x60).
+    void Destroy() override { MyDestroy(); }
 
     // vt+0x2c 0x001a6c90 ICollisionMesh_Load. Not a type check: CGround calls it for every type. The vertex
     // buffer (m_aVertex) is allocated by the caller first; the triangles follow the vertices in it.
@@ -35,6 +37,8 @@ public:
     // vt+0x5c Update (Ghidra *_RefreshTransform_maybe): a moving mesh takes its parent's matrix once per update
     // index (the kluster toggles the index every frame).
     virtual void Update(uint8_t updateIndex) = 0;
+    // vt+0x60 MyDestroy (XXL2): the mesh's buffers freed (CGround's, CDynamicGround's).
+    virtual void MyDestroy() = 0;
 
     // 0x001a6b70 ICollisionMesh_SetActive: bit 0 of the engine flags (the mesh is tested) and the level's
     // ground-list-dirty bit (CKLevel +0x2f bit 0: the klusters rebuild their active ground lists).

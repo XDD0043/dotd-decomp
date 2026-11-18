@@ -5,34 +5,34 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x235188  CKSrvTrigger_Delete
-//   [ ] 0x2351d8  CKSrvTrigger_RecursiveRegistration
+//   [x] 0x2351d8  CKSrvTrigger_RecursiveRegistration  (returns 1: the root's empty slot)
 //   [ ] 0x2351e0  CKSrvTrigger_Save
-//   [ ] 0x2351e8  CKSrvTrigger_Pause
-//   [ ] 0x2351f0  CKSrvTrigger_Resume
-//   [ ] 0x2351f8  CKSrvTrigger_SetDefaultState
-//   [ ] 0x235240  CKSrvTrigger_InitializeService
+//   [x] 0x2351e8  CKSrvTrigger_Pause
+//   [x] 0x2351f0  CKSrvTrigger_Resume
+//   [x] 0x2351f8  CKSrvTrigger_SetDefaultState
+//   [x] 0x235240  CKSrvTrigger_InitializeService  (returns 1: CKSrvTrigger.h)
 //   [ ] 0x235248  RegisterCKSrvTriggerClass
 //   [ ] 0x2352c0  _GLOBAL__I_2352c0
 //   [x] 0x2352d0  CKSrvTrigger_Start
-//   [ ] 0x235340  CKSrvTrigger_PostLoad
+//   [x] 0x235340  CKSrvTrigger_PostLoad  (= the inherited slot)
 //   [x] 0x235368  CKSrvTrigger_Construct
-//   [ ] 0x235400  CKSrvTrigger_Construct_2
+//   [x] 0x235400  CKSrvTrigger_Construct_2  (the constructor's second C++ variant)
 //   [x] 0x235498  CKSrvTrigger_DeleteArray
 //   [x] 0x235540  CKSrvTrigger_Destroy
 //   [ ] 0x235628  FUN_00235628  [dead]
-//   [ ] 0x235660  FireTriggerActionsByIndex_maybe
+//   [x] 0x235660  FireTriggerActionsByIndex_maybe
 //   [x] 0x235768  CKSrvTrigger_Stop
-//   [ ] 0x2357d8  CKSrvTrigger_Restart
+//   [x] 0x2357d8  CKSrvTrigger_Restart
 //   [x] 0x235848  UpdateCKSrvTrigger
-//   [ ] 0x235928  CKSrvTrigger_DestroyService
+//   [x] 0x235928  CKSrvTrigger_DestroyService
 //   [x] 0x2359d8  CKSrvTrigger_Load
-//   [ ] 0x235d30  CKSrvTrigger_Destructor
+//   [x] 0x235d30  CKSrvTrigger_Destructor
 //   [x] 0x235df8  CKSrvTrigger_Create
 //   [x] 0x235eb0  CKSrvTrigger_CreateArray
-//   [ ] 0x236018  CKSrvTrigger_DestructBody
-//   [ ] 0x2360e0  CKSrvTrigger_DeletingDestructor
-//   [ ] 0x2361b0  KStub_Return1_2361b0
-//   [ ] 0x2361b8  KStub_ReturnTrue_2361b8
+//   [x] 0x236018  CKSrvTrigger_DestructBody  (= 0x235d30)
+//   [x] 0x2360e0  CKSrvTrigger_DeletingDestructor  (the destructor; delete)
+//   [x] 0x2361b0  KStub_Return1_2361b0  (returns 1; no live reference)
+//   [x] 0x2361b8  KStub_ReturnTrue_2361b8  (returns 1; no live reference)
 //
 //   [ ] 0x9b8950  CKSrvTrigger_IsKindOfClass  [inline]
 //   [ ] 0x9b8988  CKSrvTrigger_GetClassType  [inline]
@@ -43,6 +43,9 @@
 
 #include "k2000/io/IKFile.h"
 #include "k2000/logic/CKComparedData.h"
+#include "k2000/logic/CKTrigger.h"
+#include "k2000/misc/IKEvaluator.h"
+#include "k2000/services/CTriggerStarter.h"
 #include "k2000/logic/CKTriggerDomain.h"
 #include "k2000/system/IKTime.h"
 #include "k2000/memory/Mem.h"
@@ -71,6 +74,17 @@ void CKSrvTrigger::Destroy() {
     }
     // The named references, from the last one down (OperatorDelete), then their array.
     for (uint32_t i = m_namedRefCount; i != 0; --i) ::operator delete(m_apNamedRefs[i - 1]);
+    if (m_apNamedRefs != nullptr) {
+        Mem_FreeAligned16(m_apNamedRefs);
+        m_apNamedRefs = nullptr;
+    }
+    m_namedRefCount = 0;
+    m_apNamedRefs = nullptr;
+}
+
+// 0x00235928 CKSrvTrigger_DestroyService
+void CKSrvTrigger::DestroyService() {
+    for (uint32_t i = m_namedRefCount; i != 0; --i) ::operator delete(m_apNamedRefs[i - 1]);  // OperatorDelete_Bridge
     if (m_apNamedRefs != nullptr) {
         Mem_FreeAligned16(m_apNamedRefs);
         m_apNamedRefs = nullptr;
@@ -131,6 +145,18 @@ void CKSrvTrigger::Stop() {
     m_unk10 = nullptr;
 }
 
+// 0x002357d8 CKSrvTrigger_Restart (vt+0x54): every trigger's evaluator clears its event latches (the domains' enabled
+// state is kept), the pending starter data given back to the pool.
+void CKSrvTrigger::Restart() {
+    static_cast<CKTriggerDomain*>(m_pRootDomain)->ClearConditionEventsRecursive();  // 0x00236db0
+    for (SPendingStarterData* node = m_unk10; node != nullptr;) {
+        SPendingStarterData* next = node->m_pNext;
+        delete node;  // back to the FreeListPool in the original
+        node = next;
+    }
+    m_unk10 = nullptr;
+}
+
 // 0x002352d0 CKSrvTrigger_Start: the trigger domains back to their initial enabled state, the pending starter
 // data given back to the pool.
 void CKSrvTrigger::Start() {
@@ -153,6 +179,40 @@ void CKSrvTrigger::Update(IKTime* frameClock) {
     for (SPendingStarterData* node = m_unk10; node != nullptr; node = node->m_pNext) {
         static_cast<CKComparedData*>(node->m_pData)->m_unk08 &= 0xfeffffffu;
     }
+    for (SPendingStarterData* node = m_unk10; node != nullptr;) {
+        SPendingStarterData* next = node->m_pNext;
+        delete node;  // back to the FreeListPool in the original
+        node = next;
+    }
+    m_unk10 = nullptr;
+}
+
+// vt+0x38 0x002351f8 CKSrvTrigger_SetDefaultState: the root domain's SetDefaultState (vt+0x38) with the same flag.
+void CKSrvTrigger::SetDefaultState(int32_t flag) { m_pRootDomain->SetDefaultState(flag); }
+
+// 0x00235660 FireTriggerActionsByIndex_maybe: named reference `index`'s trigger (when set) fired by hand: its starter's
+// signals queued (QueueTriggerSignals 0x236338), every action's object sent the action's message (MessageProc, with the
+// action as the data), then the root evaluator's TriggerOccured (vt+0x50). No caller in the original (only its OPD).
+void FireTriggerActionsByIndex(CKSrvTrigger* service, int32_t index) {
+    CKTrigger* trigger = static_cast<CKTrigger*>(service->m_apNamedRefs[index]->m_object);
+    if (trigger == nullptr) return;
+    QueueTriggerSignals(&trigger->m_tsStarter);
+    const uint32_t count = trigger->m_ui32NbActions;
+    for (uint32_t i = 0; i != count; ++i) {
+        CTriggerAction* action = &trigger->m_aActions[i];
+        if (action->m_pObject != nullptr) action->m_pObject->MessageProc(action->m_mMsg, action);
+    }
+    trigger->m_pRootEvaluator->Vf50();
+}
+
+// 0x00235d30 CKSrvTrigger_Destructor (0x236018 _DestructBody the same, 0x2360e0 _DeletingDestructor then the delete):
+// the engine's trigger service cleared, the named reference array freed (DestroyService deleted the records), the
+// pending nodes given back (here: deleted) and the list cleared.
+CKSrvTrigger::~CKSrvTrigger() {
+    Engine_SetSrvTrigger(nullptr);
+    if (m_apNamedRefs != nullptr) Mem_FreeAligned16(m_apNamedRefs);
+    m_namedRefCount = 0;
+    m_apNamedRefs = nullptr;
     for (SPendingStarterData* node = m_unk10; node != nullptr;) {
         SPendingStarterData* next = node->m_pNext;
         delete node;  // back to the FreeListPool in the original

@@ -10,6 +10,9 @@
 class CKS08GameModule : public CKGameModule {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x1e3)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9c70b8
+        return key == 0x78cc || key == 0x334c || key == 0x330c || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKS08GameModule)
 
     CKS08GameModule() {}            // 0x00508170 CKS08GameModule_Construct: CKGameModule's, then the vtable

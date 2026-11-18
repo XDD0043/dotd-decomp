@@ -14,9 +14,18 @@
 class CKLocTextAccessor : public IKComponent {
 public:
     DOTD_CLASS_KEY(kCategoryComponent, 0x39)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x994518
+        return key == 0xe46 || key == 0x6 || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKLocTextAccessor)
 
     CKLocTextAccessor();  // 0x00036170 CKLocTextAccessor_Create (the constructor is inlined there)
+    // 0x00036270 CKLocTextAccessor_Destructor (0x36210 deleting, 0x35f98 the same code): the list block freed, then the
+    // component base (vtable only).
+    ~CKLocTextAccessor() override;
+    // vt+0x10 0x000361c0 CKLocTextAccessor_Destroy: the list block freed, its length and block cleared. (vt+0x24
+    // 0x360a0 RecursiveRegistration: 1, the default.)
+    void Destroy() override;
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x000362c8 CKLocTextAccessor_Load
 

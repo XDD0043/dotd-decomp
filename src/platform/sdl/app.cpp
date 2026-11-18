@@ -10,8 +10,16 @@
 
 #include "platform/cell/sysutil.h"
 #include "platform/config.h"
+#include "platform/frame_loop.h"
 #include "platform/log.h"
 #include "platform/sdl/freecam.h"
+
+namespace dotd::platform {
+namespace {
+float g_presentedFps = 0.0f;  // UpdateTitleFps's last measurement
+}
+float PresentedFps() { return g_presentedFps; }
+}  // namespace dotd::platform
 
 namespace dotd::platform::sdl {
 
@@ -82,13 +90,16 @@ void ReadGamepad(SDL_Gamepad* gp, uint16_t w[24]) {
     w[7] = AxisToByte(SDL_GetGamepadAxis(gp, SDL_GAMEPAD_AXIS_LEFTY));
 }
 
-// Keyboard on port 0 (merged into port 0's words; a pressed key overrides the gamepad's value):
-//   left stick (move)    W / A / S / D            right stick (camera)  T / F / G / H, or numpad 8 / 4 / 5 / 6
-//   d-pad (elements)     arrows                   L3 / R3               Tab / R (numpad 0 = R3 too)
-//   cross (jump)         Space, K, X              circle                Escape, L, C
-//   square               J, Z                     triangle              I, V
-//   L1 / R1              Q / E                    L2 / R2               1 / 3 (pressure 255)
-//   start / select       Enter / Backspace
+// Keyboard on port 0 (merged into port 0's words; a pressed key overrides the gamepad's value). The layout is RPCS3's
+// default keyboard pad (the user plays the original that way; 2026-11-14: R / T were R3 / the right stick here, so the
+// dragon switch L2 and the abilities R2 could not be pressed), plus a few extra keys:
+//   left stick (move)    W / A / S / D            right stick (camera)  Home / Delete / End / Page Down (up / left /
+//                                                                       down / right), or numpad 8 / 4 / 5 / 6
+//   d-pad (elements)     arrows                   L3 / R3               F / G (also Tab / numpad 0)
+//   cross (jump)         X (also K)               circle                C (also Escape, L)
+//   square               Z (also J)               triangle              V (also I)
+//   L1 / R1              Q / E                    L2 / R2               R / T (also 1 / 3; pressure 255)
+//   start / select       Enter / Space (also Backspace)
 // Sticks are full deflection (0 / 255, centre 128; up = 0 as the DS3's CellPadData). The front end reads cross as
 // validate and circle as back (the "Flash Manager" input project, entries 4 and 5). With the debug free camera on
 // (F1) WASD fly it and do not move the left stick.
@@ -102,19 +113,21 @@ void ReadKeyboard(uint16_t w[24]) {
     if (!k) return;
     struct Map { SDL_Scancode s; int word; uint16_t bit; int pressure; };
     static const Map kMap[] = {
+        // RPCS3's default keyboard pad.
         {SDL_SCANCODE_UP, 2, kUp, 10},          {SDL_SCANCODE_RIGHT, 2, kRight, 8},
         {SDL_SCANCODE_DOWN, 2, kDown, 11},      {SDL_SCANCODE_LEFT, 2, kLeft, 9},
-        {SDL_SCANCODE_RETURN, 2, kStart, -1},   {SDL_SCANCODE_BACKSPACE, 2, kSelect, -1},
-        {SDL_SCANCODE_SPACE, 3, kCross, 14},    {SDL_SCANCODE_K, 3, kCross, 14},
-        {SDL_SCANCODE_ESCAPE, 3, kCircle, 13},
-        // RPCS3's default keyboard pad: Z square, X cross, C circle, V triangle.
+        {SDL_SCANCODE_RETURN, 2, kStart, -1},   {SDL_SCANCODE_SPACE, 2, kSelect, -1},
         {SDL_SCANCODE_X, 3, kCross, 14},        {SDL_SCANCODE_C, 3, kCircle, 13},
         {SDL_SCANCODE_Z, 3, kSquare, 15},       {SDL_SCANCODE_V, 3, kTriangle, 12},
-        {SDL_SCANCODE_L, 3, kCircle, 13},       {SDL_SCANCODE_J, 3, kSquare, 15},
-        {SDL_SCANCODE_I, 3, kTriangle, 12},     {SDL_SCANCODE_Q, 3, kL1, 16},
-        {SDL_SCANCODE_E, 3, kR1, 17},           {SDL_SCANCODE_1, 3, kL2, 18},
-        {SDL_SCANCODE_3, 3, kR2, 19},           {SDL_SCANCODE_TAB, 2, kL3, -1},
-        {SDL_SCANCODE_R, 2, kR3, -1},           {SDL_SCANCODE_KP_0, 2, kR3, -1},
+        {SDL_SCANCODE_Q, 3, kL1, 16},           {SDL_SCANCODE_E, 3, kR1, 17},
+        {SDL_SCANCODE_R, 3, kL2, 18},           {SDL_SCANCODE_T, 3, kR2, 19},
+        {SDL_SCANCODE_F, 2, kL3, -1},           {SDL_SCANCODE_G, 2, kR3, -1},
+        // Extra keys.
+        {SDL_SCANCODE_BACKSPACE, 2, kSelect, -1}, {SDL_SCANCODE_K, 3, kCross, 14},
+        {SDL_SCANCODE_ESCAPE, 3, kCircle, 13},  {SDL_SCANCODE_L, 3, kCircle, 13},
+        {SDL_SCANCODE_J, 3, kSquare, 15},       {SDL_SCANCODE_I, 3, kTriangle, 12},
+        {SDL_SCANCODE_1, 3, kL2, 18},           {SDL_SCANCODE_3, 3, kR2, 19},
+        {SDL_SCANCODE_TAB, 2, kL3, -1},         {SDL_SCANCODE_KP_0, 2, kR3, -1},
     };
     for (const Map& m : kMap) {
         if (m.s < count && k[m.s]) {
@@ -123,10 +136,10 @@ void ReadKeyboard(uint16_t w[24]) {
         }
     }
     // The right stick (words 4 / 5: x, y).
-    if (k[SDL_SCANCODE_F] || k[SDL_SCANCODE_KP_4]) w[4] = 0;
-    if (k[SDL_SCANCODE_H] || k[SDL_SCANCODE_KP_6]) w[4] = 255;
-    if (k[SDL_SCANCODE_T] || k[SDL_SCANCODE_KP_8]) w[5] = 0;
-    if (k[SDL_SCANCODE_G] || k[SDL_SCANCODE_KP_5] || k[SDL_SCANCODE_KP_2]) w[5] = 255;
+    if (k[SDL_SCANCODE_DELETE] || k[SDL_SCANCODE_KP_4]) w[4] = 0;
+    if (k[SDL_SCANCODE_PAGEDOWN] || k[SDL_SCANCODE_KP_6]) w[4] = 255;
+    if (k[SDL_SCANCODE_HOME] || k[SDL_SCANCODE_KP_8]) w[5] = 0;
+    if (k[SDL_SCANCODE_END] || k[SDL_SCANCODE_KP_5] || k[SDL_SCANCODE_KP_2]) w[5] = 255;
     if (freecam::Enabled()) return;  // WASD fly the debug camera instead
     if (k[SDL_SCANCODE_A]) w[6] = 0;
     if (k[SDL_SCANCODE_D]) w[6] = 255;
@@ -146,7 +159,11 @@ void ReadKeyboard(uint16_t w[24]) {
 //              Swap interval 0: with vsync on a 165 Hz display the swap blocked for varying times and
 //              frame starts spread to 8.8..24.5 ms (16.66..16.67 ms with it off). Tearing is possible;
 //              a 60/120 Hz display mode or a variable-refresh display avoids it.
-//   kUncapped: frameRate 0, for experiments.
+//   kUncapped: frameRate 0: swap interval 1 with vsync on (the display's refresh), 0 with --novsync.
+// frameRate is 60 by default. --frame-rate N changes it alone (experiments: the per-update systems then run at
+// N/60 speed). --fps N sets it to N and turns on the 60 Hz timing calculation (platform/fps.h), which keeps
+// the menu animations, physics and the other per-update systems at their 60 fps speed; --fps 0 = kUncapped.
+// Above the display's refresh, or at a rate that does not divide it, the timer paces with vsync off.
 enum PaceMode { kUncapped, kVsync, kTimer };
 PaceMode g_paceMode = kUncapped;
 int g_frameRate = 60;
@@ -179,6 +196,12 @@ void SetTimerPacing(const char* why) {
 
 void ChoosePacing() {
     g_period = g_frameRate > 0 ? 1000000000ull / static_cast<Uint64>(g_frameRate) : 0;
+#ifdef __EMSCRIPTEN__
+    // The web build: the browser presents when the frame callback returns and the callback does the pacing
+    // (platform/frame_loop.cpp); nothing may wait here.
+    g_paceMode = kUncapped;
+    return;
+#endif
     if (g_frameRate <= 0) {
         SDL_GL_SetSwapInterval(g_vsyncWanted ? 1 : 0);
         g_paceMode = kUncapped;
@@ -239,13 +262,25 @@ bool Init(const Config& cfg) {
         DOTD_LOG("sdl: SDL_Init failed: %s", SDL_GetError());
         return false;
     }
+#ifdef __EMSCRIPTEN__
+    // WebGL2 = OpenGL ES 3.0 (platform/gfx/gl.h lists only entry points both have), on the page's canvas.
+    SDL_SetHint(SDL_HINT_EMSCRIPTEN_CANVAS_SELECTOR, "#canvas");
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+#else
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+#endif
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+#ifdef __EMSCRIPTEN__
+    SDL_WindowFlags flags = SDL_WINDOW_OPENGL;  // the canvas keeps the size asked for; the page scales it
+#else
     SDL_WindowFlags flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY;
+#endif
     if (cfg.fullscreen) flags |= SDL_WINDOW_FULLSCREEN;
     if (cfg.hiddenWindow) flags |= SDL_WINDOW_HIDDEN;
     g_window = SDL_CreateWindow(g_baseTitle.c_str(), cfg.windowWidth, cfg.windowHeight, flags);
@@ -346,6 +381,7 @@ void UpdateTitleFps() {
     const Uint64 elapsed = now - s_windowStart;
     if (elapsed < 500000000ull) return;
     const double fps = s_windowFrames * 1e9 / static_cast<double>(elapsed);
+    dotd::platform::g_presentedFps = static_cast<float>(fps);
     char title[256];
     std::snprintf(title, sizeof(title), "%s | FPS: %.2f | %.2f ms", g_baseTitle.c_str(), fps, 1000.0 / fps);
     SDL_SetWindowTitle(g_window, title);

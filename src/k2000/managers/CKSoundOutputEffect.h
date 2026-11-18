@@ -32,11 +32,20 @@ DOTD_ASSERT_SIZE(RwaEnvironment, 0x30);
 class CKSoundOutputEffect : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryManager, 0x5)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x140 || key == 0xc; }  // vt+0x08 0x9a6c40
     DOTD_DECLARE_FACTORIES(CKSoundOutputEffect)
 
     CKSoundOutputEffect();                              // 0x001152e0 CKSoundOutputEffect_Create (inlined)
-    ~CKSoundOutputEffect() override {}                  // STUB(C1.6): 0x9a6c28
+    ~CKSoundOutputEffect() override {}                  // 0x009a6c28 CKSoundOutputEffect_Destructor (0x9a6c60 deleting): the vtables only
+    // vt+0x10 0x001153a0 CKSoundOutputEffect_Destroy: the environment freed (the pointer is left).
+    void Destroy() override;
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001153c8 CKSoundOutputEffect_Load
+    // vt+0x1c 0x00115328 CKSoundOutputEffect_MessageProc (P21): 0x100 makes it the output's current environment
+    // (SoundOutputEffectMgr_SetCurrent_maybe) and answers 0; the others 1.
+    int32_t MessageProc(uint16_t message, void* data) override;
+    // vt+0x24 0x001150a8 CKSoundOutputEffect_RecursiveRegistration (P21): type 0 registers it with the saving manager.
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x40 0x00115320 CKSoundOutputEffect_GetInfo and vt+0x30 0x00115398 CKSoundOutputEffect_PostLoad: 1, the defaults.
 
     RwaEnvironment* m_rwaOutputEffect;  // +0x04 Mem_AllocAligned16(0x30) by Load
     uint32_t m_unk08;                   // +0x08 read first; 0, 1, 2, ... in LVL000 (the effect's index _maybe)

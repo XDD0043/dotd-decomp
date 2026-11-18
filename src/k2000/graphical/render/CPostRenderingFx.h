@@ -17,7 +17,7 @@ public:
     DOTD_DECLARE_FACTORIES(CPostRenderingFx)
 
     CPostRenderingFx();                  // 0x000b4a78 CPostRenderingFx_Create (inlined)
-    ~CPostRenderingFx() override {}      // STUB(C1.6): 0x9a0cf0 / 0x9a0ca8
+    ~CPostRenderingFx() override {}      // 0x009a0cf0 / 0x009a0ca8 CPostRenderingFx_Destructor / _DeletingDestructor: the vtables only
     // vt+0x08 0x9a0c70
     int32_t IsKindOfClass(uint32_t key) override {
         return key == 0x38d || key == 0xacd || key == 0xa8d || key == 0xc;
@@ -27,12 +27,17 @@ public:
     // vt+0x30 0x000b57c8 CPostRenderingFx_PostLoad: the blur and HDR targets registered, the previous camera at the
     // origin looking along z, the CKPBuffer in the renderer's list, the flags cleared.
     int32_t PostLoad(int32_t type) override;
+    // vt+0x24 0x000b4858 CPostRenderingFx_RecursiveRegistration: type 0 only, itself registered, then the CKPBuffer's (+0x1c,
+    // no null test).
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x78 0x000b48f8 CPostRenderingFx_vf78: an empty slot of its own (IScreenFx's vtable ends at +0x74); no caller known.
+    virtual void Vf78() {}
     // vt+0x58 0x000b4ad0 CPostRenderingFx_UpdateAndExtract: with an effect on (blur 0x100, HDR 0x200, depth of field
     // 0x400 with the RSX profiles, or the distortion's 0x100) the CKPBuffer and this object into stage 16; else only the
     // main camera's position and direction kept.
     void UpdateAndExtract(float maxDistanceSquared, RenderQueue** stages, IKTime* frameClock, RwCamera* camera, int32_t distanceCull) override;
     // vt+0x5c 0x000b4d28 CPostRenderingFx_Render: the post chain (see the .cpp).
-    void Render() override;
+    void Render(IKTime* frameClock) override;
 
     CDistortionScreenFx* m_pDistortionFx;   // +0x18 read second
     CKPBuffer* m_pPBuffer;                  // +0x1c read first

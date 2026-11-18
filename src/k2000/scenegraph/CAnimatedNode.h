@@ -19,10 +19,17 @@ struct RwCamera;
 class CAnimatedNode : public CNode {
 public:
     DOTD_CLASS_KEY(kCategoryNode, 0x15)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a2460
+        return key == 0x54b || key == 0xcb || key == 0x24b || key == 0x20b || key == 0x14b || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CAnimatedNode)
 
     CAnimatedNode();  // 0x000c9480 CAnimatedNode_Construct (inlined in 0xcab28 CAnimatedNode_Create)
     ~CAnimatedNode() override {}
+    // vt+0x10 0x000c92e0 CAnimatedNode_Destroy: the hierarchy's interpolator loses its animation and the hierarchy's
+    // frame is destroyed (under the render lock in the original), no bone attachments, the blend slot's controller
+    // cleared (properties bits 9-10 = 2), then CNode's.
+    void Destroy() override;
 
     // vt+0x2c 0x000ca4c0 CAnimatedNode_Load. No type check of its own (CNode's Load is called with the type).
     int32_t Load(IKFile* file, int32_t type) override;
@@ -59,10 +66,22 @@ public:
     // vt+0x78 0x000ca8a8 CAnimatedNode_RemoveChild_maybe: a child hanging under a bone leaves the attachment
     // list; any other goes through CSGBranch's.
     void RemoveChild(CSGLeaf* child) override;
+    // vt+0x60 0x000c8bd0 CAnimatedNode_vf60 (SetAutoUpdatable): empty.
+    void SetAutoUpdatable(uint32_t /*autoUpdatable*/) override {}
+    // vt+0x64 0x000c9e90 CAnimatedNode_CollectFlaggedChildren_maybe (GetHotSpots): CSGBranch's over the children, then
+    // the same over the bone attachments (+0x28) while room is left.
+    uint32_t GetHotSpots(CSGLeaf** out, uint32_t max) override;
     // 0x000c9218 CAnimatedNode_AttachChildToGroup_maybe (not virtual): `child` joins the attachment list right
     // behind the first entry whose bone byte equals the CHILD'S OWN current one (the byte before this call
     // sets it to `bone`), else at the head; then its parent is this node with `bone`.
     void AttachChildToGroup(uint8_t bone, CSGLeaf* child);
+    // 0x000ca760 CAnimatedNode_AttachChildToBone_maybe (not virtual): `child` joins the attachment list as in
+    // AttachChildToGroup, hangs under `bone`, and keeps its world placement: its local matrix becomes its LTM times the
+    // inverse of this node's LTM (times the bone's matrix while the node was drawn this frame or has scene flag 0x2000).
+    void AttachChildToBone(uint32_t bone, CSGLeaf* child);
+    // 0x000c9150 CAnimatedNode_DetachChild_maybe (not virtual): `child` leaves the attachment list (when it is there),
+    // then it has no parent (SceneNode_SetParent_maybe with bone 0xff).
+    void DetachChild(CSGLeaf* child);
 
     // The node's animation, through one controller (property bits 9-10 = 1: +0x30) or through its blend slot's active
     // controller. 0x000c9978 CAnimatedNode_GetBlendSlot_maybe: *slot and *count = 1 for a node with a blend slot (bits = 2),
@@ -93,6 +112,8 @@ public:
     uint32_t PlayAnimAtTime(RtAnimAnimation* animation, float time, uint32_t play, uint32_t setTime, uint32_t reset);
     // 0x000c8bd8 CAnimatedNode_GetBoneMatrix: the hierarchy's matrix `bone`.
     RwMatrix* GetBoneMatrix(uint32_t bone) const;
+    // vt+0x68 0x000c9ab0 CAnimatedNode_UpdateWorldMatrices: as CSGBranch's, then the bone attachments (+0x28) forced.
+    uint8_t UpdateWorldMatrices(int32_t force) override;
     // 0x000c8bf0 CAnimatedNode_GetSubtreeBoneCount: the nodes of the subtree from `start` (the push/pop flags; the whole
     // hierarchy's low byte for 0); 0 without a hierarchy.
     uint8_t GetSubtreeBoneCount(uint8_t start) const;

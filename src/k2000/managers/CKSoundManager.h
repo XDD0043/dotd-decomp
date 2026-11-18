@@ -16,16 +16,39 @@ class SoundVoiceManager;
 class CKSoundManager : public IKModule {
 public:
     DOTD_CLASS_KEY(kCategoryManager, 3)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a6be0
+        return key == 0xc0 || key == 0x33e || key == 0x3fe || key == 0xc;
+    }
 
     CKSoundManager();                         // 0x00113ba8 CKSoundManager_Create (inlined)
     ~CKSoundManager() override {}             // 0x1144e8 (vtable stores only)
 
     static IKBaseClass* Create();             // 0x00113ba8 CKSoundManager_Create
     static void Delete(IKBaseClass* object);  // 0x00113080 CKSoundManager_Delete
+    // 0x00113bf8 CKSoundManager_CreateArray / 0x00113978 CKSoundManager_DeleteArray: new[] / delete[] (P21).
+    static IKBaseClass* CreateArray(uint32_t count, uint16_t* elementSize) {
+        if (elementSize != nullptr) *elementSize = static_cast<uint16_t>(sizeof(CKSoundManager));
+        return new CKSoundManager[count];
+    }
+    static void DeleteArray(IKBaseClass* first) { delete[] static_cast<CKSoundManager*>(first); }
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00113d30 CKSoundManager_Load
+    // vt+0x24 0x00113678 CKSoundManager_RecursiveRegistration (P21): the output's, the voice manager's and the stream
+    // manager's registrations, then (type 0) the manager itself. Returns 1.
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x0c 0x00113d08 CKSoundManager_DestroyGame (P21): every stream type deleted (SoundEmitterArray_DeleteAll_maybe).
+    void DestroyGame() override;
+    // vt+0x1c 0x00113128 CKSoundManager_MessageProc and vt+0x30 0x00113cb0 CKSoundManager_PostLoad: 1, the defaults.
     void Start() override;                              // vt+0x50 0x001135c0 CKSoundManager_Start
+    void Restart() override;                            // vt+0x54 0x00114290 CKSoundManager_Restart
+    int32_t Vf58() override;                            // vt+0x58 0x00113448 CKSoundManager_AreStreamsIdle_2_maybe
+    // vt+0x74 0x00113418 CKSoundManager_AreStreamsSettled_maybe (CKGameLoop_Mode7_Loading waits for it): every stream
+    // type's busy players have reached their requested state (the platform stream players stand in for RWA's).
+    int32_t Vf74() override;
     void Stop() override;                               // vt+0x68 0x001141d8 CKSoundManager_Stop
+    // vt+0x6c 0x001133e8 CKSoundManager_AreStreamsIdle_maybe (CKGameLoop_Mode9_LevelExit waits for it before the
+    // unload): every stream type's voices inactive (as vt+0x58).
+    int32_t Vf6C() override;
     // vt+0x8c 0x00113248 CKSoundManager_SectorUnload: the voice manager's 0x1173c0 (a bare return).
     void SectorUnload(int32_t sector) override;
     // vt+0x84 0x00113270 CKSoundManager_PreSectorLoaded: the sector's auto-play sounds started.
@@ -36,10 +59,20 @@ public:
     void Resume() override;                             // vt+0x78 0x00113510 CKSoundManager_Resume
     void Update(IKTime* frameClock) override;           // vt+0x7c 0x00114058 CKSoundManager_Update
     int32_t InitializeModule(void* params) override;    // vt+0x94 0x00113a68 CKSoundManager_InitializeModule
-    void DestroyModule() override {}                    // vt+0x98 0x1137b8  STUB(C1.6): never reached by the front end
+    // vt+0x98 0x001137b8 CKSoundManager_DestroyModule (CKGameLoop_ShutdownSubsystems_maybe): the stream manager, the
+    // voice manager and the output released and deleted, then RWA closed (vt+0xb4).
+    void DestroyModule() override;
+    // vt+0x10 0x00113cb8 CKSoundManager_Destroy (the level's end, C2.8 unload): the voice manager's level part released,
+    // the output's effect references cleared, the stream manager's KStub_Nop_115b00.
+    void Destroy() override;
     void PreUpdate(IKTime* frameClock) override;        // vt+0x9c 0x00113650 CKSoundManager_PreUpdate
     void PostUpdate(IKTime* frameClock) override;       // vt+0xa0 0x00113618 CKSoundManager_PostUpdate
-    virtual void VfB4() {}                              // vt+0xb4 0x113780 Rwa terminate/close  STUB(audio): exit only
+    // vt+0xa8 0x00114360 CKSoundManager_UpdateLocalizedData (CKCoreManager's localisation pass): the master, music and
+    // speech volumes read back and set again, then the sounds volume clamped to [0, 1] (kept in +0x24 while muted).
+    void UpdateLocalizedData() override;
+    // vt+0xb4 0x00113780 CKSoundManager_vfB4: Rwa_Terminate_maybe, RwaSystem_UnregisterCoreTypes_maybe and
+    // RwaSystem_Close_maybe (InitializeModule's three opens): the platform mixer is shut down.
+    virtual void VfB4();
     virtual void ShutdownAudio() {}                     // vt+0xb8 0x113730 _maybe (CKGameLoop_ShutdownAndExit)  STUB(audio): exit only
 
     // 0x00113298 CKSoundManager_SetVolumes_maybe (IKGameManager_ApplyOptions_maybe 0x139b4): the master

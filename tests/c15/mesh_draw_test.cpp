@@ -175,9 +175,9 @@ bool DrawOne(const char* kind, RpAtomic* atomic, RwCamera* camera) {
                     material->color.red, material->color.green, material->color.blue, material->color.alpha);
     }
     if (g->matList.numMaterials > 0 && g->matList.materials[0]->texture != nullptr) {
-        RwShim_DdsRaster* raster = g->matList.materials[0]->texture->raster;
-        std::printf("mesh_draw: %s: raster %ux%u mips %u fourCC %08x device texture %u\n", kind, raster->width, raster->height, raster->mipCount,
-                    raster->fourCC, RwDevice_GetRasterTexture(raster));
+        RwRaster* raster = g->matList.materials[0]->texture->raster;
+        std::printf("mesh_draw: %s: raster %dx%d levels %d format %04x device texture %u\n", kind, raster->width, raster->height,
+                    RwRasterGetNumLevels(raster), raster->psgl.internalFormat, RwDevice_GetRasterTexture(raster));
     }
     if (g->matList.numMaterials > 0 && g->matList.materials[0]->kMaterial != nullptr) {
         RpMaterial* rpm = g->matList.materials[0];

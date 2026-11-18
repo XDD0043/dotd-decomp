@@ -11,6 +11,7 @@
 #include "k2000/core/Layout.h"
 #include "k2000/util/TVector.h"
 
+class CDefaultGameManager;
 class CKGameModule;
 class CKGameSpawnPoint;
 class IKGameStructure;
@@ -18,19 +19,33 @@ class IKGameStructure;
 class CKGameLevel : public IKGameObject {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x161)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x994ac8
+        return key == 0x584c || key == 0x330c || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKGameLevel)
 
     CKGameLevel();             // 0x00039738 (Ghidra CKS08GameLevel_ConstructBase_maybe)
-    ~CKGameLevel() override {} // vt+0x00 / +0x04  0x994b00 / 0x994bf0
+    // vt+0x00 / +0x04  0x994b00 / 0x994bf0 (inlined in CKS08GameLevel_Destructor 0x507c38, C2.8 port-all P12): the
+    // four vectors' blocks freed (+0x54, +0x48, +0x3c, +0x30), each length and block cleared.
+    ~CKGameLevel() override;
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x0003a970 CKGameLevel_Load
+    // vt+0x24 0x000398a0 CKGameLevel_RecursiveRegistration: IKGameObject's (0x42e38, nothing), then the modules, the
+    // spawn points and the +0x48 / +0x54 entries register (vt+0x24), each list from the last entry down.
+    void RecursiveRegistration(int32_t type) override;
     void InitializeGameData() override;                 // vt+0x58 0x00039458 CKGameLevel_InitGameData
     void InitializeLevelData() override;                // vt+0x5c 0x00039410 CKGameLevel_InitLevelData_maybe
     // vt+0x54 0x00039558 CKGameLevel_IsCurrentLevel: its GUID is the loaded level's.
     uint8_t GetMatchesThisLevel() override;
     // vt+0x60 0x0003a3e0 CKGameLevel_ClearLevelData (XXL2 DestroyLevelData): the level-appended entries
-    // removed from the four lists. Not ported: +0x64 0x39310 (STUB(C1.6)).
+    // removed from the four lists.
     void DestroyLevelData() override;
+    // vt+0x64 0x00039310 CKGameLevel_ClearGameData_maybe (XXL2 DestroyGameData): the four lists freed and emptied,
+    // +0x84 forgotten, then IKGameObject's.
+    void DestroyGameData() override;
+    // 0x000391e0 CKGameLevel_GetGameManager_maybe: the game structure's (+0x18) game manager (+0x04); null without
+    // a structure.
+    CDefaultGameManager* GetGameManager() const;
     // C1.6 gm: vt+0x68 0x00039d28 CKGameLevel_vf68 (XXL2 CKGameStage::ApplyGameStateToLevel): the modules',
     // then the +0x48 and +0x54 objects' ApplyGameStateToLevel, each list from the last entry down.
     void ApplyGameStateToLevel() override;
@@ -40,6 +55,10 @@ public:
     // C1.6 gm: 0x00039ba8 CKGameLevel_CountModules: the module count; with a filter, the modules whose flag
     // bit 0 equals *filter.
     uint32_t CountModules(const uint8_t* filter);
+    // 0x00039e90 CKGameLevel_CountTrackedActiveModules_maybe / 0x0003a378 CKGameLevel_CountTrackedModules_maybe: the
+    // game modules (flag bit 0) that count for the progress (byte +0x1c), with flag 2 set (vt+0x84) / all of them.
+    uint32_t CountTrackedActiveModules();
+    uint32_t CountTrackedModules();
     // 0x0003a2f8 CKGameLevel_MarkVideoSeen_maybe: the game video of the +0x48 list (last to first) whose video
     // reference (+0x1c) is `video` gets bit 1 of its flags set ("seen"); 1 when there is one.
     uint8_t SetModuleFlag2ById(const void* video);

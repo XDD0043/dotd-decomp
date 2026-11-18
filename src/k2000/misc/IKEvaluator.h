@@ -15,6 +15,9 @@ public:
     ~IKEvaluator() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00235090 CKConditionNode_Load
+    // vt+0x24 0x00235030 IKEvaluator_RecursiveRegistration (CKConditionNode.cpp's unit; Ghidra's other name
+    // IKEvaluator_LevelReset): for type 0 the evaluator registers itself with the saving manager (vt+0x24, no owner).
+    void RecursiveRegistration(int32_t type) override;
 
     // The evaluators' runtime slots (vtable 0xb209f0 holds the pure stub 0x9873c8 in all of them). XXL2: +0x50
     // TriggerOccured, +0x54 Evaluate, +0x58 Start, +0x5c Stop, +0x64 Asleep; +0x60 and +0x68 are DotD's: the trigger

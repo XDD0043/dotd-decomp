@@ -13,6 +13,16 @@ struct KObjectRefList {
     // 0x00244bd0 KObjectRefList_Load_maybe. Type 0 only: the count (stored twice), the head reference,
     // then the block reallocated to count references (0 without any) and read as one reference array.
     int32_t Load(IKFile* file, int32_t type);
+    // 0x00244dc8 PtrArray_SwapIntoActivePartition_maybe (FreeListPools.cpp): `object` moved to the boundary (+0x0c),
+    // which then moves up one.
+    void SwapIntoActivePartition(IKSerializable* object);
+    // 0x00244b90 PtrArray_PopBack_maybe (FreeListPools.cpp): the boundary (+0x0c) moves down one and the slot there is
+    // returned; null (and no change) when the boundary is 0.
+    IKSerializable* PopBack() {
+        if (m_ui32Count2 == 0) return nullptr;
+        m_ui32Count2 -= 1;
+        return m_pBlock[m_ui32Count2];
+    }
 
     IKSerializable** m_pBlock;  // +0x00 Mem_ReallocAligned16(count * 4); 0 when the count is 0
     IKSerializable* m_pHead;    // +0x04 a reference read before the array (_maybe)

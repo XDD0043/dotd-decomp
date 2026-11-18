@@ -8,15 +8,15 @@
 //   [ ] 0x35ee8  CKLocTextAccessor_Construct_2  [dead]
 //   [ ] 0x35f10  RegisterCKLocTextAccessorClass
 //   [ ] 0x35f88  _GLOBAL__I_35f88
-//   [ ] 0x35f98  CKLocTextAccessor_Destructor_2
+//   [x] 0x35f98  CKLocTextAccessor_Destructor_2  (the same code as 0x36270 CKLocTextAccessor_Destructor)
 //   [x] 0x35ff0  CKLocTextAccessor_DeleteArray
 //   [ ] 0x36098  CKLocTextAccessor_Save
-//   [ ] 0x360a0  CKLocTextAccessor_RecursiveRegistration
+//   [x] 0x360a0  CKLocTextAccessor_RecursiveRegistration  (returns 1, registers nothing: the default)
 //   [x] 0x360a8  CKLocTextAccessor_CreateArray
 //   [x] 0x36170  CKLocTextAccessor_Create
-//   [ ] 0x361c0  CKLocTextAccessor_Destroy
-//   [ ] 0x36210  CKLocTextAccessor_DeletingDestructor
-//   [ ] 0x36270  CKLocTextAccessor_Destructor
+//   [x] 0x361c0  CKLocTextAccessor_Destroy
+//   [x] 0x36210  CKLocTextAccessor_DeletingDestructor  (the deleting form of the destructor)
+//   [x] 0x36270  CKLocTextAccessor_Destructor
 //   [x] 0x362c8  CKLocTextAccessor_Load
 //
 //   [ ] 0x994518  CKLocTextAccessor_IsKindOfClass  [inline]
@@ -34,6 +34,18 @@ CKLocTextAccessor::CKLocTextAccessor() {
     m_texts.m_ui32NbElt = 10;
     m_texts.m_ui32NbUsedElt = 0;
     m_pText = nullptr;
+}
+
+// 0x00036270 CKLocTextAccessor_Destructor (0x36210 CKLocTextAccessor_DeletingDestructor, 0x35f98 _Destructor_2)
+CKLocTextAccessor::~CKLocTextAccessor() {
+    if (m_texts.m_pBlock != nullptr) Mem_FreeAligned16(m_texts.m_pBlock);
+}
+
+// 0x000361c0 CKLocTextAccessor_Destroy
+void CKLocTextAccessor::Destroy() {
+    if (m_texts.m_pBlock != nullptr) Mem_FreeAligned16(m_texts.m_pBlock);
+    m_texts.m_ui32NbUsedElt = 0;
+    m_texts.m_pBlock = nullptr;
 }
 
 // 0x000362c8 CKLocTextAccessor_Load

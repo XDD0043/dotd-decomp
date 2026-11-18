@@ -16,5 +16,14 @@ public:
     CKGrpLevelManager() { m_ui32Priority = 0x80000026u; }
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x005a8500 CKGrpLevelManager_Load
+    // vt+0x10 0x005a83a0 CKGrpLevelManager_Destroy: no child groups (+0x18), no members (vt+0xb0's head).
+    void Destroy() override {
+        m_lChilds = nullptr;
+        *GetMemberListHead() = nullptr;
+    }
+    // vt+0x24 0x005a8550 CKGrpLevelManager_RecursiveRegistration: registered with the saving manager (vt+0x24, every
+    // type), then IKGroup's (IKGroup_LevelReset 0x12a68), then 1.
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0xb8 0x005a8400 CKGrpLevelManager_vfB8 returns 1 (as CKCommonBaseGroup's: no IKBaseGroup slot, no caller).
 };
 DOTD_ASSERT_SIZE(CKGrpLevelManager, 0x2c);

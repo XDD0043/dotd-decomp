@@ -15,6 +15,8 @@
 
 class IKLife : public IKUpdatable {
 public:
+    // vt+0x08 0x00990d30 IKLife_IsKindOfClass: IKLife (0x2fe), IKUpdatable (0x3fe), IKSerializable (0xc).
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x2fe || key == 0x3fe || key == 0xc; }
     // Inlined in every Create (CKGroupRoot_Create 0x22a58: +0x04 = 0, +0x08 = 0x7fffffff).
     IKLife() {
         m_pNext = nullptr;

@@ -10,6 +10,7 @@
 class CKTriggerSynchro : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x15b)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x56cc || key == 0xc; }  // vt+0x08 0x9b99e8
     DOTD_DECLARE_FACTORIES(CKTriggerSynchro)
 
     // One entry (0x14 bytes on the PS3): a reference vector, a word and a byte.
@@ -31,6 +32,10 @@ public:
     ~CKTriggerSynchro() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x0023a210 CKTriggerSynchro_Load
+    // vt+0x24 0x00239b60 CKTriggerSynchro_RecursiveRegistration: type 0 registers it with the saving manager.
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x10 0x00239f28 CKTriggerSynchro_Destroy: every entry's reference block freed, then the entry block.
+    void Destroy() override;
 
     // 0x00239d98 TriggerDomains_FindSetForSector_maybe: the first entry whose sector (+0x0c) is `sector`, or
     // null. Every caller takes it for granted (CKLevel_SectorUnload does not test the result).

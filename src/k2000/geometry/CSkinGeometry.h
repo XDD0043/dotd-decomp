@@ -11,6 +11,9 @@
 class CSkinGeometry : public CGeometry {
 public:
     DOTD_CLASS_KEY(kCategoryGeometry, 0x3)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x99c3c0
+        return key == 0xca || key == 0x8a || key == 0xa8d || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CSkinGeometry)
 
     CSkinGeometry() {}  // 0x0008b500 CSkinGeometry_Create: CGeometry's constructor (inlined), then the vtable

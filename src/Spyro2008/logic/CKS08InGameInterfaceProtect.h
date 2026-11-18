@@ -11,11 +11,26 @@ public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x28e)
     DOTD_DECLARE_FACTORIES(CKS08InGameInterfaceProtect)
 
-    CKS08InGameInterfaceProtect() {}  // 0x53c900 CKS08InGameInterfaceProtect_Create: the CKMenuBase114c part only
+    // 0x53c900 CKS08InGameInterfaceProtect_Create: the CKMenuBase114c part only. +0xe0 and +0xf0 are read (the vt+0xdc
+    // update) before any write: the original reads its fresh heap's 0 (as CKS08InGameInterfaceBoss).
+    CKS08InGameInterfaceProtect() {
+        m_baFlagsE0 = 0;
+        m_fTime = 0.0f;
+    }
     int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9c9490
         return key == 0xa38c || key == 0x114c || key == 0x730c || key == 0xc;
     }
     int32_t Load(IKFile* file, int32_t type) override;                                   // vt+0x2c 0x53c9e8 CKS08InGameInterfaceProtect_Load
+    // vt+0xdc 0x0053cc28 CKS08InGameInterfaceProtect_OnMenuState_maybe: the timed panel (bit 0 of +0xe0 for +0xec seconds,
+    // then message out 2), the gauge value +0xf4 / +0xfc and marker +0xf8 / +0xfc set when they changed, ticked onto
+    // slots 0-2.
+    uint8_t OnMenuState(int32_t phase, uint8_t other) override;
+    void ResetWidgets() override;  // vt+0x98 0x0053c520 CKS08InGameInterfaceProtect_ResetWidgets_maybe
+    // The gauge syncs of 0x53c458 / 0x53c4b8 / 0x53cb90 (no caller in the original: their descriptors are referenced
+    // nowhere; the vt+0xdc update inlines the same code).
+    void SyncGaugeMarker();  // 0x0053c458 CKS08InGameInterfaceProtect_SyncGaugeMarker_maybe
+    void SyncGaugeValue();   // 0x0053c4b8 CKS08InGameInterfaceProtect_SyncGaugeValue_maybe
+    void UpdateGauge();      // 0x0053cb90 CKS08InGameInterfaceProtect_UpdateGauge_maybe
     uint32_t GetWidgetSlotCount() override { return 3; }                                 // vt+0x68 0x9c9530
     WidgetSlot* GetWidgetSlots() override { return m_aWidgetSlots; }                     // vt+0x6c 0x9c9538
     uint8_t Vf84() override { return 0; }                                                // vt+0x84 0x9c9548
@@ -31,7 +46,8 @@ public:
     IKSerializable* m_apMessageIns[8];           // +0xac
     uint8_t m_abMessageInFlags[8];               // +0xcc MessageProc sets one per VfC8 entry
     IKSerializable* m_apMessageOuts[3];          // +0xd4
-    uint32_t m_unke0;                            // +0xe0
+    uint8_t m_baFlagsE0;                         // +0xe0 bit 0: the panel is timed (cleared on enter and after +0xec seconds)
+    uint8_t m_padE1[3];
     IKSerializable* m_pGauge;                    // +0xe4 CKSuperGaugeCpnt (file key 0xa94c)
     IKSerializable* m_pGaugeUpdater;             // +0xe8 CKSuperGaugeCpntUpdater (file key 0x14c6)
     float m_fUnkec;                              // +0xec read by the Load (15.0 in LVL000)

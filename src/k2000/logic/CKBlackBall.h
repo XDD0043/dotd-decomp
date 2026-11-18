@@ -10,11 +10,41 @@
 class CKBlackBall : public CKProjectileElement {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x253)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9bf900
+        return key == 0x94cc || key == 0xc || key == 0x934c || key == 0x90cc;
+    }
     DOTD_DECLARE_FACTORIES(CKBlackBall)
 
-    CKBlackBall() {}  // 0x00379ba0 CKBlackBall_Construct: the base constructor, then the vtable only
+    // 0x00379ba0 CKBlackBall_Construct / 0x00379d20 CKBlackBall_Construct_2: the base constructor, then the vtable only.
+    CKBlackBall() {}
+    // 0x00379cc0 CKBlackBall_Destructor / 0x00379cf0 DestructBody / 0x00379c78 DeletingDestructor: the vtable, the base
+    // destructor (CKProjectileElement_BaseDestructor 0x3bf2f8), operator delete for the deleting one.
     ~CKBlackBall() override {}
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x0037c8a8 CKBlackBall_Load
+    // vt+0x24 0x00379b38 CKBlackBall_RecursiveRegistration: the base's only (CKProjectileElement 0x3bf2c8 returns 1).
+    void Destroy() override;  // vt+0x10 0x00379b60 CKBlackBall_Destroy: the matrix (+0x308) destroyed
+    // vt+0x30 0x00379ad0 CKBlackBall_PostLoad: the base's (ResetRuntime), then both nodes (+0x2a8, +0x2e8) shown under
+    // sector 0's root (SceneNode_SetVisibleInLayer 1, 0, 0).
+    int32_t PostLoad(int32_t type) override;
+
+    uint8_t GetAbilityId() override { return 0x14; }  // vt+0x50 0x00379908
+    // vt+0x58 0x00379a88 CKBlackBall_Start: the base's, then (when it took the host) +0x300 cleared.
+    void Start(CKS08AbilityHostBase* host) override;
+    // vt+0x64 0x00379930 CKBlackBall_End: both nodes shown under sector 0's root, both sounds of +0x2f8 stopped, then the
+    // base's.
+    void End(int32_t forced) override;
+    // vt+0x6c 0x00379f08 CKBlackBall_UpdateCharge: instruction for instruction CKPoisonGrenade_UpdateCharge (the same
+    // layout and TOC values): the ball grows under the hot spot with the charge, once full the burst, the charged sound,
+    // the fade-out and the second node.
+    void UpdateCharge(float dt) override;
+    // vt+0x70 0x00379a20 CKBlackBall_ResetRuntime: the base's, +0x300 cleared, the hot spot 2, the button 0; a new matrix
+    // at +0x308 for the level data (type 0).
+    void ResetRuntime(int32_t type) override;
+    // vt+0x78 0x0037ab10 CKBlackBall_Fire: the level's shots (one, or a fan) launched along a direction through the normal
+    // (+0x28c) or charged (+0x298) accessor; above level index 0 the charge nodes hidden and the sounds stopped.
+    uint8_t Fire() override;
+    // vt+0x7c 0x00379910 CKBlackBall_IsChargeDisabled_maybe: at level index 0.
+    uint8_t IsChargeDisabled() override { return m_unk04 == 0 ? 1 : 0; }
 
     // Arrays of 3: per level, like the base class's (the Load's 3-iteration loop).
     float m_unk214[3];             // +0x214
@@ -40,9 +70,11 @@ public:
     uint32_t m_unk2f4;             // +0x2f4 (always 0)
     IKSerializable* m_unk2f8;      // +0x2f8 CKSoundDictionaryID (live)
     float m_unk2fc;                // +0x2fc
-    uint32_t m_unk300;             // +0x300 (not read)
-    uint32_t m_unk304;             // +0x304 (not read)
-    uint32_t m_unk308;             // +0x308 (not read)
+    uint8_t m_unk300;              // +0x300 (not read) runtime: charged once (cleared by Start, ResetRuntime and Fire)
+    uint8_t m_pad301[3];
+    float m_unk304;                // +0x304 (not read) runtime: the ball's fade-out time left once charged (0.3 s)
+    // +0x308 (not read) RwMatrixCreate in ResetRuntime (type 0). DOTD: null until then (the original leaves it).
+    struct RwMatrix* m_pUnk308 = nullptr;
 };
 DOTD_ASSERT_SIZE(CKBlackBall, 0x30c);
 DOTD_ASSERT_OFFSET(CKBlackBall, m_unk214, 0x214);

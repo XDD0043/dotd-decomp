@@ -12,9 +12,11 @@
 #include "k2000/core/Layout.h"
 #include "k2000/graphical/IRendableObject.h"
 
+struct Rt2dBrush;
 struct Rt2dFont;
 struct RwTexDictionary;
 class CText2d;
+struct CVector2;
 
 class CManager2d : public IRendableObject {
 public:
@@ -40,7 +42,7 @@ public:
     void UpdateAndExtract(float maxDistanceSquared, RenderQueue** stages, IKTime* frameClock, RwCamera* camera, int32_t distanceCull) override;
     // vt+0x5c 0x00063428 CManager2d_Render (DrawUIManagerScenesAndMenus; XXL2 Render): scene +0xa70, the
     // Flash interfaces (overlay render states), the menu manager, scene +0xa6c.
-    void Render() override;
+    void Render(IKTime* frameClock) override;
     // vt+0x6c 0x00061f60 CManager2d_GetRenderingProperties: 0, 0xff, 0 and the blend table's entry 1.
     void GetRenderingProperties(uint8_t* first, uint8_t* second, uint8_t* third, uint32_t* blendMode) override {
         *first = 0;
@@ -54,6 +56,15 @@ public:
         m_fSortingCoef = static_cast<uint32_t>(sortingOrder - 1) <= 1u ? 0x1p-1f : 0.0f;
     }
     void Init();  // 0x000630e8 CManager2d_Init_maybe
+    // vt+0x70 0x00062af8 CManager2d_vf70 (CanBeUpdated): 0 while the renderer's bit 2 (+0xa4, the loading frame) is set.
+    int32_t CanBeUpdated() override;
+    // 0x00061bf8 CManager2d_GetFont_maybe: font 0x29a is the localised font, 0..9 the loaded fonts, anything else none.
+    Rt2dFont* GetFont(uint32_t id) const;
+    // 0x00062008 CManager2d_GetOrCreateBrush_maybe: the brush (+0xa84), made (Rt2dBrushCreate) the first time.
+    Rt2dBrush* GetOrCreateBrush();
+    // 0x00062920 CManager2d_Shutdown_maybe (CRenderer_Shutdown_maybe): the localised font (vt+0x0c), the system text
+    // (+0xa48), the brush and the system message strings released, then Rt2dClose.
+    void Shutdown();
     // 0x00063320 CManager2d_PreRenderPass_maybe (XXL2 UpdateScreen): when the screen changed (+0xa7c), the
     // Rt2d device bound to the UI camera with the metric (0, 0, aspect, 1); every movie refitted. 1 when done.
     uint8_t UpdateScreen();
@@ -97,7 +108,9 @@ public:
     IKSerializable* m_menuManager;       // +0xa78 CMenuManager (13:17), XXL2 m_pMenuManager
     uint8_t m_bUpdateScreen;             // +0xa7c (+0xa7d..+0xa7f: padding)
     uint32_t m_ui32PendingEvents_maybe;  // +0xa80 event bits PreUpdate broadcasts (UpdateScreen sets bit 1)
-    uint32_t m_unkA84;                   // +0xa84 the constructor sets 0
+    // +0xa84 the constructor sets 0; CManager2d_GetOrCreateBrush_maybe 0x62008 (only DrawUIFontTextRotatedScaled_maybe
+    // 0xa3a78, not ported) creates it; Shutdown destroys it.
+    Rt2dBrush* m_pBrush;
 };
 DOTD_ASSERT_SIZE(CManager2d, 0xa88);
 DOTD_ASSERT_OFFSET(CManager2d, m_fAspect, 0x18);
@@ -114,7 +127,7 @@ DOTD_ASSERT_OFFSET(CManager2d, m_pFirstScene, 0xa70);
 DOTD_ASSERT_OFFSET(CManager2d, m_pTextBoxesScene, 0xa74);
 DOTD_ASSERT_OFFSET(CManager2d, m_menuManager, 0xa78);
 DOTD_ASSERT_OFFSET(CManager2d, m_bUpdateScreen, 0xa7c);
-DOTD_ASSERT_OFFSET(CManager2d, m_unkA84, 0xa84);
+DOTD_ASSERT_OFFSET(CManager2d, m_pBrush, 0xa84);
 
 // 0x00061dc8 SetUIOverlayRenderStates: alpha test always, no Z test or write, Gouraud, no culling, the
 // blend of the table's entry 1 (SRCALPHA / INVSRCALPHA), no fog, vertex alpha.
@@ -124,5 +137,7 @@ void SetUIOverlayRenderStates();
 // vt+0x7c 0x00062610 CManager2d_UnloadLocalizedFonts: the ten level fonts out of the Rt2d font dictionary
 // and destroyed, then the font texture dictionary released.
 void CManager2d_UnloadLocalizedFonts(CManager2d* manager);
+// 0x00062e98 UI2d_NormalizedToRasterPixels_maybe: normalised 2D coordinates (y up) to raster pixels (y down).
+void UI2d_NormalizedToRasterPixels(CManager2d* manager, CVector2* out, const CVector2* in);
 // 0x00062508 CManager2d_CacheLocStrings_maybe: copies of the TRC texts 200..203 at +0xa54..+0xa60.
 void CManager2d_CacheLocStrings(CManager2d* manager);

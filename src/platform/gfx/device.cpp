@@ -5,11 +5,14 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "platform/cell/videoout.h"
+#include "platform/gfx/cg_program.h"
 #include "platform/gfx/gl.h"
 #include "platform/gfx/mesh.h"
+#include "platform/gfx/perf.h"
 #include "platform/gfx/png.h"
 #include "platform/log.h"
 #include "platform/sdl/app.h"
@@ -61,16 +64,137 @@ std::vector<RenderTarget> g_targets;
 uint32_t g_currentTarget = 0;
 bool g_frontCW = false;
 
-// Binds the frame buffer of the current target with its viewport.
+// The frame buffer binding and the viewport as the backend last set them (perf, like the texture state shadow below:
+// every glBindFramebuffer / glViewport / glDeleteFramebuffers of the backend goes through these three).
+bool g_fboKnown = false;
+GLuint g_boundFbo = 0;
+bool g_viewportKnown = false;
+GLint g_viewport[4] = {};
+
+void GlBindFramebuffer(GLuint fbo) {
+    if (g_fboKnown && g_boundFbo == fbo) return;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    perf::Add(perf::kTargetBinds);
+    g_boundFbo = fbo;
+    g_fboKnown = true;
+}
+
+void GlViewport(GLint x, GLint y, GLsizei w, GLsizei h) {
+    if (g_viewportKnown && g_viewport[0] == x && g_viewport[1] == y && g_viewport[2] == w && g_viewport[3] == h) return;
+    glViewport(x, y, w, h);
+    g_viewport[0] = x;
+    g_viewport[1] = y;
+    g_viewport[2] = w;
+    g_viewport[3] = h;
+    g_viewportKnown = true;
+}
+
+void GlDeleteFramebuffer(GLuint fbo) {
+    glDeleteFramebuffers(1, &fbo);
+    if (g_fboKnown && g_boundFbo == fbo) g_boundFbo = 0;  // GL: deleting the bound frame buffer binds 0
+}
+
+// The GL state shadow (perf; mesh.h "GL state shadow"): the active unit, the GL_TEXTURE_2D binding of the units
+// 0..kShadowUnits-1, the min / mag filter and S / T wrap of the textures, and the blend / depth / cull states, as the
+// backend last set them. Every call of the backend that sets one of them goes through the Gl* functions below (mesh.h),
+// so a call that would set what GL already has is skipped and ActiveTextureUnit needs no glGetIntegerv. Unknown (before
+// Init, a unit above the shadowed ones, a texture name above kShadowTextureNames) means: call GL.
+constexpr int kShadowUnits = 32;
+// The active texture unit is set lazily (perf): g_activeUnit is the unit the backend asked for (what ActiveTextureUnit
+// answers), g_glActiveUnit the one GL has. glActiveTexture is only called when a call that depends on the unit follows
+// (FlushActiveUnit: before glBindTexture, glTexParameter and, through GlFlushActiveTexture, the texture image calls), so
+// selecting a unit whose texture and sampler state are already what the draw wants costs no GL call.
+int g_activeUnit = -1;    // -1: unknown
+int g_glActiveUnit = -1;  // -1: unknown
+GLuint g_unitTexture[kShadowUnits] = {};
+uint32_t g_unitKnown = 0;  // bit u: g_unitTexture[u] is what unit u has
+struct TextureParams {
+    GLint value[4] = {};  // min filter, mag filter, wrap S, wrap T
+    uint8_t known = 0;    // bit i: value[i] is the texture's
+    // perf: the sampler state BindTextureUnit last applied in full (SamplerKey; 0: none, or changed since by another
+    // call): the same key again needs no parameter call at all.
+    uint32_t samplerKey = 0;
+};
+constexpr GLuint kShadowTextureNames = 1u << 20;
+std::vector<TextureParams> g_textureParams;  // by texture name
+struct FixedState {
+    int8_t blend = -1, depthTest = -1, cullFace = -1, depthMask = -1;  // -1: unknown
+    GLenum blendSrc = 0, blendDst = 0, depthFunc = 0, frontFace = 0, cullMode = 0;
+    bool blendFuncKnown = false, depthFuncKnown = false, frontFaceKnown = false, cullModeKnown = false;
+};
+FixedState g_fixed;
+
+// The program and vertex array object bindings as the backend last set them (perf; mesh.h GlUseProgram /
+// GlBindVertexArray). They are never set back to 0 between draws: every draw path binds its own program and vertex
+// array first, so an unbind followed by the next draw's bind is two calls for nothing.
+bool g_programKnown = false;
+GLuint g_program = 0;
+bool g_vaoKnown = false;
+GLuint g_boundVao = 0;
+
+// The alpha test uniforms of the uber-shader programs (mesh.h SetAlphaTest), by GL program.
+struct AlphaTestUniforms {
+    GLint funcLocation = -1;
+    GLint refLocation = -1;
+    int func = 0;
+    float ref = 0.0f;
+    bool funcKnown = false;
+    bool refKnown = false;
+};
+std::unordered_map<GLuint, AlphaTestUniforms> g_alphaTest;  // (node-based: entries never move)
+GLuint g_alphaTestLastProgram = 0;
+AlphaTestUniforms* g_alphaTestLast = nullptr;
+
+// The device's immediate-geometry program's uniforms as last uploaded (perf: DrawPrimitive uploads only what changed;
+// nothing else writes them).
+struct ImUniforms {
+    float viewProj[16];
+    float model[16];
+    float colorScale[4];
+    float alphaTest[2];
+    int useTex = -1;
+    bool known = false;
+};
+ImUniforms g_imUniforms;
+
+void ForgetGlState() {
+    g_fboKnown = false;
+    g_viewportKnown = false;
+    g_activeUnit = -1;
+    g_glActiveUnit = -1;
+    g_unitKnown = 0;
+    g_textureParams.clear();
+    g_fixed = FixedState();
+    g_programKnown = false;
+    g_program = 0;
+    g_vaoKnown = false;
+    g_boundVao = 0;
+    g_alphaTest.clear();
+    g_alphaTestLast = nullptr;
+    g_alphaTestLastProgram = 0;
+    g_imUniforms = ImUniforms();
+}
+
+// glActiveTexture, when GL's unit is not the one the backend selected (see g_activeUnit).
+void FlushActiveUnit() {
+    if (g_activeUnit < 0 || g_glActiveUnit == g_activeUnit) return;
+    glActiveTexture(GL_TEXTURE0 + static_cast<GLenum>(g_activeUnit));
+    g_glActiveUnit = g_activeUnit;
+}
+
+// Binds the frame buffer of the current target with its viewport. PERF: the binding is made by what draws or clears
+// (DrawPrimitive, BindTarget, ClearTarget, DrawQuad, the video planes), not when the target is chosen: a camera's end
+// selects the internal target again and the next camera's begin often another one at once, and a frame buffer bound
+// without a draw into it is a switch for nothing (costly on tile-based GPUs).
 void BindCurrent() {
     if (g_currentTarget != 0 && g_currentTarget <= g_targets.size() && g_targets[g_currentTarget - 1].fbo != 0) {
         const RenderTarget& t = g_targets[g_currentTarget - 1];
-        glBindFramebuffer(GL_FRAMEBUFFER, t.fbo);
-        glViewport(0, 0, t.width, t.height);
+        GlBindFramebuffer(t.fbo);
+        GlViewport(0, 0, t.width, t.height);
         return;
     }
-    glBindFramebuffer(GL_FRAMEBUFFER, g_fbo);
-    glViewport(0, 0, g_width, g_height);
+    GlBindFramebuffer(g_fbo);
+    GlViewport(0, 0, g_width, g_height);
 }
 
 // GLSL 3.30 core; written so it ports to GLSL ES 3.00 by changing the version line.
@@ -152,6 +276,8 @@ const char* kImFS =
 
 GLuint Compile(GLenum type, const char* src) {
     GLuint s = glCreateShader(type);
+    const std::string text = gl::ShaderSourceForContext(src);
+    src = text.c_str();
     glShaderSource(s, 1, &src, nullptr);
     glCompileShader(s);
     GLint ok = 0;
@@ -305,10 +431,10 @@ std::vector<uint8_t> DecodeS3tc(TextureFormat format, int width, int height, con
 }
 
 void SetDefaultSampler(GLint filter) {
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    GlTexParameter2D(GL_TEXTURE_MIN_FILTER, filter);
+    GlTexParameter2D(GL_TEXTURE_MAG_FILTER, filter);
+    GlTexParameter2D(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    GlTexParameter2D(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
 
 // DOTD_SCREENSHOT=path:frame[,frame...]
@@ -353,30 +479,43 @@ void MaybeScreenshot() {
 
 }  // namespace
 
+void ApplySamplerState(uint32_t texture, const DrawState& state);  // below
+
 bool Init(int internalWidth, int internalHeight) {
     if (!gl::Load(platform::sdl::GetGLProcAddress)) return false;
     DOTD_LOG("gfx: %s / %s", reinterpret_cast<const char*>(glGetString(GL_RENDERER)),
              reinterpret_cast<const char*>(glGetString(GL_VERSION)));
     g_width = internalWidth;
     g_height = internalHeight;
-    g_s3tc = HasExtension("GL_EXT_texture_compression_s3tc");
+    // (WebGL2 names the same formats WEBGL_compressed_texture_s3tc.)
+    g_s3tc = HasExtension("GL_EXT_texture_compression_s3tc") || HasExtension("GL_WEBGL_compressed_texture_s3tc");
+    ForgetGlState();
+    ForgetVertexAttribDefaults(~0u);
+    perf::Init(platform::sdl::GetGLProcAddress);
+    {
+        GLint unit = GL_TEXTURE0;
+        glGetIntegerv(GL_ACTIVE_TEXTURE, &unit);
+        g_activeUnit = static_cast<int>(unit - GL_TEXTURE0);
+        g_glActiveUnit = g_activeUnit;
+    }
 
     glGenTextures(1, &g_colorTex);
-    glBindTexture(GL_TEXTURE_2D, g_colorTex);
+    GlBindTexture2D(g_colorTex);
+    GlFlushActiveTexture();
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, g_width, g_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     SetDefaultSampler(GL_LINEAR);
     glGenRenderbuffers(1, &g_depthRb);
     glBindRenderbuffer(GL_RENDERBUFFER, g_depthRb);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, g_width, g_height);
     glGenFramebuffers(1, &g_fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, g_fbo);
+    GlBindFramebuffer(g_fbo);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_colorTex, 0);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, g_depthRb);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         DOTD_LOG("gfx: internal target incomplete");
         return false;
     }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    GlBindFramebuffer(0);
 
     const uint32_t white = 0xffffffffu;
     g_whiteTex = CreateTextureRGBA8(1, 1, &white, false);
@@ -398,7 +537,7 @@ bool Init(int internalWidth, int internalHeight) {
     g_imUseTex = glGetUniformLocation(g_imProgram, "uUseTex");
     g_imAlphaTest = glGetUniformLocation(g_imProgram, "uAlphaTest");
     glGenVertexArrays(1, &g_imVao);
-    glBindVertexArray(g_imVao);
+    GlBindVertexArray(g_imVao);
     glGenBuffers(1, &g_imVbo);
     glGenBuffers(1, &g_imIbo);
     glBindBuffer(GL_ARRAY_BUFFER, g_imVbo);
@@ -409,9 +548,9 @@ bool Init(int internalWidth, int internalHeight) {
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
-    glBindVertexArray(0);
+    GlUseProgram(g_imProgram);
+    glUniform1i(g_imTex, 0);  // the sampler's unit: set once
 
-    glUseProgram(0);
     DOTD_LOG("gfx: internal target %dx%d, S3TC %s", g_width, g_height, g_s3tc ? "native" : "decoded on the CPU");
     g_ready = glGetError() == GL_NO_ERROR;
     return g_ready;
@@ -423,23 +562,27 @@ int InternalHeight() { return g_height; }
 
 void Shutdown() {
     if (!g_ready) return;
+    perf::Shutdown();
+    ReleaseStreamMeshes();  // mesh.h: while the context and IsReady() are still there
     g_ready = false;
-    if (g_vao) glDeleteVertexArrays(1, &g_vao);
-    if (g_imVao) glDeleteVertexArrays(1, &g_imVao);
+    if (g_vao) GlDeleteVertexArray(g_vao);
+    if (g_imVao) GlDeleteVertexArray(g_imVao);
     if (g_imVbo) glDeleteBuffers(1, &g_imVbo);
     if (g_imIbo) glDeleteBuffers(1, &g_imIbo);
     if (g_quadProgram) glDeleteProgram(g_quadProgram);
     if (g_blitProgram) glDeleteProgram(g_blitProgram);
     if (g_imProgram) glDeleteProgram(g_imProgram);
-    if (g_whiteTex) glDeleteTextures(1, &g_whiteTex);
-    if (g_colorTex) glDeleteTextures(1, &g_colorTex);
+    if (g_whiteTex) GlDeleteTexture(g_whiteTex);
+    if (g_colorTex) GlDeleteTexture(g_colorTex);
     if (g_depthRb) glDeleteRenderbuffers(1, &g_depthRb);
-    if (g_fbo) glDeleteFramebuffers(1, &g_fbo);
+    if (g_fbo) GlDeleteFramebuffer(g_fbo);
     for (RenderTarget& t : g_targets) {
-        if (t.fbo) glDeleteFramebuffers(1, &t.fbo);
-        if (t.texture) glDeleteTextures(1, &t.texture);
+        if (t.fbo) GlDeleteFramebuffer(t.fbo);
+        if (t.texture) GlDeleteTexture(t.texture);
     }
     g_targets.clear();
+    ForgetGlState();
+    ForgetVertexAttribDefaults(~0u);
     g_currentTarget = 0;
     g_vao = g_imVao = g_imVbo = g_imIbo = 0;
     g_quadProgram = g_blitProgram = g_imProgram = g_whiteTex = g_colorTex = g_depthRb = g_fbo = 0;
@@ -447,9 +590,8 @@ void Shutdown() {
 
 void BeginFrame() {
     if (!g_ready) return;
-    BindCurrent();
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
+    GlCap(GL_DEPTH_TEST, false);
+    GlCap(GL_CULL_FACE, false);
 }
 
 void Clear(float r, float g, float b, float a) { ClearTarget(true, true, r, g, b, a); }
@@ -460,12 +602,13 @@ uint32_t CreateRenderTarget(int width, int height) {
     t.width = width;
     t.height = height;
     glGenTextures(1, &t.texture);
-    glBindTexture(GL_TEXTURE_2D, t.texture);
+    GlBindTexture2D(t.texture);
+    GlFlushActiveTexture();
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
     SetDefaultSampler(GL_LINEAR);
     glGenFramebuffers(1, &t.fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, t.fbo);
+    GlBindFramebuffer(t.fbo);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, t.texture, 0);
     if (width == g_width && height == g_height)
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, g_depthRb);
@@ -473,15 +616,14 @@ uint32_t CreateRenderTarget(int width, int height) {
     if (complete) {
         // A new camera texture starts black (the PS3's video memory is not cleared either; black keeps the first
         // frames deterministic).
-        glViewport(0, 0, width, height);
+        GlViewport(0, 0, width, height);
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT);
     }
-    BindCurrent();
     if (!complete) {
         DOTD_LOG("gfx: render target %dx%d incomplete", width, height);
-        glDeleteFramebuffers(1, &t.fbo);
-        glDeleteTextures(1, &t.texture);
+        GlDeleteFramebuffer(t.fbo);
+        GlDeleteTexture(t.texture);
         return 0;
     }
     for (size_t i = 0; i < g_targets.size(); ++i) {
@@ -497,13 +639,10 @@ uint32_t CreateRenderTarget(int width, int height) {
 void DestroyRenderTarget(uint32_t target) {
     if (!g_ready || target == 0 || target > g_targets.size()) return;
     RenderTarget& t = g_targets[target - 1];
-    if (t.fbo != 0) glDeleteFramebuffers(1, &t.fbo);
-    if (t.texture != 0) glDeleteTextures(1, &t.texture);
+    if (t.fbo != 0) GlDeleteFramebuffer(t.fbo);
+    if (t.texture != 0) GlDeleteTexture(t.texture);
     t = RenderTarget();
-    if (g_currentTarget == target) {
-        g_currentTarget = 0;
-        BindCurrent();
-    }
+    if (g_currentTarget == target) g_currentTarget = 0;
 }
 
 uint32_t RenderTargetTexture(uint32_t target) {
@@ -514,8 +653,7 @@ uint32_t RenderTargetTexture(uint32_t target) {
 
 void SetRenderTarget(uint32_t target) {
     if (target > g_targets.size() || (target != 0 && g_targets[target - 1].fbo == 0)) target = 0;
-    g_currentTarget = target;
-    if (g_ready) BindCurrent();
+    g_currentTarget = target;  // (bound by the next draw or clear: BindCurrent)
 }
 
 uint32_t CurrentRenderTarget() { return g_currentTarget; }
@@ -531,7 +669,7 @@ void ClearTarget(bool color, bool depth, float r, float g, float b, float a) {
         mask |= GL_COLOR_BUFFER_BIT;
     }
     if (depth) {
-        glDepthMask(1);
+        GlDepthMask(true);
         mask |= GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
     }
     if (mask != 0) glClear(mask);
@@ -541,9 +679,16 @@ uint32_t CreateTexture(TextureFormat format, int width, int height, int levelCou
     if (!g_ready || width <= 0 || height <= 0 || levelCount <= 0) return 0;
     GLuint t = 0;
     glGenTextures(1, &t);
-    glBindTexture(GL_TEXTURE_2D, t);
+    GlBindTexture2D(t);
+    GlFlushActiveTexture();
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     int w = width, h = height;
+#ifdef __EMSCRIPTEN__
+    // WebGL takes a compressed image only when its top level's sides are multiples of 4; the others are decoded.
+    const bool s3tc = g_s3tc && (width & 3) == 0 && (height & 3) == 0;
+#else
+    const bool s3tc = g_s3tc;
+#endif
     for (int level = 0; level < levelCount; ++level) {
         const auto* data = static_cast<const uint8_t*>(levels[level].data);
         switch (format) {
@@ -556,7 +701,7 @@ uint32_t CreateTexture(TextureFormat format, int width, int height, int levelCou
             case TextureFormat::kBC1:
             case TextureFormat::kBC2:
             case TextureFormat::kBC3:
-                if (g_s3tc) {
+                if (s3tc) {
                     const GLenum ifmt = format == TextureFormat::kBC1   ? GL_COMPRESSED_RGBA_S3TC_DXT1_EXT
                                         : format == TextureFormat::kBC2 ? GL_COMPRESSED_RGBA_S3TC_DXT3_EXT
                                                                         : GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
@@ -573,6 +718,10 @@ uint32_t CreateTexture(TextureFormat format, int width, int height, int levelCou
     }
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, levelCount - 1);
+#ifndef __EMSCRIPTEN__
+    // (WebGL 2 has no LOD bias parameter: there the translated pixel shaders' lookups carry it, cg_to_glsl.cpp.)
+    if (levelCount > 1) glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, kPsglLodBias);
+#endif
     SetDefaultSampler(GL_LINEAR);
     return t;
 }
@@ -580,7 +729,8 @@ uint32_t CreateTexture(TextureFormat format, int width, int height, int levelCou
 uint32_t CreateTextureRGBA8(int width, int height, const void* pixels, bool linearFilter) {
     GLuint t = 0;
     glGenTextures(1, &t);
-    glBindTexture(GL_TEXTURE_2D, t);
+    GlBindTexture2D(t);
+    GlFlushActiveTexture();
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
@@ -590,13 +740,14 @@ uint32_t CreateTextureRGBA8(int width, int height, const void* pixels, bool line
 
 void SetTextureMaxLod(uint32_t texture, float lod) {
     if (!g_ready || texture == 0) return;
-    glBindTexture(GL_TEXTURE_2D, texture);
+    GlBindTexture2D(texture);
+    GlFlushActiveTexture();
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, lod);
 }
 
 void DestroyTexture(uint32_t texture) {
     GLuint t = texture;
-    if (t && g_ready) glDeleteTextures(1, &t);
+    if (t && g_ready) GlDeleteTexture(t);
 }
 
 // The bound texture's min / mag filters for a state (see DrawState::filterMode).
@@ -605,37 +756,61 @@ void SetTextureFilter(const DrawState& state) {
                                   GL_NEAREST_MIPMAP_LINEAR, GL_LINEAR_MIPMAP_LINEAR};
     static const GLint kMag[7] = {0, GL_NEAREST, GL_LINEAR, GL_NEAREST, GL_LINEAR, GL_NEAREST, GL_LINEAR};
     if (state.filterMode >= 1 && state.filterMode <= 6) {
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, kMin[state.filterMode]);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, kMag[state.filterMode]);
+        GlTexParameter2D(GL_TEXTURE_MIN_FILTER, kMin[state.filterMode]);
+        GlTexParameter2D(GL_TEXTURE_MAG_FILTER, kMag[state.filterMode]);
         return;
     }
     GLint minFilter = state.linear ? GL_LINEAR : GL_NEAREST;
     if (state.mipmaps) minFilter = state.linear ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST;
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, state.linear ? GL_LINEAR : GL_NEAREST);
+    GlTexParameter2D(GL_TEXTURE_MIN_FILTER, minFilter);
+    GlTexParameter2D(GL_TEXTURE_MAG_FILTER, state.linear ? GL_LINEAR : GL_NEAREST);
+}
+
+// The sampler part of a state (filter, mips, addressing) as one word, never 0.
+uint32_t SamplerKey(const DrawState& state) {
+    return 0x80000000u | static_cast<uint32_t>(state.filterMode) | (state.linear ? 0x100u : 0u) |
+           (state.mipmaps ? 0x200u : 0u) | (static_cast<uint32_t>(state.addressU) << 12) |
+           (static_cast<uint32_t>(state.addressV) << 16);
+}
+
+// The sampler state of `state` on `texture`, bound on the active unit: the filters and the addressing (GlTexParameter2D
+// skips what the texture already has); nothing at all when the texture's last full sampler state was this one.
+void ApplySamplerState(uint32_t texture, const DrawState& state) {
+    const uint32_t key = SamplerKey(state);
+    const bool shadowed = texture < kShadowTextureNames;
+    if (shadowed && texture < g_textureParams.size() && g_textureParams[texture].samplerKey == key) return;
+    SetTextureFilter(state);
+    GlTexParameter2D(GL_TEXTURE_WRAP_S, GlAddress(state.addressU));
+    GlTexParameter2D(GL_TEXTURE_WRAP_T, GlAddress(state.addressV));
+    // (GlTexParameter2D made the entry when the unit's binding is known; a change clears the key, so it is set last)
+    if (shadowed && texture < g_textureParams.size() && g_activeUnit >= 0 && g_activeUnit < kShadowUnits &&
+        (g_unitKnown & (1u << g_activeUnit)) != 0 && g_unitTexture[g_activeUnit] == texture &&
+        g_textureParams[texture].known == 0xf) {
+        g_textureParams[texture].samplerKey = key;
+    }
 }
 
 void ApplyState(const DrawState& state) {
     if (!g_ready) return;
     if (state.blend) {
-        glEnable(GL_BLEND);
-        glBlendFunc(GlBlend(state.srcBlend), GlBlend(state.dstBlend));
+        GlCap(GL_BLEND, true);
+        GlBlendFunc(GlBlend(state.srcBlend), GlBlend(state.dstBlend));
     } else {
-        glDisable(GL_BLEND);
+        GlCap(GL_BLEND, false);
     }
     if (state.depthTest) {
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LEQUAL);
+        GlCap(GL_DEPTH_TEST, true);
+        GlDepthFunc(GL_LEQUAL);
     } else {
-        glDisable(GL_DEPTH_TEST);
+        GlCap(GL_DEPTH_TEST, false);
     }
-    glDepthMask(state.depthWrite ? 1 : 0);
+    GlDepthMask(state.depthWrite);
     if (state.cull == 0) {
-        glDisable(GL_CULL_FACE);
+        GlCap(GL_CULL_FACE, false);
     } else {
-        glEnable(GL_CULL_FACE);
-        glFrontFace(g_frontCW ? GL_CW : GL_CCW);
-        glCullFace(state.cull == 1 ? GL_BACK : GL_FRONT);
+        GlCap(GL_CULL_FACE, true);
+        GlFrontFace(g_frontCW ? GL_CW : GL_CCW);
+        GlCullFace(state.cull == 1 ? GL_BACK : GL_FRONT);
     }
 }
 
@@ -649,13 +824,199 @@ void BindTarget() {
 // mesh.h: a texture unit's texture and sampler state (the shader's samplers sit on the units of their registers).
 void BindTextureUnit(int unit, uint32_t texture, const DrawState& state) {
     if (!g_ready) return;
-    glActiveTexture(GL_TEXTURE0 + static_cast<GLenum>(unit));
-    glBindTexture(GL_TEXTURE_2D, texture != 0 ? texture : g_whiteTex);
-    if (texture != 0) {
-        SetTextureFilter(state);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GlAddress(state.addressU));
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GlAddress(state.addressV));
+    GlActiveTexture(unit);
+    GlBindTexture2D(texture != 0 ? texture : g_whiteTex);
+    if (texture != 0) ApplySamplerState(texture, state);
+}
+
+int ActiveTextureUnit() {
+    if (!g_ready) return 0;
+    if (g_activeUnit >= 0) return g_activeUnit;  // the shadow (GlActiveTexture)
+    GLint unit = GL_TEXTURE0;
+    glGetIntegerv(GL_ACTIVE_TEXTURE, &unit);
+    g_activeUnit = static_cast<int>(unit - GL_TEXTURE0);
+    g_glActiveUnit = g_activeUnit;
+    return g_activeUnit;
+}
+
+void SetActiveTextureUnit(int unit) {
+    if (!g_ready) return;
+    GlActiveTexture(unit);
+}
+
+void GlActiveTexture(int unit) { g_activeUnit = unit; }  // lazily: FlushActiveUnit
+
+void GlFlushActiveTexture() { FlushActiveUnit(); }
+
+void GlUseProgram(uint32_t program) {
+    if (g_programKnown && g_program == program) return;
+    glUseProgram(program);
+    perf::Add(perf::kPrograms);
+    g_program = program;
+    g_programKnown = true;
+}
+
+void GlBindVertexArray(uint32_t vao) {
+    if (g_vaoKnown && g_boundVao == vao) return;
+    glBindVertexArray(vao);
+    perf::Add(perf::kVaoBinds);
+    g_boundVao = vao;
+    g_vaoKnown = true;
+}
+
+void GlDeleteVertexArray(uint32_t vao) {
+    GLuint name = vao;
+    glDeleteVertexArrays(1, &name);
+    if (g_vaoKnown && g_boundVao == vao) g_boundVao = 0;  // GL: deleting the bound vertex array object binds 0
+}
+
+void ForgetPrograms() {
+    if (!g_ready) return;
+    // The programs are being deleted: their names may be given out again. GL keeps a deleted program that is current
+    // alive until another one is bound, so the binding is given up here.
+    glUseProgram(0);
+    g_program = 0;
+    g_programKnown = true;
+    g_alphaTest.clear();
+    g_alphaTestLast = nullptr;
+    g_alphaTestLastProgram = 0;
+}
+
+void SetAlphaTest(uint32_t program, int func, float ref) {
+    if (!g_ready || program == 0) return;
+    AlphaTestUniforms* u = g_alphaTestLast;
+    if (u == nullptr || g_alphaTestLastProgram != program) {
+        auto found = g_alphaTest.find(program);
+        if (found == g_alphaTest.end()) {
+            AlphaTestUniforms entry;
+            entry.funcLocation = glGetUniformLocation(program, "dotd_alphaFunc");
+            entry.refLocation = glGetUniformLocation(program, "dotd_alphaRef");
+            found = g_alphaTest.emplace(program, entry).first;
+        }
+        u = &found->second;
+        g_alphaTestLast = u;
+        g_alphaTestLastProgram = program;
     }
+    if (u->funcLocation >= 0 && !(u->funcKnown && u->func == func)) {
+        GlUseProgram(program);
+        glUniform1i(u->funcLocation, func);
+        perf::Add(perf::kUniforms);
+        u->func = func;
+        u->funcKnown = true;
+    }
+    if (u->refLocation >= 0 && !(u->refKnown && std::memcmp(&u->ref, &ref, sizeof ref) == 0)) {
+        GlUseProgram(program);
+        glUniform1f(u->refLocation, ref);
+        perf::Add(perf::kUniforms);
+        u->ref = ref;
+        u->refKnown = true;
+    }
+}
+
+void GlBindTexture2D(uint32_t texture) {
+    const int unit = g_activeUnit;
+    if (unit < 0 || unit >= kShadowUnits) {
+        FlushActiveUnit();
+        glBindTexture(GL_TEXTURE_2D, texture);
+        perf::Add(perf::kTextureBinds);
+        if (unit < 0) g_unitKnown = 0;  // an unknown unit: any of them may have changed
+        return;
+    }
+    const uint32_t bit = 1u << unit;
+    if ((g_unitKnown & bit) != 0 && g_unitTexture[unit] == texture) return;
+    FlushActiveUnit();
+    glBindTexture(GL_TEXTURE_2D, texture);
+    perf::Add(perf::kTextureBinds);
+    g_unitTexture[unit] = texture;
+    g_unitKnown |= bit;
+}
+
+void GlTexParameter2D(uint32_t pname, int value) {
+    int index = -1;
+    switch (pname) {
+        case GL_TEXTURE_MIN_FILTER: index = 0; break;
+        case GL_TEXTURE_MAG_FILTER: index = 1; break;
+        case GL_TEXTURE_WRAP_S: index = 2; break;
+        case GL_TEXTURE_WRAP_T: index = 3; break;
+        default: break;
+    }
+    const int unit = g_activeUnit;
+    const bool bound = unit >= 0 && unit < kShadowUnits && (g_unitKnown & (1u << unit)) != 0;
+    if (index < 0 || !bound) {
+        FlushActiveUnit();
+        glTexParameteri(GL_TEXTURE_2D, pname, value);
+        if (index >= 0) g_textureParams.clear();  // a texture the shadow cannot name changed
+        return;
+    }
+    const GLuint texture = g_unitTexture[unit];
+    if (texture >= kShadowTextureNames) {
+        FlushActiveUnit();
+        glTexParameteri(GL_TEXTURE_2D, pname, value);
+        return;
+    }
+    if (texture >= g_textureParams.size()) g_textureParams.resize(texture + 1);
+    TextureParams& params = g_textureParams[texture];
+    const uint8_t bit = static_cast<uint8_t>(1u << index);
+    if ((params.known & bit) != 0 && params.value[index] == value) return;
+    FlushActiveUnit();
+    glTexParameteri(GL_TEXTURE_2D, pname, value);
+    perf::Add(perf::kSamplerParams);
+    params.value[index] = value;
+    params.known |= bit;
+    params.samplerKey = 0;  // (ApplySamplerState sets it again after a full state)
+}
+
+void GlDeleteTexture(uint32_t texture) {
+    GLuint name = texture;
+    glDeleteTextures(1, &name);
+    // GL: a deleted texture bound to a unit of the context leaves that unit bound to 0.
+    for (int unit = 0; unit < kShadowUnits; ++unit) {
+        if ((g_unitKnown & (1u << unit)) != 0 && g_unitTexture[unit] == texture) g_unitTexture[unit] = 0;
+    }
+    if (texture < g_textureParams.size()) g_textureParams[texture] = TextureParams();
+}
+
+void GlCap(uint32_t cap, bool on) {
+    int8_t* known = cap == GL_BLEND ? &g_fixed.blend : cap == GL_DEPTH_TEST ? &g_fixed.depthTest : cap == GL_CULL_FACE ? &g_fixed.cullFace : nullptr;
+    if (known != nullptr && *known == (on ? 1 : 0)) return;
+    if (on) glEnable(cap);
+    else glDisable(cap);
+    if (known != nullptr) *known = on ? 1 : 0;
+}
+
+void GlBlendFunc(uint32_t src, uint32_t dst) {
+    if (g_fixed.blendFuncKnown && g_fixed.blendSrc == src && g_fixed.blendDst == dst) return;
+    glBlendFunc(src, dst);
+    g_fixed.blendSrc = src;
+    g_fixed.blendDst = dst;
+    g_fixed.blendFuncKnown = true;
+}
+
+void GlDepthFunc(uint32_t func) {
+    if (g_fixed.depthFuncKnown && g_fixed.depthFunc == func) return;
+    glDepthFunc(func);
+    g_fixed.depthFunc = func;
+    g_fixed.depthFuncKnown = true;
+}
+
+void GlDepthMask(bool write) {
+    if (g_fixed.depthMask == (write ? 1 : 0)) return;
+    glDepthMask(write ? 1 : 0);
+    g_fixed.depthMask = write ? 1 : 0;
+}
+
+void GlFrontFace(uint32_t mode) {
+    if (g_fixed.frontFaceKnown && g_fixed.frontFace == mode) return;
+    glFrontFace(mode);
+    g_fixed.frontFace = mode;
+    g_fixed.frontFaceKnown = true;
+}
+
+void GlCullFace(uint32_t mode) {
+    if (g_fixed.cullModeKnown && g_fixed.cullMode == mode) return;
+    glCullFace(mode);
+    g_fixed.cullMode = mode;
+    g_fixed.cullModeKnown = true;
 }
 
 void DrawPrimitive(Primitive primitive, const Vertex* vertices, int count, const uint16_t* indices, int indexCount,
@@ -665,24 +1026,50 @@ void DrawPrimitive(Primitive primitive, const Vertex* vertices, int count, const
     static const float kIdentity[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
     static const float kOne[4] = {1, 1, 1, 1};
     BindCurrent();
-    glUseProgram(g_imProgram);
-    glUniformMatrix4fv(g_imViewProj, 1, 0, g_viewProj);
-    glUniformMatrix4fv(g_imModel, 1, 0, model != nullptr ? model : kIdentity);
-    glUniform4fv(g_imColorScale, 1, colorScale != nullptr ? colorScale : kOne);
-    glUniform1i(g_imTex, 0);
-    glUniform1i(g_imUseTex, state.texture != 0 ? 1 : 0);
-    glUniform4f(g_imAlphaTest, state.alphaTest ? static_cast<float>(state.alphaFunc) : 7.0f, state.alphaRef, 0, 0);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, state.texture != 0 ? state.texture : g_whiteTex);
-    if (state.texture != 0) {
-        SetTextureFilter(state);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GlAddress(state.addressU));
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GlAddress(state.addressV));
+    GlUseProgram(g_imProgram);
+    // The uniforms: only what differs from the last upload (g_imUniforms; the sampler's unit was set at Init).
+    ImUniforms& u = g_imUniforms;
+    const float* modelMatrix = model != nullptr ? model : kIdentity;
+    const float* scale = colorScale != nullptr ? colorScale : kOne;
+    const float alphaTest[2] = {state.alphaTest ? static_cast<float>(state.alphaFunc) : 7.0f, state.alphaRef};
+    const int useTex = state.texture != 0 ? 1 : 0;
+    if (!u.known || std::memcmp(u.viewProj, g_viewProj, sizeof u.viewProj) != 0) {
+        glUniformMatrix4fv(g_imViewProj, 1, 0, g_viewProj);
+        std::memcpy(u.viewProj, g_viewProj, sizeof u.viewProj);
+        perf::Add(perf::kUniforms);
     }
+    if (!u.known || std::memcmp(u.model, modelMatrix, sizeof u.model) != 0) {
+        glUniformMatrix4fv(g_imModel, 1, 0, modelMatrix);
+        std::memcpy(u.model, modelMatrix, sizeof u.model);
+        perf::Add(perf::kUniforms);
+    }
+    if (!u.known || std::memcmp(u.colorScale, scale, sizeof u.colorScale) != 0) {
+        glUniform4fv(g_imColorScale, 1, scale);
+        std::memcpy(u.colorScale, scale, sizeof u.colorScale);
+        perf::Add(perf::kUniforms);
+    }
+    if (!u.known || u.useTex != useTex) {
+        glUniform1i(g_imUseTex, useTex);
+        u.useTex = useTex;
+        perf::Add(perf::kUniforms);
+    }
+    if (!u.known || std::memcmp(u.alphaTest, alphaTest, sizeof u.alphaTest) != 0) {
+        glUniform4f(g_imAlphaTest, alphaTest[0], alphaTest[1], 0, 0);
+        std::memcpy(u.alphaTest, alphaTest, sizeof u.alphaTest);
+        perf::Add(perf::kUniforms);
+    }
+    u.known = true;
+    GlActiveTexture(0);
+    GlBindTexture2D(state.texture != 0 ? state.texture : g_whiteTex);
+    if (state.texture != 0) ApplySamplerState(state.texture, state);
     ApplyState(state);
-    glBindVertexArray(g_imVao);
+    GlBindVertexArray(g_imVao);
     glBindBuffer(GL_ARRAY_BUFFER, g_imVbo);
     glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(count) * sizeof(Vertex), vertices, GL_STREAM_DRAW);
+    perf::Add(perf::kDraws);
+    perf::Add(perf::kBufferUploads, indices != nullptr ? 2 : 1);
+    perf::Add(perf::kBufferBytes,
+              static_cast<uint64_t>(count) * sizeof(Vertex) + (indices != nullptr ? static_cast<uint64_t>(indexCount) * 2 : 0));
     if (indices != nullptr) {
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(indexCount) * sizeof(uint16_t), indices,
                      GL_STREAM_DRAW);
@@ -690,8 +1077,8 @@ void DrawPrimitive(Primitive primitive, const Vertex* vertices, int count, const
     } else {
         glDrawArrays(GlPrimitive(primitive), 0, count);
     }
-    glBindVertexArray(0);
-    glDepthMask(1);
+    ForgetVertexAttribDefaults(0x7u);  // g_imVao's arrays (slots 0..2): see DrawMesh
+    GlDepthMask(true);
 }
 
 void DrawQuad(uint32_t texture, float x0, float y0, float x1, float y1, uint32_t rgba) {
@@ -699,23 +1086,26 @@ void DrawQuad(uint32_t texture, float x0, float y0, float x1, float y1, uint32_t
     float nx0, ny0, nx1, ny1;
     ToNdc(x0, y1, &nx0, &ny0);  // bottom-left
     ToNdc(x1, y0, &nx1, &ny1);  // top-right
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glUseProgram(g_quadProgram);
+    BindCurrent();
+    GlCap(GL_BLEND, true);
+    GlBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    GlUseProgram(g_quadProgram);
+    perf::Add(perf::kUniforms, 3);
+    perf::Add(perf::kDraws);
     glUniform4f(g_quadRect, nx0, ny0, nx1, ny1);
     glUniform4f(g_quadColor, ((rgba >> 24) & 0xff) / 255.0f, ((rgba >> 16) & 0xff) / 255.0f,
                 ((rgba >> 8) & 0xff) / 255.0f, (rgba & 0xff) / 255.0f);
     glUniform1i(g_quadTex, 0);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture ? texture : g_whiteTex);
-    glBindVertexArray(g_vao);
+    GlActiveTexture(0);
+    GlBindTexture2D(texture ? texture : g_whiteTex);
+    GlBindVertexArray(g_vao);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
 bool ReadTarget(uint8_t* rgba) {
     if (!g_ready) return false;
     std::vector<uint8_t> rows(static_cast<size_t>(g_width) * g_height * 4);
-    glBindFramebuffer(GL_FRAMEBUFFER, g_fbo);
+    GlBindFramebuffer(g_fbo);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
     glReadPixels(0, 0, g_width, g_height, GL_RGBA, GL_UNSIGNED_BYTE, rows.data());
     const size_t stride = static_cast<size_t>(g_width) * 4;
@@ -728,6 +1118,7 @@ bool SaveScreenshot(const char* path) {
     if (!g_ready) return false;
     std::vector<uint8_t> rgba(static_cast<size_t>(g_width) * g_height * 4);
     if (!ReadTarget(rgba.data())) return false;
+    perf::CaptureNextFrame();  // DOTD_RDOC_ON_SHOT (perf.h)
     std::vector<uint8_t> rgb(static_cast<size_t>(g_width) * g_height * 3);
     for (size_t i = 0, n = static_cast<size_t>(g_width) * g_height; i < n; ++i) std::memcpy(&rgb[i * 3], &rgba[i * 4], 3);
     return WritePngRgb(path, g_width, g_height, rgb.data());
@@ -737,15 +1128,16 @@ uint32_t FrameCount() { return g_frames; }
 
 void EndFrame() {
     if (!g_ready) return;
+    cg::PollBuilds();  // (the web build: the shader programs the browser finished building; nothing natively)
     ++g_frames;
     MaybeScreenshot();
     int ww = 0, wh = 0;
     platform::sdl::GetDrawableSize(&ww, &wh);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, ww, wh);
-    glDisable(GL_BLEND);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
+    GlBindFramebuffer(0);
+    GlViewport(0, 0, ww, wh);
+    GlCap(GL_BLEND, false);
+    GlCap(GL_DEPTH_TEST, false);
+    GlCap(GL_CULL_FACE, false);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     // letterbox: keep the internal aspect ratio
@@ -754,15 +1146,19 @@ void EndFrame() {
         vh = wh;
         vw = wh * g_width / g_height;
     }
-    glViewport((ww - vw) / 2, (wh - vh) / 2, vw, vh);
-    glUseProgram(g_blitProgram);
+    GlViewport((ww - vw) / 2, (wh - vh) / 2, vw, vh);
+    GlUseProgram(g_blitProgram);
     glUniform1f(g_blitGamma, platform::GetVideoOutGamma());
     glUniform1i(g_blitTex, 0);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, g_colorTex);
-    glBindVertexArray(g_vao);
+    GlActiveTexture(0);
+    GlBindTexture2D(g_colorTex);
+    GlBindVertexArray(g_vao);
+    perf::Add(perf::kUniforms, 2);
+    perf::Add(perf::kDraws);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    perf::BeforePresent();
     platform::sdl::SwapWindow();
+    perf::AfterPresent();
 }
 
 }  // namespace dotd::gfx

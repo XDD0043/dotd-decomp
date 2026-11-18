@@ -19,6 +19,9 @@ public:
     ~CKManageCameraCinematicBloc() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x0017ffb8 CKManageCameraCinematicBloc_Load
+    // vt+0x24 0x0017f8e0 CKManageCameraCinematicBloc_RecursiveRegistration: registered (unless 4..7), the base's, the camera's,
+    // then the target leaf's when it has no parent (CSGLeaf +0x0c).
+    void RecursiveRegistration(int32_t type) override;
 
     void Start() override;                  // vt+0x5c 0x0017fbd8 CKManageCameraCinematicBloc_Start
     void Complete() override;               // vt+0x64 0x00180188 CKManageCameraCinematicBloc_Complete

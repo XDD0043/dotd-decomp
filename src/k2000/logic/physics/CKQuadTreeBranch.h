@@ -19,6 +19,9 @@ public:
 class CKQuadTreeBranch : public KBase16CC {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x6b)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9b06a0
+        return key == 0x1acc || key == 0x16cc || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKQuadTreeBranch)
 
     // 0x001f14f0 (Ghidra CKQuadTreeRoot_ConstructBase_maybe; also inlined in CKQuadTreeBranch_Create).

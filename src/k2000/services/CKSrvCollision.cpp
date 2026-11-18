@@ -6,23 +6,23 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [ ] 0x191b00  RegisterCKSrvCollisionClass
 //   [ ] 0x191b78  _GLOBAL__I_191b78
-//   [ ] 0x191b88  CKSrvCollision_PostLoad
+//   [x] 0x191b88  CKSrvCollision_PostLoad  (= the inherited slot)
 //   [x] 0x191bb0  CKSrvCollision_DeleteArray
 //   [x] 0x191c50  CKSrvCollision_InitializeService
 //   [x] 0x191e60  CKSrvCollision_Construct
 //   [x] 0x191f60  CKSrvCollision_FindNonRecreableInstances
-//   [ ] 0x191fb8  CKSrvCollision_RecursiveRegistration
+//   [x] 0x191fb8  CKSrvCollision_RecursiveRegistration
 //   [x] 0x192090  CKSrvCollision_EnableVolume
 //   [x] 0x1920e8  CKSrvCollision_DisableVolume
 //   [x] 0x192138  CKSrvCollision_Destroy
 //   [x] 0x192370  CKSrvCollision_DestroyService
-//   [ ] 0x192410  CKSrvCollision_Construct_2
+//   [x] 0x192410  CKSrvCollision_Construct_2  (the not-in-charge copy of the constructor 0x191e60: CKSrvCollision())
 //   [x] 0x192510  CKSrvCollision_UpdateInitialize
 //   [ ] 0x192648  FUN_00192648  [dead]
 //   [x] 0x192a70  CKSrvCollision_AcquireDynSphere_maybe
 //   [x] 0x192b80  CKSrvCollision_AddVolume_maybe
 //   [x] 0x192bc0  CKSrvCollision_RemoveVolume_maybe
-//   [ ] 0x192c00  CKSrvCollision_SaveObjectSlots_maybe
+//   [ ] 0x192c00  CKSrvCollision_SaveObjectSlots_maybe  [left: save-only: called only by CKSrvCollision_Save 0x19462c (the saves are out of scope)]
 //   [x] 0x192e20  CKSrvCollision_ActivateTest_maybe
 //   [ ] 0x1931a0  FUN_001931a0  [dead]
 //   [x] 0x193298  CKSrvCollision_ActivateTestsOfEnabledVolumes_maybe
@@ -31,12 +31,12 @@
 //   [x] 0x193638  CKSrvCollision_ProcessDynamicVolumes_maybe
 //   [x] 0x193fe0  CKSrvCollision_ProcessPairs_maybe
 //   [x] 0x194440  UpdateCKSrvCollision
-//   [ ] 0x1944e8  CKSrvCollision_DeletingDestructor
+//   [x] 0x1944e8  CKSrvCollision_DeletingDestructor  (~CKSrvCollision + delete)
 //   [ ] 0x1945a8  CKSrvCollision_Save
 //   [x] 0x1949d8  CKSrvCollision_Create
 //   [x] 0x194ae8  CKSrvCollision_CreateArray
 //   [x] 0x194c88  CKSrvCollision_Load
-//   [ ] 0x195620  CKSrvCollision_Destructor
+//   [x] 0x195620  CKSrvCollision_Destructor  (~CKSrvCollision)
 //   [x] 0x1956b8  CKSrvCollision_ProbeGroundInSectorList_maybe
 //   [ ] 0x195968  CollisionTest_CoplanarTriangleVsTriangle_maybe  [dead]
 //   [ ] 0x196420  CKSrvCollision_ClearQueryStampsInActiveSectors_maybe  [dead]
@@ -66,6 +66,7 @@
 #include "k2000/core/Stub.h"
 #include "k2000/io/IKFile.h"
 #include "k2000/logic/CKLevel.h"
+#include "k2000/logic/CKSavingManager.h"
 #include "k2000/logic/CKSector.h"
 #include "k2000/logic/physics/CGround.h"
 #include "k2000/logic/render/CKMeshKluster.h"
@@ -536,7 +537,7 @@ IKSerializable* CKSrvCollision::AcquireDynSphere() {
     sphere->m_ba8Infos = static_cast<uint8_t>(sphere->m_ba8Infos | 0x3a);  // bits 1, 3, 4, 5 set in turn
     static const CVector3 kNullVector = {0.0f, 0.0f, 0.0f};                // g_nullVector 0x00c50d64
     sphere->m_v3WorldMove = kNullVector;
-    const RwV3d& position = sphere->m_pRwFrame->ltm.pos;  // RwFrame +0x80
+    const RwV3d& position = FrameLtm(sphere->m_pRwFrame)->pos;  // RwFrame +0x80
     sphere->m_v3OldPos.x = position.x;
     sphere->m_v3OldPos.z = position.z;
     sphere->m_v3OldPos.y = position.y;
@@ -548,6 +549,12 @@ IKSerializable* CKSrvCollision::AcquireDynSphere() {
     sphere->m_ba8Infos = static_cast<uint8_t>(sphere->m_ba8Infos & ~0x4u);
     ++m_ui8NbProjectileUsed;
     return sphere;
+}
+
+// 0x00191a38 CKSrvCollision_ReleaseDynSphere_maybe (its unit is CKGroundCpnt.cpp; kept with AcquireDynSphere)
+void CKSrvCollision::ReleaseDynSphere(IKBoundingVolume* volume) {
+    if ((volume->m_ba8Infos & 2u) == 0) return;
+    volume->m_ba8Infos = static_cast<uint8_t>(volume->m_ba8Infos & 0xfdu);
 }
 
 // 0x00192bc0 CKSrvCollision_RemoveVolume_maybe
@@ -562,12 +569,142 @@ void CKSrvCollision::RemoveVolume(IKBoundingVolume* volume) {
 // the last frame's warned projectiles and targets are cleared, then every used and active (bit 2) projectile is tested
 // against the active volumes of every target, and the owners of the warned projectiles and targets get message 0x301
 // with their collision lists.
-// STUB(C2.7): all of it from the first used projectile on. The projectiles are fired by the combat code
-// (CKSrvProjectiles, the abilities and enemies of the first fight), so none is used before C2.7, and with no projectile
-// used, warned or hit the original does nothing here (the counts are 0 from the level file).
+// Projectile hits use the contact sets 100..199 (at most 100 per frame, shared by all projectiles). A target is tested
+// with its first volume as the bound: with one volume that volume is the hit one (index 0), with more only the volumes
+// 1..n-1 are tested and hit. Each hit gives two collisions (the target's side, then the projectile's), each on the
+// volume's own list (infos bit 7, the volume listed for the next frame's clearing) or else, when the volume has an
+// owner, on the target's / projectile's list (which then counts as warned).
 void CKSrvCollision::ProcessDynamicVolumes() {
-    if (m_ui8NbProjectileUsed != 0 || m_ui8NbProjectilesWarned != 0 || m_ui16NbTargetsWarned != 0) {
-        DOTD_STUB_ONCE("CKSrvCollision_ProcessDynamicVolumes_maybe 0x193638: projectiles in use (C2.7)");
+    // The released projectiles (infos bit 1 cleared by ReleaseDynSphere) leave the used part, last first.
+    for (int32_t i = static_cast<int32_t>(m_ui8NbProjectileUsed) - 1; i >= 0; --i) {
+        CProjectile& projectile = m_aProjectile[i];
+        IKBoundingVolume* volume = static_cast<IKBoundingVolume*>(projectile.m_pBoundingVolume);
+        if ((volume->m_ba8Infos & 2u) != 0) continue;
+        volume->m_pOwner = nullptr;
+        --m_ui8NbProjectileUsed;
+        if (projectile.m_tHead != nullptr) {
+            projectile.m_tHead = nullptr;
+            --m_ui8NbProjectilesWarned;
+        }
+        const CProjectile last = m_aProjectile[m_ui8NbProjectileUsed];
+        m_aProjectile[m_ui8NbProjectileUsed] = projectile;
+        projectile = last;
+    }
+    // The last frame's warned projectiles and targets.
+    if (m_ui8NbProjectilesWarned != 0 && m_ui8NbProjectileUsed != 0) {
+        for (uint32_t i = 0;;) {
+            CProjectile& projectile = m_aProjectile[i++];
+            if (projectile.m_tHead != nullptr) {
+                projectile.m_tHead = nullptr;
+                --m_ui8NbProjectilesWarned;
+            }
+            if (m_ui8NbProjectilesWarned == 0 || m_ui8NbProjectileUsed <= i) break;
+        }
+    }
+    if (m_ui16NbTargetsWarned != 0 && m_ui16NbProjectileTargets != 0) {
+        for (uint32_t i = 0;;) {
+            CProjectileTarget& target = m_aProjectileTarget[i++];
+            if (target.m_tHead != nullptr) {
+                target.m_tHead = nullptr;
+                --m_ui16NbTargetsWarned;
+            }
+            if (m_ui16NbTargetsWarned == 0 || m_ui16NbProjectileTargets <= i) break;
+        }
+    }
+
+    if (m_ui8NbProjectileUsed != 0) {
+        CProjectileCollision* collision = m_aProjectileCollision;
+        CContactSet* set = &m_aContactSet[100];
+        uint32_t found = 0;
+        // One collision on a volume's own list (bit 7) or, with an owner, on `head` (counted in `warned` when new).
+        auto add = [&](IKBoundingVolume* volume, CProjectileCollision*& head, auto& warned, uint32_t projectileIndex,
+                       uint32_t targetIndex, uint32_t volumeIndex) {
+            if ((volume->m_ba8Infos & 0x80u) != 0) {
+                collision->m_ui8ContactSetIndex = static_cast<uint8_t>(found + 100);
+                collision->m_ui8ProjectileIndex = static_cast<uint8_t>(projectileIndex);
+                collision->m_ui16TargetIndex = static_cast<uint16_t>(targetIndex);
+                collision->m_ui8TargetBoundingVolumeIndex = static_cast<uint8_t>(volumeIndex);
+                if (volume->m_CollisionResList == nullptr) {
+                    m_apBVListingCollisionRes[m_ui32NbBVListingCollisionRes++] = volume;
+                }
+                collision->m_pNext = static_cast<ICollision*>(volume->m_CollisionResList);
+                volume->m_CollisionResList = static_cast<ICollision*>(collision);
+                ++collision;
+            } else if (volume->m_pOwner != nullptr) {
+                collision->m_ui8ContactSetIndex = static_cast<uint8_t>(found + 100);
+                collision->m_ui8ProjectileIndex = static_cast<uint8_t>(projectileIndex);
+                collision->m_ui16TargetIndex = static_cast<uint16_t>(targetIndex);
+                collision->m_ui8TargetBoundingVolumeIndex = static_cast<uint8_t>(volumeIndex);
+                if (head == nullptr) ++warned;
+                collision->m_pNext = head;
+                head = collision;
+                ++collision;
+            }
+        };
+        for (uint32_t p = 0;;) {
+            CProjectile& projectile = m_aProjectile[p];
+            IKBoundingVolume* moving = static_cast<IKBoundingVolume*>(projectile.m_pBoundingVolume);
+            if ((moving->m_ba8Infos & 4u) != 0 && m_ui16NbProjectileTargets != 0 && found <= 99) {
+                for (uint32_t t = 0;;) {
+                    CProjectileTarget& target = m_aProjectileTarget[t];
+                    IKBoundingVolume* bound = static_cast<IKBoundingVolume*>(target.m_apBoundingVolume[0]);
+                    if ((bound->m_ba8Infos & 4u) != 0 &&
+                        m_IntersectionMatrix[moving->GetShapeType()][bound->GetShapeType()](moving, bound, set) != 0) {
+                        const uint32_t count = target.m_ui8NbBoundingVolumes;
+                        if (count == 1) {
+                            add(bound, target.m_tHead, m_ui16NbTargetsWarned, p, t, 0);
+                            add(moving, projectile.m_tHead, m_ui8NbProjectilesWarned, p, t, 0);
+                            ++set;
+                            ++found;
+                        } else if (count > 1 && found <= 99) {
+                            for (uint32_t v = 1;;) {
+                                IKBoundingVolume* volume = static_cast<IKBoundingVolume*>(target.m_apBoundingVolume[v & 0xff]);
+                                if ((volume->m_ba8Infos & 4u) != 0 &&
+                                    m_IntersectionMatrix[moving->GetShapeType()][volume->GetShapeType()](moving, volume,
+                                                                                                          set) != 0) {
+                                    add(volume, target.m_tHead, m_ui16NbTargetsWarned, p, t, v);
+                                    add(moving, projectile.m_tHead, m_ui8NbProjectilesWarned, p, t, v);
+                                    ++set;
+                                    ++found;
+                                }
+                                ++v;
+                                if (v == count || found > 99) break;
+                            }
+                        }
+                    }
+                    ++t;
+                    if (m_ui16NbProjectileTargets <= t || found > 99) break;
+                }
+            }
+            ++p;
+            if (m_ui8NbProjectileUsed <= p || found > 99) break;
+        }
+    }
+
+    // The warned targets' and projectiles' owners get their collision lists (message 0x301). BUG(original): a warned
+    // target's first volume is assumed to have an owner.
+    if (m_ui16NbTargetsWarned != 0 && m_ui16NbProjectileTargets != 0) {
+        uint32_t sent = 0;
+        for (uint32_t t = 0;;) {
+            CProjectileTarget& target = m_aProjectileTarget[t++];
+            if (target.m_tHead != nullptr) {
+                ++sent;
+                static_cast<IKBoundingVolume*>(target.m_apBoundingVolume[0])->m_pOwner->MessageProc(0x301, target.m_tHead);
+            }
+            if (m_ui16NbTargetsWarned <= static_cast<uint16_t>(sent) || m_ui16NbProjectileTargets <= t) break;
+        }
+    }
+    if (m_ui8NbProjectilesWarned != 0 && m_ui8NbProjectileUsed != 0) {
+        uint32_t sent = 0;
+        for (uint32_t p = 0;;) {
+            CProjectile& projectile = m_aProjectile[p++];
+            if (projectile.m_tHead != nullptr) {
+                ++sent;
+                IKSerializable* owner = static_cast<IKBoundingVolume*>(projectile.m_pBoundingVolume)->m_pOwner;
+                if (owner != nullptr) owner->MessageProc(0x301, projectile.m_tHead);
+            }
+            if (static_cast<uint16_t>(sent) >= m_ui8NbProjectilesWarned || m_ui8NbProjectileUsed <= p) break;
+        }
     }
 }
 
@@ -1818,4 +1955,21 @@ pushedAtStartOrEnd:
     // The hit wall pushes the line back out: inside at the start moving in, else at the end.
     if (SweepCircleAgainstWallSegments(&s, radius, height, out) && !(dotBounce(out) >= kWallZero)) return pushedBack();
     return testEnd();
+}
+
+// C2.8 port-all P11.
+
+// 0x00195620 CKSrvCollision_Destructor (0x1944e8 the same + delete)
+CKSrvCollision::~CKSrvCollision() {
+    g_aProjectileTarget = nullptr;  // 0xcea8b8
+    g_pfDeltaTime = nullptr;        // 0xcea8ac
+    g_aContactSet = nullptr;        // 0xcea8b0
+    g_aProjectile = nullptr;        // 0xcea8b4
+}
+
+// 0x00191fb8 CKSrvCollision_RecursiveRegistration
+void CKSrvCollision::RecursiveRegistration(int32_t type) {
+    if (type != 0) return;
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    for (uint32_t i = 0; i < kProjectileCount; ++i) m_aProjectile[i].m_pBoundingVolume->RecursiveRegistration(0);
 }

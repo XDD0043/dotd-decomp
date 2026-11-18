@@ -28,7 +28,7 @@ public:
     // scene root's traversal) passes (0.0, the renderer's stage array, the frame clock, the main camera, 0).
     virtual void UpdateAndExtract(float /*maxDistanceSquared*/, RenderQueue** /*stages*/, IKTime* /*frameClock*/, RwCamera* /*camera*/,
                                   int32_t /*distanceCull*/) {}
-    virtual void Render() = 0;                                             // vt+0x5c (XXL2: IKTime*; arguments unverified)
+    virtual void Render(IKTime* frameClock) = 0;                           // vt+0x5c: the queue's frame clock (r4)
     virtual void UpdateProperties() {}                                     // vt+0x60 0x997b08
     // vt+0x64 0xa71d8: installs the new light set, returns the old one.
     virtual IKSerializable* ChangeLightSet(IKSerializable* lightSet);

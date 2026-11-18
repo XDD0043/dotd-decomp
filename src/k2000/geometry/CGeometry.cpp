@@ -4,21 +4,21 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x87f78  CGeometry_Delete
-//   [ ] 0x87fc8  CGeometry_RecursiveRegistration
+//   [x] 0x87f78  CGeometry_Delete  (DOTD_DECLARE_FACTORIES)
+//   [x] 0x87fc8  CGeometry_RecursiveRegistration  (CGeometry.h)
 //   [ ] 0x88020  CGeometry_Save
 //   [x] 0x88028  CGeometry_SetBlendMode
 //   [ ] 0x88098  CGeometry_UpdateRenderStageBits_maybe  [dead]
 //   [x] 0x88170  CGeometry_vf84
-//   [ ] 0x88190  ParticleDraw_SetShaderParticleFlags_maybe
+//   [x] 0x88190  ParticleDraw_SetShaderParticleFlags_maybe
 //   [ ] 0x88220  RegisterCGeometryClass
 //   [ ] 0x88298  _GLOBAL__I_88298
 //   [x] 0x882a8  CGeometry_vf80
-//   [ ] 0x88340  CGeometry_UpdateBoundingSphere_maybe
+//   [x] 0x88340  CGeometry_UpdateBoundingSphere_maybe
 //   [x] 0x88398  GetGeometryWorldBoundingSphere
-//   [ ] 0x88530  CGeometry_UnlockGeometry_maybe
+//   [x] 0x88530  CGeometry_UnlockGeometry_maybe
 //   [x] 0x88570  CGeometry_Destroy
-//   [ ] 0x885c8  CGeometry_DeleteArray
+//   [x] 0x885c8  CGeometry_DeleteArray  (DOTD_DECLARE_FACTORIES)
 //   [x] 0x88670  CGeometry_Create
 //   [x] 0x886d8  PrepareAndEnqueueGeometry
 //   [x] 0x889f8  CGeometry_GetMaterialRenderInfo
@@ -41,8 +41,8 @@
 //   [ ] 0x990c90  KStub_Nop_990c90  [inline]
 //   [ ] 0x990c98  KStub_Nop_990c98  [inline]
 //   [ ] 0x990ca0  KStub_Nop_990ca0  [inline]
-//   [ ] 0x990d90  CGeometry_DeletingDestructor  [inline]
-//   [ ] 0x990df8  CGeometry_Destructor  [inline]
+//   [x] 0x990d90  CGeometry_DeletingDestructor  [inline]
+//   [x] 0x990df8  CGeometry_Destructor  [inline]
 #include "k2000/geometry/CGeometry.h"
 #include "k2000/services/CKSrvShadow.h"
 
@@ -89,6 +89,9 @@ CGeometry::CGeometry() {
     m_pNext = nullptr;
     m_pRpAtomic = nullptr;
 }
+
+// 0x00088530 CGeometry_UnlockGeometry_maybe (RpGeometryUnlock through its TocBridge)
+int32_t CGeometry::UnlockGeometry() { return RpGeometryUnlock(m_pRpAtomic->geometry) != nullptr ? 1 : 0; }
 
 // 0x00088170 CGeometry_FindRpGeometry
 void* CGeometry::FindRpGeometry() { return m_pRpAtomic != nullptr ? m_pRpAtomic->geometry : nullptr; }
@@ -153,15 +156,14 @@ void CGeometry::Vf80(int32_t mode) {
     SetShaderFlag(0);
 }
 
-// 0x00088c90 CGeometry_PostLoad. CGeometry_SetupMaterialShader_maybe 0xbb828 (ShaderManagerPSGL_TryAssignOverride_maybe
-// 0xf8168, RpMatFXAtomicEnableEffects 0x698038 and _rpMatFXPipelineAtomicSetup_maybe 0x69a9c8 attach RenderWare pipelines
-// and the atomic's render callback; the PSGL atomic pipeline here is RpAtomicPSGL_Render, which every streamed atomic
-// takes) and RpSkinAtomicSetType leave nothing to do: with the shader manager's pipeline (+0x45) TryAssignOverride answers
-// 1 for every atomic, a skinned one keeping the skin pipeline its stream chose (Renderware/rpskin/RpSkin.cpp). A PTank atomic of the shim has no geometry (null here;
-// the original's has one).
+// 0x00088c90 CGeometry_PostLoad. First CGeometry_SetupMaterialShader_maybe 0xbb828 (CMaterial.cpp) with the material's
+// shader mode: with the shader manager's atomic pipeline (+0x45, +0x04) TryAssignOverride answers 1 for every atomic, a
+// skinned one keeping the skin pipeline its stream chose (Renderware/rpskin/RpSkin.cpp), the others taking the manager's
+// pipeline (a tag: RpAtomicPSGL_Render draws every streamed atomic).
 int32_t CGeometry::PostLoad(int32_t type) {
     CMaterial* material = static_cast<CMaterial*>(m_pMaterial);
     const uint32_t mode = (material->m_baProperties >> 3) & 0xf;
+    CGeometry_SetupMaterialShader(m_pRpAtomic, static_cast<int32_t>(mode));  // 0x000bb828 (the word's bits 3-6)
     if (type == 0 && mode - 10u < 5u && m_pRpAtomic != nullptr && m_pRpAtomic->geometry != nullptr) {  // CMaterial_IsMode10To14_maybe
         m_pRpAtomic->geometry->flags |= 0x200;  // the tangent flag
     }
@@ -249,13 +251,24 @@ void CGeometry::ComputeSortingCoef(int32_t /*sortingOrder*/) {
     m_fSortingCoef = (dz * dz + dx * dx + dy * dy) * g_pRenderStateRenderer->m_fInvFarSquared;
 }
 
+// 0x00088190 ParticleDraw_SetShaderParticleFlags_maybe: bit 1 from render flag 25 (rldicl 39 / slwi 1 over the cleared
+// bit), bit 2 set or cleared by render flag 0x100000, bit 0 cleared and or'ed with the byte +0x28.
+void ParticleDraw_SetShaderParticleFlags(const CGeometry* geometry) {
+    ShaderSceneInputs& scene = SceneInputs();
+    uint32_t flags = scene.managerFlags;
+    flags = (flags & ~2u) | (((geometry->m_BitProperties >> 25) & 1u) << 1);
+    flags = (geometry->m_BitProperties & 0x100000) != 0 ? (flags | 4u) : (flags & ~4u);
+    flags = (flags & ~1u) | geometry->ShaderFlag();
+    scene.managerFlags = flags;
+}
+
 // 0x00088e28 CGeometry_Render. g_ShaderManagerPSGL +0x8c (SceneInputs().managerFlags): bit 1 point lights = render
 // flag 25, bit 2 far texture = render flag 20, bit 0 shadow textures = the shader flag byte. The fog render state (RW
 // state 0xe) stays on only for geometries with render flag 22. The geometry's colour goes into the RW material (the
 // shader reads it as the material colour). A material with property 0x8000 draws the atomic once per alpha reference of
 // its 8 raw bytes (+0x2c, the count at +0x33) with the alpha test on and depth write on, culling off and the render
 // states restored afterwards.
-void CGeometry::Render() {
+void CGeometry::Render(IKTime* /*frameClock*/) {
     ShaderSceneInputs& scene = SceneInputs();
     uint32_t flags = scene.managerFlags;
     flags = (flags & ~2u) | (((m_BitProperties >> 25) & 1u) << 1);
@@ -297,7 +310,8 @@ void CGeometry::Render() {
 // 0x00c4b0cc indexed by bits 3-6). With `distanceCull` the geometry is dropped beyond the distance from the
 // current camera. Then, when it has something to draw (vt+0x88): the auxiliary geometry (+0x2c) queued
 // too, and this one in the stage of its render flags' bits 0-4; materials of type 7 / 8 (bits 3-6) go to
-// stage 16 after the distortion manager's own vt+0x58 (STUB(C2)).
+// stage 16 after the object their shared state names (CMaterial's static at 0x00c5d280, its +4 handle: the
+// distortion effect) is extracted itself (its vt+0x58 with no distance cull).
 void CGeometry::EnqueueVisible(float maxDistanceSquared, RenderQueue** stages, IKTime* frameClock, RwCamera* camera,
                                int32_t distanceCull) {
     CMaterial* material = static_cast<CMaterial*>(m_pMaterial);
@@ -323,11 +337,20 @@ void CGeometry::EnqueueVisible(float maxDistanceSquared, RenderQueue** stages, I
     }
     const uint32_t type = (material->m_baProperties >> 3) & 0xf;
     if (type == 8 || type == 7) {
-        DOTD_STUB_ONCE("CGeometry_UpdateAndExtract: distortion materials (stage 16, C2)");
+        // BUG(original): no null check of the handle (every mode 7 / 8 material loads it).
+        static_cast<IRendableObject*>(CMaterial::s_sharedState.m_pRef)
+            ->UpdateAndExtract(0.0f, stages, frameClock, camera, 0);  // TOC -0x6700: 0.0f
         stages[0x10]->Add(this);
         return;
     }
     stages[m_BitProperties & 0x1f]->Add(this);
+}
+
+// 0x00088340 CGeometry_UpdateBoundingSphere_maybe (vt+0x7c; the RW call through the bridge 0x98e090)
+void CGeometry::UpdateBoundingSphere() {
+    _rpAtomicResyncInterpolatedSphere(m_pRpAtomic);
+    m_pRpAtomic->flags &= 0xfffffffdu;
+    m_pRpAtomic->privateFlags |= 1;
 }
 
 // 0x00088398 GetGeometryWorldBoundingSphere (vt+0x78): the atomic's world sphere. A morphing atomic (flags
@@ -353,6 +376,6 @@ float* CGeometry::GetWorldBoundingSphere(CNode* node) {
         atomic->worldSphere[2] = atomic->boundingSphere[2];
         atomic = m_pRpAtomic;
     }
-    atomic->objectFlags &= static_cast<uint8_t>(~1u);
+    atomic->privateFlags &= static_cast<uint8_t>(~1u);
     return m_pRpAtomic->worldSphere;
 }

@@ -5,23 +5,23 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0xc8b70  CAnimatedNode_Delete
-//   [ ] 0xc8bc0  CAnimatedNode_RecursiveRegistration
+//   [x] 0xc8bc0  CAnimatedNode_RecursiveRegistration  (returns 1, registers nothing: CSGLeaf's)
 //   [ ] 0xc8bc8  CAnimatedNode_Save
-//   [ ] 0xc8bd0  CAnimatedNode_vf60
+//   [x] 0xc8bd0  CAnimatedNode_vf60
 //   [x] 0xc8bd8  CAnimatedNode_GetBoneMatrix
 //   [x] 0xc8bf0  CAnimatedNode_GetSubtreeBoneCount
 //   [ ] 0xc8c88  RegisterCAnimatedNodeClass
 //   [ ] 0xc8d00  _GLOBAL__I_c8d00
 //   [ ] 0xc8d10  RpHAnimFrameSetHierarchy_Thunk  [dead]
 //   [ ] 0xc8d38  RpHAnimHierarchyDetach_Thunk  [dead]
-//   [ ] 0xc8d60  RwFrameDestroy_Field14_Thunk_maybe
-//   [ ] 0xc8d88  CAnimatedNode_FrustumTestBoundingSphere_maybe
+//   [x] 0xc8d60  RwFrameDestroy_Field14_Thunk_maybe  (RwFrameDestroy of a hierarchy's parent frame (+0x14): inlined at its callers CKSpawnPool_Destroy 0xb7aac / _ClearReferences_2 0xb6cac, CKSpawnPool.cpp)
+//   [ ] 0xc8d88  CAnimatedNode_FrustumTestBoundingSphere_maybe  [dead: no pointer to its descriptor 0xb4e688]
 //   [x] 0xc8e80  CAnimatedNode_SetBlendAnimPairAndWeight_maybe
 //   [x] 0xc8eb0  CAnimatedNode_CrossfadeToAnim_maybe
 //   [x] 0xc8ef8  IKFile_ReadBoneFrameList
-//   [ ] 0xc9150  CAnimatedNode_DetachChild_maybe
+//   [x] 0xc9150  CAnimatedNode_DetachChild_maybe
 //   [x] 0xc9218  CAnimatedNode_AttachChildToGroup_maybe
-//   [ ] 0xc92e0  CAnimatedNode_Destroy
+//   [x] 0xc92e0  CAnimatedNode_Destroy
 //   [ ] 0xc93f8  CAnimatedNode_Construct_2  [dead]
 //   [x] 0xc9480  CAnimatedNode_Construct
 //   [x] 0xc9508  CAnimatedNode_DeleteArray
@@ -35,22 +35,22 @@
 //   [x] 0xc97d8  CAnimatedNode_ResetCurrentAnim_maybe
 //   [x] 0xc98b8  CAnimatedNode_PlayAnim_maybe
 //   [x] 0xc9978  CAnimatedNode_GetBlendSlot_maybe
-//   [ ] 0xc99b8  CAnimatedNode_SetRootController_maybe
-//   [ ] 0xc99c0  CAnimatedNode_BaseDestructor
+//   [x] 0xc99b8  CAnimatedNode_SetRootController_maybe  (SetRootController, CAnimatedNode.h)
+//   [x] 0xc99c0  CAnimatedNode_BaseDestructor  (C++ destructor chain: vtable stores, then CNode's)
 //   [x] 0xc9a08  CAnimatedNode_SetHAnimHierarchy_maybe
-//   [ ] 0xc9ab0  CAnimatedNode_UpdateWorldMatrices
+//   [x] 0xc9ab0  CAnimatedNode_UpdateWorldMatrices
 //   [x] 0xc9b88  CAnimatedNode_UpdateChildWorldMatrix_maybe
 //   [x] 0xc9d48  CAnimatedNode_PostLoad
-//   [ ] 0xc9e90  CAnimatedNode_CollectFlaggedChildren_maybe
-//   [ ] 0xc9f60  CAnimatedNode_WriteFrameList_maybe
+//   [x] 0xc9e90  CAnimatedNode_CollectFlaggedChildren_maybe
+//   [ ] 0xc9f60  CAnimatedNode_WriteFrameList_maybe  [dead: no pointer to its descriptor 0xb4e780]
 //   [ ] 0xca168  CAnimatedNode_GetWrappedAnimTime_maybe  [dead]
 //   [ ] 0xca210  CAnimatedNode_IsAnimStartReached_maybe  [dead]
 //   [x] 0xca368  CAnimatedNode_IsAnimEndReached_maybe
 //   [x] 0xca4c0  CAnimatedNode_Load
-//   [ ] 0xca760  CAnimatedNode_AttachChildToBone_maybe
+//   [x] 0xca760  CAnimatedNode_AttachChildToBone_maybe
 //   [x] 0xca8a8  CAnimatedNode_RemoveChild_maybe
-//   [ ] 0xca978  CAnimatedNode_DeletingDestructor
-//   [ ] 0xca9d8  CAnimatedNode_Destructor
+//   [x] 0xca978  CAnimatedNode_DeletingDestructor  (C++ destructor chain + delete)
+//   [x] 0xca9d8  CAnimatedNode_Destructor  (C++ destructor chain: vtable stores, then CNode's)
 //   [x] 0xcaa20  CAnimatedNode_CreateArray
 //   [x] 0xcab28  CAnimatedNode_Create
 //   [x] 0xcabc8  UpdateAnimatedNodePoseAndCull
@@ -76,10 +76,12 @@
 #include "k2000/io/IKFile.h"
 #include "k2000/scenegraph/CSGMovable.h"
 #include "Renderware/rpworld/RpAtomic.h"
+#include "Renderware/rpworld/RpGeometry.h"
 #include "Renderware/rtanim/RtAnim.h"
 #include "Renderware/rwcore/RwMatrix.h"
 #include "crt/ppc_ops.h"
 #include "k2000/graphical/animation/CAnimationManager.h"
+#include "k2000/misc/Mat4.h"
 #include "k2000/render/CRenderer.h"
 #include "k2000/system/IKTime.h"
 
@@ -165,6 +167,29 @@ int32_t CAnimatedNode::PostLoad(int32_t type) {
 }
 
 // 0x000c9218 CAnimatedNode_AttachChildToGroup_maybe
+// 0x000c9150 CAnimatedNode_DetachChild_maybe
+void CAnimatedNode::DetachChild(CSGLeaf* child) {
+    CSGLeaf* node = m_pAttachmentHead;
+    if (node != nullptr) {
+        if (child == node) {
+            m_pAttachmentHead = child->m_pNext;
+            child->m_pNext = nullptr;
+        } else {
+            CSGLeaf* previous = node;
+            node = node->m_pNext;
+            while (node != nullptr && node != child) {
+                previous = node;
+                node = node->m_pNext;
+            }
+            if (node != nullptr) {
+                previous->m_pNext = child->m_pNext;
+                child->m_pNext = nullptr;
+            }
+        }
+    }
+    child->SetParent(nullptr, 0xff);  // 0x000cec08
+}
+
 void CAnimatedNode::AttachChildToGroup(uint8_t bone, CSGLeaf* child) {
     for (CSGLeaf* entry = m_pAttachmentHead; entry != nullptr; entry = entry->m_pNext) {
         if (child->m_ui8BoneParent == entry->m_ui8BoneParent) {
@@ -177,6 +202,60 @@ void CAnimatedNode::AttachChildToGroup(uint8_t bone, CSGLeaf* child) {
     child->m_pNext = m_pAttachmentHead;
     m_pAttachmentHead = child;
     child->SetParent(this, bone);
+}
+
+// 0x000ca760 CAnimatedNode_AttachChildToBone_maybe. DOTD: the LTMs through RwFrameGetLTM (the PS3 reads the stored ones,
+// frame +0x50; dotd's frames synchronise lazily, as in CSGBranch::AddChildKeepWorldTransform).
+void CAnimatedNode::AttachChildToBone(uint32_t bone, CSGLeaf* child) {
+    CSGLeaf* entry = m_pAttachmentHead;
+    while (entry != nullptr && child->m_ui8BoneParent != entry->m_ui8BoneParent) entry = entry->m_pNext;
+    if (entry != nullptr) {
+        child->m_pNext = entry->m_pNext;
+        entry->m_pNext = child;
+    } else {
+        child->m_pNext = m_pAttachmentHead;
+        m_pAttachmentHead = child;
+    }
+    child->SetParent(this, static_cast<uint8_t>(bone));  // 0x000cec08
+    const CMatrix34* world = reinterpret_cast<const CMatrix34*>(RwFrameGetLTM(m_pRwFrame));
+    alignas(16) CMatrix34 boneWorld;
+    if (m_ui16LastRenderedFrame == g_ui16RenderFrameCounter || (m_sgProperties & 0x2000u) != 0) {
+        Mat4_Multiply(&boneWorld, reinterpret_cast<const CMatrix34*>(GetBoneMatrix(bone)), world);  // 0x0023f788
+        world = &boneWorld;
+    }
+    alignas(16) CMatrix34 inverse;
+    Mat4_Invert(&inverse, world);  // 0x0023f878
+    // 0x000d0b90 SceneNode_SetLocalFromWorldTimes_maybe: the child's modelling = its LTM times the inverse.
+    const RwMatrix childWorld = *RwFrameGetLTM(child->m_pRwFrame);
+    RwMatrixMultiply(&child->m_pRwFrame->modelling, &childWorld, reinterpret_cast<const RwMatrix*>(&inverse));
+    RwFrame_MarkDirty(child->m_pRwFrame);
+}
+
+// 0x000c9e90 CAnimatedNode_CollectFlaggedChildren_maybe
+uint32_t CAnimatedNode::GetHotSpots(CSGLeaf** out, uint32_t max) {
+    uint32_t count = 0;
+    CSGLeaf* child = m_lChildList;
+    if (child != nullptr && max != 0) {
+        do {
+            if ((child->m_sgProperties & 8u) != 0) {
+                --max;
+                ++count;
+                *out++ = child;
+            }
+            child = child->m_pNext;
+        } while (child != nullptr && max != 0);
+    }
+    CSGLeaf* attachment = m_pAttachmentHead;
+    if (attachment == nullptr || max == 0) return count;
+    do {
+        if ((attachment->m_sgProperties & 8u) != 0) {
+            ++count;
+            --max;
+            *out++ = attachment;
+        }
+        attachment = attachment->m_pNext;
+    } while (attachment != nullptr && max != 0);
+    return count;
 }
 
 // 0x000ca8a8 CAnimatedNode_RemoveChild_maybe
@@ -475,8 +554,9 @@ void CAnimatedNode::UpdateAndExtract(float /*maxDistanceSquared*/, RenderQueue**
         RpAtomic* atomic = geometry->m_pRpAtomic;
         const float radius = worldSphere[3];
         if ((atomic->flags & 2u) != 0) {
-            // STUB(C2.7): BridgeRwUpdateAtomicMorphBoundingSphere 0x98e090 (morph targets; as CGeometry vt+0x7c).
-            DOTD_STUB_ONCE("PrepareAndEnqueueAnimatedNode 0xcb0f0: morph atomic bounding sphere (C2.7)");
+            // BridgeRwUpdateAtomicMorphBoundingSphere 0x98e090 (_rpAtomicResyncInterpolatedSphere; the sphere is
+            // overwritten right after, the flags it sets stay).
+            _rpAtomicResyncInterpolatedSphere(atomic);
             atomic = geometry->m_pRpAtomic;
         }
         // The node's world sphere into the atomic's own sphere (PS3 +0x1c: RpAtomic boundingSphere; a geometry with render
@@ -487,9 +567,31 @@ void CAnimatedNode::UpdateAndExtract(float /*maxDistanceSquared*/, RenderQueue**
         atomic->boundingSphere[2] = worldSphere[2];
         atomic->boundingSphere[3] = radius;
         atomic->flags &= 0xfffffffdu;
-        atomic->objectFlags |= 1;
+        atomic->privateFlags |= 1;
     }
     if ((CullAndEnqueueGeometry(stages, frameClock, camera) & 0xff) != 0) {  // vt+0x84 (CNode's 0xcc460)
         m_ui16LastRenderedFrame = g_ui16RenderFrameCounter;
     }
+}
+
+// 0x000c9ab0 CAnimatedNode_UpdateWorldMatrices
+uint8_t CAnimatedNode::UpdateWorldMatrices(int32_t force) {
+    const uint8_t changed = UpdateWorldMatrix(force);  // 0x000cede0
+    for (CSGLeaf* child = m_lChildList; child != nullptr; child = child->m_pNext) child->UpdateWorldMatrices(changed);
+    for (CSGLeaf* child = m_pAttachmentHead; child != nullptr; child = child->m_pNext) child->UpdateWorldMatrices(1);
+    return changed;
+}
+
+// 0x000c92e0 CAnimatedNode_Destroy. The original holds the render lightweight mutex (TOC -0x5640) around
+// RwFrameDestroy; the native render runs on this thread.
+void CAnimatedNode::Destroy() {
+    if (m_pRpHAnimHierarchy != nullptr) {
+        m_pRpHAnimHierarchy->currentAnim->pCurrentAnim = nullptr;
+        if (m_pRpHAnimHierarchy->parentFrame != nullptr) RwFrameDestroy(m_pRpHAnimHierarchy->parentFrame);
+        m_pRpHAnimHierarchy = nullptr;
+    }
+    const uint32_t mode = (m_sgProperties >> 9) & 3;
+    m_pAttachmentHead = nullptr;
+    if (mode == 2) m_blendSlot.ClearReferences();
+    CNode::Destroy();
 }

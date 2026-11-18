@@ -7,8 +7,8 @@
 //   [x] 0x33fb8  LocLoadRequest_CheckDone
 //   [ ] 0x34018  LocLoadRequest_Wait_maybe  [dead]
 //   [x] 0x34070  LocLoadRequest_Post
-//   [ ] 0x340f0  LocLoadRequest_DeletingDestructor
-//   [ ] 0x34138  LocLoadRequest_Destructor
+//   [x] 0x340f0  LocLoadRequest_DeletingDestructor  (implicit: the virtual destructor (0x34138), then delete)
+//   [x] 0x34138  LocLoadRequest_Destructor
 //   [ ] 0x34168  LocLoadRequest_Destructor_2  [dead]
 //   [x] 0x34198  LocLoadRequest_Construct
 //   [ ] 0x341e0  LocLoadRequest_Construct_2  [dead]

@@ -5,33 +5,33 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0xceb28  CSGLeaf_Delete
-//   [ ] 0xceb78  CSGLeaf_RecursiveRegistration
+//   [x] 0xceb78  CSGLeaf_RecursiveRegistration  (returns 1, registers nothing: the IKSerializable default slot)
 //   [x] 0xceb80  CSGLeaf_Enqueue
-//   [ ] 0xceba0  KStub_Return0_ceba0
-//   [ ] 0xceba8  CSGLeaf_GetSectorIndex_maybe
+//   [x] 0xceba0  KStub_Return0_ceba0
+//   [x] 0xceba8  CSGLeaf_GetSectorIndex_maybe  (GetSectorIndex, CSGLeaf.cpp)
 //   [x] 0xcec08  SceneNode_SetParent_maybe
 //   [ ] 0xcec30  SceneNode_IsAttachedChildOfAnimatedParent_maybe  [dead]
 //   [ ] 0xcecf8  RegisterCSGLeafClass
 //   [ ] 0xced70  _GLOBAL__I_ced70
 //   [ ] 0xced80  CSGLeaf_Save
 //   [x] 0xceda8  CSGLeaf_Destroy
-//   [ ] 0xcede0  SceneNode_UpdateWorldMatrix
-//   [ ] 0xcef68  CSGLeaf_UpdateWorldMatrices
-//   [ ] 0xcef70  CSGLeaf_BaseDestructor
+//   [x] 0xcede0  SceneNode_UpdateWorldMatrix
+//   [x] 0xcef68  CSGLeaf_UpdateWorldMatrices
+//   [x] 0xcef70  CSGLeaf_BaseDestructor  (C++ destructor chain: vtable stores only)
 //   [ ] 0xcefa0  CSGLeaf_Construct_2  [dead]
 //   [x] 0xcefe0  CSGLeaf_Construct
 //   [x] 0xcf020  CSGLeaf_DeleteArray
-//   [ ] 0xcf0c8  CSGLeaf_Destructor
+//   [x] 0xcf0c8  CSGLeaf_Destructor  (C++ destructor chain: vtable stores only)
 //   [x] 0xcf0f8  CSGLeaf_PostLoad
 //   [x] 0xcf1e0  CSGLeaf_ComputeLTMWithParent_maybe
 //   [x] 0xcf300  CSGLeaf_ComputeLTM_maybe
-//   [ ] 0xcf3e0  CSGLeaf_DeletingDestructor
+//   [x] 0xcf3e0  CSGLeaf_DeletingDestructor  (C++ destructor chain + delete)
 //   [x] 0xcf428  CSGLeaf_Create
 //   [x] 0xcf488  CSGLeaf_CreateArray
 //   [x] 0xcf550  CSGLeaf_Load
 //
-//   [ ] 0x991568  CSGLeaf_vf60  [inline]
-//   [ ] 0x991580  KStub_Return0_991580  [inline]
+//   [x] 0x991568  CSGLeaf_vf60  [inline]
+//   [x] 0x991580  KStub_Return0_991580  [inline]
 //   [ ] 0x9a27a0  CSGLeaf_IsKindOfClass  [inline]
 //   [x] 0x9a27c8  CSGLeaf_GetClassType  [inline]
 //   [x] 0x9a27d0  CSGLeaf_GetClassID  [inline]
@@ -43,6 +43,7 @@
 #include "k2000/io/IKFile.h"
 #include "k2000/scenegraph/CSGBranch.h"
 #include "k2000/render/CRenderer.h"
+#include "k2000/scenegraph/CAnimatedNode.h"
 #include "k2000/scenegraph/CSGBranch.h"
 
 // 0x000cefe0 CSGLeaf_Construct
@@ -116,3 +117,22 @@ int32_t CSGLeaf::PostLoad(int32_t /*type*/) {
 
 // 0x000ceba8 CSGLeaf_GetSectorIndex_maybe
 uint32_t CSGLeaf::GetSectorIndex() { return m_pParent != nullptr ? m_pParent->GetSectorIndex() : 0xfffffffeu; }
+
+// 0x000cede0 SceneNode_UpdateWorldMatrix
+uint8_t CSGLeaf::UpdateWorldMatrix(int32_t force) {
+    RwFrame* frame = m_pRwFrame;
+    if (force == 0 && (frame->root->object.privateFlags & 1u) == 0 && (frame->object.privateFlags & 4u) == 0) return 0;
+    CSGBranch* parent = m_pParent;
+    if (parent == nullptr) {
+        frame->ltm = frame->modelling;  // the four rows copied
+    } else if (m_ui8BoneParent == 0xff || parent->m_ui16LastRenderedFrame == 0) {
+        RwMatrixMultiply(&frame->ltm, &frame->modelling, &parent->m_pRwFrame->ltm);  // 0x00759648
+    } else {
+        RwMatrix bone;
+        RwMatrixMultiply(&bone, static_cast<CAnimatedNode*>(parent)->GetBoneMatrix(m_ui8BoneParent),
+                         &parent->m_pRwFrame->ltm);  // 0x000c8bd8
+        RwMatrixMultiply(&frame->ltm, &frame->modelling, &bone);
+    }
+    frame->object.privateFlags = static_cast<RwUInt8>(frame->object.privateFlags & 0xfau);
+    return 1;
+}

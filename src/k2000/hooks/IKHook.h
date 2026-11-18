@@ -19,6 +19,10 @@ class IKHook : public IKLife {
 public:
     DOTD_CLASS_KEY(kCategoryHook, 0x0)
 
+    // vt+0x08 0x00992698 IKHook_IsKindOfClass: IKHook (2), then IKLife's. CKBundle_MoveBetweenActiveLists tests key 2: a
+    // hook woken at run time joins its bundle's awake list only through it.
+    int32_t IsKindOfClass(uint32_t key) override { return key == 2 || IKLife::IsKindOfClass(key); }
+
     // Inlined in every hook Create (CKHkS08Shield_Create 0x2ac5d8: +0x18, +0x14, +0x1c = 0).
     IKHook() {
         m_pHookLife = nullptr;
@@ -37,6 +41,10 @@ public:
         IKFile_ReadObjectRefArray(file, &m_pHookLife, 2);
         return 1;
     }
+    // vt+0x24 0x00019ab8 IKHook_LevelReset (IKHook's RecursiveRegistration; k2000/logic/CDefaultGameManager.cpp's unit):
+    // IKLife's (KStub_Return1_19c90: nothing), then outside the memory-card types 4..7 the hook's node (+0x1c, when there
+    // is one: KObject_LevelResetIfNotNull_maybe 0x19c98) with the same type. The hook itself does not register.
+    void RecursiveRegistration(int32_t type) override;
 
     // The IKUpdatable slots IKHook fills with empty bodies.
     void Start() override {}              // vt+0x50 0x992640 KStub_Nop_992640
@@ -49,8 +57,14 @@ public:
     // that class key, or null. 0x992670 KStub_Return0 for most hooks; CKHkS08Hero 0x344d30 and
     // CKHkMovableCharacter 0x59df38 override it. (DotD adds nothing between +0xa8 and +0xb0.)
     virtual IKSerializable* GetComponent(uint32_t /*key*/) { return nullptr; }
+    // vt+0xb4 0x992678 / vt+0xb8 0x992680 (empty; XXL2 IKHook::KGLObjectAttached / KGLObjectDetached(CSGLeaf*)): the hook's
+    // node attached / detached. Their only callers (0x1c2e0 / 0x1d460, CKCoreManager.cpp) are dead in DotD: no live
+    // caller; the overrides (e.g. CKHkS08SpawnableMushroom_AttachSounds 0x4d87d8) are ported for completeness.
+    virtual void KGLObjectAttached(IKSerializable* /*node*/) {}
+    virtual void KGLObjectDetached(IKSerializable* /*node*/) {}
     // vt+0xbc 0x00019a90 IKHook_vfBC: the hook's node's blend slot (CAnimatedNode_GetBlendSlot_maybe): *count 1 and *slot
-    // for a node with one, 0 for a single controller. (The cinematic blocs' access to an actor's animation.)
+    // for a node with one, 0 for a single controller. (The cinematic blocs' access to an actor's animation.) The hero
+    // overrides it (CKHkS08Hero_GetCinematicAnimSlots: two slots), so `slot` must have room for two.
     virtual void GetBlendSlot(AnimBlendSlot** slot, int32_t* count);
     IKHook* m_pNextHook;                  // +0x14 XXL2 CSBaseNode<IKHook*>::m_pNext (the group's hook list)
     // +0x18 / +0x1c are read as one array of two references (they must stay adjacent).

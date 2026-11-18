@@ -34,6 +34,8 @@ public:
     // vt+0x44 0x0006a1f0 TextData_SetColor (XXL2 IKText2d::SetColor): the colour word, then the brush's four
     // corners. Called directly (the slot is not declared yet; no front-end class overrides it).
     void SetColor(const uint8_t* color);
+    // vt+0x48 0x0006a1a8 CText2d_SetAlpha_maybe: the colour's alpha byte, then the brush's four corners. Called directly.
+    void SetAlpha(uint8_t alpha);
     // vt+0x40 0x00998bc0 TextData_SetFont_maybe (XXL2 IKText2d::SetFontId): CManager2d's font `id` with a new
     // character height and layout; 1 when the font exists. Called directly (only CText2d has the part).
     uint8_t SetFont(uint32_t id);
@@ -46,6 +48,14 @@ public:
     // 0x0006b1b8 TextData_SetTextAscii: an ASCII text of fewer than 400 characters widened and set through
     // vt+0x38; a longer one becomes "-TEXT TOO BIG-".
     void SetTextAscii(const char* text);
+    // vt+0x14 0x0006b670 Text2dBlock_Reset_maybe (XXL2 IKText2d::FreeMemoryText2D; the text part's Destroy 0x6a0c0 calls
+    // it through the slot): the loc manager, box and line count cleared, the brush destroyed, the font, colours, sizes,
+    // scroll, alignment (3) and the word / variable counts reset.
+    void FreeMemoryText2D();
+    // vt+0x4c 0x009985c8 TextData_ComputeAlignedRect_maybe (XXL2 IKText2d::GetBoundingBox(CBox2D&, const CVector2&,
+    // UInt8, UInt8)): the box of the text at `position`: the width (box x / the CManager2d's aspect) placed by wAlign
+    // (0 right of, 1 centred on, 2 left of the position), the height (box y) by hAlign (0 below, 1 centred, 2 above).
+    void ComputeAlignedRect(CBox2D* box, const CVector2* position, uint8_t wAlign, uint8_t hAlign) const;
 
     // 0x0006b2d8 CText2d_TokenizeText_maybe (CText2d_PostLoad, CColorTextButton2d_PostLoad): the accessor's
     // text when it has one, else m_wszText split into words in place, then the layout. Returns 1.
@@ -53,6 +63,15 @@ public:
     // 0x0006a468 TextData_ComputeLayout_maybe: space width, box line count, word positions and lines,
     // horizontal (m_ui8WAlignType) and vertical (m_ui8HAlignType) alignment. 0 without a font.
     int32_t ComputeLayout();
+    // 0x0006a350 Text2dBlock_MeasureSize_maybe (port-all P13): the words' widths, each plus a space, after one space; the
+    // height a character height plus twice the leading's (0, 0 without a font).
+    void MeasureSize(float* size) const;
+    // 0x0006b530 TextData_SetFontHeight_maybe (port-all P13, for CKS08MenuObjectives): the text size; with a font the
+    // character height (x 0.108) and space width again; then FitSizeToText with m_bAutoSize, else the layout.
+    void SetFontHeight(float height);
+    // vt+0x00 0x009943d8 TextData_FitSizeToText_maybe (XXL2 AutoSize; port-all P13): the box set to the measured size and
+    // laid out three times (as it is, centred horizontally, then vertically), m_bAutoSize set again at the end.
+    void FitSizeToText();
     // 0x0006aa60 Text2dPart_ReplaceButtonGlyphTokens_maybe: "#$n#" and "#£a_b_c_#" tokens -> one pad glyph.
     uint8_t ReplaceButtonGlyphTokens();
     // 0x0006ad78 Text2dPart_SubstituteVariables_maybe: "%name%" -> the loc manager's text variable.
@@ -63,6 +82,9 @@ public:
     uint8_t SetTextFromLocString(IKSerializable* text);
     // 0x0006bd10 Text2dPart_RefreshFromLocString_maybe: SetText again from the accessor's text (event 5).
     int32_t RefreshFromLocString();
+    // 0x0006a238 TextData_AppendLinesToWStr_maybe (C2.8 save-menu): every word appended to `text`, each followed by a
+    // space (WStr_CatReturnEnd).
+    void AppendWordsToWStr(uint16_t* text) const;
     // 0x0006c580 TextData_SetTextClearLocRef_maybe: SetText, then the accessor's text object cleared (its
     // list's first entry when it has a list); 1 when SetText succeeded.
     uint8_t SetTextClearLocRef(const uint16_t* text);

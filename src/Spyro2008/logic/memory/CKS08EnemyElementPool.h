@@ -11,6 +11,7 @@
 class CKS08EnemyElementPool : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x1e9)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x7a4c || key == 0xc; }  // vt+0x08 0x9bbd90
     DOTD_DECLARE_FACTORIES(CKS08EnemyElementPool)
 
     // inlined in 0x0026ca10 CKS08EnemyElementPool_Create: the array empty with capacity 1 (no block yet).
@@ -21,6 +22,9 @@ public:
     }
     ~CKS08EnemyElementPool() override {}
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x0026cc60 CKS08EnemyElementPool_Load
+    // vt+0x30 0x0026cc08 CKS08EnemyElementPool_PostLoad: every element free (+0x54 = 0), whatever the type; 1.
+    int32_t PostLoad(int32_t type) override;
+    // vt+0x24 0x0026cc00 (1) and vt+0x10 0x0026cc58 (nop): the IKSerializable defaults do the same.
 
     CKS08EnemyElement** m_apElements;  // +0x04 (Mem_AllocAligned16 / Mem_ReallocAligned16)
     uint32_t m_capacity;               // +0x08

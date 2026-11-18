@@ -29,11 +29,21 @@ RwFrame* RwFrameRemoveChild(RwFrame* child);
 // 0x0074c6a0 RwFrameAddChild: RwFrameAddChildNoUpdate, then the child's hierarchy is marked dirty
 // (RwFrameUpdateObjects). A frame that already had a parent is removed from it first.
 RwFrame* RwFrameAddChild(RwFrame* parent, RwFrame* child);
-// 0x0074a438 RwFrameUpdateObjects: the root's private flags |= 3 (hierarchy needs an LTM and object sync),
-// the frame's |= 0xc (its subtree does). By design (not a stub): the PS3 also puts the root on the engine's dirty frame
-// list (RWEngineInstance + 0xbc) when it was clean; its only reader is the camera update (RwCameraBeginUpdate
-// syncs the LTMs), and natively RwFrameGetLTM computes them on demand, so the list is not kept.
+// 0x0074a438 RwFrameUpdateObjects: a root that was clean (private flags 0-1) goes on the engine's dirty frame list
+// (RWEngineInstance + 0xbc), the root's flags |= 3 (hierarchy needs an LTM and object sync), the frame's |= 0xc (its
+// subtree does).
 RwFrame* RwFrameUpdateObjects(RwFrame* frame);
+// _rwFrameSyncDirty (RW 3.7 basync.c; the PS3's WorldCameraBeginUpdate runs it, RwCameraBeginUpdate here): every listed
+// root's hierarchy synced (FrameSyncHierarchy: with the root's LTM mark, the frames under a SUBTREESYNCLTM mark get their
+// modelling matrix times the parent's LTM, a marked root its modelling matrix; all four marks cleared on the root, the
+// subtree marks on the others), the list emptied. Game code reading RwFrame +0x50 directly (the collision tests'
+// centres) sees those LTMs, as on the PS3. The frames' objects (atomics, lights) are not synced here.
+void _rwFrameSyncDirty();
+// _rwFrameSyncHierarchyLTM (basync.c): the root's hierarchy LTMs (as FrameSyncHierarchy's LTM part), the root's LTM and
+// subtree LTM marks cleared.
+void _rwFrameSyncHierarchyLTM(RwFrame* root);
+// The list's links (RwFrame::inDirtyListLink): a frame leaves the list (RwFrameAddChild, RwFrameDestroy).
+void RwFrameDirtyListRemove(RwFrame* frame);
 // 0x0074bc80 RwFrameDestroyHierarchy: every descendant destroyed (RwFrameDestroyRecurse_maybe 0x74b5b0 is the same walk
 // unrolled), then the frame; the frame is not taken out of its parent's child list (the PS3 does not).
 RwBool RwFrameDestroyHierarchy(RwFrame* frame);

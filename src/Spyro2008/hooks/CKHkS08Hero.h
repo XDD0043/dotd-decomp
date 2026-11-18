@@ -17,6 +17,8 @@
 
 class IKBoundingVolume;
 class IKTime;
+class IKFx;
+struct RtAnimAnimation;
 
 // 0x00c50d64: the zero vector (the hero code reaches it through TOC +0x28e0, +0x2cd8 and others).
 inline constexpr CVector3 kHeroZeroVector{0.0f, 0.0f, 0.0f};
@@ -30,13 +32,21 @@ class ICollisionMesh;
 class CKHkS08Hero : public IKHkHero {
 public:
     DOTD_CLASS_KEY(kCategoryHook, 0x97)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9bd628
+        return key == 0x25c2 || key == 0x3642 || key == 0x2 || key == 0x2fe || key == 0x3fe || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKHkS08Hero)
 
     CKHkS08Hero();  // 0x002dd000 CKHkS08Hero_Create (inlined constructor)
     ~CKHkS08Hero() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x002e2198 CKHkS08Hero_Load
+    void RecursiveRegistration(int32_t type) override;  // vt+0x24 0x002d98f8 CKHkS08Hero_RecursiveRegistration
     int32_t PostLoad(int32_t type) override;            // vt+0x30 0x002db098 CKHkS08Hero_PostLoad
+    // vt+0x40 0x002daa78 CKHkS08Hero_GetInfo: IKHkHero's values, then its own (bytes): 0x14 climbing (staying on and
+    // +0x1628 clear), 0x15 / 0x16 / 0x19 carrying a key / a weight / a power bucket, 0x1a a filled power bucket, 0x17
+    // flying, 0x18 +0x13d8, 0xe6 holding an enemy in a grab combo.
+    int32_t GetInfo(struct IKInfo* info, int32_t request) override;
     void VfD4() override;                               // vt+0xd4 0x002d8c58 CKHkS08Hero_vfD4
     void InitAnimBlendSlot() override;                  // vt+0xd8 0x002dbb50 CKHkS08Hero_InitAnimBlendSlot
     void RestoreDefaultVolumes() override;              // vt+0x130 0x0030d528 CKHkS08Hero_RestoreDefaultVolumes_maybe
@@ -44,6 +54,16 @@ public:
 
     // C2.2 spyro: the level start (CKHkS08Hero_Start and what it calls).
     void Start() override;                                           // vt+0x50 0x002df3e0 CKHkS08Hero_Start
+    void Restart() override;                                         // vt+0x54 0x002df308 CKHkS08Hero_Restart
+    // vt+0x68 0x002db3d8 CKHkS08Hero_Stop: the boundings put back under the hero's node, the first one's collision off,
+    // the carried object dropped, the speed reset, the link / attack effects released, the abilities cancelled.
+    void Stop() override;
+    // vt+0x10 0x002dcb60 CKHkS08Hero_Destroy: IKHkHero's buffers, the animated camera data's Destroy, then
+    // FreeOwnedResources.
+    void Destroy() override;
+    // 0x002dca08 CKHkS08Hero_FreeOwnedResources_maybe: the two reference arrays freed, the matrices destroyed, the hero
+    // off the dynamic service, the ability host deleted.
+    void FreeOwnedResources();
     void ResetMotionState(int32_t flag);                             // 0x002d9410 CKHkS08Hero_ResetMotionState_maybe
     void ResetMovementFromFrame(int32_t flag);                       // 0x002f8a08 (CKHkS08Hero_2.cpp)
     void ResetCombatState(int32_t flag);                             // 0x002fc938 (CKHkS08Hero_3.cpp)
@@ -51,6 +71,8 @@ public:
     void InitLocomotionAnimSubStateMachines();                       // 0x002df070
     virtual void ResetControlState();                                // vt+0xdc 0x002dc3d8
     virtual uint8_t CanAttachTo(IKSerializable* object, int32_t count);  // vt+0xe0 0x002dacb0 (CKHkS08Hero.cpp)
+    int32_t MessageProc(uint16_t message, void* data) override;      // vt+0x1c 0x002dbe68 (CKHkS08Hero.cpp)
+    int32_t HeroBaseMessageProc(uint16_t message, void* data);       // 0x00348220 (IKHkHero.cpp)
     virtual void UpdateMovement(IKTime* clock);                      // vt+0x17c 0x002dc730
     void DisableSwingTrails();                                       // 0x00334e20 (CKHkS08Hero_15.cpp)
     void ResetToDefaultState();                                      // 0x00348ac0 (IKHkHero.cpp)
@@ -59,6 +81,16 @@ public:
     void ResetComboAndAttackCredits();                               // 0x0033f9d0 (CKHkS08Hero_16.cpp)
     virtual AnimBlendSlot* GetAnimBlendSlot();                       // vt+0x194 0x00301508
     AnimBlendSlot* GetInactiveAnimBlendSlot();                       // 0x00301528
+    // 0x00361f40 CKHkS08Hero_GetCurrentAnimResource (IKHkHero_2.cpp): the animation (+0x58) of the active blend slot's
+    // active controller.
+    RtAnimAnimation* GetCurrentAnimResource();
+    // 0x00364100 CKHkS08Hero_GetAnimMarkWindow (IKHkHero_2.cpp): that controller's evaluated time (+0x54) into `from`
+    // and its time (+0x50) wrapped into the animation's duration into `to`.
+    void GetAnimMarkWindow(float* from, float* to);
+    void GetBlendSlot(AnimBlendSlot** slots, int32_t* count) override;  // vt+0xbc 0x003045e8 CKHkS08Hero_GetCinematicAnimSlots
+    // vt+0xb0 0x00344d30 CKHkS08Hero_GetComponentByKey_maybe (k2000/logic/CKControlableHero.cpp): for key 0x486 the shadow
+    // data at +0x64 (the cinematic blocs' m_pShadowData: point +0x64, normal +0x70, height +0x7c, flags +0x80), else null.
+    IKSerializable* GetComponent(uint32_t key) override;
     void ClearMovementFloatFields();                                 // 0x002db9d8
     void SetMainShadowActive(int32_t active);                        // 0x00365e78
     void ResetInactiveBlendLayers();                                 // 0x00351908
@@ -76,6 +108,23 @@ public:
     // ---- step 2: the hero's frame and its state machines. The vt+ slots below have one implementation (this
     // class's), so they are not virtual here. ----
     void Update(IKTime* clock) override;                             // vt+0x7c 0x002de6d0 UpdateCKHkS08Hero
+    // vt+0x80 0x002dbde0 CKHkS08Hero_LockedUpdate: the update of a locked hero (IKLife flag 2, CKBundle::Update): the
+    // two fade timers (+0x1178 / +0x1184) counted down, the model fade and the partner link bolt (CKHkS08Hero.cpp).
+    void Vf80(IKTime* clock) override;
+    // 0x003346d8 CKHkS08Hero_UpdateModelFade_maybe (CKHkS08Hero_15.cpp): the model's alpha from the fade timer +0x1178.
+    void UpdateModelFade(float dt);
+    // 0x00337898 CKHkS08Hero_UpdatePartnerLinkBolt_maybe (CKHkS08Hero_15.cpp): the two partner link bolts (+0x19c8 /
+    // +0x19d0) at the heroes' middle, their intensity from the fade timer +0x1184.
+    void UpdatePartnerLinkBolt();
+    // 0x00359388 CKHkS08Hero_UpdateModelOffsetAndBank_maybe (IKHkHero_2.cpp): the model node of a hero out of its
+    // locomotion: at the position (+ the decaying offset +0x468), turned by the pitch +0x594, the bank +0x598 and the
+    // heading, or (+0x360 bit 9) its up axis turned toward +0x798.
+    void UpdateModelOffsetAndBank(IKTime* clock);
+    // vt+0x70 0x002d9730 CKHkS08Hero_Pause: the base's (CKHkS08Hero_BasePause_maybe 0x344e10, empty), then the
+    // target cursor (+0x1a08) let go (vt+0x58) and forgotten. vt+0x78 0x002d96e8 CKHkS08Hero_Resume: the base's
+    // (0x344e18, empty) unless ShouldStayClimbing.
+    void Pause() override;
+    void Resume() override;
     void UpdateMovementAndContacts(IKTime* clock);                   // 0x00347530 (IKHkHero.cpp)
     void UpdateControlStateMachine(IKTime* clock);                   // 0x003688a8 (CKHkS08Hero_19.cpp)
     void UpdateActionStateMachine(IKTime* clock);                    // 0x003656b0 (CKHkS08Hero_19.cpp)
@@ -135,6 +184,11 @@ public:
     void LeaveAttachedObject();                                      // 0x00344e88 (k2000/logic/CKControlableHero.cpp)
     void ResetBoundingSpheresAtDeltaPos(const CVector3* delta);      // 0x00352c38 (CKHkS08Hero_18.cpp)
     uint8_t CtlAIPickCatchUpPoint(IKTime* clock, int32_t phase, uint8_t other);     // 0x0033e108 (CKHkS08Hero_16.cpp)
+    uint8_t CtlScriptedMoveTo(IKTime* clock, int32_t phase, uint8_t other);         // 0x0033e378 (CKHkS08Hero_16.cpp)
+    uint8_t CtlControlLocked(IKTime* clock, int32_t phase, uint8_t other);          // 0x0033da70 (CKHkS08Hero_16.cpp)
+    uint8_t IsPointWalkableInCurrentSector(const CVector3* position);              // 0x0033d7d8 (CKHkS08Hero_16.cpp)
+    uint8_t MoveTowardDrivenTarget(float speed, const IKTime* clock, const CVector3* target);  // 0x0036bf20 (_19)
+    uint8_t CtlMoveToTargetBody(IKTime* clock, int32_t phase, uint8_t other);       // 0x00368618 (CKHkS08Hero_19.cpp)
     uint8_t CtlAIWarpToCatchUpPoint(IKTime* clock, int32_t phase, uint8_t other);   // 0x0033f150 (CKHkS08Hero_16.cpp)
     uint8_t CtlPlayerFollowsFocus(IKTime* clock, int32_t phase, uint8_t other);     // 0x00368478
     uint8_t HandleAIFollowGroundPhase(IKTime* clock, int32_t phase, uint8_t other);  // 0x00368248 (CKHkS08Hero_19.cpp)
@@ -148,14 +202,21 @@ public:
     void Vf180() {}                                                  // vt+0x180 0x002f8518 CKHkS08Hero_vf180 (empty)
     void TryUseInteractable();                                       // vt+0x16c 0x00340f40 (CKHkS08Hero_17.cpp)
     void ResolveHeroContactMovement(IKTime* clock);                  // 0x00353528 (CKHkS08Hero_18.cpp)
+    // vt+0x190 0x0030d688 HandleHeroDamageAndReaction (_6): a hit from `source` at `point` through `volume`.
+    void HandleHeroDamageAndReaction(IKSerializable* source, const CVector3* point, IKBoundingVolume* volume);
+    float ComputeHeroDamageAfterReduction(float damage, uint8_t once);  // 0x002fead8 (_3)
+    void SpawnHitExplosionFx();                                          // 0x00334450 (_15)
+    void GrantKillUpgradeBonus(IKSerializable* enemy);                   // 0x0032e0f0 (_14)
     void UpdateHazardAndSavedPositionRespawn(IKTime* clock);         // 0x00355328 (IKHkHero_2.cpp)
     // 0x002dc660 CKHkS08Hero_UpdateGroundSurfaceFlags_maybe (vt+0x14c, CKHkS08Hero.cpp): +0xec4 bit 18 on a ground of
     // property 0x200 within +0x8e8 of it, +0xecc bit 28 on a ground of property 0x8000.
     void UpdateGroundSurfaceFlags(IKTime* clock);
-    // The hazard outcomes (C2.7: health, respawn; CKHkS08Hero_19.cpp / IKHkHero_2.cpp), stubs.
-    uint8_t TeleportToSavedPosition();                               // 0x0036ac88 STUB(C2.7)
-    void ApplyHazardHitAndLeaveAttach(uint8_t damage, uint8_t kind);  // 0x00354a80 STUB(C2.7)
-    void RequestOwnDragonSelectionIfMultiHero();                     // 0x0036a260 STUB(C2.7)
+    // The hazard outcomes (health, respawn; CKHkS08Hero_19.cpp / IKHkHero_2.cpp).
+    uint8_t TeleportToSavedPosition();                               // 0x0036ac88
+    void ApplyHazardHitAndLeaveAttach(uint8_t damage, uint8_t kind);  // 0x00354a80
+    void RequestOwnDragonSelectionIfMultiHero();                     // 0x0036a260
+    // 0x0036bbf8 IKHkHero_InitMoveRequestFromSourcePoint_maybe (CKHkS08Hero_19.cpp): a push away from `source`.
+    void InitMoveRequestFromSourcePoint(const float* speeds, const CVector3* source, int32_t mode, int32_t savePosition);
     uint8_t ProcessPendingTeleport(uint8_t flag1, uint8_t flag2);    // 0x0036ad50 (CKHkS08Hero_19.cpp)
     void UpdateSpeedScaledVolumeRadius();                            // 0x00352dd0 (CKHkS08Hero_18.cpp)
     void UpdateFootsteps(IKTime* clock);                             // 0x003678f8 (CKHkS08Hero_19.cpp)
@@ -199,12 +260,181 @@ public:
     uint16_t Vf150() const { return 0; }
     void UpdateSignedSlopePitchClass();                              // 0x00359c60 (IKHkHero_2.cpp)
     uint8_t IsLockedToObject();                                      // 0x00362040 (IKHkHero_2.cpp)
+    // The lock and unlock (CKHkS08Hero_19.cpp): vt+0xa8 0x002dbb88 CKHkS08Hero_OnLock, vt+0xac 0x002dafa8
+    // CKHkS08Hero_OnUnlock, 0x00348f00 ExitAllStateMachines_maybe, 0x00365f30 DetachWaterWaveFx_maybe, vt+0x134
+    // 0x003349a8 ReleaseOwnedFx (non-virtual here: no other override), 0x00345e50 IKHkHero_AttachNodeToHotspot_maybe.
+    // vt+0x170 0x002dbc60 CKHkS08Hero_CanDragonSwitch_maybe (CKHkS08Hero.cpp; non-virtual here).
+    uint8_t CanDragonSwitch();
+    void OnLock() override;
+    void OnUnlock() override;
+    void ExitAllStateMachines();
+    void DetachWaterWaveFx();
+    void ReleaseOwnedFx();
+    void AttachNodeToHotspot(class CSGLeaf* node);
     // The attachment to an object (CKHkSequenceMgr_DetachHeroes_maybe's part of the hero; IKHkHero_2.cpp).
     IKSerializable* GetAttachedObject() { return m_unk90; }          // 0x00361d50 CKHkS08Hero_GetAttachedObject_maybe
+    // 0x00361960 CKHkS08Hero_GetDragonIndex: the hero index (+0x24).
+    uint8_t GetDragonIndex() const { return m_ui8Hero; }
+    // 0x00362af0 CKHkS08Hero_IsPlayerControlled: the hero is the leader it tracks (+0x24 == +0x25).
+    uint8_t IsPlayerControlled() const { return m_ui8Hero == m_ui8TrackedLeader ? 1 : 0; }
+    // 0x00361968 CKHkS08Hero_GetPositionPtr: the position (+0x54c), or with life bit 1 and vt+0x164 clear (+0xed4
+    // bit 4, CKHkS08Hero_vf164 0x9bd700) the node's world position.
+    const float* GetPositionPtr() const;
+    // 0x0032afc8 CKHkS08Hero_ShareCollectedBonusWithPartner_maybe (bonus-crumbly, C2.8): a health / mana bonus (pool types
+    // 1 / 2) the hero collected, not itself shared, with +0xed0 bit 16 set: a copy of it spawned at his hot spot 5 flies
+    // to his partner (vt+0xe4 of the new bonus).
+    void ShareCollectedBonusWithPartner(IKSerializable* bonus);
+    // 0x0032a840 CKHkS08Hero_GetEarthBoulderFlag2CC_maybe (bonus-crumbly, C2.8): Spyro's (hero 0) ability slot +0x1be0 when
+    // it is a CKEarthBoulder (0x95cc): its +0x2cc byte (rolling in the air); else 0.
+    uint8_t GetEarthBoulderFlag2CC();
+    // 0x0032a520 CKHkS08Hero_ShouldJoinPartnerFlight_Thunk (bonus-crumbly, C2.8): ShouldJoinPartnerFlight's low byte.
+    uint8_t ShouldJoinPartnerFlightThunk() { return ShouldJoinPartnerFlight(); }
+    // 0x0032a010 CKHkS08Hero_IsAttachedToContextualMeca: attached (+0x358 bit 0) to a CKHkContextualMeca (0x2a82).
+    uint8_t IsAttachedToContextualMeca();
+    // 0x0032a090 CKHkS08Hero_IsCarryingTransportableKey_maybe: the carrier's (+0xfb8) carried object (vt+0x80) is of
+    // class id 0xc2.
+    uint8_t IsCarryingTransportableKey();
+    // 0x00338130 CKHkS08Hero_SetSwitchFeedbackFxActive_maybe (CKHkS08Hero_15.cpp): the target cursor effect (+0x1a08, from
+    // the CKTargetCursorFxData +0x1a04) acquired and placed at the hero, or faded out and forgotten.
+    void SetSwitchFeedbackFxActive(uint8_t on);
+    uint8_t IsCarryingTransportableWeight();  // 0x0032a148 (CKHkS08Hero_12.cpp): the carried object of class id 0xc5
     void SetInvulnerable(uint8_t invulnerable);                      // 0x00361b20 IKHkHero_SetInvulnerable_maybe
+    // pre-C2.7 gamemgr: the attachment calls of the game manager's hero death state (IKHkHero_2.cpp unless noted).
+    // 0x00362360 CKHkS08Hero_AttachToObject_maybe: when the hero may attach to `object` (vt+0xe0), it leaves its
+    // current object, +0x90 / +0x94 = object / mode, +0x358 bit 0 set, +0x35c bit 17 cleared, then vt+0x120; 1 then.
+    uint8_t AttachToObject(IKSerializable* object, int32_t mode);
+    // 0x002dba30 CKHkS08Hero_OnAttachToObject (vt+0x120, CKHkS08Hero.cpp; non-virtual here): the anim marks, +0xec8 bit
+    // 2 and the impulsion cleared; unless the object is of class id 0x247, the position adjustment and the moves
+    // (+0x1268, +0x534, +0x5b4) cleared, the ground movement mode, +0xec8 bit 7 and +0xed0 bits 2-3 cleared.
+    void OnAttachToObject();
+    // 0x002dc5a0 CKHkS08Hero_OnDetachFromObject (vt+0x124, CKHkS08Hero.cpp; non-virtual here): unless the object left is of
+    // class id 0x247, the position adjustment (+0x1268) cleared, the ground movement mode, +0xec8 bit 7 and +0xed0 bits
+    // 2-3 cleared.
+    void OnDetachFromObject();
+    // While attached (+0x358 bit 0): 0x003622a8 IKHkHero_SetLockedToObject_maybe (+0x358 bit 2; locking or a lock kept
+    // clears the camera's direction lock, an unlock places the hero at the hot spot or `position`), 0x00362010
+    // ..._SetObjectControlsAnim_maybe (+0x358 bit 1), 0x00362050 ..._SetAttachedMovementEnabled_maybe (+0x358 bit 3;
+    // turning it off clears +0x35c bits 6-7), 0x00362150 ..._SetCollisionDisabledWhileAttached_maybe (+0x360 bit 16; on,
+    // the hero's collision volumes switched off, off, the default volumes back) and the flag setters 0x00363dc8 /
+    // 0x00363df8 / 0x00363f98 (+0x360 bits 14, 15, 8), 0x00363ee8 / 0x00363fc8 (+0x35c bits 3, 21).
+    void SetLockedToObject(uint8_t locked, const float* position, const float* direction);
+    // 0x0035b058 IKHkHero_PlaceAtHotspotOrPosition_maybe: the hero put at `position` (else its body hot spot's) facing
+    // `direction` flattened and normalised (else the hot spot's at axis): position, previous position, facing, yaw.
+    void PlaceAtHotspotOrPosition(const float* position, const float* direction);
+    void SetObjectControlsAnim(uint8_t value);
+    void SetAttachedMovementEnabled(uint8_t enabled);
+    void SetCollisionDisabledWhileAttached(uint8_t disabled);
+    void SetFlag360Bit14IfAttached(uint8_t value);
+    void SetFlag360Bit15IfAttached(uint8_t value);
+    void SetFlag360Bit8IfAttached(uint8_t value);
+    void SetFlag35CBit3IfAttached(uint8_t value);
+    void SetFlag35CBit21IfAttached(uint8_t value);
+    // 0x00363410 IKHkHero_AdvanceObjectAnimTime_maybe: with the object controlling the animation (+0x358 bit 1), +0x360
+    // bit 11 set and the active controller of the animation slot (vt+0x194) runs `dt` further.
+    void AdvanceObjectAnimTime(float dt);
+    // 0x00364020 CKHkS08Hero_WillAnimEndWithin_maybe (C2.8 sequence): the animation slot's active controller ends within
+    // `dt` (an animation, and its wrapped time plus `dt` reaches the duration).
+    uint8_t WillAnimEndWithin(float dt);
+    // CKHkS08Hero_12.cpp: 0x00329eb8 CKHkS08Hero_GetSubNodeB_maybe (sub-node `index` of +0x58, below the hero's count,
+    // 14 for both dragons at 0x00a70728; else null), 0x0032a638 CKHkS08Hero_SetExternallyPositionedAndPhysics_maybe
+    // (SetLockedToObject, then the dynamic service's entry flag of the hero = !locked) and vt+0xc0 0x0032ad80
+    // CKHkS08Hero_PlayAnimResource_maybe (with the object controlling the animation: the root slot cuts, +0x360 bit 11,
+    // the blender's weight word 1.0 / 0.0, then the active controller plays the animation word from `start`).
+    IKSerializable* GetSubNodeB(uint32_t index);
+    // CKHkS08Hero_12.cpp, the accessors the unported callers (CKS08HeroElement*, CKHkS08CristalEmitter) need:
+    float GetCurrentSpeed() const { return m_unk12c4; }                      // 0x00329d90 CKHkS08Hero_GetCurrentSpeed_maybe
+    IKSerializable* GetCarrier() const { return m_unkfb8; }                  // 0x0032a000 CKHkS08Hero_GetCarrier
+    void EnableSubNode(uint32_t index);                                       // 0x00329e00 CKHkS08Hero_EnableSubNode_maybe
+    IKSerializable* GetSubNode(uint32_t index);                               // 0x00329e80 CKHkS08Hero_GetSubNode_maybe
+    uint8_t IsCarryingPowerBucket();                                          // 0x0032a200 CKHkS08Hero_IsCarryingPowerBucket_maybe
+    uint8_t IsCarryingFilledPowerBucket();                                    // 0x0032a2b8 CKHkS08Hero_IsCarryingFilledPowerBucket_maybe
+    CVector3 GetHotspot4FlatDir();                                            // 0x0032ba68 CKHkS08Hero_GetHotspot4FlatDir_maybe
+    void SetExternallyPositionedAndPhysics(uint8_t locked, const float* position, const float* direction);
+    void PlayAnimResource(float start, uint32_t animation);
     void SetUnk530IfAttachedMovement(float value);                   // 0x003626a0 IKHkHero_SetFloat530_IfAttachedMovementEnabled_maybe
     void SetUnk534IfAttachedMovement(float value);                   // 0x00362688 IKHkHero_SetFloat534_IfAttachedMovementEnabled_maybe
     void DetachFromObject();                                         // 0x00364608 CKHkS08Hero_DetachFromObject_maybe
+    // ---- C2.8 meca-hero: the moves and animations an object (a contextual mechanism) drives. ----
+    // vt+0xc4 0x0032ac88 CKHkS08Hero_CrossfadeAnimResource_maybe (CKHkS08Hero_12.cpp): with the object controlling the
+    // animation (+0x358 bit 1), the root slot (+0x10f0) starts a crossfade of `blend` (mode 1), +0x360 bit 11, and the
+    // animation slot (vt+0x194) crossfades to `word` from `start` (AnimBlendSlot_CrossfadeToAnim); its mode, else 0.
+    uint32_t CrossfadeAnimResource(float blend, float start, uint32_t word, uint32_t mode);
+    // vt+0xcc 0x0032a548 CKHkS08Hero_SetMoveDestination (CKHkS08Hero_12.cpp): +0x354 bit 31 cleared, then 0x00364470
+    // IKHkHero_SetMoveDestination_maybe (IKHkHero_2.cpp): with the attached movement on (+0x358 bit 3) and no lock (bit
+    // 2), the destination +0x398, the flat normalised direction +0x3a4, +0x358 bit 4 = `flag4`, +0x360 bit 31 =
+    // `flag31`, the timeout +0x480 (0: none) and its start +0x484 = -1000, +0x358 bit 29 set, +0x35c bit 15 cleared.
+    void SetMoveDestination(float timeout, const CVector3* position, const CVector3* direction, uint32_t unused,
+                            uint32_t flag4, uint32_t flag31);
+    void SetMoveDestinationBase(float timeout, const CVector3* position, const CVector3* direction, uint32_t flag4,
+                                uint32_t flag31);
+    // vt+0xd0 0x0032b500 CKHkS08Hero_UpdateMoveTo_maybe (CKHkS08Hero_12.cpp): a ground of property 0x200 makes the hero
+    // fly, the path character's walk type (2 / 4), the walk to +0x398 (0x00363900 IKHkHero_UpdateMoveTo_maybe), the
+    // player-input copy of the steering (+0x37c, +0x394) and the arrival within 1 unit: 1 when arrived (`out`: blocked).
+    uint8_t UpdateMoveTo(IKTime* clock, uint8_t* out);
+    uint8_t UpdateMoveToBase(IKTime* clock, uint8_t* out);
+    // 0x00362450 CKHkS08Hero_GetCurrentAnimDuration: the duration of the active controller of the animation slot.
+    float GetCurrentAnimDuration();
+    // 0x00363378 IKHkHero_SetObjectAnimTime_maybe: with +0x358 bit 1, +0x360 bit 11 and the active controller's time.
+    void SetObjectAnimTime(float time);
+    // 0x00361fa0 IKHkHero_IsAnimBlendCrossfading_maybe: the animation slot's crossfade mode (+0x14) is not 0.
+    uint8_t IsAnimBlendCrossfading();
+    // 0x00362a40 CKHkS08Hero_GetPlayerMoveVectorPtr / 0x00362dd0 CKHkS08Hero_GetPlayerInputByte394: a player's hero reads
+    // its input (ReadHeroPlayerInput with +0x358 bit 3) and answers +0x37c / +0x394; another the zero vector / 0.
+    const float* GetPlayerMoveVectorPtr();
+    uint8_t GetPlayerInputByte394();
+    // C2.8 port-all P16 (IKHkHero_2.cpp): 0x003626f8 CKHkS08Hero_GetPlayerInputFloat38C / 0x00362c98
+    // _GetPlayerInputFlag358b21 (a player's hero reads its input first, as above; another 0 / 0); 0x00361df8
+    // IKHkHero_CallVf140_maybe (vt+0x140 0x9bd610: 1); 0x00361ee0 IKHkHero_GetCurrentAnim_maybe / 0x003638a0
+    // IKHkHero_GetCurrentAnimTime_maybe (the active controller's word +0x5c / time +0x54); 0x00362118
+    // CKHkS08Hero_TeleportTo_Thunk (TeleportTo(position, facing, 0, 0, 0xffff, 0)).
+    float GetPlayerInputFloat38C();
+    uint32_t GetPlayerInputFlag358b21();
+    uint8_t CallVf140() { return 1; }
+    uint32_t GetCurrentAnim();
+    float GetCurrentAnimTime();
+    void TeleportToThunk(const CVector3* position, const CVector3* facing);
+    // 0x0033cac0 / 0x0033cb08 CKHkS08Hero_CopyPointRecordWithType4 / 2_maybe (CKHkS08Hero_16.cpp): the path character's
+    // walk type (bits 0-2 of +0x3e0) set and copied to the path-finding component (+0x3f8).
+    void SetPathCharacterType(uint32_t type);
+    // 0x00363e58 IKHkHero_SetFlag364Bit12_IfAttached_maybe / 0x00363e88 IKHkHero_SetFlag35CBit0_IfAttached_maybe: while
+    // attached (+0x358 bit 0), +0x364 bit 12 / +0x35c bit 0 = `value`.
+    void SetFlag364Bit12IfAttached(uint8_t value) {
+        if ((m_unk358 & 1u) == 0) return;
+        m_unk364 = (m_unk364 & 0xffffefffu) | (static_cast<uint32_t>(value) << 12);
+    }
+    void SetFlag35CBit0IfAttached(uint8_t value) {
+        if ((m_unk358 & 1u) == 0) return;
+        m_unk35c = (m_unk35c & 0xfffffffeu) | value;
+    }
+    // 0x00362670 IKHkHero_SetAttachedMoveSpeed_maybe: with the attached movement on (+0x358 bit 3), +0x3dc = `speed`.
+    void SetAttachedMoveSpeed(float speed) {
+        if ((m_unk358 & 8u) == 0) return;
+        m_unk3dc = speed;
+    }
+    // 0x00361de8 IKHkHero_GetFlag354Bit30_maybe: +0x354 bit 30 (rldicl 34, 63).
+    uint8_t GetFlag354Bit30() const { return static_cast<uint8_t>((m_unk354 >> 30) & 1u); }
+    // 0x003626e8 IKHkHero_IsAttachedMovementEnabled_maybe: +0x358 bit 3 (rldicl 61, 63).
+    uint8_t IsAttachedMovementEnabled() const { return static_cast<uint8_t>((m_unk358 >> 3) & 1u); }
+    // 0x00363ff8 IKHkHero_IsFlag35CBit6_AndFlag3B0Bit6Clear_maybe: +0x35c bit 6 set and +0x3b0 bit 6 clear.
+    uint8_t IsFlag35CBit6AndFlag3B0Bit6Clear() const {
+        if ((m_unk35c & 0x40u) == 0) return 0;
+        return static_cast<uint8_t>(((m_unk3b0 ^ 0x40u) >> 6) & 1u);
+    }
+    // 0x00364268 IKHkHero_PassesTrackerAssignFlagChecks_maybe: a companion (+0x24 != +0x25) that is not +0x35c bit 5 /
+    // bit 29, nor +0x360 bit 30, nor +0x35c bit 6 without +0x3b0 bit 6: +0x360 bit 12 clear.
+    uint8_t PassesTrackerAssignFlagChecks() const {
+        if (m_ui8Hero == m_ui8TrackedLeader || (m_unk35c & 0x20u) != 0) return 0;
+        if ((m_unk360 & 0x40000000u) != 0 || (m_unk35c & 0x20000000u) != 0) return 0;
+        const uint8_t clear = static_cast<uint8_t>(((m_unk360 >> 12) & 1u) ^ 1u);
+        if ((m_unk35c & 0x40u) == 0) return clear;
+        return (m_unk3b0 & 0x40u) != 0 ? clear : 0;
+    }
+    // 0x0032a438 CKHkS08Hero_SetCarryingObject_maybe (CKHkS08Hero_12.cpp): +0xed4 bit 3 = `carrying` (slwi 3, or: a value
+    // above 1 sets higher bits too).
+    void SetCarryingObject(uint32_t carrying) { m_unked4 = (m_unked4 & 0xfffffff7u) | (carrying << 3); }
+    // 0x00350c48 CKHkS08Hero_AdvanceInnerBlenderAnimTime_maybe (CKHkS08Hero_18.cpp): the active controller of blend slot
+    // `slot` (+0x138, 24-byte slots) advanced by `dt` (its time +0x50).
+    void AdvanceInnerBlenderAnimTime(float dt, uint32_t slot);
     void UpdateField794ByAnimAndElementLevel();                      // 0x003101e8 (CKHkS08Hero.cpp)
     void UpdateField1348Timers();                                    // 0x0033d8f0 (CKHkS08Hero.cpp)
     void ProcessHeroContactList();                                   // 0x002d8f38 (CKHkS08Hero.cpp)
@@ -232,6 +462,105 @@ public:
     // 0x0030fd50 (CKHkS08Hero_7.cpp): `base` moved along the facing (+0xec8 bits 13 / 18), or the zero vector.
     CVector3 ComputeBlendedVelocityFromFlagsEC8(const CVector3* base, float scale, float lift) const;
     uint8_t IsAnyComboKindActive() const;                            // 0x002fd030 (CKHkS08Hero_3.cpp)
+    // 0x002fc1b0 CKHkS08Hero_IsComboKindFlagSet (CKHkS08Hero_2.cpp): one of the combo kind bytes +0x1abc / +0x1abd /
+    // +0x1ac3 / +0x1ac0 / +0x1ac1 / +0x1ac2.
+    uint8_t IsComboKindFlagSet() const;
+    uint8_t IsInCombo() const { return IsComboKindFlagSet(); }     // 0x0032a698 CKHkS08Hero_IsInCombo
+    // 0x00329f00 CKHkS08Hero_SetHitConfirmed: bit 1 of +0xecc (an enemy took the hero's hit).
+    void SetHitConfirmed(uint8_t confirmed) { m_unkecc = (m_unkecc & ~2u) | (static_cast<uint32_t>(confirmed) << 1); }
+    IKSerializable* GetGrabTarget() const { return m_unk124; }     // 0x00329df8 CKHkS08Hero_GetGrabTarget
+    // 0x0032a7a8 CKHkS08Hero_IsUsingWindBeam: hero 1 (+0x24) with an object at +0x1cc0 of class 0xa50c.
+    uint8_t IsUsingWindBeam();
+    // 0x0032a8d0 CKHkS08Hero_GetAbilityElementLevel: the element level of ability `id` for this hero's dragon (0: none).
+    uint8_t GetAbilityElementLevel(uint8_t id);
+    // 0x0032a938 / 0x0032ab18 / 0x0032aa28 CKHkS08Hero_SetAttackSphere0 / 1 / 2: the ability's attack sphere `index`
+    // (+0x1b8c[index]): `on` hangs it (when off) under the hot spot `hotspot` with `radius`, gives it `damage` (+0x1c)
+    // and activates it; off disables it (when on) and marks the active list stale (+0x1bac -1). The count +0x1bac is
+    // cleared first either way.
+    void SetAttackSphere(uint32_t index, uint8_t on, float radius, int8_t hotspot, IKSerializable* damage);
+    // 0x0030cad0 CKHkS08Hero_ActivateAttackSphere: the volume enabled and appended to the active hit spheres (+0x1b9c).
+    void ActivateAttackSphere(IKSerializable* volume, int32_t enabled);
+    // 0x00329f20 CKHkS08Hero_GetCurrentBlowFlag61: the current combo node's blow's flag +0x61 (vt+0xac); 0 without one.
+    uint8_t GetCurrentBlowFlag61();
+    // 0x0032ac08 CKHkS08Hero_GetElementColor_maybe (a colour returned through a hidden pointer): the current element's
+    // (+0x1cc4) colour from +0x1c20 (`which` 0) or +0x1c34 (1), else white (0x00c50dfc); the 4 bytes as stored.
+    uint32_t GetElementColor(uint32_t which) const;
+    // 0x0032b138 CKHkS08Hero_GetHotspot4AimDir_maybe (CKHkS08Hero_12.cpp): the at row of hot spot 4's world matrix;
+    // unless `raw`, its y replaced by +0x12a4 and the vector normalised (kept when its length is 0).
+    CVector3 GetHotspot4AimDir(int32_t raw);
+    // DOTD: AnimState7_ComboAnim's inlined pairing (three times): the held enemy (+0x124) crossfades to the animation
+    // paired with the hero's `anim` (0xb2 on), remembered in +0x1ab0.
+    void PairGrabbedEnemyAnim(int32_t anim, float blend, float start);
+    // The targeting (CKHkS08Hero_3.cpp). `aim` is a CKAimCamembert (+0x1a78, +0x1a7c, +0x1d38).
+    // 0x002fdec8 CKHkS08Hero_GetAimPointOnEnemy: where to aim at `enemy` from `from` (0x00c50da0, all FLT_MAX, when the
+    // enemy is no valid target); with `clampHeight` the point is lowered to the hero frame's slope over the distance.
+    CVector3 GetAimPointOnEnemy(IKSerializable* enemy, const CVector3* from, uint8_t hotSpotOnly, uint8_t clampHeight);
+    // 0x002fe5b8 CKHkS08Hero_FindBestEnemyInAimCone_maybe: the best scored active enemy in the cone, or null.
+    IKSerializable* FindBestEnemyInAimCone(IKSerializable* aim, const CVector3* direction);
+    // 0x002fe7f0 CKHkS08Hero_AcquireTargetInAimCone: the same into +0x124 (1 and its score), else +0x1b0c cleared (0).
+    uint8_t AcquireTargetInAimCone(IKSerializable* aim, const CVector3* direction, float* score);
+    // 0x002fea88 CKHkS08Hero_TryAcquireTarget
+    uint8_t TryAcquireTarget(IKSerializable* aim, const CVector3* direction);
+    // 0x002fd7c0 CKHkS08Hero_GetAimPointOnHook: where to aim at the hook `hook` (the "no point" without one); with
+    // `clampHeight` lowered to the hero frame's slope as GetAimPointOnEnemy's.
+    CVector3 GetAimPointOnHook(IKSerializable* hook, uint8_t clampHeight);
+    // 0x002fefb8 CKHkS08Hero_FindAbilityMecaTarget_maybe: the best scored active actor (the meca group's list) of the
+    // classes `mask` selects (0: any) into +0x12c (1 and its score), else +0x1b0c cleared (0).
+    uint8_t FindAbilityMecaTarget(IKSerializable* aim, const CVector3* direction, float* score, uint32_t mask);
+    // 0x002ff6c8 CKHkS08Hero_AcquireAbilityTarget_maybe: an aim-cone enemy and a meca actor, the better weighted one kept.
+    uint8_t AcquireAbilityTarget(float enemyWeight, float mecaWeight, IKSerializable* aim, const CVector3* direction,
+                                 uint32_t mask);
+    // 0x002ff978 CKHkS08Hero_ValidateOrAcquireTarget_maybe: the target kept or a new one taken (1 with one).
+    uint8_t ValidateOrAcquireTarget();
+    // 0x002fe200 CKHkS08Hero_ComputeLungeScale_maybe: the signed pitch (radians) of the lunge towards the target.
+    float ComputeLungeScale();
+    // 0x003006f0 CKHkS08Hero_ComputeFinisherCameraVector_maybe: `direction` turned by the angles (degrees).
+    CVector3 ComputeFinisherCameraVector(float zDegrees, float yDegrees, float xDegrees, const CVector3* direction,
+                                         uint8_t flat);
+    // DOTD: the lunge start StartLungeFromMark 0x3008d8 inlines.
+    void StartLunge(class CKS08HeroBlow* blow);
+    // The partner's combat AI.
+    uint8_t IsGrabComboKind() const { return m_unk1abd != 0 ? 1 : m_unk1ac3; }  // 0x002fc208 CKHkS08Hero_IsGrabComboKind
+    // The combo system (outputs/ability-analysis/combat.md): the current node +0x1a88 (+0x1a8c when idle), its blow.
+    uint8_t IsAnimFinished(int32_t anim) const;                              // 0x003013c8 (CKHkS08Hero_3.cpp)
+    float GetComboAnimSpeed();                                               // 0x0032bee8 (CKHkS08Hero_13.cpp)
+    static float ComputeSoundPitchFromAnimSpeed(float speed);                // 0x00333688 (CKHkS08Hero_15.cpp)
+    uint8_t ConsumeAttackCredits();                                          // 0x0033f9e8 (CKHkS08Hero_16.cpp)
+    void GrantPartnerAttackCredits();                                        // 0x0033fa78 (CKHkS08Hero_16.cpp)
+    void SetupHitSphere(float radius, uint8_t enable, int8_t hotspot, IKSerializable* damage);  // 0x0030cc40 (_6)
+    void ArmPendingHitSpheres();                                             // 0x0030e990 (_6)
+    void UpdateComboHitSpheres();                                            // 0x0030f220 (_6)
+    void AttachVolumeToHotspot(IKBoundingVolume* volume, int32_t hotspot, float radius);       // 0x00352f78 (_18)
+    // 0x00335158 CKHkS08Hero_UpdateSwingTrails (vt+0x110, CKHkS08Hero_15.cpp): the swing trails A (+0xedc bit 0x20; the
+    // trails +0x5c[0] / [1]) and B (bit 0x40; [2] / [3]) switched on or off with their ribbons, +0x1ad2 / +0x1ad3 the
+    // state, +0x1ad4 / +0x1ad8 the particle index (the dragon / element table, or next to the other trail's).
+    void UpdateSwingTrails();
+    // 0x0030ec40 CKHkS08Hero_SetupTrailHitSpheres2 / 0x0030ee78 _SetupTrailHitSpheres4_maybe (CKHkS08Hero_6.cpp): the
+    // attack volumes off, the first two (four) hung under the given hot spots with `radius` and `damage`; two (four)
+    // spheres requested (+0xec4 bit 0x40 / 0x80).
+    void SetupTrailHitSpheres2(float radius, class CSGHotSpot* a, class CSGHotSpot* b, IKSerializable* damage);
+    void SetupTrailHitSpheres4(float radius, class CSGHotSpot* a, class CSGHotSpot* b, class CSGHotSpot* c, class CSGHotSpot* d,
+                               IKSerializable* damage);
+    void AdvanceCombo();                                                     // 0x0032d890 (CKHkS08Hero_14.cpp)
+    void SetComboActive(uint8_t active, uint8_t kind);                       // 0x0032d9b0 (CKHkS08Hero_14.cpp)
+    void DropGrabbedEnemy();                                                 // 0x002fc600 (CKHkS08Hero_3.cpp)
+    void BreakGrabAndRecoil();                                               // 0x002fce90 (_3)
+    uint8_t IsGrabTargetInRange();                                           // 0x002fd5b0 (_3)
+    void StartGrab();                                                        // 0x002ffc80 (_3)
+    void TryGrabTarget();                                                    // 0x002fff48 (_3)
+    void ThrowGrabbedEnemy(IKSerializable* blow);                            // 0x00300010 (_3)
+    void TryStartFinisherCamera();                                           // 0x0032d6b0 (CKHkS08Hero_14.cpp)
+    // 0x00364ab0 CKHkS08Hero_GetAITarget_maybe: with `attack` +0x124 else +0x12c, without +0x120 else +0x128.
+    IKSerializable* GetAITarget(uint8_t attack) const {
+        if (attack != 0) return m_unk124 != nullptr ? m_unk124 : m_unk12c;
+        return m_unk120 != nullptr ? m_unk120 : m_unk128;
+    }
+    CVector3 GetAimDirection() const { return CVector3{m_unk135c, m_unk1360, m_unk1364}; }  // 0x0032a708 CopyAimDirection
+    void AIClearAttackButtons() { m_unkf30 = 0; m_unkf1c = 0; }   // 0x0033fdb8
+    void AIAcquireTargetIfCredits();                               // 0x0033fae0 (CKHkS08Hero_17.cpp)
+    void AIUpdateCombatMovement(IKTime* clock);                    // 0x0033fb80
+    void AIQueueAttack();                                          // 0x0033fdc8
+    uint8_t CtlAICombat(IKTime* clock, int32_t phase, uint8_t other);  // 0x0033d000 CtlState3 (CKHkS08Hero_16.cpp)
     float GetMaxGroundSpeed() const;                                 // 0x002f94b0 (CKHkS08Hero_2.cpp)
     // 0x002f8958 FUN_002f8958 (CKHkS08Hero_2.cpp): the ground normal blend (a * weight + b * count) / (2 * weight).
     static CVector3 BlendGroundNormals(const CVector3* a, const CVector3* b, float weight, float count);
@@ -280,10 +609,55 @@ public:
     uint8_t CtlAIFollowGround(IKTime* clock, int32_t phase, uint8_t other);     // 0x0033e600
     // The action machine's (0xc4b3fc).
     uint8_t ActFreeMovement(IKTime* clock, int32_t phase, uint8_t other);       // 0x00364a30 (IKHkHero_2.cpp)
+    uint8_t ActGroundCombo(IKTime* clock, int32_t phase, uint8_t other);        // 0x00330528 ActState11 (_14)
+    uint8_t ActGroundGrabCombo(IKTime* clock, int32_t phase, uint8_t other);    // 0x00332078 ActState7 (_14)
+    uint8_t ActGroundAltCombo(IKTime* clock, int32_t phase, uint8_t other);     // 0x0032fce0 ActState10 (_14)
+    uint8_t ActClimbCombo(IKTime* clock, int32_t phase, uint8_t other);         // 0x0032e820 ActState9 (_14)
+    uint8_t ActFlyingCombo(IKTime* clock, int32_t phase, uint8_t other);        // 0x0032f470 ActState8 (_14)
+    // DOTD: the pieces the three combo rows above inline (_14).
+    bool ComboLaunchEndsInSlam();
+    bool ComboSlamEndsEarly(uint8_t kind);
+    void ComboSlamShockwave();
+    uint8_t ComboBlowStep(IKTime* clock, uint8_t kind, uint8_t other);
+    uint8_t ActGrabDashCombo(IKTime* clock, int32_t phase, uint8_t other);      // 0x00331540 ActState6 (_14)
+    uint8_t ActGrabSlamSeq(IKTime* clock, int32_t phase, uint8_t other);        // 0x00332a70 ActState5 (_14)
+    uint8_t ActAbility(IKTime* clock, int32_t phase, uint8_t other);            // 0x003276d0 ActState4 (_12)
+    void CancelAbilityA(uint8_t forced);                                        // 0x00326ee0 (_12)
+    void CancelAbilityB(uint8_t forced);                                        // 0x003272d8 (_12)
+    void CancelAbility(uint8_t forced);                                         // DOTD: their shared body
+    uint8_t CanStartFury();                                                     // 0x00326830 (_12)
+    void SetFuryMode(int32_t on);                                               // 0x00328e40 (_12)
+    uint8_t IsTargetEnemyOnGround();                                            // 0x002fc6e0 (_14)
+    void ReleaseGrabbedEnemyWithDamage(CKS08HeroBlow* blow);                    // 0x002fc720 (_14)
     uint8_t ActFreeMovementCondition(IKTime* clock, uint8_t row);               // 0x00364a28
     uint8_t ActHurtReactionCondition(IKTime* clock, uint8_t row);               // 0x0032d4c8 (CKHkS08Hero_13.cpp)
     uint8_t ActRecoveryCondition(IKTime* clock, uint8_t row);                   // 0x0032d4d0
     uint8_t ActFuryCoopCondition(IKTime* clock, uint8_t row);                   // 0x003267e8 (CKHkS08Hero_12.cpp)
+    // 0x00326950 CKHkS08Hero_ActState1_FuryCoop_maybe (CKHkS08Hero_12.cpp): the fury's charge (see the definition).
+    uint8_t ActFuryCoop(IKTime* clock, int32_t phase, uint8_t other);
+    // 0x0033bf58 CKHkS08Hero_SpawnFuryChargeFx_maybe / 0x0033bbe0 CKHkS08Hero_SpawnFuryReleaseFx_maybe (CKHkS08Hero_15.cpp).
+    void SpawnFuryChargeFx();
+    void SpawnFuryReleaseFx();
+    // DOTD: the fury node's geometry walk both inline: every geometry of the CNode `node` takes the alpha of `curve` at
+    // `x` (evaluated per geometry; at most 0 is 0, at least 255 is opaque) and the translucent bit 11 of its properties
+    // (vt+0x60 when it changes); a property bit 12 geometry of material mode 1..6 stays opaque.
+    static void SetNodeAlphaFromCurve(IKSerializable* node, IKSerializable* curve, float x);
+    // The combo and death conditions (CKHkS08Hero_14.cpp).
+    uint8_t ActGroundComboCondition(IKTime* clock, uint8_t row);                // 0x0032e158 ActState11
+    uint8_t ActGrabSlamSeqCondition(IKTime* clock, uint8_t row);                // 0x0032e378 ActState5
+    uint8_t ActClimbComboCondition(IKTime* clock, uint8_t row);                 // 0x0032e3d0 ActState9
+    uint8_t ActFlyingComboCondition(IKTime* clock, uint8_t row);                // 0x0032e488 ActState8
+    uint8_t ActGroundAltComboCondition(IKTime* clock, uint8_t row);             // 0x0032e668 ActState10
+    uint8_t ActGrabDashComboCondition(IKTime* clock, uint8_t row);              // 0x0032eb80 ActState6
+    uint8_t ActGroundGrabComboCondition(IKTime* clock, uint8_t row);            // 0x0032ecc0 ActState7
+    uint8_t ActDeadCondition(IKTime* clock, uint8_t row);                       // 0x0032f170 ActState0
+    uint8_t ActAbilityCondition(IKTime* clock, uint8_t row);                    // 0x00326498 ActState4 (CKHkS08Hero_12.cpp)
+    // UpdateHeroStatusAndTimedDamage's steps after the armour.
+    void ApplyTimedHeroDamage(float dt);                                        // 0x002fed80 (CKHkS08Hero_3.cpp)
+    void ApproachField1108AndNotifyCamera();                                    // 0x0032e028 (CKHkS08Hero_14.cpp)
+    void ApplyGrabbedEnemyMarkDamage();                                         // 0x0032edd0
+    void InitFlightField1D9CBlock();                                            // 0x0032f048
+    void SpawnShockwave(uint8_t kind, const CVector3* position);               // 0x0033c688 (CKHkS08Hero_15.cpp)
     // The locomotion machine's (0xc4b398).
     uint8_t LocoGround(IKTime* clock, int32_t phase, uint8_t other);            // 0x00319a10 (CKHkS08Hero_9.cpp)
     uint8_t LocoGroundCondition(IKTime* clock, uint8_t row);                    // 0x00317e90
@@ -293,6 +667,19 @@ public:
     uint8_t LocoTakeOffToPartnerCondition(IKTime* clock, uint8_t row);          // 0x00317e68 (CKHkS08Hero_9.cpp)
     // The animation machine's (0xc4b2bc).
     uint8_t AnimLocomotionGround(IKTime* clock, int32_t phase, uint8_t other);  // 0x0030aa78 (CKHkS08Hero_5.cpp)
+    uint8_t AnimComboAnim(IKTime* clock, int32_t phase, uint8_t other);         // 0x0032cb98 AnimState7 (_13)
+    uint8_t AnimHurt(IKTime* clock, int32_t phase, uint8_t other);              // 0x0032c628 AnimState4 (_13)
+    uint8_t AnimGuardedHurt(IKTime* clock, int32_t phase, uint8_t other);       // 0x0032c780 AnimState3 (_13)
+    uint8_t AnimFury(IKTime* clock, int32_t phase, uint8_t other);              // 0x0032c268 AnimState1 (_13)
+    uint8_t AnimDead(IKTime* clock, int32_t phase, uint8_t other);              // 0x0032c380 AnimState0 (_13)
+    uint8_t AnimAbility(IKTime* clock, int32_t phase, uint8_t other);           // 0x0032c520 AnimState6 (_13)
+    uint8_t AnimHurtType1(IKTime* clock, int32_t phase, uint8_t other);         // 0x0032c950 AnimState2 (_13)
+    uint8_t ActDead(IKTime* clock, int32_t phase, uint8_t other);               // 0x003332c0 ActState0 (_14)
+    void AdvanceAnimTimeUnlessMarkOverride(float dt);                           // 0x00301408 (_4)
+    uint8_t AnimRecovery(IKTime* clock, int32_t phase, uint8_t other);          // 0x0032c170 AnimState5 (_13)
+    uint8_t ActHurtReaction(IKTime* clock, int32_t phase, uint8_t other);       // 0x00330fe8 ActState2 (_14)
+    uint8_t ActRecovery(IKTime* clock, int32_t phase, uint8_t other);           // 0x0032f268 ActState3 (_14)
+    void UpdateComboTimeScale();                                                // 0x0032bc10 (_13)
     uint8_t AnimLocomotionGroundCondition(IKTime* clock, uint8_t row);          // 0x003024d0 (CKHkS08Hero_4.cpp)
     uint8_t AnimLocomotionClimbCondition(IKTime* clock, uint8_t row);           // 0x003024a8
     uint8_t AnimLocomotionFlyingCondition(IKTime* clock, uint8_t row);          // 0x003024f8
@@ -376,6 +763,10 @@ public:
     void PlayMovementEventSounds(IKTime* clock);                     // 0x00366098 (CKHkS08Hero_19.cpp)
     void UpdateFootstepFx(IKTime* clock);                            // 0x00366ba8 (CKHkS08Hero_19.cpp)
     void UpdateMainShadowAndSurfaceFx(IKTime* clock);                // 0x003670f8 (CKHkS08Hero_19.cpp)
+    void UpdateShadowsAndFlightFx();                                 // vt+0x11c 0x0033a050 (CKHkS08Hero_15.cpp)
+    void UpdateTrailAndFootstepFx();                                 // vt+0x10c 0x00336598 (CKHkS08Hero_15.cpp)
+    void UpdatePartnerLinkFx(uint32_t active);                       // 0x00339050 (CKHkS08Hero_15.cpp)
+    void UpdateTriggeredExplosionFxAndVibration();                   // 0x00338458 (CKHkS08Hero_15.cpp)
     void UpdateShadowGroundPoint();                                  // 0x00365c00 (CKHkS08Hero_19.cpp)
 
     // Movement-mode accessors (CKHkS08Hero_17.cpp).
@@ -524,6 +915,7 @@ public:
     void UpdateFlightFlapImpulse();                                  // 0x003402a0 (CKHkS08Hero_17.cpp)
     void UpdateHeroHealthAndManaSharing(float dt);                   // 0x003408f8 (CKHkS08Hero_17.cpp)
     void TransferHeroManaToOtherDragon(float* elapsed);              // 0x003403f8 (CKHkS08Hero_17.cpp)
+    IKSerializable* GetCarriedPowerBucket();                         // 0x003401f0 (CKHkS08Hero_17.cpp)
     void TransferHeroHealthToOtherDragon(float* elapsed);            // 0x003405f0 (CKHkS08Hero_17.cpp)
     void QueueAttackInputAndSelectElement();                         // 0x00330ab8 (CKHkS08Hero_14.cpp)
     uint8_t Vf144();                                                 // vt+0x144 0x00345080 (IKHkHero.cpp)
@@ -1074,11 +1466,14 @@ public:
     uint8_t m_pad106e[2];
     IKSerializable* m_apUnk1070[8][4];           // +0x1070 8 x 4 references (CAnimatedNode, CSGHotSpot, ...)
     AnimBlendSlot m_animBlendSlot10f0;           // +0x10f0 embedded AnimBlendSlot (vtable 0xb16560); constructor: m_pController (+0x10f4) = 0
-    uint32_t m_pad1108[3];
-    float m_unk1114;  // +0x1114  (C2.2 strict2)
-    uint32_t m_pad1118[1];
-    float m_unk111c;  // +0x111c  (C2.2 strict2)
-    uint32_t m_pad1120[1];
+    // +0x1108..+0x1120: the field of view approach (Math_ApproachWithAccelDecel, 7 floats; ApproachField1108AndNotifyCamera).
+    float m_unk1108;   // +0x1108 TryStartFinisherCamera: 300
+    float m_unk110c;   // +0x110c TryStartFinisherCamera: 300
+    float m_unk1110;   // +0x1110 TryStartFinisherCamera: 100
+    float m_unk1114;  // +0x1114  (C2.2 strict2; TryStartFinisherCamera: the camera's real field of view)
+    float m_unk1118;   // +0x1118 TryStartFinisherCamera: 0
+    float m_unk111c;  // +0x111c  (C2.2 strict2; TryStartFinisherCamera: the finisher's field of view)
+    float m_unk1120;   // +0x1120 TryStartFinisherCamera: 0
     float m_unk1124;  // +0x1124  (C2.2 spyro; a float: the catch-up warp, CtlState1 / CtlState0)
     float m_unk1128;  // +0x1128  (C2.2 spyro; a float: the catch-up warp, CtlState1 / CtlState0)
     float m_unk112c;  // +0x112c  (C2.2 spyro; a float: the catch-up warp, CtlState1 / CtlState0)
@@ -1098,7 +1493,17 @@ public:
     IKSerializable* m_unk1168;                   // +0x1168 CKVibrationData*
     IKSerializable* m_unk116c;                   // +0x116c CKVibrationData*
     IKSerializable* m_unk1170;                   // +0x1170 CKVibrationData*
-    uint8_t m_pad1174[25];
+    uint8_t m_unk1174;                           // +0x1174 OnLock: 0
+    uint8_t m_unk1175;                           // +0x1175 OnLock: 0
+    uint8_t m_pad1176[2];
+    float m_unk1178;                             // +0x1178 OnLock: 0.0
+    float m_unk117c;                             // +0x117c OnLock: 0.0
+    uint8_t m_unk1180;                           // +0x1180 OnLock: 0
+    uint8_t m_unk1181;                           // +0x1181 OnLock: 0
+    uint8_t m_pad1182[2];
+    float m_unk1184;                             // +0x1184 OnLock: 0.0
+    float m_unk1188;                             // +0x1188 OnLock: 0.0
+    uint8_t m_unk118c;                           // +0x118c OnLock: 0
     uint8_t m_unk118d;  // +0x118d  (C2.2 strict3)
     uint8_t m_unk118e;  // +0x118e  (C2.2 strict3)
     uint8_t m_pad118f[1];
@@ -1127,7 +1532,7 @@ public:
     float m_unk11dc;  // +0x11dc  (C2.2 strict3)
     float m_unk11e0;  // +0x11e0  (C2.2 strict3)
     float m_unk11e4;  // +0x11e4  (C2.2 strict3)
-    uint32_t m_unk11e8;  // +0x11e8  (C2.2 strict3)
+    float m_unk11e8;  // +0x11e8 (SetAbilityHeroMode: +0x8cc)
     float m_unk11ec;  // +0x11ec  (C2.2 strict3)
     float m_unk11f0;  // +0x11f0  (C2.2 strict3)
     float m_unk11f4;  // +0x11f4  (C2.2 strict3)
@@ -1687,19 +2092,19 @@ public:
     IKSerializable* m_unk19cc;                   // +0x19cc CKLightningBoltFxData*
     IKSerializable* m_unk19d0;  // +0x19d0  (C2.2 strict3)
     IKSerializable* m_unk19d4;                   // +0x19d4 CKSparkFxData*
-    uint32_t m_unk19d8;  // +0x19d8  (C2.2 strict3)
+    IKSerializable* m_unk19d8;  // +0x19d8 CKSparkNodeFx* the partner link's far spark (+0x19d4's, UpdatePartnerLinkFx)
     IKSerializable* m_unk19dc;                   // +0x19dc CKSparkFxData*
-    uint32_t m_unk19e0;  // +0x19e0  (C2.2 strict3)
+    IKSerializable* m_unk19e0;  // +0x19e0 CKSparkNodeFx* the flight spark (+0x19dc's, UpdateShadowsAndFlightFx)
     IKSerializable* m_unk19e4;                   // +0x19e4 CKSparkFxData*
-    uint32_t m_unk19e8;  // +0x19e8  (C2.2 strict3)
+    IKSerializable* m_unk19e8;  // +0x19e8 CKSparkNodeFx* the air-current flight spark (+0x19e4's)
     uint32_t m_pad19ec;
     IKSerializable* m_unk19f0;                   // +0x19f0
-    uint32_t m_unk19f4;  // +0x19f4  (C2.2 strict3)
+    IKSerializable* m_unk19f4;  // +0x19f4 the dust particle effect (UpdateTrailAndFootstepFx, animations 0x63 / 0x67)
     IKSerializable* m_unk19f8;                   // +0x19f8 CKFlashFxData*
     IKSerializable* m_unk19fc;                   // +0x19fc CKExplosionFxData*
     IKSerializable* m_unk1a00;                   // +0x1a00 CKExplosionFxData*
     IKSerializable* m_unk1a04;                   // +0x1a04 CKTargetCursorFxData*
-    uint32_t m_unk1a08;  // +0x1a08  (C2.2 strict3)
+    IKFx* m_unk1a08;  // +0x1a08 the switch feedback's target cursor effect (SetSwitchFeedbackFxActive)
     float m_unk1a0c;  // +0x1a0c  (C2.2 strict3; the health share time (UpdateHeroHealthAndManaSharing))
     float m_unk1a10;  // +0x1a10  (C2.2 strict3; the mana share time)
     uint8_t m_unk1a14;  // +0x1a14  (C2.2 strict3)
@@ -1740,7 +2145,9 @@ public:
     IKSerializable* m_unk1a9c;                   // +0x1a9c CKS08HeroCombo*
     IKSerializable* m_unk1aa0;                   // +0x1aa0 CKS08HeroCombo*
     IKSerializable* m_unk1aa4;                   // +0x1aa4 CKS08HeroCombo*
-    uint8_t m_pad1aa8[10];
+    float m_unk1aa8;  // +0x1aa8 SetComboActive: -1
+    float m_unk1aac;  // +0x1aac SetComboActive: the blow's vt+0x70
+    int16_t m_unk1ab0;   // +0x1ab0 the grabbed enemy's paired animation (AnimState7_ComboAnim)
     uint16_t m_unk1ab2;  // +0x1ab2  (C2.2 strict3)
     uint8_t m_unk1ab4;  // +0x1ab4  (C2.2 strict3)
     uint8_t m_unk1ab5;  // +0x1ab5  (C2.2 strict3)
@@ -1778,12 +2185,13 @@ public:
     IKSerializable* m_unk1ae4;                   // +0x1ae4 CKExplosionFxData*
     uint32_t m_unk1ae8;  // +0x1ae8  (C2.2 strict3)
     float m_unk1aec;  // +0x1aec  (C2.2 strict3)
-    uint32_t m_pad1af0[2];
+    float m_unk1af0;  // +0x1af0 SetComboActive: the grab blow's throw delay (vt+0xa4)
+    float m_unk1af4;  // +0x1af4 SetComboActive: the grab blow's release delay (vt+0xa8)
     uint32_t m_unk1af8;  // +0x1af8  (C2.2 strict3)
     float m_unk1afc;  // +0x1afc  (C2.2 strict3)
     float m_unk1b00;  // +0x1b00  (C2.2 strict3)
     float m_unk1b04;  // +0x1b04  (C2.2 strict3)
-    uint32_t m_unk1b08;  // +0x1b08  (C2.2 strict3)
+    float m_unk1b08;  // +0x1b08 the time above the fall-damage height (ApplyTimedHeroDamage)
     float m_unk1b0c;  // +0x1b0c  (C2.2 strict3)
     float m_unk1b10;  // +0x1b10  (C2.2 strict3)
     float m_unk1b14;  // +0x1b14  (C2.2 strict3)
@@ -1793,7 +2201,7 @@ public:
     IKSerializable* m_unk1b24;                   // +0x1b24 CKExplosionFxData*
     IKSerializable* m_unk1b28;                   // +0x1b28 CKAnimatedCamera*
     float m_unk1b2c;  // +0x1b2c the extra mass with +0xed4 bit 0 (GetMass 0x2f8818; the armour _maybe)
-    uint32_t m_unk1b30;  // +0x1b30  (C2.2 strict3)
+    float m_unk1b30;  // +0x1b30 a timer counted down by the frame dt (ApplyGrabbedEnemyMarkDamage)
     float m_unk1b34;  // +0x1b34  (C2.2 strict2/3)
     float m_unk1b38;  // +0x1b38  (C2.2 strict3)
     float m_unk1b3c;  // +0x1b3c  (C2.2 strict3)
@@ -1807,7 +2215,7 @@ public:
     IKSerializable* m_unk1b5c;                   // +0x1b5c CKExplosionFxData*
     IKSerializable* m_unk1b60;                   // +0x1b60 CKS08Damage*
     IKSerializable* m_unk1b64;                   // +0x1b64
-    uint32_t m_unk1b68;  // +0x1b68  (C2.2 strict3)
+    IKSerializable* m_unk1b68;  // +0x1b68 the aura particles (UpdateRegenAndElementTimeout)
     IKSerializable* m_unk1b6c;                   // +0x1b6c CKBonusData*
     IKSerializable* m_unk1b70;                   // +0x1b70 CKBonusData*
     IKSerializable* m_unk1b74;                   // +0x1b74 CKBonusData*
@@ -1820,7 +2228,7 @@ public:
     IKSerializable* m_unk1b90;  // +0x1b90  (C2.2 strict3)
     IKSerializable* m_unk1b94;  // +0x1b94  (C2.2 strict3)
     IKSerializable* m_unk1b98;  // +0x1b98  (C2.2 strict3)
-    uint32_t m_pad1b9c[4];
+    IKSerializable* m_apActiveHitSpheres[4];  // +0x1b9c the active hit spheres (CKHkS08Hero_GetActiveHitSpheres 0x329de0; count +0x1bac)
     uint32_t m_unk1bac;  // +0x1bac  (C2.2 strict3)
     uint8_t m_unk1bb0;  // +0x1bb0  (C2.2 strict3)
     uint8_t m_pad1bb1[3];
@@ -1832,16 +2240,7 @@ public:
     uint32_t m_unk1bc8;  // +0x1bc8  (C2.2 strict3)
     uint32_t m_unk1bcc;  // +0x1bcc  (C2.2 strict3)
     IKSerializable* m_apUnk1bd0[10];             // +0x1bd0 10 references, one read each (CKPoisonSpin first, struct draft)
-    uint32_t m_unk1bf8;  // +0x1bf8  (C2.2 strict3)
-    uint32_t m_unk1bfc;  // +0x1bfc  (C2.2 strict3)
-    uint32_t m_unk1c00;  // +0x1c00  (C2.2 strict3)
-    uint32_t m_unk1c04;  // +0x1c04  (C2.2 strict3)
-    uint32_t m_unk1c08;  // +0x1c08  (C2.2 strict3)
-    uint32_t m_unk1c0c;  // +0x1c0c  (C2.2 strict3)
-    uint32_t m_unk1c10;  // +0x1c10  (C2.2 strict3)
-    uint32_t m_unk1c14;  // +0x1c14  (C2.2 strict3)
-    uint32_t m_unk1c18;  // +0x1c18  (C2.2 strict3)
-    uint32_t m_unk1c1c;  // +0x1c1c  (C2.2 strict3)
+    float m_afAbilityCooldown[10];  // +0x1bf8 per ability (ActState4_Ability_Condition counts them down)
     uint32_t m_unk1c20;                          // +0x1c20 read raw (4 colour bytes, RGBA_maybe)
     uint32_t m_unk1c24;                          // +0x1c24 read raw (4 colour bytes, RGBA_maybe)
     uint32_t m_unk1c28;                          // +0x1c28 read raw (4 colour bytes, RGBA_maybe)
@@ -1882,7 +2281,7 @@ public:
     int32_t m_unk1cb4;                           // +0x1cb4
     uint32_t m_unk1cb8;                          // +0x1cb8
     int32_t m_unk1cbc;                           // +0x1cbc
-    uint32_t m_unk1cc0;  // +0x1cc0  (C2.2 strict3)
+    IKSerializable* m_unk1cc0;  // +0x1cc0 an object of class 0xa50c while hero 1 uses the wind beam (IsUsingWindBeam)
     uint32_t m_unk1cc4;  // +0x1cc4  (C2.2 strict3)
     uint32_t m_unk1cc8;  // +0x1cc8  (C2.2 strict3)
     IKSerializable* m_unk1ccc;                   // +0x1ccc CKFilterFxData*
@@ -1897,11 +2296,11 @@ public:
     IKSerializable* m_unk1cf0;                   // +0x1cf0 CKFilterFxData*
     IKSerializable* m_unk1cf4;  // +0x1cf4  (C2.2 strict3)
     IKSerializable* m_unk1cf8;                   // +0x1cf8 CKQuakeCameraLauncher*
-    uint32_t m_unk1cfc;  // +0x1cfc  (C2.2 strict3)
+    float m_unk1cfc;  // +0x1cfc the ability quake timer (ActAbility)
     float m_unk1d00;                             // +0x1d00
     float m_unk1d04;  // +0x1d04  (C2.2 strict3)
     float m_unk1d08;  // +0x1d08  (C2.2 strict3)
-    uint32_t m_pad1d0c;
+    float m_unk1d0c;  // +0x1d0c the ability turn rate (SetAbilityTurnParams: +0x1d04, else +0xaf8)
     uint8_t m_unk1d10;  // +0x1d10  (C2.2 strict3)
     uint8_t m_unk1d11;  // +0x1d11  (C2.2 strict3)
     uint8_t m_pad1d12[2];
@@ -1910,8 +2309,8 @@ public:
     uint8_t m_pad1d19[3];
     float m_unk1d1c;  // +0x1d1c  (C2.2 strict3)
     float m_unk1d20;  // +0x1d20  (C2.2 strict3)
-    uint32_t m_unk1d24;  // +0x1d24  (C2.2 strict3)
-    uint32_t m_unk1d28;  // +0x1d28  (C2.2 strict3)
+    float m_unk1d24;  // +0x1d24 the ability fury timer (ActAbility, 0.3 s)
+    IKSerializable* m_unk1d28;  // +0x1d28 the enemy aimed at in flight (UpdateFlyingLocomotion: FindBestEnemyInAimCone)
     float m_unk1d2c;  // +0x1d2c  (C2.2 strict3)
     float m_unk1d30;  // +0x1d30  (C2.2 strict3)
     float m_unk1d34;  // +0x1d34  (C2.2 strict3)
@@ -1944,7 +2343,7 @@ public:
     uint32_t m_unk1d94;  // +0x1d94  (C2.2 strict3)
     uint32_t m_unk1d98;  // +0x1d98  (C2.2 strict3)
     float m_unk1d9c;  // +0x1d9c  (C2.2 strict3)
-    uint32_t m_unk1da0;  // +0x1da0  (C2.2 strict3)
+    float m_unk1da0;  // +0x1da0 the flight impulse time (InitFlightField1D9CBlock: 0.01)
     uint8_t m_unk1da4;  // +0x1da4  (C2.2 strict3)
     uint8_t m_pad1da5[3];
     float m_unk1da8;  // +0x1da8  (C2.2 strict3)
@@ -1969,8 +2368,8 @@ public:
     IKSerializable* m_unk1de8;                   // +0x1de8 CKMoveCpntUpdater*
     IKSerializable* m_unk1dec;                   // +0x1dec CKCurve2DCpnt*
     IKSerializable* m_unk1df0;                   // +0x1df0 CKMeshPopFxData*
-    uint32_t m_unk1df4;  // +0x1df4  (C2.2 strict3)
-    IKSerializable* m_unk1df8;  // +0x1df8  (C2.2 strict3)
+    IKSerializable* m_unk1df4;  // +0x1df4 the fury charge's mesh pop (a CKMeshPopNodeFx; SpawnFuryChargeFx)
+    class CKS08HeroAbilityHost* m_unk1df8;  // +0x1df8 the ability host (ActAbility builds it)
     uint8_t m_unk1dfc;                           // +0x1dfc (the side blend flag while climbing, UpdateAnimation)
     uint8_t m_pad1dfd[3];
 };
@@ -3137,16 +3536,7 @@ DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1bc0, 0x1bc0);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1bc4, 0x1bc4);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1bc8, 0x1bc8);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1bcc, 0x1bcc);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1bf8, 0x1bf8);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1bfc, 0x1bfc);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1c00, 0x1c00);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1c04, 0x1c04);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1c08, 0x1c08);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1c0c, 0x1c0c);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1c10, 0x1c10);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1c14, 0x1c14);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1c18, 0x1c18);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1c1c, 0x1c1c);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_afAbilityCooldown, 0x1bf8);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1cc0, 0x1cc0);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1cc4, 0x1cc4);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1cc8, 0x1cc8);
@@ -3233,6 +3623,8 @@ CVector3 GroundProbe_ComputeRadialAverageNormal(const CVector3* center, const CV
                                                 float maxDrop, int32_t count);
 // 0x002fbd78 Vec3_TiltUpVectorAroundLocalX_maybe (normalises `up` and `at` in place)
 CVector3 Vec3_TiltUpVectorAroundLocalX(float angle, CVector3* up, CVector3* at);
+// A carried object's weight (its vt+0x104: the transportable key, weight and power bucket; CKHkS08Hero.cpp).
+float CarriedObjectWeight(IKSerializable* object);
 // 0x002fbbf8 Vec3_AngleBetween (CKHkS08Hero_2.cpp): the angle in radians between `a` and `b` (both normalised in place).
 float Vec3_AngleBetween(CVector3* a, CVector3* b);
 // 0x00333618 Math_RemapClamped

@@ -4,13 +4,13 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1ae9a0  CKDistortionFxData_GetNodeClassKey
-//   [ ] 0x1ae9a8  CKDistortionFxData_Destroy
-//   [ ] 0x1ae9f0  CKDistortionFxData_PostLoad
+//   [x] 0x1ae9a8  CKDistortionFxData_Destroy
+//   [x] 0x1ae9f0  CKDistortionFxData_PostLoad  (= the inherited slot)
 //   [x] 0x1aea18  CKDistortionFxData_Load
 //   [ ] 0x1aead8  CKDistortionFxData_Save
-//   [ ] 0x1aeb98  CKDistortionFxData_RecursiveRegistration
-//   [ ] 0x1aec10  CKDistortionFxData_MessageProc
-//   [ ] 0x1af058  CKDistortionFxData_GetInfo
+//   [x] 0x1aeb98  CKDistortionFxData_RecursiveRegistration
+//   [x] 0x1aec10  CKDistortionFxData_MessageProc
+//   [x] 0x1af058  CKDistortionFxData_GetInfo  (returns 1: the default slot)
 //
 //   [ ] 0x9ab3b0  CKDistortionFxData_IsKindOfClass  [inline]
 //   [x] 0x9ab3e8  CKDistortionFxData_GetClassType  [inline]
@@ -20,10 +20,37 @@
 #include "k2000/logic/fx/CKDistortionFxData.h"
 
 #include "k2000/io/IKFile.h"
+#include "k2000/graphical/CDistortionScreenFx.h"
+#include "k2000/logic/CKCoreManager.h"
+#include "k2000/misc/Engine.h"
+#include "k2000/services/CKSrvFx.h"
 
 // 0x001aea18 CKDistortionFxData_Load
 int32_t CKDistortionFxData::Load(IKFile* file, int32_t type) {
     IKFxData::Load(file, type);
     if (type == K_LEVEL_PLATEFORMS) IKFile_ReadRef(file, &m_pDistortionData);
+    return 1;
+}
+
+// 0x001ae9a8 CKDistortionFxData_Destroy
+void CKDistortionFxData::Destroy() { m_pDistortionData->Destroy(); }  // vt+0x10
+
+// 0x001aeb98 CKDistortionFxData_RecursiveRegistration
+void CKDistortionFxData::RecursiveRegistration(int32_t type) {
+    IKFxData::RecursiveRegistration(type);  // KStub_Return1_1d8340
+    if (type == 0) m_pDistortionData->RecursiveRegistration(0);  // vt+0x24
+}
+
+// 0x001aec10 CKDistortionFxData_MessageProc (every 0x1b00 path answers 0: the result of the start is xored with 1 only
+// when an effect started)
+int32_t CKDistortionFxData::MessageProc(uint16_t message, void* /*data*/) {
+    if (message == 0x1b00) {
+        static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->StartEffect(this, this);
+        return 0;
+    }
+    if (message == 0x1b03) {
+        static_cast<CDistortionScreenFx*>(g_pEngine->m_coreManager->GetObjectByClassKey(0xc4d))->Reset();  // vt+0x58; 0x000b2008
+        return 0;
+    }
     return 1;
 }

@@ -9,10 +9,14 @@
 #include "k2000/util/TVector.h"
 
 class IKFile;
+struct CVector3;
 
 class CKSrvBeacon : public IKService {
 public:
     DOTD_CLASS_KEY(kCategoryService, 0xb)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a6f28
+        return key == 0x2c1 || key == 0x1 || key == 0x3fe || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKSrvBeacon)
 
     // XXL2 CKSrvBeacon::CKBeaconBundle, 0xc bytes on the PS3: six bytes read as stored, then the owner.
@@ -38,7 +42,10 @@ public:
     // two bit arrays.
     struct CKBeaconSector {
         CKBeaconSector();
-        ~CKBeaconSector() {}  // STUB(C1.6): XXL2's ~CKBeaconSector frees the blocks (PS3 copy not traced)
+        // The PS3 has no out-of-line copy: 0x00123f30 CKSrvBeacon_Destroy's array delete inlines it per element (the
+        // memory-card bits and the persistent bits freed, the pointers kept); CKSrvBeacon::Destroy writes those frees
+        // out in its loop before `delete[]`, so the C++ destructor is empty.
+        ~CKBeaconSector() {}
 
         IKSerializable** m_apBeaconKlusters;     // +0x00 CKBeaconKluster* (Mem_AllocAligned16)
         void* m_aSectorBeaconSets;               // +0x04 CKBeaconSet*
@@ -94,7 +101,11 @@ public:
     };
 
     CKSrvBeacon();  // 0x001236a8 CKSrvBeacon_Construct
-    ~CKSrvBeacon() override {}
+    // 0x00125c88 CKSrvBeacon_Destructor (0x125d28 Destructor_2 the same, 0x125dc8 DeletingDestructor + delete): the
+    // global (0xcea86c) and the engine's beacon service cleared, the bundle block freed, its length and block cleared.
+    ~CKSrvBeacon() override;
+    // vt+0x24 0x001233a0 CKSrvBeacon_RecursiveRegistration: type 4: the service registered.
+    void RecursiveRegistration(int32_t type) override;
 
     // vt+0x1c 0x001241b8 CKSrvBeacon_MessageProc: message 0x1001 reads the beacons of IDs 5 and 0x27 from
     // the file (returns 0); 0x1000 writes them (returns 0); other messages return 1.
@@ -116,14 +127,37 @@ public:
     // (e.g. 0x0018dd80 CKTeleportCinematicBloc_TeleportToBeacon_maybe): three 16-bit tenths of a position, then a signed
     // yaw byte. Null for a sector without klusters or an id without a set (the original reads the low addresses).
     const uint8_t* GetBeaconData(const uint16_t* accessor) const;
+    // The set an accessor names (as GetBeaconData; null without one).
+    CKBeaconSet* GetBeaconSet(const uint16_t* accessor) const;
+    // 0x00123438 CKSrvBeacon_BeginTypeIteration_maybe: the sets of beacon type `type` in the klusters of `sector`, linked
+    // through m_pNext (the last kluster's first); null for an unknown type.
+    CKBeaconSet* BeginTypeIteration(uint8_t type, int32_t sector);
+    // 0x00123b40 CKSrvBeacon_GatherBeaconsOfType_maybe: the sets of beacon type `type` in every drawn sector's klusters.
+    // `flags` 1: the kluster's sphere tested against the frustum (5 planes; outside: dropped, or with 4 into `outside`);
+    // 2 / 8: the inside / outside list sorted by the kluster's distance key (~(int)((|dx| + |dy| + |dz|) x 1000) to
+    // `center` or the camera, nearest first), else pushed in front. The inside list returned.
+    CKBeaconSet* GatherBeaconsOfType(uint8_t type, uint32_t flags, CKBeaconSet** outside, const CVector3* center);
+    // 0x00123530 SList_TakeNext_maybe: the head of `list`, which moves on.
+    static CKBeaconSet* TakeNext(CKBeaconSet** list) {
+        CKBeaconSet* head = *list;
+        if (head == nullptr) return nullptr;
+        *list = head->m_pNext;
+        return head;
+    }
 
     void Destroy() override;  // vt+0x10 0x00123f30 CKSrvBeacon_Destroy
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00125598 CKSrvBeacon_Load
-    void Start() override {}                            // vt+0x50 0x123970  STUB(C1.6)
+    // vt+0x50 0x00123970 CKSrvBeacon_Start: the bundle index back to 0, the current beacon id the first bundle's
+    // (0xff without bundles).
+    void Start() override;
+    void Restart() override;                            // vt+0x54 0x124ca8 CKSrvBeacon_Restart
     void Stop() override;                               // vt+0x68 0x124100 CKSrvBeacon_Stop
     void Pause() override {}                            // vt+0x70 0x123418 (empty)
     void Resume() override {}                           // vt+0x78 0x123420 (empty)
-    void Update(IKTime*) override {}                    // vt+0x7c 0x1238f0 UpdateCKSrvBeacon  STUB(C1.6)
+    // vt+0x7c 0x001238f0 UpdateCKSrvBeacon: while the clock runs, one bundle per frame: the index moves on and the
+    // current beacon id is that bundle's; past the last bundle the id is 0xff until the index reaches
+    // m_ui8UpdateEachFrame, then the round starts again at bundle 0.
+    void Update(IKTime* time) override;
     // vt+0x8c 0x001252a0 CKSrvBeacon_SectorUnload: the sector's persistent bits saved (not for sector 0), every
     // bundle owner told with message 0x1004 (its beacon id in the high byte, the sector in the low byte).
     void SectorUnload(int32_t sector) override;
@@ -140,8 +174,8 @@ public:
     TVector<CKBeaconBundle, 1> m_vBeaconBundles;  // +0x0c
     CKBeaconSector* m_aBeaconSectors;             // +0x18 new CKBeaconSector[m_ui32NbSectors]
     uint32_t m_ui32NbSectors;                     // +0x1c
-    uint8_t m_ui8NumCurrentBeaconIndex;           // +0x20 not set by the constructor or Load
-    uint8_t m_tNumCurrentBeaconID;                // +0x21 not set by the constructor or Load
+    uint8_t m_ui8NumCurrentBeaconIndex;           // +0x20 not set by the constructor or Load; Start / Update
+    uint8_t m_tNumCurrentBeaconID;                // +0x21 not set by the constructor or Load; Start / Update
     uint8_t m_ui8UpdateEachFrame;                 // +0x22 read first
     uint8_t m_ui8PadUnused;                       // +0x23
 };

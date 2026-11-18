@@ -33,7 +33,7 @@ public:
     DOTD_DECLARE_FACTORIES(CBackgroundManager)
 
     CBackgroundManager();                // 0x00093b30 CBackgroundManager_Create (inlined)
-    ~CBackgroundManager() override {}    // STUB(C1.6): 0x94b68 / 0x94ba8
+    ~CBackgroundManager() override {}    // 0x00094b68 / 0x00094ba8 CBackgroundManager_Destructor / _DeletingDestructor: the vtables only
     // vt+0x08 0x99c880
     int32_t IsKindOfClass(uint32_t key) override { return key == 0x68d || key == 0xa8d || key == 0xc; }
     void Destroy() override;                                // vt+0x10 0x00093b88 CBackgroundManager_Destroy
@@ -42,11 +42,19 @@ public:
     // 0x00093690 CBackgroundManager_HideAllBackgrounds_maybe: every background's root node hidden (flag 4 set).
     void HideAllBackgrounds();
     int32_t GetSerializationFlags() override { return 0; }  // vt+0x34 0x99c870
+    // vt+0x24 0x000936f8 CBackgroundManager_RecursiveRegistration: type 0 registers the manager.
+    void RecursiveRegistration(int32_t type) override;
+    int32_t PostLoad(int32_t /*type*/) override { return 1; }  // vt+0x30 0x00093a70 CBackgroundManager_PostLoad
     // vt+0x54 0x000946e0 CBackgroundManager_PreUpdate: the root node of the background of each active sector shown (flag 4 cleared).
     void PreUpdate(IKTime* frameClock) override;
     // vt+0x70 0x00093a50 CBackgroundManager_CanBeUpdated: the renderer's bit 1 (the scene roots are not extracted) is clear.
     int32_t CanBeUpdated() override;
-    void Render() override {}                               // vt+0x5c 0x99c878  STUB(C1.4)
+    // 0x00093c48 DrawBackgroundGradientQuad_maybe: the fog-coloured band below the horizon of a render type 1 background
+    // (ExecuteRenderStages38To48, with the renderer's fog colour +0x9c).
+    void DrawBackgroundGradientQuad(const uint8_t* fogColor);
+    // vt+0x5c 0x0099c878 CBackgroundManager_Render: a bare blr (the backgrounds are scene nodes, drawn by the far
+    // group's stages).
+    void Render(IKTime* /*frameClock*/) override {}
 
     CBackgroundData** m_apRootNode;  // +0x18 operator new[] of count pointers, or null
     uint8_t m_ui8NbRootNode;         // +0x1c

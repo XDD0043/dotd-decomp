@@ -4,16 +4,16 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x228b8  CKGroupRoot_Delete
-//   [ ] 0x22908  CKGroupRoot_PostLoad
-//   [ ] 0x22930  RegisterCKGroupRootType
+//   [x] 0x22908  CKGroupRoot_PostLoad  (header)
+//   [x] 0x22930  RegisterCKGroupRootType  (the class registration, key 4 / id 1: DOTD_DECLARE_FACTORIES, Kp3Ported.inc by gen_kp3_stubs)
 //   [ ] 0x229a8  _GLOBAL__I_229a8
 //   [x] 0x229b8  CKGroupRoot_DeleteArray
 //   [x] 0x22a58  CKGroupRoot_Create
 //   [x] 0x22ad0  CKGroupRoot_CreateArray
 //   [x] 0x22ba0  CKGroupRoot_Load
-//   [ ] 0x22bc8  CKGroupRoot_RecursiveRegistration
+//   [x] 0x22bc8  CKGroupRoot_RecursiveRegistration
 //   [ ] 0x22c48  CKGroupRoot_Save
-//   [ ] 0x22c70  CKGroupRoot_Destroy
+//   [x] 0x22c70  CKGroupRoot_Destroy  (header)
 //
 //   [ ] 0x992cd8  CKGroupRoot_GetClassID  [inline]
 //   [ ] 0x992ce0  CKGroupRoot_GetClassType  [inline]
@@ -27,9 +27,17 @@
 //   [ ] 0x993088  IKModule_vfA4  [inline]
 //   [ ] 0x993090  KStub_Return0_993090  [inline]
 #include "k2000/groups/CKGroupRoot.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 
 // 0x00022ba0 CKGroupRoot_Load (XXL2 CKGroupRoot::Load: GroupBasicLoad, then 1).
 int32_t CKGroupRoot::Load(IKFile* file, int32_t type) {
     GroupBasicLoad(file, type);
     return 1;
+}
+
+// 0x00022bc8 CKGroupRoot_RecursiveRegistration
+void CKGroupRoot::RecursiveRegistration(int32_t type) {
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24, no type test
+    IKBaseGroup::RecursiveRegistration(type);  // 0x00012a68 IKGroup_LevelReset
 }

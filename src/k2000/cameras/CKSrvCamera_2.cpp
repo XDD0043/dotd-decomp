@@ -1056,7 +1056,7 @@ void FillBeaconFrustum(CKSrvCamera* service, const CVector3& position, const CMa
 
 // The squared distance from the calculation position to a beacon's node (the LTM read on demand).
 float BeaconDistance2(const CKSrvCamera* service, const CKCameraBeacon* beacon, CVector3* position) {
-    const RwV3d& p = RwFrameGetLTM(static_cast<CSGMovable*>(beacon->m_pKGLObject)->m_pRwFrame)->pos;
+    const RwV3d& p = FrameLtm(static_cast<CSGMovable*>(beacon->m_pKGLObject)->m_pRwFrame)->pos;
     position->x = p.x;
     position->y = p.y;
     position->z = p.z;
@@ -1291,7 +1291,7 @@ const RwV3d* FocusPositionOf(CSGLeaf* leaf, uint32_t flags) {
     CSGBranch* parent = static_cast<CSGBranch*>(leaf->m_pParent);
     if (parent != nullptr && parent->GetClassID() == 2) return &leaf->m_pRwFrame->modelling.pos;
     if ((flags & 0x80000u) == 0) leaf->ForceWorldMatrixUpdate();
-    return &RwFrameGetLTM(leaf->m_pRwFrame)->pos;
+    return &leaf->m_pRwFrame->ltm.pos;  // the frame's +0x80 as it is (no RwFrameGetLTM sync)
 }
 
 }  // namespace
@@ -1344,7 +1344,7 @@ void CKSrvCamera::UpdateFrame(float frameTime) {
         if ((parent == nullptr || parent->GetClassID() != 2) && (m_baTemporaryFlags & 0x80000u) == 0) {
             leaf->ForceWorldMatrixUpdate();
         }
-        const RwV3d& position = RwFrameGetLTM(leaf->m_pRwFrame)->pos;
+        const RwV3d& position = leaf->m_pRwFrame->ltm.pos;  // the frame's +0x80 as it is (no RwFrameGetLTM sync)
         m_aStack[i].m_unk24[2] = position.z;
         m_aStack[i].m_unk24[0] = position.x;
         m_aStack[i].m_unk24[1] = position.y;

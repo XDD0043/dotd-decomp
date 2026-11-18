@@ -11,9 +11,9 @@
 //   [x] 0x5855a8  CKProjectileDataTypeBallisticPFX_DeleteArray
 //   [x] 0x585648  CKProjectileDataTypeBallisticPFX_Create
 //   [x] 0x585690  CKProjectileDataTypeBallisticPFX_CreateArray
-//   [ ] 0x585730  CKProjectileDataTypeBallisticPFX_PostLoad
-//   [ ] 0x585738  CKProjectileDataTypeBallisticPFX_Destroy
-//   [ ] 0x585740  IKComponent_RecursiveRegistration
+//   [x] 0x585730  CKProjectileDataTypeBallisticPFX_PostLoad  (returns 1: IKSerializable default)
+//   [x] 0x585738  CKProjectileDataTypeBallisticPFX_Destroy  (empty: the default)
+//   [x] 0x585740  IKComponent_RecursiveRegistration  (CKProjectileDataTypeBallisticPFX::RecursiveRegistration)
 //   [x] 0x585928  CKProjectileDataTypeBallisticPFX_Load
 //   [x] 0x5861e0  CKProjectileTypeBallisticPFX_Delete
 //   [ ] 0x586230  FUN_00586230  [dead]
@@ -30,6 +30,8 @@
 #include "k2000/logic/CKProjectileDataTypeBallisticPFX.h"
 
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 
 // 0x00585928 CKProjectileDataTypeBallisticPFX_Load: level data only, 106 bytes (fields out of address order
 // as in the original).
@@ -46,13 +48,13 @@ int32_t CKProjectileDataTypeBallisticPFX::Load(IKFile* file, int32_t type) {
     ReadF32LE(file, &m_unk40);
     ReadU8(file, &m_unk44);
     ReadU8(file, &m_unk45);
-    ReadU32LE(file, &m_unk48);
+    ReadF32LE(file, &m_unk48);
     ReadU8(file, &m_unk4c);
     ReadU16LE(file, &m_unk4e);
     ReadF32LE(file, &m_unk54);
     ReadF32LE(file, &m_unk58);
     ReadF32LE(file, &m_unk5c);
-    ReadU32LE(file, &m_unk50);
+    ReadU32LE(file, &m_ui32Flags);
     ReadF32LE(file, &m_unk64);
     ReadF32LE(file, &m_unk68);
     ReadF32LE(file, &m_unk6c);
@@ -62,8 +64,23 @@ int32_t CKProjectileDataTypeBallisticPFX::Load(IKFile* file, int32_t type) {
     IKFile_ReadRef(file, &m_unk10);
     IKFile_ReadRef(file, &m_unk14);
     IKFile_ReadRef(file, &m_unk18);
-    ReadU32LE(file, &m_unk70);
-    ReadU32LE(file, &m_unk60);
+    ReadF32LE(file, &m_unk70);
+    ReadF32LE(file, &m_unk60);
     ReadU8(file, &m_unk2c);
     return 1;
+}
+
+// 0x00585740 CKProjectileDataTypeBallisticPFX's RecursiveRegistration (Ghidra: IKComponent_RecursiveRegistration)
+void CKProjectileDataTypeBallisticPFX::RecursiveRegistration(int32_t type) {
+    if (type == 0) {
+        g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    } else if (static_cast<uint32_t>(type - 4) < 4) {
+        return;
+    }
+    if (m_unk04 != nullptr) m_unk04->RecursiveRegistration(type);
+    if (m_unk14 != nullptr) m_unk14->RecursiveRegistration(type);
+    if (m_unk08 != nullptr) m_unk08->RecursiveRegistration(type);
+    if (m_unk0c != nullptr) m_unk0c->RecursiveRegistration(type);
+    if (m_unk10 != nullptr) m_unk10->RecursiveRegistration(type);
+    if (m_unk18 != nullptr) m_unk18->RecursiveRegistration(type);
 }

@@ -5,8 +5,8 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1d7d50  CKTimeScalingNodeFx_Delete
-//   [ ] 0x1d7da0  CKTimeScalingNodeFx_Destroy
-//   [ ] 0x1d7da8  CKTimeScalingNodeFx_RecursiveRegistration
+//   [x] 0x1d7da0  CKTimeScalingNodeFx_Destroy  (empty)
+//   [x] 0x1d7da8  CKTimeScalingNodeFx_RecursiveRegistration
 //   [x] 0x1d7e00  CKTimeScalingNodeFx_PostLoad
 //   [x] 0x1d7e10  CKTimeScalingNodeFx_Start
 //   [x] 0x1d7e30  CKTimeScalingNodeFx_Interrupt_maybe
@@ -21,11 +21,11 @@
 //   [x] 0x1d81d8  CKTimeScalingNodeFx_SetDataAndOwner
 //   [x] 0x1d8238  CKTimeScalingNodeFx_Stop
 //   [x] 0x1d82b8  CKTimeScalingNodeFx_Create
-//   [ ] 0x1d8310  IKFx_ResetRuntimeFlags
+//   [x] 0x1d8310  IKFx_ResetRuntimeFlags  (IKFx::ResetRuntimeFlags, IKFx.h)
 //   [x] 0x1d8320  IKFx_Load
 //   [ ] 0x1d8330  IKFx_Save
-//   [ ] 0x1d8338  KStub_Return1_1d8338
-//   [ ] 0x1d8340  KStub_Return1_1d8340
+//   [x] 0x1d8338  KStub_Return1_1d8338  (IKFxData PostLoad: the IKSerializable default)
+//   [x] 0x1d8340  KStub_Return1_1d8340  (the FX data base's RecursiveRegistration: nothing (the default slot))
 //
 //   [ ] 0x9ab490  IKFx_StopIfLinkedTo  [inline]
 //   [ ] 0x9ab498  IKFx_SetOwner  [inline]
@@ -48,6 +48,7 @@
 #include "k2000/logic/fx/CKTimeScalingNodeFx.h"
 
 #include "k2000/fx/IKFx.h"
+#include "k2000/logic/CKSavingManager.h"
 #include "k2000/logic/fx/CKTimeScalingFxData.h"
 #include "k2000/misc/Engine.h"
 #include "k2000/system/CTimeManager.h"
@@ -125,4 +126,9 @@ void CKTimeScalingNodeFx::SetDataAndOwner(IKFxData* data, const IKSerializable* 
 // 0x001d7e70 CKTimeScalingNodeFx_StopIfOwnedBy_maybe
 void CKTimeScalingNodeFx::StopIfOwnedBy(const CKTimeScalingFxData* data, const IKSerializable* owner) {
     if (m_pData == data && m_pScaleOwner == owner) Stop();  // vt+0x6c
+}
+
+// 0x001d7da8 CKTimeScalingNodeFx_RecursiveRegistration: registered with the saving manager (vt+0x24, no owner) only.
+void CKTimeScalingNodeFx::RecursiveRegistration(int32_t /*type*/) {
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
 }

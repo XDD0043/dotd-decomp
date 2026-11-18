@@ -19,7 +19,7 @@ public:
     enum : uint32_t { kModePause = 0, kModeReportEnd = 1, kModeLoop = 2, kModeDefault = 3 };
 
     CKVideoSegment();                 // 0x000a7918 CKVideoSegment_Create (inlined; = CKVideoSegment_Construct 0xa7418)
-    ~CKVideoSegment() override {}     // STUB(C1.6): 0x9a0610 / 0x9a05b0
+    ~CKVideoSegment() override {}     // 0x009a0610 / 0x009a05b0 CKVideoSegment_Destructor / _DeletingDestructor: the vtables only
     // vt+0x08 0x9a05f0
     int32_t IsKindOfClass(uint32_t key) override { return key == 0xd8d || key == 0xc; }
     // vt+0x2c 0x000a7ad8 CKVideoSegment_Load: reads for K_LEVEL_PLATEFORMS; the last three stores for every type.

@@ -6,7 +6,7 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1a0d8  CKDefaultPlayer_vf58
 //   [x] 0x1a120  CKDefaultPlayer_vf54Impl
-//   [ ] 0x1a140  CKDefaultPlayer_LevelResetImpl
+//   [x] 0x1a140  CKDefaultPlayer_LevelResetImpl
 //   [x] 0x1a220  CKDefaultPlayer_vf50Impl
 //   [x] 0x1a290  IKPlayer_Load
 //
@@ -59,4 +59,19 @@ void IKPlayer::CopyPlayerGameDataImpl(IKPlayer* other) {
     m_baLevelSaved = other->m_baLevelSaved;
     m_pGameState->CopyFromState(other->m_pGameState);
     m_unk10 = other->m_unk10;
+}
+
+// 0x0001a140 CKDefaultPlayer_LevelResetImpl (C2.8 save-menu)
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
+int32_t IKPlayer::LevelResetImpl(int32_t type) {
+    IKSerializable* object = this;
+    if (type == K_GAME_MEMCARD) {
+        g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+        object = static_cast<IKSerializable*>(m_pGameState);
+    } else if (!(type == 0 || type == 1 || type == K_LEVEL_MEMCARD)) {
+        return 1;
+    }
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(object, nullptr);
+    return 1;
 }

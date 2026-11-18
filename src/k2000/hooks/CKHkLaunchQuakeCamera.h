@@ -9,12 +9,19 @@
 class CKHkLaunchQuakeCamera : public IKHook {
 public:
     DOTD_CLASS_KEY(kCategoryHook, 0x88)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a7b60
+        return key == 0x2202 || key == 0x2 || key == 0x2fe || key == 0x3fe || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKHkLaunchQuakeCamera)
 
     CKHkLaunchQuakeCamera() {}  // 0x00152e28 CKHkLaunchQuakeCamera_Create: the IKLife/IKHook defaults only
     ~CKHkLaunchQuakeCamera() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00152e90 CKHkLaunchQuakeCamera_Load
+    // vt+0x24 0x00152b50 CKHkLaunchQuakeCamera_RecursiveRegistration: IKHook's (0x19ab8), then with type 0 the hook
+    // registered with the saving manager (engine +0x50 vt+0x24, owner null) and +0x24, +0x20 registered (vt+0x24, 0).
+    void RecursiveRegistration(int32_t type) override;
+    int32_t GetInfo(struct IKInfo* /*info*/, int32_t /*request*/) override { return 1; }  // vt+0x40 0x00152ce8
     // vt+0x1c 0x00152cf0 CKHkLaunchQuakeCamera_MessageProc (step 5, FX): message 0x600 starts the quake once
     // (CKSrvCamera_StartQuake_maybe with the launcher) and returns 0; the others return 1.
     int32_t MessageProc(uint16_t message, void* data) override;

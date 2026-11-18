@@ -5,18 +5,18 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x6a1f0  TextData_SetColor
-//   [ ] 0x6a238  TextData_AppendLinesToWStr_maybe
+//   [x] 0x6a238  TextData_AppendLinesToWStr_maybe
 //   [ ] 0x6a2d0  TextData_GetTotalCharCount_maybe  [dead]
-//   [ ] 0x6a350  Text2dBlock_MeasureSize_maybe
+//   [x] 0x6a350  Text2dBlock_MeasureSize_maybe  (port-all P13 for CKS08MenuObjectives)
 //   [x] 0x6a468  TextData_ComputeLayout_maybe
 //   [x] 0x6aa60  Text2dPart_ReplaceButtonGlyphTokens_maybe
 //   [x] 0x6ad78  Text2dPart_SubstituteVariables_maybe
 //   [x] 0x6b1b8  TextData_SetTextAscii
 //   [x] 0x6b260  CText2d_ConstructTextPart_maybe
 //   [x] 0x6b2d8  CText2d_TokenizeText_maybe
-//   [ ] 0x6b530  TextData_SetFontHeight_maybe
+//   [x] 0x6b530  TextData_SetFontHeight_maybe  (port-all P13 for CKS08MenuObjectives)
 //   [ ] 0x6b5f8  CText2d_ConstructTextPart_2_maybe  [dead]
-//   [ ] 0x6b670  Text2dBlock_Reset_maybe
+//   [x] 0x6b670  Text2dBlock_Reset_maybe  (IKText2d::FreeMemoryText2D, ported by P09 for CText2d_Destroy)
 //   [x] 0x6b728  Text2dBlock_Load_maybe
 //   [x] 0x6bd10  Text2dPart_RefreshFromLocString_maybe
 //   [x] 0x6c0a8  TextData_OnEvent_maybe
@@ -27,8 +27,8 @@
 //   [ ] 0x9942d0  TextData_ScaleSize_maybe  [inline]
 //   [ ] 0x994338  TextData_DeletingDestructor  [inline]
 //   [ ] 0x994368  TextData_Destructor  [inline]
-//   [ ] 0x9943d8  TextData_FitSizeToText_maybe  [inline]
-//   [ ] 0x9985c8  TextData_ComputeAlignedRect_maybe  [inline]
+//   [x] 0x9943d8  TextData_FitSizeToText_maybe  [inline]  (IKText2d::FitSizeToText, port-all P13)
+//   [x] 0x9985c8  TextData_ComputeAlignedRect_maybe  [inline]  (IKText2d::ComputeAlignedRect, ported by P09 for CText2d_GetBoundingRect)
 //   [x] 0x9986c8  DrawUITextLinesWithLayout  [inline]
 //   [x] 0x998bc0  TextData_SetFont_maybe  [inline]
 //
@@ -66,12 +66,7 @@ const uint16_t kZeroW[] = {'0', 0};
 // LocString_GetText's text (0x00c2966e) while the loc manager has no localised data (UTF-16 " ").
 const uint16_t kLocTextSpace[] = {0x20, 0};
 
-// Local copy of 0x00010a18 Wcs_Length (misc/Wcs.cpp, not ported yet).
-uint32_t Wcs_Length(const uint16_t* s) {
-    uint32_t n = 0;
-    while (s[n] != 0) ++n;
-    return n;
-}
+// Wcs_Length 0x10a18 and Str_HashXor4 0x107d8: misc/Wcs.cpp (C2.8 port-all P10).
 
 // Local copy of 0x00010928 Wcs_FindChar (misc/Wcs.cpp, not ported yet): the first c, or null.
 uint16_t* Wcs_FindChar(uint16_t* s, uint16_t c) {
@@ -108,15 +103,6 @@ void WStr_SprintfInt(uint16_t* dst, const char* format, int32_t value) {
     *dst = 0;
 }
 
-// Local copy of 0x000107d8 Str_HashXor4 (misc/Wcs.cpp, not ported yet; CKInput.cpp has another copy):
-// the bytes XORed into four accumulators in turn, returned as a little-endian word.
-uint32_t Str_HashXor4(const char* s) {
-    uint8_t acc[4] = {0, 0, 0, 0};
-    for (uint32_t i = 0; s[i] != 0; ++i) acc[i & 3] ^= static_cast<uint8_t>(s[i]);
-    return static_cast<uint32_t>(acc[0]) | (static_cast<uint32_t>(acc[1]) << 8) |
-           (static_cast<uint32_t>(acc[2]) << 16) | (static_cast<uint32_t>(acc[3]) << 24);
-}
-
 // The loc manager's text variables are the 0xc-byte records of CLocManager +0xbc (m_vTrcRecords):
 // +0 value, +4 name hash (Str_HashXor4), +8 digits (the zero-padded width).
 // Local copy of 0x00037328 CLocManager_FindTextVariable_maybe (CLocManager.cpp, not ported yet): the first
@@ -139,13 +125,8 @@ uint32_t CLocManager_GetTextVariable(const CLocManager* loc, uint32_t index) {
     return 0;
 }
 
-// Local copy of 0x00061bf8 CManager2d_GetFont_maybe (CManager2d.cpp, not ported yet): font 0x29a is the
-// localised font, 0..9 the loaded fonts, anything else none.
-Rt2dFont* CManager2d_GetFont(const CManager2d* manager, uint32_t id) {
-    if (id == 0x29a) return manager->m_pLocalizedFont;
-    if (id < 10) return manager->m_apFonts[id];
-    return nullptr;
-}
+// 0x00061bf8 CManager2d_GetFont_maybe (CManager2d::GetFont)
+Rt2dFont* CManager2d_GetFont(const CManager2d* manager, uint32_t id) { return manager->GetFont(id); }
 
 // The PS3 measures the ASCII " " (0xac4008: bytes 20 00 00 00) with the font in RecursiveNodeReach(0): a
 // wide font reads the big-endian unit 0x2000, a byte font " ". The same string for the host's decoding.
@@ -257,7 +238,7 @@ int32_t IKText2d::Load(IKFile* file, int32_t type) {
     ReadS32LE(file, &m_i32FontId);
     RwStream* stream = file->m_pRwStream;
     RwStreamFindChunk(stream, 0x1a2, nullptr, nullptr);  // result ignored
-    m_pBrush = Rt2dBrushStreamRead(stream);       // STUB(C1.4): kept as its stream record
+    m_pBrush = Rt2dBrushStreamRead(stream);       // 0x70b5b0 (Renderware/rt2d/brush.cpp)
     ReadS32LE(file, &m_i32FontId);  // read again (XXL2 does the same)
     ReadF32LE(file, &m_f32CharHeight);
     ReadF32LE(file, &m_f32SpaceWidth);
@@ -837,4 +818,136 @@ void IKText2d::SetTextAscii(const char* text) {
         WStr_CopyReturnEnd(wide, kTextTooBig);
     }
     SetTextWide(wide);  // vt+0x38
+}
+
+// 0x0006a1a8 CText2d_SetAlpha_maybe (IKText2d vt+0x48; IKNode2d.cpp's range). The colour is the raw r, g, b, a bytes.
+void IKText2d::SetAlpha(uint8_t alpha) {
+    reinterpret_cast<uint8_t*>(&m_Color)[3] = alpha;
+    RwRGBA* rgba = reinterpret_cast<RwRGBA*>(&m_Color);
+    Rt2dBrushSetRGBA(m_pBrush, rgba, rgba, rgba, rgba);
+}
+
+// 0x0006a238 TextData_AppendLinesToWStr_maybe (C2.8 save-menu). WStr_CatReturnEnd (the library's) appends.
+void IKText2d::AppendWordsToWStr(uint16_t* text) const {
+    static const uint16_t kSpace[] = {' ', 0};  // 0x00ac3fe8
+    auto cat = [](uint16_t* dst, const uint16_t* src) {
+        while (*dst != 0) ++dst;
+        while ((*dst = *src) != 0) {
+            ++dst;
+            ++src;
+        }
+    };
+    for (uint32_t i = 0; i < m_ui32WordsCount; ++i) {
+        cat(text, m_awszWords[i]);
+        cat(text, kSpace);
+    }
+}
+
+// 0x0006b670 Text2dBlock_Reset_maybe (C2.8 port-all P09, for CText2d_Destroy 0x65f88), in its store order.
+void IKText2d::FreeMemoryText2D() {
+    m_pLocManager = nullptr;
+    m_vBoxSize.m_fX = 0.0f;
+    m_vBoxSize.m_fY = 0.0f;
+    m_ui32BoxLinesCount = 0;
+    if (m_pBrush != nullptr) {
+        Rt2dBrushDestroy(m_pBrush);
+        m_pBrush = nullptr;
+    }
+    m_f32SpaceWidth = 0.0f;
+    m_ui8HAlignType = 3;
+    m_i32FontId = -1;
+    m_pFont = nullptr;
+    m_Color = 0;
+    m_VarColor = 0;
+    m_f32TextSize = 0.0f;
+    m_f32Leading = 0.0f;
+    m_ui8WAlignType = 0;
+    m_ui32CurrentBeginLine = 0;
+    m_f32NextLineTime = 0.0f;
+    m_f32NextLineTimeLeft = 0.0f;
+    m_ui32WordsCount = 0;
+    m_bAutoSize = 0;
+    m_ui32VarsCount = 0;
+    m_f32CharHeight = 0.0f;
+}
+
+// 0x009985c8 TextData_ComputeAlignedRect_maybe (C2.8 port-all P09, for CText2d_GetBoundingRect 0x66090). The corners
+// start at the position; the centred cases are fused (fmadds with -0.5 / 0.5).
+void IKText2d::ComputeAlignedRect(CBox2D* box, const CVector2* position, uint8_t wAlign, uint8_t hAlign) const {
+    const float x = position->m_fX;
+    box->m_inf.m_fX = x;
+    box->m_inf.m_fY = position->m_fY;
+    const float x2 = position->m_fX;
+    box->m_sup.m_fX = x2;
+    box->m_sup.m_fY = position->m_fY;
+    const float height = m_vBoxSize.m_fY;
+    const float width = m_vBoxSize.m_fX / g_pEngine->m_manager2d->m_fAspect;
+    if (wAlign == 1) {
+        box->m_inf.m_fX = ppc::fmadds(width, -0.5f, x);
+        box->m_sup.m_fX = ppc::fmadds(width, 0.5f, x2);
+    } else if (wAlign == 0) {
+        box->m_sup.m_fX = width + x2;
+    } else if (wAlign == 2) {
+        box->m_inf.m_fX = x - width;
+    }
+    if (hAlign == 1) {
+        box->m_sup.m_fY = ppc::fmadds(height, 0.5f, box->m_sup.m_fY);
+        box->m_inf.m_fY = ppc::fmadds(height, -0.5f, box->m_inf.m_fY);
+    } else if (hAlign == 0) {
+        box->m_inf.m_fY = box->m_inf.m_fY - height;
+    } else if (hAlign == 2) {
+        box->m_sup.m_fY = height + box->m_sup.m_fY;
+    }
+}
+
+// ==== port-all P13: the text size helpers CKS08MenuObjectives_SetEntryText_maybe calls ===============================
+
+// 0x0006a350 Text2dBlock_MeasureSize_maybe: the first width call uses the character height read before the loop, the
+// next ones read it again (the same value).
+void IKText2d::MeasureSize(float* size) const {
+    if (m_pFont == nullptr) {
+        size[1] = 0.0f;
+        size[0] = 0.0f;
+        return;
+    }
+    const float charHeight = m_f32CharHeight;
+    const float leading = m_f32Leading;
+    float width = m_f32SpaceWidth;
+    for (uint32_t i = 0; i < m_ui32WordsCount; ++i) {
+        const float word = Rt2dFontGetStringWidth(m_pFont, AsFontString(m_awszWords[i]), i == 0 ? charHeight : m_f32CharHeight);
+        width = width + (word + m_f32SpaceWidth);  // fadds, fadds
+    }
+    size[0] = width;
+    const float lead = leading * charHeight;  // fmuls
+    size[1] = charHeight + (lead + lead);
+}
+
+// 0x0006b530 TextData_SetFontHeight_maybe
+void IKText2d::SetFontHeight(float height) {
+    m_f32TextSize = height;
+    if (m_pFont != nullptr) {
+        m_f32CharHeight = height * 0x1.ba5e36p-4f;  // 0.108f (TOC1 -0x6e04)
+        m_f32SpaceWidth = Rt2dFontGetStringWidth(m_pFont, AsciiSpaceAsFontString(m_pFont), m_f32CharHeight);
+    }
+    if (m_bAutoSize != 0) {
+        FitSizeToText();  // vt+0x00
+    } else {
+        ComputeLayout();
+    }
+}
+
+// 0x009943d8 TextData_FitSizeToText_maybe (KStub_Nop_6a0b0 between the first two layouts)
+void IKText2d::FitSizeToText() {
+    float size[2];
+    MeasureSize(size);
+    m_bAutoSize = 0;
+    m_vBoxSize.m_fX = size[0];
+    m_vBoxSize.m_fY = size[1];
+    ComputeLayout();
+    m_ui8WAlignType = 1;
+    ComputeLayout();
+    m_bAutoSize = 0;
+    m_ui8HAlignType = 1;
+    ComputeLayout();
+    m_bAutoSize = 1;
 }

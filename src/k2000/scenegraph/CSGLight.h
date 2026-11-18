@@ -11,12 +11,23 @@
 class CSGLight : public CSGLeaf {
 public:
     DOTD_CLASS_KEY(kCategoryNode, 0x20)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a27d8
+        return key == 0x80b || key == 0x20b || key == 0x14b || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CSGLight)
 
     CSGLight();  // inlined in 0x000cfb50 CSGLight_Create
     ~CSGLight() override {}
+    // vt+0x10 0x000cfa20 CSGLight_Destroy: CSGLeaf's, the light set array freed (count 0), the light parameters freed.
+    void Destroy() override;
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x000d0008 CSGLight_Load
+    // vt+0x24 0x000cf978 CSGLight_RecursiveRegistration (C2.8 save-menu): CSGLeaf's (0xceb78: nothing), then type 0 the
+    // light parameters'.
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x30 0x000cf8f0 CSGLight_PostLoad: CSGLeaf's, then for the level type every light component's frame
+    // (+0x18) = the node's frame (+0x04).
+    int32_t PostLoad(int32_t type) override;
     // vt+0x58 0x000cfbc0 CSGLight_Enqueue: the colour animations advance; unless hidden (flag 4) the world influence box is
     // made (once, or every frame for a dynamic light, flag 0x10), the frame stamped and the zones told (ComputeZoneOverlapWeights).
     void UpdateAndExtract(float maxDistanceSquared, RenderQueue** stages, IKTime* frameClock, RwCamera* camera,

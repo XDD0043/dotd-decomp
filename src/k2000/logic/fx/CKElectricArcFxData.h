@@ -10,6 +10,9 @@
 class CKElectricArcFxData : public IKFxData {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x5d)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9ab878
+        return key == 0x174c || key == 0x304c || key == 0x6 || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKElectricArcFxData)
 
     // Two byte-swapped words. The PS3 allocates the array with operator new[] and a 4-byte count cookie.
@@ -22,6 +25,14 @@ public:
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001b1478 CKElectricArcFxData_Load
     uint32_t GetAssociatedFxClassIdentifier() override { return 0x164c; }  // vt+0x54 0x1b11b8
+    // vt+0x10 0x001b1260 CKElectricArcFxData_Destroy (CKDOFNodeFx.cpp): the keys deleted, none left.
+    void Destroy() override {
+        if (m_unk0c != nullptr) {
+            delete[] m_unk0c;  // TocBridge_OperatorDeleteArray(m_unk0c - 4): the count cookie
+            m_unk08 = 0;
+            m_unk0c = nullptr;
+        }
+    }
 
     uint32_t m_unk08;   // +0x08 the number of keys in +0x0c (0 unless flag bit 2 of +0x39 is set)
     Key* m_unk0c;       // +0x0c new[] of m_unk08 keys, or null

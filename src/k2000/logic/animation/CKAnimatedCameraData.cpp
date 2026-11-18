@@ -6,21 +6,21 @@
 //   [x] 0x5c0648  CKAnimatedCameraData_Delete
 //   [ ] 0x5c0698  CKAnimatedCameraData_Construct  [dead]
 //   [ ] 0x5c06a8  CKAnimatedCameraData_Construct_2  [dead]
-//   [ ] 0x5c06b8  CKAnimatedCameraData_vf60
+//   [x] 0x5c06b8  CKAnimatedCameraData_vf60  (Vf60, CKAnimatedCameraData.h)
 //   [ ] 0x5c06c0  CKAnimatedCameraData_GetEnabledParams_maybe  [dead]
 //   [ ] 0x5c0930  RegisterCKAnimatedCameraDataClass
 //   [ ] 0x5c09a8  _GLOBAL__I_5c09a8
 //   [x] 0x5c09b8  CKAnimatedCameraData_DeleteArray
 //   [x] 0x5c0a58  CKAnimatedCameraData_Create
 //   [x] 0x5c0a90  CKAnimatedCameraData_CreateArray
-//   [ ] 0x5c0b20  CKAnimatedCameraData_RecursiveRegistration
-//   [ ] 0x5c0b28  CKAnimatedCameraData_PostLoad
-//   [ ] 0x5c0b70  CKAnimatedCameraData_Destroy
-//   [ ] 0x5c0b78  CKAnimatedCameraData_Destructor
+//   [x] 0x5c0b20  CKAnimatedCameraData_RecursiveRegistration  (returns 1: the default slot)
+//   [x] 0x5c0b28  CKAnimatedCameraData_PostLoad  (CKAnimatedCameraData.h)
+//   [x] 0x5c0b70  CKAnimatedCameraData_Destroy  (empty: the default slot)
+//   [x] 0x5c0b78  CKAnimatedCameraData_Destructor  (C++ destructor chain: vtable stores only)
 //   [x] 0x5c0b90  CKAnimatedCameraData_PickAnimation_maybe
 //   [ ] 0x5c1058  CKAnimatedCameraData_Save
 //   [ ] 0x5c1318  CKAnimatedCameraData_Destructor_2  [dead]
-//   [ ] 0x5c1330  CKAnimatedCameraData_DeletingDestructor
+//   [x] 0x5c1330  CKAnimatedCameraData_DeletingDestructor  (the destructor; delete)
 //   [x] 0x5c1370  CKAnimatedCameraData_Load
 //
 //   [ ] 0x9cd268  CKAnimatedCameraData_GetClassType  [inline]

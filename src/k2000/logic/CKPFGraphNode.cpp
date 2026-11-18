@@ -9,31 +9,31 @@
 //   [ ] 0x1ea4e0  CKPFGraphNode_IsCellInBounds_maybe  [dead]
 //   [ ] 0x1ea528  CKPFGraphNode_PlotCircleCells_maybe  [dead]
 //   [x] 0x1eabc8  CPFSector_IsPathWalkableWithWidth
-//   [ ] 0x1ebd30  CKPFGraphNode_FreeCells_maybe
+//   [x] 0x1ebd30  CKPFGraphNode_FreeCells_maybe
 //   [x] 0x1ebd60  CKPFGraphNode_ConstructBase_maybe
 //   [ ] 0x1ebd98  CKPFGraphNode_ConstructBase_2_maybe  [dead]
 //   [x] 0x1ebdd0  CKPFGraphNode_LoadBoundsAndCells
-//   [ ] 0x1ebf00  CKPFGraphNode_SaveBoundsAndCells_maybe
+//   [x] 0x1ebf00  CKPFGraphNode_SaveBoundsAndCells_maybe
 //   [x] 0x1ec108  CPFSector_IsPathWalkable
 //   [x] 0x1ec820  CPFSector_OptimizeGridPath
 //   [ ] 0x1ecfc8  CKPFGraphNode_FindFirstBlockedCellOnSegment_maybe  [dead]
-//   [ ] 0x1ed3c0  NavGrid_SetBoxBlocked
+//   [x] 0x1ed3c0  NavGrid_SetBoxBlocked
 //   [x] 0x1ed6e0  CKPFGraphNode_FindNearestWalkableCell_maybe
 //   [x] 0x1ee190  NavSector_ClampPointWithClearance_maybe
 //   [ ] 0x1ee920  CKPFGraphNode_SnapToNearestWalkableCell_maybe  [dead]
 //   [ ] 0x1ef0b0  CKPFGraphNode_SetCircleBlocked_maybe  [dead]
 //   [x] 0x1efb10  CKPFGraphNode_Delete
-//   [ ] 0x1efb60  CKPFGraphNode_RecursiveRegistration
-//   [ ] 0x1efbc8  CKPFGraphNode_PostLoad
+//   [x] 0x1efb60  CKPFGraphNode_RecursiveRegistration
+//   [x] 0x1efbc8  CKPFGraphNode_PostLoad  (1: the inherited default)
 //   [ ] 0x1efbd0  RegisterCKPFGraphNodeClass
 //   [ ] 0x1efc48  _GLOBAL__I_1efc48
 //   [x] 0x1efc58  CKPFGraphNode_Construct
-//   [ ] 0x1efca8  CKPFGraphNode_Construct_2
+//   [x] 0x1efca8  CKPFGraphNode_Construct_2  (the same code as 0x1efc58 CKPFGraphNode_Construct)
 //   [x] 0x1efcf8  CKPFGraphNode_DeleteArray
 //   [x] 0x1efda0  CKPFGraphNode_FindTransitionIndexTo_maybe
 //   [x] 0x1efe18  NavSectors_FindBoxIdAtPoint_maybe
 //   [ ] 0x1efef8  CKPFGraphNode_Save
-//   [ ] 0x1eff00  CKPFGraphNode_Destroy
+//   [x] 0x1eff00  CKPFGraphNode_Destroy
 //   [x] 0x1effa8  CKPFGraphNode_Load
 //   [x] 0x1f0248  CKPFGraphNode_Create
 //   [x] 0x1f02b0  CKPFGraphNode_CreateArray
@@ -552,6 +552,52 @@ uint16_t CPFSector::FindWideSegmentWaypoint(float width, const CVector3* start, 
     return static_cast<uint16_t>(outCount);
 }
 
+namespace {
+// NavGrid_SetBoxBlocked's test (fcmpu, cror: NaN is outside): the point within the box on x, z, then y.
+bool InSectorBox(const CBBox& box, const CVector3& p) {
+    return box.m_inf.x <= p.x && box.m_sup.x >= p.x && box.m_inf.z <= p.z && box.m_sup.z >= p.z && box.m_inf.y <= p.y &&
+           box.m_sup.y >= p.y;
+}
+}  // namespace
+
+// 0x001ed3c0 NavGrid_SetBoxBlocked. The cell bounds: the corner's truncated cell, the last column / row when it is on the
+// box's far side (the low byte equal to the size), as bytes; the cells from min to max on both axes, x outer.
+uint32_t CPFSector::SetBoxBlocked(const CVector3* min, const CVector3* max, uint8_t blocked) {
+    CVector3 a;
+    if (InSectorBox(m_box, *min)) {
+        a = *min;
+    } else {
+        AABB_ClampPoint(&m_box, min, &a);  // 0x0023c4b8
+    }
+    CVector3 b;
+    if (InSectorBox(m_box, *max)) {
+        const float k = 0.001f;  // TOC -0x1598: 0x3a83126f
+        b.x = max->x - k;
+        b.y = max->y - k;
+        b.z = max->z - k;
+    } else {
+        AABB_ClampPoint(&m_box, max, &b);
+    }
+    const float inv = g_pfGridScale.m_invCellSize;  // 0x00c40264
+    const uint32_t width = m_grid.m_width;
+    const uint32_t height = m_grid.m_height;
+    const int32_t ax = ppc::fctiwz((a.x - m_box.m_inf.x) * inv);
+    const int32_t az = ppc::fctiwz((a.z - m_box.m_inf.z) * inv);
+    const uint32_t x0 = ((ax & 0xff) == static_cast<int32_t>(width) ? ax - 1 : ax) & 0xffu;
+    const uint32_t z0 = ((az & 0xff) == static_cast<int32_t>(height) ? az - 1 : az) & 0xffu;
+    const uint32_t bx = static_cast<uint32_t>(ppc::fctiwz(inv * (b.x - m_box.m_inf.x))) & 0xffu;
+    const uint32_t bz = static_cast<uint32_t>(ppc::fctiwz(inv * (b.z - m_box.m_inf.z))) & 0xffu;
+    const uint32_t x1 = (bx == width ? width - 1 : bx) & 0xffu;
+    const uint32_t z1 = (bz == height ? height - 1 : bz) & 0xffu;
+    for (uint32_t x = x0; x <= x1; ++x) {
+        for (uint32_t z = z0; z <= z1; ++z) {
+            const uint8_t cell[2] = {static_cast<uint8_t>(x), static_cast<uint8_t>(z)};
+            m_grid.SetCellBlocked(cell, blocked);  // 0x001f12d8
+        }
+    }
+    return 1;
+}
+
 // 0x001ed6e0 CKPFGraphNode_FindNearestWalkableCell_maybe. A candidate replaces the one found on the same ring when
 // its centre is nearer the point (not when as near); `out` still the null vector means none found yet.
 uint8_t CPFSector::FindNearestWalkableCell(const CVector3* point, CVector3* out) const {
@@ -845,4 +891,39 @@ int32_t CKPFGraphNode::FindTransitionIndexTo(const IKSerializable* node) const {
         if (m_ppTransition[i]->m_pNode == node) return static_cast<int32_t>(i);
     }
     return -1;
+}
+
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
+
+// 0x001ebf00 CKPFGraphNode_SaveBoundsAndCells_maybe (each float through stwbrx and a 4-byte write, vt+0x20)
+int32_t CPFSector::Save(IKFile* file, int32_t /*type*/) {
+    const float values[6] = {m_box.m_inf.x, m_box.m_inf.y, m_box.m_inf.z, m_box.m_sup.x, m_box.m_sup.y, m_box.m_sup.z};
+    for (float value : values) {
+        uint32_t bits;
+        std::memcpy(&bits, &value, sizeof bits);
+        WriteU32LE(file, bits);
+    }
+    return 1;  // the grid's save: KStub_Return1_1f0fd8
+}
+
+// 0x001eff00 CKPFGraphNode_Destroy
+void CKPFGraphNode::Destroy() {
+    IncludedNode* entry = m_lpIncludedNode;
+    while (entry != nullptr) {
+        IncludedNode* next = entry->m_pNext;
+        delete entry;  // FreeListPool 0x00ceaa30 in the original
+        entry = next;
+    }
+    m_lpIncludedNode = nullptr;
+    if (m_ppTransition != nullptr) {
+        Mem_FreeAligned16(m_ppTransition);
+        m_ppTransition = nullptr;
+    }
+    m_Sector.FreeCells();
+}
+
+// 0x001efb60 CKPFGraphNode_RecursiveRegistration
+void CKPFGraphNode::RecursiveRegistration(int32_t type) {
+    if (static_cast<uint32_t>(type - 4) > 3) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);
 }

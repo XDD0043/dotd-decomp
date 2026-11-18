@@ -3,6 +3,7 @@
 #pragma once
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 #if defined(_WIN32)
 #define DOTD_GLAPI __stdcall
@@ -51,6 +52,7 @@ enum : GLenum {
     GL_CLAMP_TO_EDGE = 0x812F,
     GL_RGBA8 = 0x8058,
     GL_TEXTURE0 = 0x84C0,
+    GL_ACTIVE_TEXTURE = 0x84E0,
     GL_ARRAY_BUFFER = 0x8892,
     GL_STREAM_DRAW = 0x88E0,
     GL_FRAGMENT_SHADER = 0x8B30,
@@ -97,6 +99,7 @@ enum : GLenum {
     GL_TEXTURE_BASE_LEVEL = 0x813C,
     GL_TEXTURE_MAX_LEVEL = 0x813D,
     GL_TEXTURE_MAX_LOD = 0x813B,
+    GL_TEXTURE_LOD_BIAS = 0x8501,
     GL_DEPTH_STENCIL_ATTACHMENT = 0x821A,
     GL_NUM_EXTENSIONS = 0x821D,
     GL_R8 = 0x8229,
@@ -200,4 +203,9 @@ DOTD_GL_FUNCTIONS(DOTD_GL_DECLARE)
 
 // Loads every entry point; false (with a log line) if one is missing.
 bool Load(void* (*getProc)(const char* name));
+
+// The backend's shaders are written in GLSL 3.30 core restricted to what GLSL ES 3.00 has. This returns the
+// source for the context in use: unchanged on desktop GL; on WebGL2 the version line becomes "#version 300 es"
+// with the default precisions ES asks for (highp, as desktop GL computes).
+std::string ShaderSourceForContext(const char* glsl330);
 }  // namespace dotd::gfx::gl

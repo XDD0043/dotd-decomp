@@ -5,20 +5,20 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x24a0d0  CKGaugeCpnt_Delete
-//   [ ] 0x24a120  RegisterCKGaugeCpntType
+//   [x] 0x24a120  RegisterCKGaugeCpntType  (the class registry: ClassTable.inc 0xa84c / Kp3Ported.inc (gen_kp3_stubs.py); port-rest R07)
 //   [ ] 0x24a198  _GLOBAL__I_24a198
-//   [ ] 0x24a1a8  CKGaugeCpnt_EvaluateSample_maybe
-//   [ ] 0x24a340  CKGaugeCpnt_UpdateDisplayedValue_maybe
+//   [x] 0x24a1a8  CKGaugeCpnt_EvaluateSample_maybe
+//   [x] 0x24a340  CKGaugeCpnt_UpdateDisplayedValue_maybe
 //   [x] 0x24a4b0  CKGaugeCpnt_DeleteArray
-//   [ ] 0x24a550  CKGaugeCpnt_PostLoad
-//   [ ] 0x24a558  CKGaugeCpnt_RecursiveRegistration
-//   [ ] 0x24a560  CKGaugeCpnt_Destroy
+//   [x] 0x24a550  CKGaugeCpnt_PostLoad  (IKSerializable's default (1))
+//   [x] 0x24a558  CKGaugeCpnt_RecursiveRegistration  (IKSerializable's empty default)
+//   [x] 0x24a560  CKGaugeCpnt_Destroy  (IKBaseClass's empty default)
 //   [x] 0x24a568  CKGaugeCpnt_Create
 //   [x] 0x24a618  CKGaugeCpnt_CreateArray
 //   [ ] 0x24a740  CKGaugeCpnt_Save
 //   [x] 0x24ac88  CKGaugeCpnt_Load
-//   [ ] 0x24b1c8  CKGaugeCpntUpdater_Delete
-//   [ ] 0x24b218  SuperGaugeRecord_Reset_maybe
+//   [x] 0x24b1c8  CKGaugeCpntUpdater_Delete  (CKGaugeCpntUpdater::Delete, DOTD_DECLARE_FACTORIES)
+//   [x] 0x24b218  SuperGaugeRecord_Reset_maybe
 //   [ ] 0x24b240  SuperGaugeRecord_GetCpnt_maybe  [dead]
 //
 //   [ ] 0x9b9dd8  CKGaugeCpnt_IsKindOfClass  [inline]
@@ -28,6 +28,8 @@
 //   [ ] 0x9b9e90  CKGaugeCpnt_DeletingDestructor  [inline]
 #include "k2000/logic/ui/CKGaugeCpnt.h"
 
+#include "crt/ppc_ops.h"
+#include "k2000/components/CKGaugeCpntUpdater.h"
 #include "k2000/io/IKFile.h"
 #include "k2000/memory/Mem.h"
 
@@ -65,11 +67,80 @@ int32_t CKGaugeCpnt::Load(IKFile* file, int32_t type) {
         IKFile_ReadRef(file, &m_pCurve60);
     }
     // Every type.
-    ReadU32LE(file, &m_unk34);
+    ReadF32LE(file, &m_unk34);
     ReadF32LE(file, &m_unk4c);
     ReadU8(file, &m_unk20);
     ReadU8(file, &m_unk21);
     ReadF32LE(file, &m_unk24);
     CurveKeys_Load(&m_unk28, file);
     return 1;
+}
+
+// 0x0024a1a8 CKGaugeCpnt_EvaluateSample_maybe
+void CKGaugeCpnt::EvaluateSample(float t, GaugeSample* sample, CKGaugeCpntUpdater* record) const {
+    for (int32_t i = 0; i < 9; ++i) sample->m_transform.m_abSet[i] = 0;
+    for (int32_t i = 0; i < 9; ++i) sample->m_transform.m_af[i] = 0.0f;
+    sample->m_bHasColor = 0;
+    for (int32_t i = 0; i < 4; ++i) sample->m_aColor[i] = 0xff;
+    m_pTransformationUpdater->Restart();
+    m_pTransformation->Evaluate(t, &sample->m_transform, m_pTransformationUpdater);
+    if (m_unk10 != 0) {
+        sample->m_bHasColor = 1;
+        ColorCurve_Evaluate(t, sample->m_aColor, &m_unk14);
+    }
+    if (m_unk20 != 0 && record->m_unk18 != 0) {
+        const float x = m_unk24 > 0.0f ? record->m_fFlashTime / m_unk24 : 1.0f;  // lfs TOC-0xc4 = 1.0
+        sample->m_bHasColor = 1;
+        ColorCurve_Evaluate(x, sample->m_aColor, &m_unk28);
+    }
+}
+
+// 0x0024a340 CKGaugeCpnt_UpdateDisplayedValue_maybe
+void CKGaugeCpnt::UpdateDisplayedValue(float dt, GaugeSample* sample, CKGaugeCpntUpdater* record) const {
+    const float target = record->m_unk10;
+    float displayed = record->m_unk08;
+    if (displayed < target) {
+        if (m_unk34 > record->m_unk14) {
+            record->m_unk14 = dt + record->m_unk14;  // the rise delay
+        } else if (m_unk38 == 0) {
+            displayed = target;
+            record->m_unk08 = target;
+        } else if (m_unk38 == 1) {
+            displayed = ppc::fmadds(dt, m_unk3c, displayed);
+            record->m_unk08 = displayed;
+            if (displayed > target) {
+                displayed = target;
+                record->m_unk08 = target;
+            }
+        }
+    } else if (displayed > target) {
+        if (m_unk4c > record->m_unk14) {
+            record->m_unk14 = dt + record->m_unk14;  // the fall delay
+        } else if (m_unk50 == 0) {
+            displayed = target;
+            record->m_unk08 = target;
+        } else if (m_unk50 == 1) {
+            displayed = displayed - dt * m_unk54;
+            record->m_unk08 = displayed;
+            if (!(displayed >= target)) {
+                displayed = target;
+                record->m_unk08 = target;
+            }
+        }
+    }
+    const float maximum = m_unk04;
+    const float duration = m_pTransformation->m_unk04;
+    if (m_unk20 != 0 && record->m_unk18 != 0 && m_unk24 > 0.0f) {
+        float time = record->m_fFlashTime + dt;
+        record->m_fFlashTime = time;
+        if (m_unk21 == 0) {
+            record->m_fFlashTime = time > m_unk24 ? m_unk24 : time;
+        } else if (time > m_unk24) {
+            do {
+                time = time - m_unk24;
+                record->m_fFlashTime = time;
+            } while (m_unk24 < time);
+        }
+    }
+    EvaluateSample(displayed / maximum * duration, sample, record);
 }

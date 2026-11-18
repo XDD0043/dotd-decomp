@@ -37,10 +37,18 @@ public:
         m_unk24 = 0;
     }
     ~KBase98D() override {}
+    // 0x0007d050 CKAnimController_ClearReferencesBase_maybe (the controllers' Destroy): an interpolator of its own (flag
+    // bit 0 clear: not the hierarchy's) destroyed, the parent controller cleared.
+    void ClearReferencesBase();
 
     // vt+0x2c 0x0007d0d8 (Ghidra CKAnimController_LoadBase_maybe). Every type clears +0x0c, +0x24, +0x26;
     // only K_LEVEL_PLATEFORMS reads.
     int32_t Load(IKFile* file, int32_t type) override;
+    // vt+0x24 0x0007cff8 (Ghidra KBase98D_LevelReset, animation/CKAnimController.cpp's row; body in KBase98D.cpp):
+    // registers the controller (any type).
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x28 0x0007cec8 KBase98D_vf28: the base Save, 1 (both subclasses' Save call it).
+    int32_t Save(IKFile* /*file*/, int32_t /*type*/) override { return 1; }
     // 0x0007ced0 CKAnimController_PostLoadBase_maybe (both subclasses' PostLoad, vt+0x30, call it): the interpolator
     // (+0x0c): the hierarchy's own one (flag 1), a new one for the whole hierarchy (start node 0 and the node count is the
     // node's bone count), else a sub-interpolator of the hierarchy's for nodes +0x48.. (+0x49 of them); scheme 1, no

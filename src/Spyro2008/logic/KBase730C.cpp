@@ -5,47 +5,47 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x512040  KBase730C_SetItemState  (the TU map lists it in CKS08GameStructure.cpp)
-//   [ ] 0x5122f8  KBase730C_CallOwnerVfDCObjectVf80_maybe
-//   [ ] 0x512370  KBase730C_SetElementPosition_maybe
-//   [ ] 0x512510  KBase730C_SetElementX_maybe
-//   [ ] 0x5126a0  KBase730C_SetElementY_maybe
-//   [ ] 0x512830  KBase730C_GetElementX_maybe
+//   [x] 0x5122f8  KBase730C_CallOwnerVfDCObjectVf80_maybe
+//   [x] 0x512370  KBase730C_SetElementPosition_maybe
+//   [x] 0x512510  KBase730C_SetElementX_maybe
+//   [x] 0x5126a0  KBase730C_SetElementY_maybe
+//   [x] 0x512830  KBase730C_GetElementX_maybe
 //   [x] 0x512938  KBase730C_ReadNavDirection
 //   [x] 0x512d68  KBase730C_HandleShortcutButtons
 //   [x] 0x513188  KBase730C_HandleValidateButton
 //   [x] 0x513700  KBase730C_Open_maybe
-//   [ ] 0x5137d8  KBase730C_SetFlashHidden_maybe
+//   [x] 0x5137d8  KBase730C_SetFlashHidden_maybe
 //   [ ] 0x513848  FUN_00513848  [dead]
-//   [ ] 0x513880  KBase730C_PlayVideoSegmentById_maybe
+//   [x] 0x513880  KBase730C_PlayVideoSegmentById_maybe
 //   [x] 0x5139a0  KBase730C_vf54
-//   [ ] 0x513ab0  KBase730C_FindWidgetByName_maybe
+//   [x] 0x513ab0  KBase730C_FindWidgetByName_maybe
 //   [ ] 0x513b48  KBase730C_ZeroVfCCBuffer_maybe  [dead]
 //   [ ] 0x513c10  CKMenuBase_114c_maybe_Save
-//   [ ] 0x513c38  CKMenuBase_114c_maybe_LevelReset
-//   [ ] 0x513c60  CKMenuBase_114c_maybe_ClearReferences
-//   [ ] 0x513da8  StaticInitAndDestruction_513da8
+//   [x] 0x513c38  CKMenuBase_114c_maybe_LevelReset  (CKMenuBase114c::RecursiveRegistration, CKMenuBase114c.h)
+//   [x] 0x513c60  CKMenuBase_114c_maybe_ClearReferences
+//   [x] 0x513da8  StaticInitAndDestruction_513da8  (static init of two -1.0 class words the port does not use)
 //   [ ] 0x513dd8  _GLOBAL__D_513dd8
 //   [ ] 0x513de8  _GLOBAL__I_513de8
 //   [x] 0x513df8  KBase730C_RefreshOptionWidgets_maybe
 //   [x] 0x513f88  KBase730C_Close
 //   [x] 0x5140b0  KBase730C_vfA0
-//   [ ] 0x514228  KBase730C_GetSelectionOfFirstActivePlayer_maybe
-//   [ ] 0x514388  KBase730C_SetSelectionOfFirstActivePlayer_maybe
+//   [x] 0x514228  KBase730C_GetSelectionOfFirstActivePlayer_maybe
+//   [x] 0x514388  KBase730C_SetSelectionOfFirstActivePlayer_maybe
 //   [x] 0x5144f0  KBase730C_PlayScreenVideo_maybe
-//   [ ] 0x514668  KBase730C_CallOwnerVfDCObjectVf78AfterVf308_maybe
+//   [x] 0x514668  KBase730C_CallOwnerVfDCObjectVf78AfterVf308_maybe
 //   [x] 0x514720  KBase730C_TryBackButton
 //   [x] 0x5148c0  KBase730C_StartTransitionToMenu
 //   [x] 0x514a00  KBase730C_Open
-//   [ ] 0x514e10  KBase730C_GetElementY_maybe
+//   [x] 0x514e10  KBase730C_GetElementY_maybe
 //   [x] 0x514f18  KBase730C_PostLoad
 //   [x] 0x514f98  KBase730C_SetVisible_maybe
 //   [x] 0x515050  KBase730C_vf9C
 //   [ ] 0x515128  FUN_00515128  [dead]
 //   [x] 0x5151b0  KBase730C_ResetWidgets_maybe
 //   [ ] 0x515848  FUN_00515848  [dead]
-//   [ ] 0x5159a8  KBase730C_FindWidgetByName_2_maybe
-//   [ ] 0x515a48  KBase730C_FindWidgetByName_3_maybe
-//   [ ] 0x515ae8  KBase730C_SendFlashMessageByName_maybe
+//   [x] 0x5159a8  KBase730C_FindWidgetByName_2_maybe  (CKMenuBase114c::FindWidgetByName, the same body)
+//   [x] 0x515a48  KBase730C_FindWidgetByName_3_maybe  (CKMenuBase114c::FindWidgetByName, the same body)
+//   [x] 0x515ae8  KBase730C_SendFlashMessageByName_maybe
 //   [x] 0x515b78  KBase730C_MessageProc
 //   [x] 0x515f20  KBase730C_FindItemUnderCursor
 //   [x] 0x516de0  KBase730C_MoveFocusByInput_maybe
@@ -137,6 +137,14 @@
 #include "k2000/scenegraph/CSGLeaf.h"
 #include "k2000/scenegraph/CParticlesNodeFx.h"
 #include "k2000/scenegraph/CNode.h"
+#include "k2000/graphical/ui/CFlashHotSpot.h"
+#include "Renderware/rwcore/RwCamera.h"
+#include "crt/xsinf.h"
+#include "k2000/cameras/CameraContext.h"
+#include "k2000/math/Quat.h"
+#include "k2000/misc/FloatApproach.h"
+#include "k2000/scenegraph/CSGMovable.h"
+#include "k2000/ui/IKFlashObject.h"
 
 namespace {
 
@@ -246,7 +254,7 @@ int32_t CKMenuBase114c::Load(IKFile* file, int32_t type) {
             ReadF32LE(file, &entry.m_fUnk38);
             ReadF32LE(file, &entry.m_fUnk40);
             ReadF32LE(file, &entry.m_fUnk48);
-            ReadU32LE(file, &entry.m_unk50);
+            ReadF32LE(file, &entry.m_fUnk50);
         }
     }
 
@@ -334,10 +342,11 @@ int32_t CKMenuBase114c::Load(IKFile* file, int32_t type) {
 }
 
 // 0x00514f18 KBase730C_PostLoad: the menu's interface hidden, then vt+0x94.
-// STUB(C1.6): vt+0x94 is 0x9c72b0 KStub_Nop_9c72b0 at this level; the leaves' slot is not declared yet.
+// vt+0x94 is 0x9c72b0 KStub_Nop_9c72b0 in this vtable and in every leaf's (all 31 registered menu classes).
 int32_t CKMenuBase114c::PostLoad(int32_t type) {
     if (type != K_LEVEL_PLATEFORMS) return 1;
     if (m_pFlashUI != nullptr) static_cast<CKFlashUI*>(m_pFlashUI)->HideInterfaceHierarchy(1);
+    Vf94();  // vt+0x94
     return 1;
 }
 
@@ -487,7 +496,7 @@ void CKMenuBase114c::ResetWidgets() {
     }
     for (uint32_t i = m_aElementAnims.m_ui32NbUsedElt; i-- != 0;) {
         ElementAnim& anim = m_aElementAnims.m_pBlock[i];
-        std::memcpy(&anim.m_unk28, &one, 4);  // stfs 1.0
+        anim.m_fUnk28 = one;  // stfs 1.0
         anim.m_unk08 = 0;
         anim.m_unk09 = 0;
         anim.m_unk0a = 0;
@@ -546,19 +555,221 @@ void CKMenuBase114c::ResetWidgets() {
     m_pPausedSegment = nullptr;
 }
 
-// 0x00519130 KBase730C_UpdateElementAnimations_maybe: the menu clock (+0x40) advanced by the frame's
-// fixed delta while the clock runs, then, for a started interface, the node and element animations, the
-// delayed shows and the reference groups. STUB(C1.6): those four loops (none of the boot-sequence menus
-// has node, element or delayed-show entries, nor reference groups, in LVL000).
+namespace {
+
+// The game code's inlined sinf (crt::InlineSinf, single-precision reduction) for an argument whose stored
+// float has the sign bit clear; otherwise -sinf(-v) through the library (0x009a1390).
+float AnimSin(float v) {
+    uint32_t bits;
+    std::memcpy(&bits, &v, 4);
+    if ((bits & 0x80000000u) != 0) return -crt::LibSinf(-v);
+    return crt::InlineSinf(v);
+}
+
+// A float with its sign bit cleared through the stack (stfs, rlwinm 0x7fffffff, lfs).
+float ClearSign(float v) {
+    uint32_t bits;
+    std::memcpy(&bits, &v, 4);
+    bits &= 0x7fffffffu;
+    std::memcpy(&v, &bits, 4);
+    return v;
+}
+
+// The particle stop the delayed shows and the reference groups inline: scene-graph properties 0x80400
+// cleared, the RpPrtStdEmitter's EMIT flag (8) cleared.
+void StopParticles(CParticlesNodeFx* fx) {
+    fx->m_sgProperties &= 0xfff7fbffu;
+    fx->m_pRpPrtStdEmitter->flag &= ~static_cast<uint32_t>(rpPRTSTDEMITTERFLAGEMIT);
+}
+
+}  // namespace
+
+// 0x00519130 KBase730C_UpdateElementAnimations_maybe: the menu clock (+0x40) advanced by the frame's fixed
+// delta while the clock runs (dt is 0 otherwise), then, for a started interface (CKFlashUI state 2), from the
+// last entry of each table:
+// - the node animations whose hot spot is resolved: the time advances by dt x the speed ramp (+0x34); the node's
+//   modelling matrix becomes the rotation of the Euler angles amplitude x sin(frequency x time - phase) (degrees;
+//   the identity when all amplitudes or all frequencies are 0), its position kept; then it is scaled by
+//   (s, s, -s), s = +0x50 x the scale ramp (+0x44); a ramp whose value equals its end value (+0x2c / +0x40) gets
+//   the target 1;
+// - the element animations whose hot spot is resolved: the 2D element's constant scale is |base + amplitude x
+//   sin(frequency x time - phase)| per axis (the base +0x28 alone when the entry neither oscillates (+0x08) nor
+//   ramps (+0x09)); the time advances by dt x (+0x4c with +0x0a, else 1), with +0x09 also x the second ramp
+//   (+0x3c) and the scale x the first (+0x2c), both stepped; +0x09 cleared once both ramps arrived;
+// - the delayed shows whose end time has come: the particles stopped, the end time FLT_MAX; all of them stopped
+//   while the interface's flag 0x20 is set;
+// - the reference groups' particle objects: one emission point per reference whose flash object has a screen
+//   anchor (64 at most; plus the reference's state offset, x scaled by the camera's height / width), emitting
+//   (0x400, emitter flags ACTIVE | EMIT) when it has points, else stopped; property 4 = the interface's flag 0x20;
+//   a group with +0x0c set has its dynamic references and states cleared. With the interface's flag 0x20, every
+//   group's particles are stopped and property 4 set.
 void CKMenuBase114c::UpdateElementAnimations() {
     IKTime* frameClock = g_pEngine->m_timeManager->m_pTime;
-    if (frameClock->m_eCurrentState == IKTime::RUNNING)
-        m_fTime = frameClock->m_afDeltaTime[IKTime::FIXED_GAME_TIME] + m_fTime;  // fadds
+    float dt = 0.0f;  // TOC +0x765c
+    if (frameClock->m_eCurrentState == IKTime::RUNNING) {
+        dt = frameClock->m_afDeltaTime[IKTime::FIXED_GAME_TIME];
+        m_fTime = dt + m_fTime;  // fadds
+    }
     CKFlashUI* ui = FlashUIOf(this);
     if (ui == nullptr || (ui->m_baFlags & CKFlashUI::kStateMask) != 2) return;
-    if (m_aNodeAnims.m_ui32NbUsedElt != 0 || m_aElementAnims.m_ui32NbUsedElt != 0 ||
-        m_aDelayedShows.m_ui32NbUsedElt != 0 || Vf84() != 0)
-        DOTD_STUB_ONCE("KBase730C_UpdateElementAnimations_maybe: animation loops (C1.6)");
+    const float kOne = 0x1p+0f;                               // TOC +0x7684
+    static const float kNullVector[3] = {0.0f, 0.0f, 0.0f};  // 0x00c50d64 (TOC +0x76c4)
+    static const float kNullVector2[2] = {0.0f, 0.0f};        // 0x00c50dc4 (TOC +0x7698)
+
+    // The node animations.
+    for (uint32_t i = m_aNodeAnims.m_ui32NbUsedElt; i-- != 0;) {
+        NodeAnim* anim = &m_aNodeAnims.m_pBlock[i];
+        if (static_cast<CFlashHotSpot*>(anim->m_pBinding)->IsAnchorUnresolved() != 0) continue;  // 0x000722e8
+        const float speed = FloatApproach_Step(dt, &anim->m_fUnk34);  // 0x002436e8
+        const float time = ppc::fmadds(dt, speed, anim->m_fTime);
+        anim->m_fTime = time;
+        CSGMovable* node = static_cast<CSGLeaf*>(static_cast<CNode*>(anim->m_pNode));
+        const bool noAmplitude = anim->m_vUnk08[0] == kNullVector[0] && kNullVector[1] == anim->m_vUnk08[1] &&
+                                 kNullVector[2] == anim->m_vUnk08[2];
+        const bool noFrequency = anim->m_vUnk14[0] == kNullVector[0] && kNullVector[1] == anim->m_vUnk14[1] &&
+                                 kNullVector[2] == anim->m_vUnk14[2];
+        if (noAmplitude || noFrequency) {
+            // The identity (0x000d08f0 CSGMovable_SetIdentity), the position put back.
+            RwMatrix* m = &node->m_pRwFrame->modelling;
+            const float px = m->pos.x;
+            const float py = m->pos.y;
+            const float pz = m->pos.z;
+            node->SetIdentity();
+            m = &node->m_pRwFrame->modelling;
+            m->pos.z = pz;
+            m->pos.x = px;
+            m->pos.y = py;
+            m->flags &= ~0x20000u;  // rwMATRIXINTERNALIDENTITY
+            RwFrame_MarkDirty(node->m_pRwFrame);  // 0x00010698
+        } else {
+            const float s0 = AnimSin(ppc::fmsubs(time, anim->m_vUnk14[0], anim->m_vUnk20[0]));
+            const float s1 = AnimSin(ppc::fmsubs(time, anim->m_vUnk14[1], anim->m_vUnk20[1]));
+            const float s2 = AnimSin(ppc::fmsubs(time, anim->m_vUnk14[2], anim->m_vUnk20[2]));
+            float euler[3];
+            euler[2] = s2 * anim->m_vUnk08[2];
+            euler[0] = s0 * anim->m_vUnk08[0];
+            euler[1] = s1 * anim->m_vUnk08[1];
+            float q[4];
+            Quat_FromEulerDeg(q, euler);  // 0x00243058
+            Quat_Normalize(q);            // 0x00242180
+            RwMatrix* m = &node->m_pRwFrame->modelling;
+            Quat_ToMatrixNormalizing(q, reinterpret_cast<CMatrix34*>(m));  // 0x00241d78
+            // The original then copies the position words onto the same frame (read after the call: no change).
+            m->flags &= ~0x20000u;
+            RwFrame_MarkDirty(node->m_pRwFrame);
+        }
+        const float ramp = FloatApproach_Step(dt, &anim->m_fUnk44);
+        const float scale = anim->m_fUnk50 * ramp;
+        node->ScaleXYZ(scale, scale, -scale);  // 0x000d0d28
+        if (anim->m_fUnk2c == speed) anim->m_fUnk34 = kOne;
+        if (anim->m_fUnk40 == ramp) anim->m_fUnk44 = kOne;
+    }
+
+    // The element animations.
+    for (uint32_t i = m_aElementAnims.m_ui32NbUsedElt; i-- != 0;) {
+        ElementAnim* anim = &m_aElementAnims.m_pBlock[i];
+        if (static_cast<CFlashHotSpot*>(anim->m_pBinding)->IsAnchorUnresolved() != 0) continue;
+        float x = anim->m_fUnk28;
+        float speed = anim->m_unk0a != 0 ? anim->m_fUnk4c : kOne;
+        if (anim->m_unk09 != 0) {
+            FloatApproach_Step(dt, &anim->m_fUnk2c);
+            FloatApproach_Step(dt, &anim->m_fUnk3c);
+            speed = speed * anim->m_fUnk44;
+        }
+        const uint8_t ramping = anim->m_unk09;
+        const float time = ppc::fmadds(dt, speed, anim->m_fTime);
+        anim->m_fTime = time;
+        float y = x;
+        if (ramping != 0 || anim->m_unk08 != 0) {
+            const bool still = (anim->m_vUnk0c[0] == kNullVector2[0] && kNullVector2[1] == anim->m_vUnk0c[1]) ||
+                               (anim->m_vUnk14[0] == kNullVector2[0] && kNullVector2[1] == anim->m_vUnk14[1]);
+            if (!still) {
+                const float s0 = AnimSin(ppc::fmsubs(anim->m_vUnk14[0], time, anim->m_vUnk1c[0]));
+                const float s1 = AnimSin(ppc::fmsubs(anim->m_vUnk14[1], time, anim->m_vUnk1c[1]));
+                y = ppc::fmadds(s1, anim->m_vUnk0c[1], x);
+                x = ppc::fmadds(s0, anim->m_vUnk0c[0], x);
+            }
+            if (ramping != 0) {
+                y = y * anim->m_fUnk34;
+                x = x * anim->m_fUnk34;
+            }
+        }
+        IKNode2d* element = static_cast<IKNode2d*>(anim->m_pElement);
+        const float sx = ClearSign(x);
+        const float sy = ClearSign(y);
+        element->m_v2ConstantScale.m_fY = sy;
+        element->m_v2ConstantScale.m_fX = sx;
+        if (anim->m_unk09 != 0 && anim->m_fUnk34 == anim->m_fUnk2c && anim->m_fUnk44 == anim->m_fUnk3c)
+            anim->m_unk09 = 0;
+    }
+
+    // The delayed shows whose time has come (cror: <=).
+    const float kNoEnd = 0x1.fffffep+127f;  // the word at 0x00c4acb8 + 0x28 (FLT_MAX)
+    for (uint32_t i = m_aDelayedShows.m_ui32NbUsedElt; i-- != 0;) {
+        DelayedShow* show = &m_aDelayedShows.m_pBlock[i];
+        if (!(show->m_fEndTime <= m_fTime)) continue;
+        show->m_fEndTime = kNoEnd;
+        StopParticles(static_cast<CParticlesNodeFx*>(show->m_pElement));
+    }
+    if ((FlashUIOf(this)->m_baFlags & CKFlashUI::kNeverRender) != 0) {
+        for (uint32_t i = m_aDelayedShows.m_ui32NbUsedElt; i-- != 0;)
+            StopParticles(static_cast<CParticlesNodeFx*>(m_aDelayedShows.m_pBlock[i].m_pElement));
+    }
+
+    // The reference groups.
+    for (uint32_t g = Vf84(); g-- != 0;) {  // vt+0x84
+        GroupState* states = Vf90(g);        // vt+0x90
+        RefGroup* group = &Vf88()[g];        // vt+0x88
+        CParticlesNodeFx* fx = static_cast<CParticlesNodeFx*>(group->m_pObject);
+        if (fx == nullptr) continue;
+        for (uint32_t j = group->m_unk08; j-- != 0;) {
+            IKFlashObject* reference = static_cast<IKFlashObject*>(Vf8C(g)[j]);  // vt+0x8c
+            CVector2 position;
+            if (reference == nullptr || reference->GetScreenAnchor(&position, nullptr, nullptr) == 0) continue;  // vt+0x60
+            float x = position.m_fX;
+            float y = position.m_fY;
+            if (states != nullptr) {
+                float offset[2];  // the state's two words, read as floats
+                std::memcpy(offset, &states[j], 8);
+                y = y + offset[1];
+                x = ppc::fmadds(offset[0], static_cast<CameraContext*>(g_pEngine->m_cameraContext)->m_fHeightOverWidth, x);
+            }
+            if (fx->m_ui8NbActivePoints > 0x3f) continue;
+            RwV3d& point = fx->m_pAdvEmtPointList->pointList[fx->m_ui8NbActivePoints];
+            point.x = x;
+            point.y = y;
+            point.z = 0.0f;  // stw 0
+            fx->m_sgProperties = (fx->m_sgProperties & ~0x2000u) | 0x2000u;
+            fx->m_ui8NbActivePoints = static_cast<uint8_t>(fx->m_ui8NbActivePoints + 1);
+        }
+        const uint32_t emitting = fx->m_ui8NbActivePoints != 0 ? 1u : 0u;
+        fx->m_sgProperties = ((fx->m_sgProperties & ~0x400u) | (emitting << 10)) & ~0x80000u;
+        if (emitting != 0) {
+            fx->m_fEmissionSpeedAdjustment = 0.0f;  // stw 0
+            fx->m_pRpPrtStdEmitter->flag |= rpPRTSTDEMITTERFLAGACTIVE | rpPRTSTDEMITTERFLAGEMIT;
+        } else {
+            fx->m_pRpPrtStdEmitter->flag &= ~static_cast<uint32_t>(rpPRTSTDEMITTERFLAGEMIT);
+        }
+        fx->m_sgProperties = (fx->m_sgProperties & ~4u) | (((FlashUIOf(this)->m_baFlags >> 5) & 1u) << 2);
+        if (group->m_unk0c == 0) continue;
+        RefGroup* cleared = &Vf88()[g];
+        GroupState* clearedStates = Vf90(g);
+        const int32_t dynamic = static_cast<int32_t>(cleared->m_unk08 - cleared->m_unk04);
+        if (dynamic > 0) {
+            IKSerializable** references = Vf8C(g) + cleared->m_unk04;
+            for (int32_t k = 0; k < dynamic; ++k) references[k] = nullptr;  // memset (4-byte references)
+        }
+        if (clearedStates != nullptr) std::memset(clearedStates, 0, cleared->m_unk08 * sizeof(GroupState));
+    }
+    if ((FlashUIOf(this)->m_baFlags & CKFlashUI::kNeverRender) != 0) {
+        for (uint32_t g = Vf84(); g-- != 0;) {
+            Vf90(g);  // the result unused
+            CParticlesNodeFx* fx = static_cast<CParticlesNodeFx*>(Vf88()[g].m_pObject);
+            if (fx == nullptr) continue;
+            StopParticles(fx);
+            fx->m_sgProperties = (fx->m_sgProperties & ~4u) | 4u;
+        }
+    }
 }
 
 // 0x00518428 KBase730C_UpdateInput: the per-player results cleared; once the open delay (+0x7c) ran out,
@@ -704,7 +915,24 @@ void CKMenuBase114c::PlayScreenVideo(int32_t mode, uint8_t arg) {
 int32_t CKMenuBase114c::MessageProc(uint16_t message, void* data) {
     if ((message >> 8) != 0x23 || (message & 0xff) != 0) return 1;
     IKSerializable* sender = static_cast<IKSerializable*>(data);
-    if (m_aDelayedShows.m_ui32NbUsedElt != 0) DOTD_STUB_ONCE("KBase730C_MessageProc: delayed shows (C1.6)");
+    // The delayed shows, from the last: unless the game loop's +0x5c is set, an entry whose hot spot is
+    // resolved and whose show sender is `sender` starts its particles (property 4 cleared, 0x400 set,
+    // 0x80000 cleared, the speed adjustment 0, the emitter's ACTIVE | EMIT) and ends at the delay + the menu
+    // time; an entry whose hide sender is `sender` stops them (0x80400 cleared, EMIT cleared).
+    for (uint32_t i = m_aDelayedShows.m_ui32NbUsedElt; i-- != 0;) {
+        DelayedShow* show = &m_aDelayedShows.m_pBlock[i];
+        if (g_pEngine->m_gameLoop->m_unk5c == 0 &&
+            static_cast<CFlashHotSpot*>(show->m_pBinding)->IsAnchorUnresolved() == 0 &&  // 0x000722e8
+            show->m_pShowSender == sender) {
+            CParticlesNodeFx* fx = static_cast<CParticlesNodeFx*>(show->m_pElement);
+            fx->m_sgProperties &= ~4u;
+            fx->m_sgProperties = (((fx->m_sgProperties & ~0x400u) | 0x400u) & ~0x80000u);
+            fx->m_fEmissionSpeedAdjustment = 0.0f;  // stw 0
+            fx->m_pRpPrtStdEmitter->flag |= rpPRTSTDEMITTERFLAGACTIVE | rpPRTSTDEMITTERFLAGEMIT;
+            show->m_fEndTime = show->m_fDelay + m_fTime;  // fadds
+        }
+        if (show->m_pHideSender == sender) StopParticles(static_cast<CParticlesNodeFx*>(show->m_pElement));
+    }
     for (uint32_t i = VfC4(); i != 0; --i) {
         if (VfC8()[i - 1] == sender) {
             VfCC()[i - 1] = 1;
@@ -1278,3 +1506,236 @@ void MenuGm_RequestMenu(CKS08GameManager* manager, uint8_t menu) {
     manager->m_aMenuStack[0] = id;
 }
 
+// ---- C2.7 step 7: the HUD screens' element offsets and reference groups ----
+
+namespace {
+// The element offsets live in the slot's hot spot: a 2D node (0x24d) in its 2D list, a scene node (0xcb) in its 3D list,
+// searched from the last entry.
+SAttached2dObject* Find2dObject(CFlashHotSpot* hotSpot, IKSerializable* element) {
+    for (uint32_t i = hotSpot->m_vp2dObject.m_ui32NbUsedElt; i != 0; --i) {
+        SAttached2dObject* entry = &hotSpot->m_vp2dObject.m_pBlock[i - 1];
+        if (static_cast<IKSerializable*>(entry->m_pNode) == element) return entry;
+    }
+    return nullptr;
+}
+SAttachedNode* Find3dNode(CFlashHotSpot* hotSpot, IKSerializable* element) {
+    for (uint32_t i = hotSpot->m_vp3dNodeList.m_ui32NbUsedElt; i != 0; --i) {
+        SAttachedNode* entry = &hotSpot->m_vp3dNodeList.m_pBlock[i - 1];
+        if (entry->m_pNode == element) return entry;
+    }
+    return nullptr;
+}
+// GetElementX / Y: the 2D list only; 0.0 (TOC1+0x765c) without the hot spot's flash object or the entry.
+// BUG(original): the slot's hot spot itself is not null-checked.
+float GetElementOffset(CKMenuBase114c* menu, uint32_t slot, int32_t axis) {
+    CFlashHotSpot* hotSpot = static_cast<CFlashHotSpot*>(menu->GetWidgetSlots()[slot].m_pHotSpot);
+    IKSerializable* element = menu->GetWidgetSlots()[slot].m_pElement;
+    if (hotSpot->m_pFlashHotSpot == nullptr) return 0.0f;
+    SAttached2dObject* entry = Find2dObject(hotSpot, element);
+    if (entry == nullptr) return 0.0f;
+    return axis == 0 ? entry->m_vPosOffset.m_fX : entry->m_vPosOffset.m_fY;
+}
+void SetElementOffset(CKMenuBase114c* menu, uint32_t slot, int32_t axis, float value) {
+    KBase730C::WidgetSlot* entry = &menu->GetWidgetSlots()[slot];
+    if (entry->m_pHotSpot == nullptr || entry->m_pElement == nullptr) return;
+    CFlashHotSpot* hotSpot = static_cast<CFlashHotSpot*>(entry->m_pHotSpot);
+    if (entry->m_pElement->IsKindOfClass(0x24d) != 0) {
+        SAttached2dObject* object = Find2dObject(hotSpot, entry->m_pElement);
+        if (object == nullptr) return;
+        if (axis == 0) object->m_vPosOffset.m_fX = value; else object->m_vPosOffset.m_fY = value;
+    } else if (entry->m_pElement->IsKindOfClass(0xcb) != 0) {
+        SAttachedNode* node = Find3dNode(hotSpot, entry->m_pElement);
+        if (node == nullptr) return;
+        if (axis == 0) node->m_vPosOffset.x = value; else node->m_vPosOffset.y = value;
+    }
+}
+}  // namespace
+
+// 0x00512830 KBase730C_GetElementX_maybe
+float CKMenuBase114c::GetElementX(uint32_t slot) { return GetElementOffset(this, slot, 0); }
+
+// 0x00514e10 KBase730C_GetElementY_maybe
+float CKMenuBase114c::GetElementY(uint32_t slot) { return GetElementOffset(this, slot, 1); }
+
+// 0x00512510 KBase730C_SetElementX_maybe
+void CKMenuBase114c::SetElementX(float x, uint32_t slot) { SetElementOffset(this, slot, 0, x); }
+
+// 0x005126a0 KBase730C_SetElementY_maybe
+void CKMenuBase114c::SetElementY(float y, uint32_t slot) { SetElementOffset(this, slot, 1, y); }
+
+// Inlined in the HUD screens (e.g. CKS08InGameInterfaceLeft_ResetWidgets_maybe 0x53bec8).
+void CKMenuBase114c::ClearRefGroup(uint32_t group) {
+    RefGroup* groups = Vf88();
+    GroupState* states = Vf90(group);
+    const int32_t dynamic = static_cast<int32_t>(groups[group].m_unk08 - groups[group].m_unk04);
+    if (dynamic > 0) {
+        IKSerializable** references = Vf8C(group) + groups[group].m_unk04;
+        for (int32_t j = 0; j < dynamic; ++j) references[j] = nullptr;
+    }
+    if (states != nullptr) std::memset(states, 0, groups[group].m_unk08 * sizeof(GroupState));
+}
+
+// Inlined in the HUD screens (e.g. CKS08InGameInterfaceLeft_QueueManaRestoredClip 0x5395a8).
+void CKMenuBase114c::AddToRefGroup(IKSerializable* object, uint32_t group) {
+    RefGroup* groups = Vf88();
+    IKSerializable** references = Vf8C(group);
+    GroupState* states = Vf90(group);
+    if (object == nullptr) return;
+    for (uint32_t i = groups[group].m_unk04; i < groups[group].m_unk08; ++i) {
+        if (references[i] != object && references[i] != nullptr) continue;
+        references[i] = object;
+        if (states != nullptr) {
+            states[i].m_unk04 = 0;
+            states[i].m_unk00 = 0;
+        }
+        return;
+    }
+}
+
+// 0x00513c60 CKMenuBase_114c_maybe_Destroy
+void CKMenuBase114c::Destroy() {
+    KBase730C::Destroy();
+    if (m_aNamedObjects.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_aNamedObjects.m_pBlock);
+        m_aNamedObjects.m_pBlock = nullptr;
+    }
+    m_aNamedObjects.m_ui32NbUsedElt = 0;
+    m_aNamedObjects.m_pBlock = nullptr;
+    if (m_aNodeAnims.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_aNodeAnims.m_pBlock);
+        m_aNodeAnims.m_pBlock = nullptr;
+    }
+    m_aNodeAnims.m_ui32NbUsedElt = 0;
+    m_aNodeAnims.m_pBlock = nullptr;
+    if (m_aElementAnims.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_aElementAnims.m_pBlock);
+        m_aElementAnims.m_pBlock = nullptr;
+    }
+    m_aElementAnims.m_ui32NbUsedElt = 0;
+    m_aElementAnims.m_pBlock = nullptr;
+    if (m_aDelayedShows.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_aDelayedShows.m_pBlock);
+        m_aDelayedShows.m_pBlock = nullptr;
+    }
+    m_aDelayedShows.m_ui32NbUsedElt = 0;
+    m_aDelayedShows.m_pBlock = nullptr;
+    if (m_apButtons.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_apButtons.m_pBlock);
+        m_apButtons.m_pBlock = nullptr;
+    }
+    m_apButtons.m_ui32NbUsedElt = 0;
+    m_apButtons.m_pBlock = nullptr;
+    m_ui32Flags = 0;
+    if (m_aVideoTriggers.m_pBlock != nullptr) Mem_FreeAligned16(m_aVideoTriggers.m_pBlock);
+    m_aVideoTriggers.m_ui32NbUsedElt = 0;
+    m_aVideoTriggers.m_pBlock = nullptr;
+}
+
+// ---- port-all P13: the remaining KBase730C helpers ----
+#include "k2000/misc/Wcs.h"
+
+namespace {
+// The player loop of 0x514228 / 0x514388: with +0x83 set, the first active player (vt+0x180) of the engine's game manager's
+// player count (vt+0x154), the outer loop counting +0x80 down; -1 without one.
+int32_t FirstActivePlayer(CKMenuBase114c* menu) {
+    for (uint32_t k = 0; k < menu->m_unk80[0]; ++k) {
+        if (menu->m_unk80[3] == 0) continue;
+        for (uint32_t player = 0; player < g_pEngine->m_gameManager->GetPlayerCount(); ++player) {
+            if (static_cast<CDefaultGameManager*>(menu->m_pGameManager)->IsPlayerActive(static_cast<uint8_t>(player)) != 0) {
+                return static_cast<int32_t>(player);
+            }
+        }
+    }
+    return -1;
+}
+}  // namespace
+
+// 0x00512370 KBase730C_SetElementPosition_maybe (vt+0x78)
+void CKMenuBase114c::Vf78(uint32_t slot, const float* position) {
+    KBase730C::WidgetSlot* entry = &GetWidgetSlots()[slot];
+    if (entry->m_pHotSpot == nullptr || entry->m_pElement == nullptr) return;
+    CFlashHotSpot* hotSpot = static_cast<CFlashHotSpot*>(entry->m_pHotSpot);
+    if (entry->m_pElement->IsKindOfClass(0x24d) != 0) {
+        SAttached2dObject* object = Find2dObject(hotSpot, entry->m_pElement);
+        if (object == nullptr) return;
+        object->m_vPosOffset.m_fX = position[0];
+        object->m_vPosOffset.m_fY = position[1];
+    } else if (entry->m_pElement->IsKindOfClass(0xcb) != 0) {
+        SAttachedNode* node = Find3dNode(hotSpot, entry->m_pElement);
+        if (node == nullptr) return;
+        node->m_vPosOffset.x = position[0];
+        node->m_vPosOffset.y = position[1];
+    }
+}
+
+// 0x005122f8 KBase730C_CallOwnerVfDCObjectVf80_maybe
+void CKMenuBase114c::ResumeInterfaceVideo() {
+    IKVideo* video = GameManagerOf(this)->GetInterfaceVideo();  // vt+0xdc
+    if (video != nullptr) video->Resume();                       // vt+0x80
+}
+
+// 0x00514668 KBase730C_CallOwnerVfDCObjectVf78AfterVf308_maybe
+void CKMenuBase114c::StopInterfaceVideoKeepSegment() {
+    CKS08GameManager* manager = GameManagerOf(this);
+    IKVideo* video = manager->GetInterfaceVideo();  // vt+0xdc
+    if (video != nullptr) {
+        manager->SetInterfaceSegment(video->m_pSegment);  // vt+0x308
+        video->Stop();                                    // vt+0x78
+    }
+}
+
+// 0x005137d8 KBase730C_SetFlashHidden_maybe
+void CKMenuBase114c::SetFlashHidden(uint8_t hidden) {
+    CKFlashUI* flash = FlashUIOf(this);
+    if (flash == nullptr) return;
+    flash->m_baFlags = (flash->m_baFlags & ~0x100u) | (static_cast<uint32_t>(hidden) << 8);
+    if (hidden != 0) flash->HideAllHotSpotHierarchy();  // 0x6dff0
+}
+
+// 0x00513880 KBase730C_PlayVideoSegmentById_maybe
+void CKMenuBase114c::PlayVideoSegmentById(IKSerializable* sender) {
+    GameManagerOf(this)->GetInterfaceVideo();  // vt+0xdc, the result unused
+    for (uint32_t i = m_aVideoTriggers.m_ui32NbUsedElt; i != 0; --i) {
+        VideoTrigger* trigger = &m_aVideoTriggers.m_pBlock[i - 1];
+        if (trigger->m_pSender != sender) continue;
+        CKVideoSegment* segment = static_cast<CKVideoSegment*>(trigger->m_pVideo);
+        segment->Play(3, 0, 0);
+        GameManagerOf(this)->SetInterfaceSegment(segment);  // vt+0x308
+        if (segment->m_ended != 0 || trigger->m_unk08 == 0) return;
+        m_i32WaitVideoFrame = static_cast<int32_t>(trigger->m_unk08);
+        FlashUIOf(this)->PauseInterface();  // 0x6d510
+        return;
+    }
+}
+
+// 0x00513ab0 KBase730C_FindWidgetByName_maybe
+IKSerializable* CKMenuBase114c::FindWidgetByName(const char* name) {
+    const uint32_t hash = Str_HashXor4(name);
+    for (uint32_t i = m_aNamedObjects.m_ui32NbUsedElt; i != 0; --i) {
+        if (m_aNamedObjects.m_pBlock[i - 1].m_ui32NameHash == hash) return m_aNamedObjects.m_pBlock[i - 1].m_pObject;
+    }
+    return nullptr;
+}
+
+// 0x00515ae8 KBase730C_SendFlashMessageByName_maybe
+void CKMenuBase114c::SendFlashMessageByName(const char* name) {
+    const uint32_t hash = Str_HashXor4(name);
+    for (uint32_t i = m_aNamedObjects.m_ui32NbUsedElt; i != 0; --i) {
+        if (m_aNamedObjects.m_pBlock[i - 1].m_ui32NameHash != hash) continue;
+        CKFlashMessageOut* message = static_cast<CKFlashMessageOut*>(m_aNamedObjects.m_pBlock[i - 1].m_pObject);
+        if (message != nullptr) message->PostFlashMessage();  // 0x75610
+        return;
+    }
+}
+
+// 0x00514228 KBase730C_GetSelectionOfFirstActivePlayer_maybe
+uint8_t CKMenuBase114c::GetSelectionOfFirstActivePlayer() {
+    const int32_t player = FirstActivePlayer(this);
+    return player < 0 ? 0xff : m_aUnk78[player];
+}
+
+// 0x00514388 KBase730C_SetSelectionOfFirstActivePlayer_maybe
+void CKMenuBase114c::SetSelectionOfFirstActivePlayer(uint8_t selection) {
+    const int32_t player = FirstActivePlayer(this);
+    if (player >= 0) m_aUnk78[player] = selection;
+}

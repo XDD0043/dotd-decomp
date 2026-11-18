@@ -12,11 +12,11 @@
 //   [x] 0x143cf8  CKCameraFogDatas_Create
 //   [x] 0x143d30  CKCameraFogDatas_CreateArray
 //   [ ] 0x143dc8  CKCameraFogDatas_Save
-//   [ ] 0x143dd0  CKCameraFogDatas_RecursiveRegistration
-//   [ ] 0x143dd8  CKCameraFogDatas_Destroy
+//   [x] 0x143dd0  CKCameraFogDatas_RecursiveRegistration  (IKSerializable's: returns 1)
+//   [x] 0x143dd8  CKCameraFogDatas_Destroy  (empty: IKSerializable's)
 //   [x] 0x143de0  CKCameraFogDatas_Load
-//   [ ] 0x144098  CKCameraFogDatas_DeletingDestructor
-//   [ ] 0x1440d8  CKCameraFogDatas_Destructor
+//   [x] 0x144098  CKCameraFogDatas_DeletingDestructor  (the destructor; delete)
+//   [x] 0x1440d8  CKCameraFogDatas_Destructor  (C++ destructor chain: vtable stores only)
 //   [ ] 0x1440f0  CKCameraFogDatas_Destructor_2  [dead]
 //
 //   [x] 0x9a78a0  CKCameraFogDatas_GetClassType  [inline]

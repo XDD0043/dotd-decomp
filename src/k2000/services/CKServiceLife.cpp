@@ -4,16 +4,16 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x1dece0  RegisterCKServiceLifeType
+//   [x] 0x1dece0  RegisterCKServiceLifeType  (the class registry: Kp3Ported.inc (gen_kp3_stubs.py))
 //   [ ] 0x1ded58  _GLOBAL__I_1ded58
-//   [ ] 0x1ded68  CKServiceLife_PostLoad
+//   [x] 0x1ded68  CKServiceLife_PostLoad  (= the inherited slot)
 //   [x] 0x1ded90  CKServiceLife_Destroy
-//   [ ] 0x1dedc8  ConstructCKServiceLife
+//   [x] 0x1dedc8  ConstructCKServiceLife  (the constructor CKServiceLife() (0x1dee30 Construct has the same stores))
 //   [x] 0x1dee30  CKServiceLife_Construct
 //   [x] 0x1dee98  CKServiceLife_DeleteArray
 //   [x] 0x1def40  CKServiceLife_Restart
 //   [ ] 0x1defc0  CKServiceLife_FindBundleContaining_maybe  [dead]
-//   [ ] 0x1df058  CKServiceLife_RecursiveRegistration
+//   [x] 0x1df058  CKServiceLife_RecursiveRegistration
 //   [x] 0x1df0e8  UpdateLifeServiceBundles
 //   [x] 0x1df168  CKServiceLife_Resume
 //   [x] 0x1df1e8  CKServiceLife_Stop
@@ -28,9 +28,9 @@
 //   [x] 0x1df810  CKServiceLife_SectorUnload
 //   [x] 0x1df888  CKServiceLife_CreateArray
 //   [x] 0x1df9a0  CKServiceLife_Create
-//   [ ] 0x1dfa28  CKServiceLife_DeletingDestructor
-//   [ ] 0x1dfa90  CKServiceLife_Destructor_2
-//   [ ] 0x1dfaf0  CKServiceLife_Destructor
+//   [x] 0x1dfa28  CKServiceLife_DeletingDestructor  (~CKServiceLife + delete)
+//   [x] 0x1dfa90  CKServiceLife_Destructor_2  (~CKServiceLife)
+//   [x] 0x1dfaf0  CKServiceLife_Destructor  (~CKServiceLife)
 //
 //   [ ] 0x9adcb0  CKServiceLife_IsKindOfClass  [inline]
 //   [ ] 0x9adce8  CKServiceLife_GetClassType  [inline]
@@ -165,5 +165,18 @@ void CKServiceLife::SetObjectActive(IKLife* life, uint32_t active, CKBundle* bun
         }
     } else {
         life->m_bitArray = (life->m_bitArray & 0xfffffffeu) | ((active ^ 1u) & 0xffu);
+    }
+}
+
+// C2.8 port-all P11.
+
+// 0x001dfaf0 CKServiceLife_Destructor (0x1dfa90 / 0x1dfa28 the same)
+CKServiceLife::~CKServiceLife() { Engine_SetServiceLife(nullptr); }
+
+// 0x001df058 CKServiceLife_RecursiveRegistration
+void CKServiceLife::RecursiveRegistration(int32_t type) {
+    if (type != 4) return;
+    for (CKBundle* bundle = static_cast<CKBundle*>(m_lBundleList); bundle != nullptr; bundle = bundle->m_pNext) {
+        bundle->RecursiveRegistration(4);  // vt+0x24
     }
 }

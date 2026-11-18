@@ -39,6 +39,12 @@ DOTD_ASSERT_SIZE(CPFCharacter, 0x10);
 struct CPFGraph {
     // 0x001f0c38 (Ghidra CKSrvPathFinding_LoadGraph_maybe; XXL2 CPFGraph::Load).
     int32_t Load(IKFile* file, int32_t type);
+    // 0x001f0bd0 CKSrvPathFinding_ClearGraph_maybe (CKPFGraphTransition_2.cpp's unit; XXL2 CPFGraph::Destroy).
+    void Clear();
+    // 0x001f0de8 CKSrvPathFinding_SaveGraph_maybe (CKSrvPathFinding_Save's; XXL2 CPFGraph::Save): the node count
+    // (little-endian), then the nodes as contiguous handles (the saving manager's vt+0x4c), or without one the
+    // block's raw words; 1.
+    int32_t Save(IKFile* file, int32_t type);
 
     IKSerializable** m_apGraphNodes;  // +0x00 CKPFGraphNode* (Mem_AllocAligned16); not set by the constructor
     uint32_t m_ui32GraphNodesSize;    // +0x04
@@ -115,8 +121,19 @@ public:
     CKSrvPathFinding();  // 0x001e4ad8 (Ghidra CKSrvPathFinding_ConstructBase_maybe)
     ~CKSrvPathFinding() override {}
 
+    // vt+0x10 0x001e4a90 CKSrvPathFinding_Destroy (Ghidra; row name ClearReferences): IKService's part (0x1a5b8,
+    // empty), then the graph cleared (CPFGraph::Clear 0x1f0bd0).
+    void Destroy() override { m_Graph.Clear(); }
+    int32_t MessageProc(uint16_t /*message*/, void* /*data*/) override { return 1; }  // vt+0x1c 0x1e3c58
+    // vt+0x24 0x001e4da8 CKSrvPathFinding_RecursiveRegistration (row name LevelReset): type 0 only: the service
+    // registered with the saving manager, the graph's (KStub_Return1_1f0bc8: nothing), then each graph node's.
+    void RecursiveRegistration(int32_t type) override;
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001e6738 CKSrvPathFinding_Load
     void Start() override {}                            // vt+0x50 0x1e3c88 (empty in the original)
+    // vt+0x38 0x001e4ea8 CKSrvPathFinding_SetDefaultState: every graph node's transitions back to their default
+    // enabled bit (CKPFGraphTransition_ResetEnabledToDefault_maybe 0x1f0600).
+    void SetDefaultState(int32_t flag) override;
+    void Restart() override;                            // vt+0x54 0x1e4880 CKSrvPathFinding_ReinitRuntime
     void Stop() override;                               // vt+0x68 0x1e4820 CKSrvPathFinding_ReleaseAllQueries_maybe
     void Pause() override {}                            // vt+0x70 0x1e3c90 (empty in the original)
     void Resume() override {}                           // vt+0x78 0x1e3c98 (empty in the original)
@@ -130,15 +147,46 @@ public:
     // the point's own hint, then the targets of its transitions, then the quadtree), and stores the included box id
     // there in the hint. 1 when found, else the hint becomes 0xffff and 0 is returned.
     uint32_t FindSectorForPoint(CPFPoint* point);
+    // 0x001e62e0 NavSectors_SnapPointToGround_maybe: the point's node (found first when the hint is 0xffff); the ground
+    // probed (GroundProbePoints, reach 0 / height 0, masks 1 and 8, `contact` copied as the in-out contact) from the
+    // point at the node box's top; with a contact (status 0) whose world point is not below the box's bottom, the
+    // point's height becomes the ground's and 1 is returned; else 0 and the point is left.
+    int32_t SnapPointToGround(CPFPoint* point, const struct CGroundContactDatasInOut* contact);
+    // 0x001e64c8 NavSectors_SnapPointToGroundThunk_maybe: SnapPointToGround with a fresh contact (the constructor's
+    // defaults). Callers: CKHkBridgeBase_9c2_maybe_AttachHero_maybe 0x3fb6f0 / _ReleaseHeroesOffBridge_maybe 0x3fd760
+    // (k2000/misc/CKHkBridgeBase.cpp, not ported yet).
+    uint8_t SnapPointToGround(CPFPoint* point);
+    // 0x001e5f60 CKSrvPathFinding_SetBoxBlocked_maybe: the box `min`..`max` blocked (or freed) in graph node `node`'s grid
+    // (when the node exists), then in the nodes holding its corners (min; max; min.x, min.y, max.z; max.x, max.y, min.z;
+    // each looked up from `node`), each node once. Returns 1.
+    uint32_t SetBoxBlocked(uint16_t node, const CVector3* min, const CVector3* max, uint8_t blocked);
+    // 0x001e5148 NavSectors_PointToCell_maybe: the cell (x, z) of the point in its hint's node (truncated, the last
+    // column / row for a point on the far side) and the point's offsets inside that cell (world units, x and z).
+    void PointToCell(const CPFPoint* point, float* fracX, float* fracZ, uint8_t* cell) const;
     // 0x001e42d0 NavSectors_IsPointWalkable_maybe: whether a character of the given type fits at the point (whose
     // hint names its node): the cell must be open in the walkability palette of the character's mode, a portal
     // the character may use covering the point (widened by the cell's half size minus the character's radius)
     // makes it walkable at once, else the neighbouring cells the radius reaches into must be open too (and, for a
     // blocked diagonal, the corner's distance to the point must clear the radius).
     uint32_t IsPointWalkable(const CPFPoint* point, const CPFCharacter* character);
+    // 0x001e9198 CKSrvPathFinding_HasSectorRoute_maybe: with both points in a node, the first free query slot runs a graph
+    // search from `from` to `to` for `character` (Initialize, FindSectorRoute) and is released again: 1 when a route was
+    // found (its length into `length` when given), 0 without a node, a free slot or a route.
+    uint8_t HasSectorRoute(const CPFPoint* from, const CPFPoint* to, const CPFCharacter* character, int16_t* length);
     // 0x001e3e28 CKSrvPathFinding_GetTransitionBetween_maybe: the transition of graph node `from` that leads to node
     // `to`, or null.
     CKPFGraphTransition* GetTransitionBetween(uint16_t from, uint16_t to);
+    // The unit's dead helpers (no pointer to their descriptors; C2.8 port-rest R01).
+    // 0x001e5240 NavSectors_SnapPointToCellCenter_maybe: the centre of the point's cell in its node's grid.
+    void SnapPointToCellCenter(const CPFPoint* point, CVector3* out) const;
+    // 0x001e55f8 CKSrvPathFinding_IsTransitionEnabledBetween_maybe: the enabled bit of the transition from -> to (0: none).
+    uint32_t IsTransitionEnabledBetween(uint16_t from, uint16_t to) const;
+    // 0x001e59c8 NavSectors_RelocatePoint_maybe: the point's node found again (hint, its transitions, then every node).
+    uint32_t RelocatePoint(CPFPoint* point);
+    // 0x001e5ef8 CKSrvPathFinding_RefreshQueryEndpointSectors_maybe: the slot's seeker and target nodes found again.
+    uint32_t RefreshQueryEndpointSectors(uint32_t slot);
+    // 0x001e6de0 CKSrvPathFinding_GetTransitionBetweenPoints_maybe: the transition between the two points' nodes.
+    CKPFGraphTransition* GetTransitionBetweenPoints(const CPFPoint* from, const CPFPoint* to) const;
     // 0x001e3ea8 CKSrvPathFinding_InitializeSearchPFGrid (XXL2 InitializeSearchPFGrid): the leg of the slot's
     // current graph node, into out[0] (start: the seeker, or the last portal's arrival point) and out[1] (end: the
     // target on the last node, else the portal to the next node: the departure box's point nearest the start for a

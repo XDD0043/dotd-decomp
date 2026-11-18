@@ -3,10 +3,16 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x2665a0  IKGrpEnemy_IsAnyEnemyInCone_maybe
+//   [x] 0x2665a0  IKGrpEnemy_IsAnyEnemyInCone_maybe  (IsAnyEnemyInCone; its callers (CKHkPushObstacle) are not ported yet)
 //   [x] 0x2667e0  IKGrpEnemy_Load
 #include "k2000/misc/IKGrpEnemy.h"
 
+#include <cmath>
+#include <cstring>
+
+#include "Spyro2008/hooks/IKHkEnemy.h"
+#include "crt/ppc_ops.h"
+#include "crt/xsinf.h"
 #include "k2000/groups/TVectorPush.h"
 #include "k2000/io/IKFile.h"
 
@@ -31,4 +37,32 @@ int32_t IKGrpEnemy::Load(IKFile* file, int32_t type) {
     LoadRefVector(m_vpFZSectorGrpRoot, file);
     LoadRefVector(m_vUnk40, file);
     return 1;
+}
+
+// 0x002665a0 IKGrpEnemy_IsAnyEnemyInCone_maybe
+uint8_t IKGrpEnemy::IsAnyEnemyInCone(float angle, float maxDistance, const CVector3* position,
+                                     const CVector3* direction) {
+    for (uint32_t i = m_ui32NbActiveEnemies; i != 0;) {
+        --i;
+        const CVector3& p = static_cast<IKHkEnemy*>(m_apActiveEnemies[i])->m_v3Position;  // +0x134
+        float dy = p.y - position->y;
+        float dx = p.x - position->x;
+        float dz = p.z - position->z;
+        float length = std::sqrt(ppc::fmadds(dz, dz, ppc::fmadds(dx, dx, dy * dy)));  // Math_Sqrtf
+        if (length != 0.0f) {
+            const float inv = 1.0f / length;
+            dz = dz * inv;
+            dx = dx * inv;
+            dy = dy * inv;
+        } else {
+            length = 0.0f;
+        }
+        if (!(length < maxDistance)) continue;  // bge
+        int32_t bits;
+        std::memcpy(&bits, &angle, 4);
+        const float cosine = bits < 0 ? crt::LibCosf(-angle) : crt::InlineCosf(angle);
+        const float dot = ppc::fmadds(dz, direction->z, ppc::fmadds(direction->x, dx, dy * direction->y));
+        if (dot >= cosine) return 1;  // cror gt|eq, bne
+    }
+    return 0;
 }

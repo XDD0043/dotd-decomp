@@ -15,6 +15,9 @@ struct RwMatrix;
 // 0x00247e88 SetShaderObjectWorldMatrix: the object's world matrix (an RW matrix); null clears it (the products then
 // fall back to the view / view-projection alone).
 void ShaderMatrixCache_SetWorld(const RwMatrix* world);
+// 0x002480b8 SetShaderObjectWorldMatrix4x4: the object's world matrix from a homogeneous 4x4 (row vectors, rows right,
+// up, at, pos: ConvertRwMatrixToHomogeneous4x4); null clears it.
+void ShaderMatrixCache_SetWorld4x4(const struct Homogeneous4x4* world);
 // 0x00247ff8 BeginCameraUpdateAndCacheShaderMatrices: takes the current camera's view and view-projection from the
 // device; the world matrix is cleared.
 void ShaderMatrixCache_BeginCamera();

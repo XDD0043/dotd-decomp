@@ -38,6 +38,9 @@ struct RwaWaveDict {
 // Parses the payload of a 0x809 chunk (taking the buffer). Null when the data is not a wave dictionary
 // or uses a codec this build does not decode.
 RwaWaveDict* RwaWaveDict_StreamRead(std::vector<uint8_t>&& payload);
+// 0x006e13e0 FUN_006e13e0 (RwaSetExitFlag): the wave-dictionary system's word +0x08, which RwaWaveDict_StreamRead_maybe
+// tests before each wave (1: the read stops). CKGameLoop_RequestExit_maybe sets it.
+void RwaSetExitFlag(int32_t value);
 void RwaWaveDict_Destroy(RwaWaveDict* dict);
 uint32_t RwaWaveDict_GetWaveCount(const RwaWaveDict* dict);
 RwaWave* RwaWaveDict_GetWave(RwaWaveDict* dict, uint32_t index);
@@ -88,6 +91,15 @@ void RwaPS3_SetPortLevel(float level, RwaOutput* output);
 void RwaPS3Driver_SetOutputEffect(RwaOutput* output, const void* environment);
 
 RwaListener* RwaListener_Create();
+
+// 0x006cd6c8 RwaObject_Destroy_maybe (the library's generic destroy) on the three object kinds the K side creates:
+// the driver (CKSoundManager_DestroyModule via SoundOutput_ShutdownDriver_maybe), the listener
+// (SoundListener_Release_maybe) and a stream player (SoundEmitterVoice_Release_maybe; defined with the stream
+// player in rwa_stream.cpp). Null-safe.
+struct RwaStreamPlayer;
+void RwaPS3Driver_Destroy(RwaOutput* output);
+void RwaListener_Destroy(RwaListener* listener);
+void RwaStreamPlayer_Destroy(RwaStreamPlayer* player);
 
 RwaVoice* RwaVoice_Create(RwaOutput* output);
 void RwaVoice_Destroy(RwaVoice* voice);

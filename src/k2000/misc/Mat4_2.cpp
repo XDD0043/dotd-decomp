@@ -11,11 +11,11 @@
 //   [ ] 0x247068  CKSinCurve2DCpnt_SaveKeys_maybe  [dead]
 //   [ ] 0x2471c0  KStub_Nop_2471c0  [dead]
 //   [ ] 0x2471c8  KStub_Nop_2471c8  [dead]
-//   [ ] 0x2471d0  KStub_Nop_2471d0
-//   [ ] 0x2471d8  Mat4_OrthoNormalize
-//   [ ] 0x247200  Matrix_OrthoNormalizeInPlace
-//   [ ] 0x247228  Mat4_TransformVector
-//   [ ] 0x247260  Mat4_TransformPoint
+//   [x] 0x2471d0  KStub_Nop_2471d0  (empty (its callers' debug hooks): nothing to call)
+//   [x] 0x2471d8  Mat4_OrthoNormalize  (RW called directly)
+//   [x] 0x247200  Matrix_OrthoNormalizeInPlace  (the same as 0x23f648 Mat4_OrthoNormalizeInPlace (Mat4.cpp))
+//   [x] 0x247228  Mat4_TransformVector  (RW called directly)
+//   [x] 0x247260  Mat4_TransformPoint  (its caller ShaderMatrixCache_WorldPointToObject computes in double precision by design)
 //   [ ] 0x247298  Mat4_Transpose_maybe  [dead]
 #include <cstring>
 
@@ -23,6 +23,8 @@
 #include "crt/ppc_ops.h"
 #include "k2000/io/IKFile.h"
 #include "k2000/memory/Mem.h"
+#include "k2000/misc/Mat4.h"
+#include "Renderware/rwcore/RwMatrix.h"
 
 namespace {
 // One Read of count words, then every word byte-swapped in place (an lwbrx/stw loop on the PS3). The
@@ -87,4 +89,11 @@ float Curve_EvaluatePiecewiseLinear(float t, const TVector<CKCurve2DCpnt::Point,
         if (t == p[i + 1].m_fX) return p[i + 1].m_fY;
         if (t == p[i + 2].m_fX) return p[i + 2].m_fY;
     }
+}
+
+// 0x00247260 Mat4_TransformPoint (through TocBridge_RwV3dTransformPoints; its caller ShaderMatrixCache_WorldPointToObject
+// computes natively in double precision by design)
+void Mat4_TransformPoint(const CMatrix34* m, CVector3* out, const CVector3* in) {
+    RwV3dTransformPoints(reinterpret_cast<RwV3d*>(out), reinterpret_cast<const RwV3d*>(in), 1,
+                         reinterpret_cast<const RwMatrix*>(m));
 }

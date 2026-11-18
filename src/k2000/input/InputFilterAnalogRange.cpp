@@ -7,10 +7,10 @@
 //   [x] 0x102d90  InputFilterAnalogRange_Init_maybe
 //   [x] 0x102db0  InputFilterAnalogRange_MapLinear_maybe
 //   [x] 0x102df0  InputFilterAnalogRange_ApplyDeadzone_maybe
-//   [ ] 0x102e10  InputFilterAnalogRange_Destructor_maybe
+//   [x] 0x102e10  InputFilterAnalogRange_Destructor_maybe  (the implicit destructor (~IKFilter: vtable store only))
 //   [ ] 0x102e20  InputFilterAnalogRange_Construct_2_maybe  [dead]
 //   [ ] 0x102e40  InputFilterAnalogRange_Destructor_2_maybe  [dead]
-//   [ ] 0x102e50  InputFilterAnalogRange_DeletingDestructor_maybe
+//   [x] 0x102e50  InputFilterAnalogRange_DeletingDestructor_maybe  (the implicit destructor, delete)
 //
 //   [x] 0x9a6318  InputFilterAnalogRange_GetByte4_maybe  [inline]
 //   [x] 0x9a6320  KStub_Return2_9a6320  [inline]

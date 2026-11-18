@@ -16,6 +16,7 @@ public:
         return key == 0x814c || key == 0x114c || key == 0x730c || key == 0xc;
     }
     int32_t Load(IKFile* file, int32_t type) override;                                   // vt+0x2c 0x561ef8 CKS08MenuPressStart_Load
+    void RecursiveRegistration(int32_t type) override;                                  // vt+0x24 0x561058 CKS08MenuPressStart_RecursiveRegistration
     uint32_t GetWidgetSlotCount() override { return 1; }                                 // vt+0x68 0x9ca298
     WidgetSlot* GetWidgetSlots() override { return m_aWidgetSlots; }                     // vt+0x6c 0x9ca2a0
     const char* GetMenuName() override { return "Menu PressStart"; }                     // vt+0xb8 0x9ca270

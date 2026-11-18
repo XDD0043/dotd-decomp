@@ -17,7 +17,7 @@ public:
     DOTD_DECLARE_FACTORIES(PS3_CKVideo)
 
     PS3_CKVideo() {}                 // 0x000ae7e8 PS3_CKVideo_Create: IKVideo's constructor, then the vtable
-    ~PS3_CKVideo() override {}       // STUB(C1.6): 0x9a07c0 / 0x9a0778
+    ~PS3_CKVideo() override {}       // 0x009a07c0 / 0x009a0778 PS3_CKVideo_Destructor / _DeletingDestructor: the vtables only
     // vt+0x08 0x9a0740
     int32_t IsKindOfClass(uint32_t key) override { return key == 0xa4d || key == 0xa0d || key == 0xc; }
     int32_t Load(IKFile* file, int32_t type) override;      // vt+0x2c 0x000ae480 PS3_CKVideo_Load

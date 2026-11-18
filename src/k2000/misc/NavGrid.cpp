@@ -6,14 +6,14 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [ ] 0x1f0f10  NavGrid_InitCellClassTable_maybe  [dead]
 //   [ ] 0x1f0f70  NavGrid_SetCellValue_maybe  [dead]
-//   [ ] 0x1f0fd8  KStub_Return1_1f0fd8
-//   [ ] 0x1f0fe0  CKPFGraphNode_GetCellFlags_maybe
-//   [ ] 0x1f1028  StaticInitAndDestruction_1f1028
+//   [x] 0x1f0fd8  KStub_Return1_1f0fd8  (CPFGrid::Save in NavGrid.h (its caller is the save path))
+//   [x] 0x1f0fe0  CKPFGraphNode_GetCellFlags_maybe  (CPFGrid::GetCellFlags)
+//   [x] 0x1f1028  StaticInitAndDestruction_1f1028  (empty: the unit's static initialiser has nothing to construct)
 //   [ ] 0x1f1030  _GLOBAL__I_1f1030
 //   [ ] 0x1f1040  _GLOBAL__D_1f1040
-//   [ ] 0x1f1050  NavGrid_AllocCells_maybe
-//   [ ] 0x1f1110  NavGrid_FreeCells_maybe
-//   [ ] 0x1f1158  PathFinding_SetWalkabilityMode_maybe
+//   [x] 0x1f1050  NavGrid_AllocCells_maybe  (CPFGrid::AllocCells; no caller in the original either)
+//   [x] 0x1f1110  NavGrid_FreeCells_maybe  (inline in NavGrid.h; C2.8 port-all P02)
+//   [x] 0x1f1158  PathFinding_SetWalkabilityMode_maybe  (PathFinding_SetWalkabilityMode)
 //   [x] 0x1f11c8  CKPFGraphNode_LoadCells
 //   [x] 0x1f12d8  NavGrid_SetCellBlocked
 //   [x] 0x1f1370  NavGrid_Construct_maybe
@@ -22,6 +22,8 @@
 
 #include "k2000/io/IKFile.h"
 #include "k2000/memory/Mem.h"
+
+#include <cstring>
 
 uint8_t g_pfGridPaletteUninitialised = 1;
 uint8_t g_pfGridPalette[16];
@@ -36,6 +38,20 @@ int32_t CPFGrid::Load(IKFile* file) {
     cells = static_cast<uint32_t>(m_width) * m_height;
     ReadRaw(file, m_grid, (cells & 1) + (cells >> 1));
     return 1;
+}
+
+// 0x001f1050 NavGrid_AllocCells_maybe (the half count an arithmetic shift of the signed product)
+void CPFGrid::AllocCells(uint32_t width, uint32_t height) {
+    const int32_t half = static_cast<int32_t>(height * width) >> 1;
+    m_width = static_cast<uint8_t>(width);
+    m_height = static_cast<uint8_t>(height);
+    const uint32_t size = static_cast<uint32_t>(half + 1);
+    if (m_grid != nullptr) {
+        m_grid = static_cast<uint8_t*>(Mem_ReallocAligned16(m_grid, size));
+    } else {
+        m_grid = static_cast<uint8_t*>(Mem_AllocAligned16(size));
+    }
+    std::memset(m_grid, 0x77, size);
 }
 
 // 0x001f1370 NavGrid_Construct_maybe

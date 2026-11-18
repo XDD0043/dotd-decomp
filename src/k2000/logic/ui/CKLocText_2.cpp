@@ -5,17 +5,17 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x35948  CKLocText_Delete
-//   [ ] 0x35998  CKLocText_RecursiveRegistration
+//   [x] 0x35998  CKLocText_RecursiveRegistration  (in the header)
 //   [ ] 0x359a0  RegisterCKLocTextClass
 //   [ ] 0x35a18  _GLOBAL__I_35a18
-//   [ ] 0x35a28  CKLocText_PostLoad
+//   [x] 0x35a28  CKLocText_PostLoad  (KBase700C's PostLoad 0x2cc40, inherited)
 //   [x] 0x35a50  CKLocText_Load
 //   [ ] 0x35a78  CKLocText_Save
 //   [x] 0x35aa0  CKLocText_ClearGameData_maybe
 //   [x] 0x35ac8  CKLocText_InitGameData
-//   [ ] 0x35b00  CKLocText_DeletingDestructor
-//   [ ] 0x35b48  CKLocText_Destructor
-//   [ ] 0x35b78  CKLocText_BaseDestructor
+//   [x] 0x35b00  CKLocText_DeletingDestructor  (the deleting form of 0x35b48)
+//   [x] 0x35b48  CKLocText_Destructor  (the vtable, then KBase700C's 0x2cd70: ~CKLocText)
+//   [x] 0x35b78  CKLocText_BaseDestructor  (the same as 0x35b48 CKLocText_Destructor)
 //   [ ] 0x35ba8  CKLocText_Construct_2  [dead]
 //   [x] 0x35be0  CKLocText_Construct
 //   [x] 0x35c18  CKLocText_DeleteArray

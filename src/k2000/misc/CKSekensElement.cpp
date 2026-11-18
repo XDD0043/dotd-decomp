@@ -5,15 +5,15 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1fa758  CKSekensElement_658c_maybe_Construct
-//   [ ] 0x1fa770  KStub_Nop_1fa770
-//   [ ] 0x1fa778  CKSekensElement_658c_maybe_vf24
-//   [ ] 0x1fa780  CKSekensElement_658c_maybe_vf28
+//   [x] 0x1fa770  KStub_Nop_1fa770  (Destroy: the default (empty))
+//   [x] 0x1fa778  CKSekensElement_658c_maybe_vf24  (the default RecursiveRegistration (returns 1, registers nothing))
+//   [x] 0x1fa780  CKSekensElement_658c_maybe_vf28  (the default Save (returns 1))
 //   [x] 0x1fa788  CKSekensEntry_Load
-//   [ ] 0x1fa8a0  CKSekensMarker_PostLoad
+//   [x] 0x1fa8a0  CKSekensMarker_PostLoad  (CKSekensElement.h PostLoad (CKSekensMarker inherits it; CKSekensBlock.h writes the same store inline))
 //   [ ] 0x1fa8b0  CKSekensElement_658c_maybe_Construct_2  [dead]
-//   [ ] 0x1fa8c8  CKSekensElement_658c_maybe_DeletingDestructor
-//   [ ] 0x1fa908  CKSekensElement_658c_maybe_vf0
-//   [ ] 0x1fa920  CKSekensElement_658c_maybe_BaseDestructor
+//   [x] 0x1fa8c8  CKSekensElement_658c_maybe_DeletingDestructor  (the deleting form of the destructor (vtable stores only))
+//   [x] 0x1fa908  CKSekensElement_658c_maybe_vf0  (C++ destructor chain: vtable stores only)
+//   [x] 0x1fa920  CKSekensElement_658c_maybe_BaseDestructor  (C++ destructor chain: vtable stores only)
 //
 //   [ ] 0x9b10c0  CKSekensElement_658c_maybe_vf14  [inline]
 //   [ ] 0x9b10c8  CKSekensElement_658c_maybe_vf18  [inline]

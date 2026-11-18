@@ -10,15 +10,15 @@
 //   [x] 0x24bd40  CKImpulsionCpnt_Update
 //   [ ] 0x24be48  RegisterCKImpulsionCpntClass
 //   [ ] 0x24bec0  _GLOBAL__I_24bec0
-//   [ ] 0x24bed0  CKImpulsionCpnt_DeletingDestructor
-//   [ ] 0x24bf18  CKImpulsionCpnt_Destructor
-//   [ ] 0x24bf48  CKImpulsionCpnt_BaseDestructor
+//   [x] 0x24bed0  CKImpulsionCpnt_DeletingDestructor  (the deleting form of the implicit destructor)
+//   [x] 0x24bf18  CKImpulsionCpnt_Destructor  (C++ destructor chain: vtable stores only)
+//   [x] 0x24bf48  CKImpulsionCpnt_BaseDestructor  (C++ destructor chain: vtable stores only)
 //   [x] 0x24bf78  CKImpulsionCpnt_DeleteArray
 //   [x] 0x24c020  CKImpulsionCpnt_Create
 //   [x] 0x24c058  CKImpulsionCpnt_CreateArray
 //   [ ] 0x24c0f0  CKImpulsionCpnt_Save
-//   [ ] 0x24c0f8  CKImpulsionCpnt_RecursiveRegistration
-//   [ ] 0x24c100  CKImpulsionCpnt_Destroy
+//   [x] 0x24c0f8  CKImpulsionCpnt_RecursiveRegistration  (returns 1, registers nothing: the default)
+//   [x] 0x24c100  CKImpulsionCpnt_Destroy  (empty: the default)
 //   [x] 0x24c108  CKImpulsionCpnt_Load
 //
 //   [ ] 0x9b9fc8  CKImpulsionCpnt_IsKindOfClass  [inline]

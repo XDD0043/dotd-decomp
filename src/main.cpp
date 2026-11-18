@@ -4,8 +4,11 @@
 //
 //   dotd [--usrdir PATH]          boot the game (checkpoint C1.1: boot skeleton, stand-in subsystems)
 //   dotd --frames N               stop after N frames through the game's exit path, log the frame rate
-//   dotd --frame-rate N           pace to N fps instead of 60 (0 = uncapped; experiments only)
+//   dotd --frame-rate N           pace to N fps instead of 60 (0 = uncapped; experiments only: per-update systems speed up)
+//   dotd --fps N                  run at N fps (0 = no cap) with the 60 Hz timing calculation (platform/fps.h), so the
+//                                 game's timings stay those of 60 fps; dotd.ini: fps = N
 //   dotd --headless               no window (boot logic only)
+//   dotd --no-shader-list         no shader variant list (platform/gfx/cg_program.h): every program built at its first draw
 //   dotd --test-pattern           the C1.0 window/input test pattern instead of the game
 //   dotd --selftest-fs            read GAME.KP3 and list USRDIR through the cellFs shim, then exit
 #include <SDL3/SDL_main.h>
@@ -23,9 +26,13 @@
 #include "platform/cell/pad.h"
 #include "platform/cell/sysutil.h"
 #include "platform/config.h"
+#include "platform/gfx/cg_program.h"
 #include "platform/gfx/device.h"
 #include "platform/log.h"
 #include "platform/sdl/app.h"
+#ifdef __EMSCRIPTEN__
+#include "platform/web/web.h"
+#endif
 
 namespace {
 
@@ -144,18 +151,35 @@ int main(int argc, char** argv) {
     long frameLimit = 0;
     bool headless = false;
     bool testPattern = false;
+    bool noShaderList = false;
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--selftest-fs") == 0) return SelfTestFs();
         if (std::strcmp(argv[i], "--frames") == 0 && i + 1 < argc) frameLimit = std::atol(argv[++i]);
         if (std::strcmp(argv[i], "--headless") == 0) headless = true;
         if (std::strcmp(argv[i], "--test-pattern") == 0) testPattern = true;
+        if (std::strcmp(argv[i], "--no-shader-list") == 0) noShaderList = true;
     }
+#ifdef __EMSCRIPTEN__
+    // The web build: the game's files are served from the user's USRDIR by web/serve.py and appear under
+    // /usrdir (platform/web/hostfs_web.cpp).
+    if (cfg.usrdir.empty()) {
+        cfg.usrdir = "/usrdir";
+        dotd::platform::MutableConfig().usrdir = cfg.usrdir;
+    }
+    if (!dotd::platform::web::InitHostFs(cfg.usrdir)) {
+        DOTD_LOG("main: the server lists no game files (start web/serve.py with --usrdir PATH)");
+        return 1;
+    }
+#endif
     if (cfg.usrdir.empty()) DOTD_LOG("main: no usrdir configured (dotd.ini usrdir=... or --usrdir PATH)");
 
     if (!headless) {
         if (!dotd::platform::sdl::Init(cfg)) return 1;
         if (!dotd::gfx::Init(1280, 720)) return 1;
         g_windowOpen = true;
+        // The shader variant list (platform/gfx/cg_program.h): the programs a level used before are built while it
+        // loads. --no-shader-list or DOTD_SHADER_LIST=off: every program at its first draw, as without the list.
+        if (!noShaderList) dotd::gfx::cg::EnableVariantList(nullptr);
     }
     std::atexit(OnProcessExit);
     dotd::platform::SetFrameLimit(frameLimit);

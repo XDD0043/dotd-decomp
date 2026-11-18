@@ -4,10 +4,10 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x94bf0  CKDisplayBox_Delete
-//   [ ] 0x94c40  CKDisplayBox_RecursiveRegistration
+//   [x] 0x94c40  CKDisplayBox_RecursiveRegistration  (1: the inherited default)
 //   [ ] 0x94c48  RegisterCKDisplayBoxClass
 //   [ ] 0x94cc0  _GLOBAL__I_94cc0
-//   [ ] 0x94cd0  CKDisplayBox_Destroy
+//   [x] 0x94cd0  CKDisplayBox_Destroy  (inherited: CMultiGeometryBasic_Destroy)
 //   [x] 0x94cf8  CKDisplayBox_Load
 //   [ ] 0x94d20  CKDisplayBox_Save
 //   [x] 0x94d48  CKDisplayBox_DeleteArray

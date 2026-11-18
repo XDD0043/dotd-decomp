@@ -28,7 +28,7 @@ public:
     int32_t GetClassID() override { return 9; }                             // vt+0x18 0x994268
     // vt+0x24 0x69848 (Ghidra: CColorTextButton2d_RecursiveRegistration; it is IKNode2d's own slot)
     void RecursiveRegistration(int32_t type) override;
-    int32_t Save(IKFile* /*file*/) override { return 1; }                   // vt+0x28 0x69d60
+    int32_t Save(IKFile* /*file*/, int32_t /*type*/) override { return 1; }                   // vt+0x28 0x69d60
     int32_t Load(IKFile* file, int32_t type) override;                      // vt+0x2c 0x69da8 IKNode2d_Load
     int32_t GetSerializationFlags() override { return 2; }                  // vt+0x34 0x994258 (XXL2 IKNode2d's own)
     // vt+0x50 0x994278. XXL2: SetOwner(CScene2d*).
@@ -45,9 +45,9 @@ public:
     virtual void SetNext(IKNode2d* next) { m_pNext = next; }
     virtual void SetPos(const CVector2& position) { m_vPosition = position; }  // vt+0x74 0x9942a8
     virtual void GetBoundingBox(CBox2D* /*box*/) const {}                   // vt+0x78 0x698a8 (empty)
-    // vt+0x7c 0x698b0 IKNode2d_GetScreenRect_maybe (DotD): GetBoundingBox, then both corners through
-    // UI2d_NormalizedToRasterPixels_maybe (engine +0x38). STUB(C1.6)
-    virtual void Vf7C(CBox2D* /*box*/) {}
+    // vt+0x7c 0x000698b0 IKNode2d_GetScreenRect_maybe (DotD): GetBoundingBox, then both corners through
+    // UI2d_NormalizedToRasterPixels_maybe 0x62e98 (engine +0x38). Never overridden.
+    virtual void GetScreenRect(CBox2D* box);
     virtual void Scale(const CVector2& scale) = 0;                          // vt+0x80 (XXL2 slot 31)
     virtual void Render(IKTime* time) = 0;                                  // vt+0x84 (XXL2 slot 32; arguments unverified)
 

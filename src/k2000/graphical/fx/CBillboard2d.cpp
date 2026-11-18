@@ -10,12 +10,12 @@
 //   [x] 0x5b098  CBillboard2d_SetAnimTime_maybe
 //   [x] 0x5b118  CBillboard2d_SetSpriteSheetRows_maybe
 //   [x] 0x5b158  CBillboard2d_SetSpriteSheetColumns_maybe
-//   [ ] 0x5b198  CBillboard2d_GetBoundingRect
-//   [ ] 0x5b200  RegisterCBillboard2dType
+//   [x] 0x5b198  CBillboard2d_GetBoundingRect  (GetBoundingBox)
+//   [x] 0x5b200  RegisterCBillboard2dType  (the class registry: Kp3Ported.inc (gen_kp3_stubs.py))
 //   [ ] 0x5b278  _GLOBAL__I_5b278
-//   [ ] 0x5b288  CBillboard2d_vf58
-//   [ ] 0x5b318  CBillboard2d_RecursiveRegistration
-//   [ ] 0x5b3a8  CBillboard2d_Destroy
+//   [x] 0x5b288  CBillboard2d_vf58  (RecursiveNodeReach)
+//   [x] 0x5b318  CBillboard2d_RecursiveRegistration
+//   [x] 0x5b3a8  CBillboard2d_Destroy
 //   [x] 0x5b3f0  CBillboard2d_DeleteArray
 //   [x] 0x5b498  CBillboard2d_Create
 //   [x] 0x5b508  DrawAnimatedUIBillboardWidget
@@ -23,7 +23,7 @@
 //   [ ] 0x5b9b8  CBillboard2d_Save
 //   [x] 0x5bbe0  CBillboard2d_CreateArray
 //   [ ] 0x5bcc8  CBillboard2d_ContainsScreenPoint_maybe  [dead]
-//   [ ] 0x5bdb0  CBillboardButton2d_Delete
+//   [x] 0x5bdb0  CBillboardButton2d_Delete  (DOTD_DECLARE_FACTORIES(CBillboardButton2d))
 //   [ ] 0x5be00  FUN_0005be00  [dead]
 //
 //   [ ] 0x9972e8  CBillboard2d_GetClassGroup_Thunk  [inline]
@@ -45,6 +45,9 @@
 #include "crt/ppc_ops.h"
 #include "k2000/io/IKFile.h"
 #include "k2000/system/IKTime.h"
+#include "Renderware/rt2d/Rt2dTypes.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 
 // 0x0005afc0 CBillboard2d_vf80
 void CBillboard2d::Scale(const CVector2& scale) {
@@ -142,4 +145,33 @@ void CBillboard2d::Render(IKTime* frameClock) {
         ApplyUV();  // the brush part's vt+0x34
     }
     DrawShapeWithTransform(m_f32RotateAngle, &m_vPosition, m_ui8CenterWAlign, m_ui8CenterHAlign, &m_v2ConstantScale);
+}
+
+// C2.8 port-all P08.
+
+// 0x0005b198 CBillboard2d_GetBoundingRect
+void CBillboard2d::GetBoundingBox(CBox2D* box) const {
+    IKBillboard2d::GetBoundingBox(box, &m_vPosition, m_ui8CenterWAlign, m_ui8CenterHAlign);  // 0x00066ef8
+    IKNode2d::GetBoundingBox(box);  // 0x000698a8
+}
+
+// 0x0005b288 CBillboard2d_vf58
+void CBillboard2d::RecursiveNodeReach(uint8_t what, void* data) {
+    if (what != 7) return;
+    if (m_pBrush->texture != data) return;  // BillboardBrush_GetTexture 0x66c60 (the brush is not null-checked)
+    SetTexture(nullptr);  // vt+0x3c 0x00066cb8
+}
+
+// 0x0005b318 CBillboard2d_RecursiveRegistration
+void CBillboard2d::RecursiveRegistration(int32_t type) {
+    if (static_cast<uint32_t>(type - 4) > 3) {
+        g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+        // KStub_Return1_66c58: the billboard part's RecursiveRegistration, nothing.
+    }
+}
+
+// 0x0005b3a8 CBillboard2d_Destroy
+void CBillboard2d::Destroy() {
+    FreeMemoryBillboard2D();  // 0x00066c18 -> vt+0x00 0x00066db0
+    IKNode2d::Destroy();      // 0x00069d68
 }

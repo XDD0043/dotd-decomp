@@ -10,14 +10,14 @@
 //   [x] 0xd6f40  CKBoundingSphere_DeleteArray
 //   [x] 0xd6fe0  CKBoundingSphere_CreateArray
 //   [x] 0xd70c8  CKBoundingSphere_Create
-//   [ ] 0xd7138  CKBoundingSphere_RecursiveRegistration
+//   [x] 0xd7138  CKBoundingSphere_RecursiveRegistration  (CSGLeaf's (nothing))
 //
 //   [x] 0x991630  CKBoundingSphere_GetClassType  [inline]
 //   [x] 0x991638  CKBoundingSphere_GetClassID  [inline]
 //   [ ] 0x991640  IKBoundingVolume_LevelReset  [inline]
-//   [ ] 0x991668  CKBoundingSphere_Destructor  [inline]
-//   [ ] 0x9916a8  IKBoundingVolume_PostLoad  [inline]
-//   [ ] 0x9916e0  IKBoundingVolume_Destroy  [inline]
+//   [x] 0x991668  CKBoundingSphere_Destructor  [inline]  (C++ destructor chain: vtable stores only)
+//   [x] 0x9916a8  IKBoundingVolume_PostLoad  [inline]
+//   [x] 0x9916e0  IKBoundingVolume_Destroy  [inline]  (inherited: CSGLeaf_Destroy)
 //   [ ] 0x9918d0  CKBoundingSphere_IsKindOfClass  [inline]
 //   [ ] 0x991918  CKBoundingSphere_DeletingDestructor  [inline]
 //   [ ] 0x991970  CKBoundingShape_Save  [inline]

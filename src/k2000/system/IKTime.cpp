@@ -21,6 +21,7 @@
 #include "k2000/system/IKTime.h"
 
 #include "k2000/system/CTimeManager.h"
+#include "platform/fps.h"
 
 namespace {
 // TOC constants, bit-exact (0x3c23d70b is one ulp above the float nearest to 0.01).
@@ -48,8 +49,19 @@ void IKTime::Update() {
     if (m_fLastExactTime < 0.0f) {  // fcmpu + blt against the TOC 0.0f (false for NaN)
         m_fLastExactTime = static_cast<float>(KGetExactTime());  // frsp
     }
-    const float now = static_cast<float>(KGetExactTime());  // frsp
-    float realDt = now - m_fLastExactTime;                   // fsubs
+    const double exact = KGetExactTime();
+    const float now = static_cast<float>(exact);  // frsp
+    float realDt = now - m_fLastExactTime;        // fsubs
+    if (dotd::fps::Unlocked()) {
+        // --fps N (not in the original): the delta from the exact (double) times. The float times are 1 ms apart after
+        // 2.3 hours, so at hundreds of frames per second two samples could round to the same float, and a delta of 0
+        // becomes 0.01 s below (the game would run fast). Only when the last sample is the one this clock stored.
+        static double s_lastExact = -1.0;
+        if (s_lastExact >= 0.0 && static_cast<float>(s_lastExact) == m_fLastExactTime && exact >= s_lastExact) {
+            realDt = static_cast<float>(exact - s_lastExact);
+        }
+        s_lastExact = exact;
+    }
     float dt;
     if (m_eCurrentState == RUNNING) {
         // fcmpu + ble / bne: both branch on "unordered", so a NaN delta is passed through unchanged.

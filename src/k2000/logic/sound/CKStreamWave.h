@@ -14,13 +14,18 @@
 class CKStreamWave : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x16a)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x5a8c || key == 0xc; }  // vt+0x08 0x9a6d90
     DOTD_DECLARE_FACTORIES(CKStreamWave)
 
     CKStreamWave();                                     // 0x0011f418 CKStreamWave_Create (inlined)
-    ~CKStreamWave() override {}                         // STUB(C1.6): 0x9a6d78
+    ~CKStreamWave() override {}                         // 0x009a6d78 CKStreamWave_Destructor (0x9a6db0 deleting): the vtables only
+    // vt+0x24 0x0011f1b0 CKStreamWave_RecursiveRegistration: registered with the saving manager for types 0 and 1.
+    void RecursiveRegistration(int32_t type) override;
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x0011f280 CKStreamWave_Load
     const uint32_t* GetGuid() override { return m_uuid; }  // vt+0x44 0x009a6d28 CKStreamWave_GetGuid
     void SetGuid(const uint32_t* guid) override;            // vt+0x48 0x009a6d48 CKStreamWave_SetGuid
+    void SetFilePath(const char* path);                     // 0x0011f050 CKStreamWave_SetFilePath_maybe
+    const char* BuildFilePath();                            // 0x0011f618 CKStreamWave_BuildFilePath_maybe
 
     float m_fStreamLength;              // +0x004 seconds; read after the path
     // +0x008 the path under the data root (length-prefixed, read without a length limit); the bytes
@@ -30,7 +35,7 @@ public:
     // stream opens. Name ours. Only byte 0 is set by the constructor.
     char m_szFilePath[0x100];
     uint32_t m_uuid[4];                 // +0x208 the GUID (the loader's SetGuid)
-    uint8_t m_unk218;                   // +0x218 the constructor sets 0
+    uint8_t m_unk218;                   // +0x218 the constructor sets 0; 1 when played on the "Speech" type (Play)
     uint8_t m_pad219[3];
 };
 DOTD_ASSERT_SIZE(CKStreamWave, 0x21c);

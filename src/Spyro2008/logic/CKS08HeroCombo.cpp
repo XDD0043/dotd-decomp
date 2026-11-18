@@ -3,16 +3,16 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x36f578  CKS08HeroCombo_GetNext
-//   [ ] 0x36f610  CKS08HeroCombo_GetMinRemainingDamage
+//   [x] 0x36f578  CKS08HeroCombo_GetNext
+//   [x] 0x36f610  CKS08HeroCombo_GetMinRemainingDamage
 //   [ ] 0x36f720  RegisterCKS08HeroComboClass
 //   [ ] 0x36f798  _GLOBAL__I_36f798
 //   [x] 0x36f7a8  CKS08HeroCombo_DeleteArray
 //   [x] 0x36f850  CKS08HeroCombo_Create
 //   [x] 0x36f888  CKS08HeroCombo_CreateArray
-//   [ ] 0x36f920  CKS08HeroCombo_RecursiveRegistration
-//   [ ] 0x36f928  CKS08HeroCombo_Destroy
-//   [ ] 0x36f930  CKS08HeroCombo_PostLoad
+//   [x] 0x36f920  CKS08HeroCombo_RecursiveRegistration  (returns 1: the root's empty slot)
+//   [x] 0x36f928  CKS08HeroCombo_Destroy  (empty: the root's default)
+//   [x] 0x36f930  CKS08HeroCombo_PostLoad  (returns 1: the root's default)
 //   [x] 0x36f938  CKS08HeroCombo_Load
 //   [ ] 0x36fc08  CKS08HeroCombo_Save
 //
@@ -42,4 +42,22 @@ int32_t CKS08HeroCombo::Load(IKFile* file, int32_t /*type*/) {
     IKFile_ReadRef(file, &m_unk14);
     ReadU8(file, &m_unk18);
     return 1;
+}
+
+// 0x0036f610 CKS08HeroCombo_GetMinRemainingDamage (each branch's recursion runs twice, as the original's).
+int32_t CKS08HeroCombo::GetMinRemainingDamage() const {
+    if (m_pBlow == nullptr) return 0;
+    bool any = false;
+    uint32_t best = 0xffffffffu;
+    if (m_unk04 != nullptr) {
+        const int32_t first = m_unk04->GetMinRemainingDamage();
+        any = true;
+        if (first != -1) best = static_cast<uint32_t>(m_unk04->GetMinRemainingDamage());
+    }
+    if (m_unk08 == nullptr) {
+        if (!any) return m_pBlow->GetDamageAmount();  // vt+0x54
+    } else if (static_cast<uint32_t>(m_unk08->GetMinRemainingDamage()) < best) {
+        best = static_cast<uint32_t>(m_unk08->GetMinRemainingDamage());
+    }
+    return static_cast<int32_t>(static_cast<uint32_t>(m_pBlow->GetDamageAmount()) + best);
 }

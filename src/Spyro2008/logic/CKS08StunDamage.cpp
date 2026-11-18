@@ -6,13 +6,13 @@
 //   [x] 0x3d1550  CKS08StunDamage_Delete
 //   [ ] 0x3d15a0  RegisterCKS08StunDamageClass
 //   [ ] 0x3d1618  _GLOBAL__I_3d1618
-//   [ ] 0x3d1628  CKS08StunDamage_Destroy
-//   [ ] 0x3d1650  CKS08StunDamage_PostLoad
-//   [ ] 0x3d1678  CKS08StunDamage_RecursiveRegistration
-//   [ ] 0x3d16a0  CKS08StunDamage_Assign
-//   [ ] 0x3d1710  CKS08StunDamage_DeletingDestructor
-//   [ ] 0x3d1758  CKS08StunDamage_Destructor
-//   [ ] 0x3d1788  CKS08StunDamage_BaseDestructor
+//   [x] 0x3d1628  CKS08StunDamage_Destroy  (inherited: CKS08Damage_Destroy)
+//   [x] 0x3d1650  CKS08StunDamage_PostLoad  (= the inherited slot)
+//   [x] 0x3d1678  CKS08StunDamage_RecursiveRegistration  (inherited: CKS08Damage's RecursiveRegistration slot)
+//   [x] 0x3d16a0  CKS08StunDamage_Assign
+//   [x] 0x3d1710  CKS08StunDamage_DeletingDestructor  (~CKS08StunDamage, C++ destructor chain)
+//   [x] 0x3d1758  CKS08StunDamage_Destructor  (C++ destructor chain: vtable stores only)
+//   [x] 0x3d1788  CKS08StunDamage_BaseDestructor  (C++ destructor chain: vtable stores only)
 //   [ ] 0x3d17b8  CKS08StunDamage_CopyConstruct_maybe  [dead]
 //   [ ] 0x3d1810  CKS08StunDamage_CopyConstruct_2_maybe  [dead]
 //   [ ] 0x3d1868  CKS08StunDamage_Construct_2  [dead]

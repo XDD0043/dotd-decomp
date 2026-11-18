@@ -10,20 +10,20 @@
 //   [ ] 0x110270  KStub_Nop_110270  [dead]
 //   [ ] 0x110278  FUN_00110278  [dead]
 //   [ ] 0x110280  FUN_00110280  [dead]
-//   [ ] 0x110288  SoundListener_Release_maybe
-//   [ ] 0x110308  SoundListener_SetOrientationFollowCamera_maybe
+//   [x] 0x110288  SoundListener_Release_maybe
+//   [x] 0x110308  SoundListener_SetOrientationFollowCamera_maybe  (ListenerSetOrientationFollowCamera, Spyro2008/groups/C22SpyroShims.h)
 //   [x] 0x110330  SoundListener_SetFollowCamera_maybe
 //   [ ] 0x110358  SoundListener_SetOrientationObject_maybe  [dead]
 //   [x] 0x110368  SoundListener_Update_maybe
 //   [x] 0x1106f0  SoundListener_GetMatrix_maybe
 //   [x] 0x110890  SoundListener_Load_maybe
-//   [ ] 0x1109b8  SoundListener_Recreate_maybe
+//   [ ] 0x1109b8  SoundListener_Recreate_maybe  [dead: no pointer to its descriptor 0xb583b8, no call]
 //   [ ] 0x110ad0  SoundListener_Save_maybe  [dead]
 //   [x] 0x110be0  SoundListener_Construct_maybe
-//   [ ] 0x110d10  SoundListener_Construct_2_maybe
+//   [ ] 0x110d10  SoundListener_Construct_2_maybe  [dead: no pointer to its descriptor 0xb583e8, no call]
 //
-//   [ ] 0x9a6938  SoundListener_DeletingDestructor_maybe  [inline]
-//   [ ] 0x9a6968  SoundListener_Destructor_maybe  [inline]
+//   [x] 0x9a6938  SoundListener_DeletingDestructor_maybe  [inline]
+//   [x] 0x9a6968  SoundListener_Destructor_maybe  [inline]
 #include "k2000/sound/CKListener.h"
 
 #include "Renderware/rwcore/RwCamera.h"
@@ -32,6 +32,7 @@
 #include "k2000/io/IKFile.h"
 #include "k2000/managers/CKSoundManager.h"
 #include "k2000/misc/Engine.h"
+#include "k2000/misc/Mat4.h"
 #include "k2000/scenegraph/CSGMovable.h"
 #include "k2000/sound/CKSoundOutput.h"
 #include "k2000/system/IKTime.h"
@@ -73,7 +74,7 @@ CKListener::CKListener() {
     m_fRatioVelocity = 1.0f;
     m_pRwaListener = RwaListener_Create();  // RwaListener_Create_maybe(4, 0, 0)
     RwaPS3Driver_SetListener(static_cast<RwaOutput*>(g_pEngine->m_soundManager->m_pOutput->m_rwaOutput), m_pRwaListener);
-    m_pMatrix = new CMatrix34;  // RwMatrixCreate_Thunk (0x0023fa68)
+    m_pMatrix = RwMatrixCreate_Thunk();
     m_pLeafObjectAttachedForPosition = nullptr;
     m_pLeafObjectAttachedForOrientation = nullptr;
     m_vOldPosition.x = kZeroVector.x;
@@ -229,4 +230,13 @@ CMatrix34* CKListener::GetMatrix() {
     m->m_pos.y = p->y;
     m->m_ui32Flags &= ~0x20000u;
     return m;
+}
+
+// 0x00110288 SoundListener_Release_maybe
+void CKListener::Release() {
+    RwaPS3Driver_SetListener(static_cast<RwaOutput*>(g_pEngine->m_soundManager->m_pOutput->m_rwaOutput), nullptr);
+    RwaListener_Destroy(m_pRwaListener);  // RwaObject_Destroy_maybe(listener, 0, 0)
+    m_pRwaListener = nullptr;
+    RwMatrixDestroy_Thunk(m_pMatrix);
+    m_pMatrix = nullptr;
 }

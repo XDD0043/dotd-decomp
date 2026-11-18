@@ -82,12 +82,14 @@ const char* ShaderUniformCgName(int32_t id);
 // 0x000f00d8 ShaderVariantKey_Init_maybe
 void ShaderVariantKey_Init(ShaderVariantKey* key);
 // 0x000f1508 ShaderVariantKey_BuildForMesh_maybe (also reached through the thunks 0xf1c90 / 0xf1c98): the key of the
-// mesh a pass state describes. STUB(C2.7): ShaderVariantKey_BuildForImmediate3D_maybe 0xf07a8 (the Im3D draws keep the
-// device program: the immediate 3D shader bind callback is not installed; the Im3D draws are the PTank particles and the 2D
-// shapes, the particles are C2.7).
+// mesh a pass state describes (the atomics' meshes and, through the PTank's shader hook, the PTank particles).
 void ShaderVariantKey_BuildForMesh(ShaderVariantKey* key, ShaderPassState* pass);
 // 0x000f0108 ShaderVariantKey_BuildFromPassState_maybe: the key of an Im2D pass state (the post-effect passes).
 void ShaderVariantKey_BuildFromPassState(ShaderVariantKey* key, ShaderPassState* pass);
+// 0x000f07a8 ShaderVariantKey_BuildForImmediate3D_maybe (also its thunks 0xf1ca0 / 0xf1ca8, the OPD table 0xb53a98): the
+// key of an Im3D pass state (ShaderManagerPSGL_BindImmediate3DShaders_maybe 0xffde8: the Rt2d shapes, brushes and fonts
+// and the other RwIm3D draws): BuildFromPassState's slots in the same order, with key bit 5 from vt+0xdc instead of vt+0xd8.
+void ShaderVariantKey_BuildForImmediate3D(ShaderVariantKey* key, ShaderPassState* pass);
 // 0x000f0e48 ShaderVariantKey_Equals
 bool ShaderVariantKey_Equals(const ShaderVariantKey& a, const ShaderVariantKey& b);
 // 0x000f1e38 / 0x000f2000: do the two keys need the same vertex / pixel program?

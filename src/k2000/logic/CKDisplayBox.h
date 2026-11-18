@@ -10,6 +10,9 @@
 class CKDisplayBox : public CMultiGeometryBasic {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x181)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x99c8a8
+        return key == 0x604c || key == 0x314c || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKDisplayBox)
 
     CKDisplayBox() {}  // inlined in 0x00094e78 CKDisplayBox_Create: only the vtable

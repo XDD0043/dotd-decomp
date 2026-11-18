@@ -11,10 +11,10 @@
 //   [x] 0x1843c0  CKPauseCinematicBloc_Update
 //   [x] 0x184460  CKPauseCinematicBloc_Load
 //   [ ] 0x184508  CKPauseCinematicBloc_Save
-//   [ ] 0x1845b0  CKPauseCinematicBloc_RecursiveRegistration
+//   [x] 0x1845b0  CKPauseCinematicBloc_RecursiveRegistration
 //   [x] 0x184640  CKPauseCinematicBloc_DeleteArray
 //   [x] 0x1846e0  CKPauseCinematicBloc_Create
-//   [ ] 0x184738  CKPauseCinematicBloc_Destroy
+//   [x] 0x184738  CKPauseCinematicBloc_Destroy  (empty: the default)
 //   [x] 0x184740  CKPauseCinematicBloc_CreateArray
 //   [x] 0x1847f0  CKPauseCinematicBloc_Start
 //   [x] 0x184ab0  CKPauseCinematicBloc_Complete
@@ -25,6 +25,8 @@
 //   [ ] 0x9a9cc0  CKPauseCinematicBloc_Destructor  [inline]
 //   [ ] 0x9a9ce0  CKPauseCinematicBloc_DeletingDestructor  [inline]
 #include "k2000/cinematics/CKPauseCinematicBloc.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 
 #include "k2000/system/IKTime.h"
 
@@ -69,3 +71,9 @@ void CKPauseCinematicBloc::Stop() {
 
 // 0x00184148 CKPauseCinematicBloc_Abort
 void CKPauseCinematicBloc::Abort() { m_DataFlags &= 0xfffffffeu; }
+
+// 0x001845b0 CKPauseCinematicBloc_RecursiveRegistration
+void CKPauseCinematicBloc::RecursiveRegistration(int32_t type) {
+    if (static_cast<uint32_t>(type - 4) > 3u) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);
+    IKCinematicBloc::RecursiveRegistration(type);  // 0x0018e8d8
+}

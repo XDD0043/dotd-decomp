@@ -24,6 +24,9 @@ public:
     ~CKPathFindingCinematicBloc() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00181f20 CKPathFindingCinematicBloc_Load
+    // vt+0x24 0x00181c78 CKPathFindingCinematicBloc_RecursiveRegistration: registered with the saving manager (vt+0x24) unless the type is 4..7, then
+    // IKCinematicBloc_LevelReset 0x18e8d8 (which registers it once more).
+    void RecursiveRegistration(int32_t type) override;
 
     void ResetRuntime();  // 0x00181520 CKPathFindingCinematicBloc_ResetRuntime_maybe (the Load calls it)
 
@@ -45,6 +48,9 @@ public:
     void MoveActorAlongPath(IKTime* time);
     // 0x001823c8 CKPathFindingCinematicBloc_TurnActorToTargetYaw_maybe: one frame of the turn to the final yaw; 1 once there.
     bool TurnActorToTargetYaw(IKTime* time);
+    // The out-of-line copies of code Update / MoveActorAlongPath inline (dead in the original):
+    void AdvanceActorAnimBy(IKTime* time);  // 0x00181948 CKPathFindingCinematicBloc_AdvanceActorAnim_maybe
+    void SnapActorToGround();               // 0x00181970 CKPathFindingCinematicBloc_SnapActorToGround_maybe
 
     CVector3 m_v3StartPos;              // +0x38 ResetRuntime: (0, 0, 0)
     CVector3 m_v3CurrentPos;            // +0x44 ResetRuntime: (0, 0, 0)
@@ -94,3 +100,6 @@ DOTD_ASSERT_OFFSET(CKPathFindingCinematicBloc, m_v3CurrentPath, 0xe0);
 DOTD_ASSERT_OFFSET(CKPathFindingCinematicBloc, m_PathFindingCpnt, 0xfc);
 DOTD_ASSERT_OFFSET(CKPathFindingCinematicBloc, m_DatasIn, 0x174);
 DOTD_ASSERT_OFFSET(CKPathFindingCinematicBloc, m_DatasInOut, 0x184);
+
+// 0x00181858 DirectionToYawAngle_maybe (dead in the original): the heading of the direction (atan(-z / x) in [0, 2 pi]).
+float DirectionToYawAngle(const CVector3* direction);

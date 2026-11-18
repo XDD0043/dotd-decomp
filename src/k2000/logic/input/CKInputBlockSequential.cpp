@@ -5,73 +5,73 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x205290  CKInputBlockSequential_Delete
-//   [ ] 0x2052e0  CKInputBlockSequential_FindActionBlockById_maybe
-//   [ ] 0x2054b0  CKInputBlockSequential_GetActiveActionBlock_maybe
+//   [x] 0x2052e0  CKInputBlockSequential_FindActionBlockById_maybe
+//   [x] 0x2054b0  CKInputBlockSequential_GetActiveActionBlock_maybe
 //   [ ] 0x2055b8  CKInputBlockSequential_GetActiveBlockStep_maybe  [dead]
 //   [x] 0x205660  CKInputBlockSequential_ComputeStepCount_maybe
 //   [ ] 0x2057e8  KStub_ReturnFloat0_2057e8  [dead]
 //   [ ] 0x2057f0  CKInputBlockSequential_IsAnyActionActive_maybe  [dead]
-//   [ ] 0x205930  CKInputBlockSequential_RecomputeCommonValue1C_maybe
-//   [ ] 0x205b08  CKInputBlockSequential_RecomputeCommonValue20_maybe
+//   [x] 0x205930  CKInputBlockSequential_RecomputeCommonValue1C_maybe
+//   [x] 0x205b08  CKInputBlockSequential_RecomputeCommonValue20_maybe
 //   [x] 0x205ce0  CKInputBlockSequential_PushActiveChild_maybe
 //   [x] 0x205cf0  CKInputBlockSequential_RemoveActiveChild_maybe
 //   [ ] 0x205d60  RegisterCKInputBlockSequentialClass
 //   [ ] 0x205de8  _GLOBAL__D_205de8
 //   [ ] 0x205df8  _GLOBAL__I_205df8
-//   [ ] 0x205e08  CKInputBlockSequential_vf90
+//   [x] 0x205e08  CKInputBlockSequential_vf90
 //   [ ] 0x205e70  CKInputBlockSequential_Save
-//   [ ] 0x205e98  CKInputBlockSequential_RecursiveRegistration
-//   [ ] 0x205ec0  CKInputBlockSequential_Destroy
+//   [x] 0x205e98  CKInputBlockSequential_RecursiveRegistration  (the base's, 0x209c68)
+//   [x] 0x205ec0  CKInputBlockSequential_Destroy
 //   [x] 0x205f58  CKInputBlockSequential_Construct
-//   [ ] 0x205fc8  CKInputBlockSequential_Construct_2
+//   [x] 0x205fc8  CKInputBlockSequential_Construct_2  (= Construct)
 //   [x] 0x206038  CKInputBlockSequential_DeleteArray
-//   [ ] 0x2060d8  CKInputBlockSequential_vfA0
-//   [ ] 0x2061c0  CKInputBlockSequential_vf70
-//   [ ] 0x2062b0  CKInputBlockSequential_vf9C
-//   [ ] 0x206398  CKInputBlockSequential_vf80
-//   [ ] 0x206498  CKInputBlockSequential_vfB4
-//   [ ] 0x206580  CKInputBlockSequential_vfB0
-//   [ ] 0x206668  CKInputBlockSequential_vfA8
-//   [ ] 0x206750  CKInputBlockSequential_vfA4
-//   [ ] 0x206838  CKInputBlockSequential_vf98
-//   [ ] 0x206970  CKInputBlockSequential_vf78
-//   [ ] 0x206aa8  CKInputBlockSequential_vf60
-//   [ ] 0x206bc8  CKInputBlockSequential_vfC0
-//   [ ] 0x206c50  CKInputBlockSequential_vfBC
+//   [x] 0x2060d8  CKInputBlockSequential_vfA0
+//   [x] 0x2061c0  CKInputBlockSequential_vf70
+//   [x] 0x2062b0  CKInputBlockSequential_vf9C
+//   [x] 0x206398  CKInputBlockSequential_vf80
+//   [x] 0x206498  CKInputBlockSequential_vfB4
+//   [x] 0x206580  CKInputBlockSequential_vfB0
+//   [x] 0x206668  CKInputBlockSequential_vfA8
+//   [x] 0x206750  CKInputBlockSequential_vfA4
+//   [x] 0x206838  CKInputBlockSequential_vf98
+//   [x] 0x206970  CKInputBlockSequential_vf78
+//   [x] 0x206aa8  CKInputBlockSequential_vf60
+//   [x] 0x206bc8  CKInputBlockSequential_vfC0
+//   [x] 0x206c50  CKInputBlockSequential_vfBC
 //   [ ] 0x206cd8  CKInputBlockSequential_GetActivePositionNormalizedPtr_maybe  [dead]
-//   [ ] 0x206d10  CKInputBlockSequential_vf8C
+//   [x] 0x206d10  CKInputBlockSequential_vf8C
 //   [ ] 0x206e18  CKInputBlockSequential_GetActivePositionScaled_maybe  [dead]
 //   [x] 0x206eb0  CKInputBlockSequential_OnActivate
 //   [x] 0x207158  CKInputBlockSequential_OnDeactivate
-//   [ ] 0x207388  CKInputBlockSequential_DestructBody
-//   [ ] 0x207428  CKInputBlockSequential_DeletingDestructor
-//   [ ] 0x2074d8  CKInputBlockSequential_Destructor
-//   [ ] 0x207578  CKInputBlockSequential_DetachChild_maybe
+//   [x] 0x207388  CKInputBlockSequential_DestructBody  (= Destructor)
+//   [x] 0x207428  CKInputBlockSequential_DeletingDestructor  (C++ deleting destructor)
+//   [x] 0x2074d8  CKInputBlockSequential_Destructor
+//   [x] 0x207578  CKInputBlockSequential_DetachChild_maybe
 //   [ ] 0x207740  FUN_00207740  [dead]
 //   [ ] 0x207850  FUN_00207850  [dead]
 //   [ ] 0x207960  FUN_00207960  [dead]
 //   [ ] 0x207a70  FUN_00207a70  [dead]
-//   [ ] 0x207c38  CKInputBlockSequential_CollectAnchors_maybe
+//   [x] 0x207c38  CKInputBlockSequential_CollectAnchors_maybe
 //   [x] 0x2080e8  CKInputBlockSequential_CreateArray
 //   [x] 0x2081e0  CKInputBlockSequential_Create
 //   [x] 0x208268  CKInputBlockSequential_Load
 //   [x] 0x2088b0  CKInputBlockSequential_Evaluate
 //   [x] 0x208c68  CKInputBlockSequential_Update_maybe
-//   [ ] 0x2090c8  CKInputBlockSequential_RefreshButtonMaskUpward_maybe
-//   [ ] 0x2096b8  InputBlock_AddChild_maybe
-//   [ ] 0x209998  PS3_CKInputBlockPosition_vf60
+//   [x] 0x2090c8  CKInputBlockSequential_RefreshButtonMaskUpward_maybe
+//   [x] 0x2096b8  InputBlock_AddChild_maybe
+//   [x] 0x209998  PS3_CKInputBlockPosition_vf60  (KBase628C::DisconnectAnchors)
 //   [x] 0x209a10  InputBlock_CallActivate_maybe
 //   [x] 0x209a50  InputBlock_CallDeactivate_maybe
 //
 //   [ ] 0x9b1758  CKInputBlockSequential_IsKindOfClass  [inline]
 //   [ ] 0x9b1790  CKInputBlockSequential_GetClassType  [inline]
 //   [ ] 0x9b1798  CKInputBlockSequential_GetClassID  [inline]
-//   [ ] 0x9b17a0  CKInputBlockSequential_vf74  [inline]
-//   [ ] 0x9b17b0  CKInputBlockSequential_vf7C  [inline]
+//   [x] 0x9b17a0  CKInputBlockSequential_vf74  [inline]
+//   [x] 0x9b17b0  CKInputBlockSequential_vf7C  [inline]
 //   [x] 0x9b17c0  CKInputBlockSequential_vf94  [inline]
-//   [ ] 0x9b17d0  CKInputBlockSequential_vfAC  [inline]
-//   [ ] 0x9b17d8  CKInputBlockSequential_vfB8  [inline]
-//   [ ] 0x9b17e0  CKInputBlockSequential_vf88  [inline]
+//   [x] 0x9b17d0  CKInputBlockSequential_vfAC  [inline]
+//   [x] 0x9b17d8  CKInputBlockSequential_vfB8  [inline]
+//   [x] 0x9b17e0  CKInputBlockSequential_vf88  [inline]
 #include "k2000/logic/input/CKInputBlockSequential.h"
 
 #include "k2000/io/IKFile.h"
@@ -172,6 +172,58 @@ void CKInputBlockSequential::ComputeStepCount(int32_t* count, uint8_t flag) {
         if (child->IsKindOfClass(0x624c) == 0) continue;  // CKInputBlockSequential
         static_cast<CKInputBlockSequential*>(child)->ComputeStepCount(count, flag);
     }
+}
+
+// 0x002052e0 CKInputBlockSequential_FindActionBlockById_maybe (the count re-read every pass)
+KBase628C* CKInputBlockSequential::FindActionBlockById(int32_t id, uint16_t* glyph) {
+    uint32_t i = 0;
+    while (i < m_vUnk38.m_ui32NbUsedElt) {
+        IKSerializable* child = m_vUnk38.m_pBlock[i];
+        ++i;
+        if (child->IsKindOfClass(0x628c) == 0) continue;  // vt+0x08: KBase628C
+        KBase628C* block = static_cast<KBase628C*>(child);
+        if (block->GetStepIndex() == id) {  // vt+0x94
+            const int32_t found = block->GetButtonGlyph();  // vt+0x90
+            *glyph = static_cast<uint16_t>(found);
+            if (found != 0x3f) return block;
+        }
+        if (child->IsKindOfClass(0x624c) == 0) continue;  // CKInputBlockSequential
+        KBase628C* inner = static_cast<CKInputBlockSequential*>(child)->FindActionBlockById(id, glyph);
+        if (*glyph != 0x3f) return inner;
+    }
+    return nullptr;
+}
+
+// 0x002054b0 CKInputBlockSequential_GetActiveActionBlock_maybe. The blocks are KBase628C ones (the logical blocks, the
+// other KBase60CC family, are in no game file).
+KBase60CC* CKInputBlockSequential::GetActiveActionBlock(uint16_t* glyph) {
+    if (m_unk50 != nullptr && m_unk50->m_unk0e != 0) {
+        *glyph = static_cast<uint16_t>(static_cast<KBase628C*>(m_unk50)->GetButtonGlyph());  // vt+0x90
+        return m_unk50;
+    }
+    if (m_unk4c == nullptr || m_unk4c->m_unk0e == 0) return nullptr;
+    *glyph = static_cast<uint16_t>(static_cast<KBase628C*>(m_unk4c)->GetButtonGlyph());
+    return m_unk4c;
+}
+
+// 0x00105300 KStub_Return44_105300 (managers/CKInput.cpp, a CKInput method): 0x2c, the pad buttons' first glyph
+// index (0xe800 + 2 x 0x2c); local copy.
+static int32_t CKInput_PadGlyphBase(const CKInput* /*input*/) { return 0x2c; }
+
+// 0x00205e08 CKInputBlockSequential_vf90
+int32_t CKInputBlockSequential::GetButtonGlyph() {
+    uint32_t glyph = 0x3f;
+    if (m_unk1c != -1) {
+        const int32_t base = CKInput_PadGlyphBase(g_pEngine->m_input);
+        glyph = (static_cast<uint32_t>(base) * 2u + static_cast<uint32_t>(m_unk1c) * 2u - 0x1800u) & 0xffffu;
+    }
+    return static_cast<int32_t>(glyph);
+}
+
+// 0x00206c50 CKInputBlockSequential_vfBC
+uint8_t CKInputBlockSequential::VfBC() {
+    if (m_unk08 == nullptr && m_unk54 != nullptr) return static_cast<KBase628C*>(m_unk54)->VfBC();  // vt+0xbc
+    return (m_unk88 >> 2) & 1;
 }
 
 // 0x00205ce0 CKInputBlockSequential_PushActiveChild_maybe
@@ -353,3 +405,235 @@ void KBase628C::OnActivate() { Activate(); }
 
 // 0x00209a50 InputBlock_CallDeactivate_maybe (KBase628C vt+0x54)
 void KBase628C::OnDeactivate() { Deactivate(); }
+
+// 0x002074d8 CKInputBlockSequential_Destructor
+CKInputBlockSequential::~CKInputBlockSequential() {
+    if (m_vUnk38.m_pBlock != nullptr) Mem_FreeAligned16(m_vUnk38.m_pBlock);
+    m_vUnk38.m_pBlock = nullptr;
+    if (m_vUnk2c.m_pBlock != nullptr) Mem_FreeAligned16(m_vUnk2c.m_pBlock);
+    m_vUnk2c.m_pBlock = nullptr;
+}
+
+// 0x00205ec0 CKInputBlockSequential_Destroy: the base's (0x209c90), then the action and child blocks freed (the counts
+// kept).
+void CKInputBlockSequential::Destroy() {
+    KBase628C::Destroy();
+    if (m_vUnk2c.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_vUnk2c.m_pBlock);
+        m_vUnk2c.m_pBlock = nullptr;
+    }
+    m_vUnk2c.m_pBlock = nullptr;
+    if (m_vUnk38.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_vUnk38.m_pBlock);
+        m_vUnk38.m_pBlock = nullptr;
+    }
+    m_vUnk38.m_pBlock = nullptr;
+}
+
+// 0x00209998 PS3_CKInputBlockPosition_vf60 (KBase628C's vt+0x60; in this unit's checklist)
+void KBase628C::DisconnectAnchors() {
+    m_apInputs[0]->DisconnectAll();  // vt+0x54
+    m_apInputs[1]->DisconnectAll();
+}
+
+// 0x00207c38 CKInputBlockSequential_CollectAnchors_maybe
+void CKInputBlockSequential::CollectAnchors(TVector<KBase610C*, 1>* out) {
+    KBase628C::CollectAnchors(out);
+    KAnchor_PushBack(out, m_apUnk70[0]);
+    KAnchor_PushBack(out, m_apUnk70[1]);
+    KAnchor_PushBack(out, m_apUnk78[0]);
+    KAnchor_PushBack(out, m_apUnk78[1]);
+    KAnchor_PushBack(out, m_apUnk80[0]);
+    KAnchor_PushBack(out, m_apUnk80[1]);
+}
+
+// 0x00206aa8 CKInputBlockSequential_vf60
+void CKInputBlockSequential::DisconnectAnchors() {
+    KBase628C::DisconnectAnchors();
+    m_apUnk70[0]->DisconnectAll();  // vt+0x54
+    m_apUnk70[1]->DisconnectAll();
+    m_apUnk78[0]->DisconnectAll();
+    m_apUnk78[1]->DisconnectAll();
+    m_apUnk80[0]->DisconnectAll();
+    m_apUnk80[1]->DisconnectAll();
+}
+
+// The pass-on loops (vt+0x70 .. +0xb4): every child that is a KBase628C (IsKindOfClass 0x628c) gets the call; the
+// count is read again after each child.
+#define DOTD_SEQ_FOR_EACH_BLOCK_CHILD(call)                                     \
+    for (uint32_t i = 0; i < m_vUnk38.m_ui32NbUsedElt; ++i) {                  \
+        IKSerializable* child = m_vUnk38.m_pBlock[i];                          \
+        if (static_cast<uint8_t>(child->IsKindOfClass(0x628c)) == 0) continue; \
+        static_cast<KBase628C*>(child)->call;                                  \
+    }
+
+// 0x002061c0 CKInputBlockSequential_vf70
+void CKInputBlockSequential::SetEnabled(uint8_t value) {
+    m_unk0f = static_cast<uint8_t>(value ^ 1);
+    DOTD_SEQ_FOR_EACH_BLOCK_CHILD(SetEnabled(value))
+}
+
+// 0x00206970 CKInputBlockSequential_vf78
+void CKInputBlockSequential::SetCommonValue1C(int32_t value, int32_t propagate) {
+    m_unk1c = value;
+    DOTD_SEQ_FOR_EACH_BLOCK_CHILD(SetCommonValue1C(value, 0))
+    if (m_unk08 != nullptr && propagate != 0) static_cast<CKInputBlockSequential*>(m_unk08)->RecomputeCommonValue1C();
+}
+
+// 0x00206398 CKInputBlockSequential_vf80
+void CKInputBlockSequential::SetBit0(uint8_t value) {
+    m_unk88 = static_cast<uint8_t>(value | (m_unk88 & 0xfe));
+    DOTD_SEQ_FOR_EACH_BLOCK_CHILD(SetBit0(value))
+}
+
+// 0x00206d10 CKInputBlockSequential_vf8C
+void CKInputBlockSequential::SetBit1(uint8_t value) {
+    m_unk88 = static_cast<uint8_t>((m_unk88 & 0xfd) | (value << 1));
+    DOTD_SEQ_FOR_EACH_BLOCK_CHILD(SetBit1(value))
+}
+
+// 0x00206838 CKInputBlockSequential_vf98
+void CKInputBlockSequential::SetStepIndex(int32_t value, int32_t propagate) {
+    m_unk20 = value;
+    DOTD_SEQ_FOR_EACH_BLOCK_CHILD(SetStepIndex(value, 0))
+    if (m_unk08 != nullptr && propagate != 0) static_cast<CKInputBlockSequential*>(m_unk08)->RecomputeCommonValue20();
+}
+
+void CKInputBlockSequential::Vf9C(uint8_t value) { DOTD_SEQ_FOR_EACH_BLOCK_CHILD(Vf9C(value)) }  // 0x002062b0
+void CKInputBlockSequential::VfA0(uint8_t value) { DOTD_SEQ_FOR_EACH_BLOCK_CHILD(VfA0(value)) }  // 0x002060d8
+void CKInputBlockSequential::VfA4(uint8_t value) { DOTD_SEQ_FOR_EACH_BLOCK_CHILD(VfA4(value)) }  // 0x00206750
+void CKInputBlockSequential::VfA8(uint8_t value) { DOTD_SEQ_FOR_EACH_BLOCK_CHILD(VfA8(value)) }  // 0x00206668
+void CKInputBlockSequential::VfB0(float value) { DOTD_SEQ_FOR_EACH_BLOCK_CHILD(VfB0(value)) }    // 0x00206580
+void CKInputBlockSequential::VfB4(float value) { DOTD_SEQ_FOR_EACH_BLOCK_CHILD(VfB4(value)) }    // 0x00206498
+
+#undef DOTD_SEQ_FOR_EACH_BLOCK_CHILD
+
+// 0x00206bc8 CKInputBlockSequential_vfC0
+uint8_t CKInputBlockSequential::VfC0() {
+    if (m_unk08 == nullptr && m_unk54 != nullptr) return static_cast<KBase628C*>(m_unk54)->VfC0();
+    return (m_unk88 >> 3) & 1;
+}
+
+// 0x00205930 CKInputBlockSequential_RecomputeCommonValue1C_maybe (vt+0x74 asked twice of the child that sets it)
+void CKInputBlockSequential::RecomputeCommonValue1C() {
+    CKInputBlockSequential* block = this;
+    for (;;) {
+        const int32_t previous = block->m_unk1c;
+        block->m_unk1c = -1;
+        for (uint32_t i = 0; i < block->m_vUnk38.m_ui32NbUsedElt; ++i) {
+            KBase628C* child = static_cast<KBase628C*>(block->m_vUnk38.m_pBlock[i]);
+            if (static_cast<uint8_t>(child->IsKindOfClass(0x624c)) == 0) continue;
+            if (child->GetCommonValue1C() == -1) continue;
+            block->m_unk1c = child->GetCommonValue1C();
+            break;
+        }
+        for (uint32_t i = 0; i < block->m_vUnk38.m_ui32NbUsedElt; ++i) {
+            KBase628C* child = static_cast<KBase628C*>(block->m_vUnk38.m_pBlock[i]);
+            if (static_cast<uint8_t>(child->IsKindOfClass(0x624c)) == 0) continue;
+            if (block->m_unk1c == child->GetCommonValue1C()) continue;
+            block->m_unk1c = -1;
+            break;
+        }
+        CKInputBlockSequential* parent = static_cast<CKInputBlockSequential*>(block->m_unk08);
+        if (parent == nullptr || block->m_unk1c == previous) return;
+        block = parent;
+    }
+}
+
+// 0x00205b08 CKInputBlockSequential_RecomputeCommonValue20_maybe (vt+0x94 asked twice of the child that sets it)
+void CKInputBlockSequential::RecomputeCommonValue20() {
+    CKInputBlockSequential* block = this;
+    for (;;) {
+        const int32_t previous = block->m_unk20;
+        block->m_unk20 = -1;
+        for (uint32_t i = 0; i < block->m_vUnk38.m_ui32NbUsedElt; ++i) {
+            KBase628C* child = static_cast<KBase628C*>(block->m_vUnk38.m_pBlock[i]);
+            if (static_cast<uint8_t>(child->IsKindOfClass(0x628c)) == 0) continue;
+            if (child->GetStepIndex() == -1) continue;
+            block->m_unk20 = child->GetStepIndex();
+            break;
+        }
+        for (uint32_t i = 0; i < block->m_vUnk38.m_ui32NbUsedElt; ++i) {
+            KBase628C* child = static_cast<KBase628C*>(block->m_vUnk38.m_pBlock[i]);
+            if (static_cast<uint8_t>(child->IsKindOfClass(0x628c)) == 0) continue;
+            if (block->m_unk20 == child->GetStepIndex()) continue;
+            block->m_unk20 = -1;
+            break;
+        }
+        CKInputBlockSequential* parent = static_cast<CKInputBlockSequential*>(block->m_unk08);
+        if (parent == nullptr || block->m_unk20 == previous) return;
+        block = parent;
+    }
+}
+
+// 0x00207578 CKInputBlockSequential_DetachChild_maybe (no caller found: CKSrvInput's block removal is the user _maybe)
+void CKInputBlockSequential::DetachChild(KBase60CC* child) {
+    if (child->m_unk0e != 0) child->Deactivate();  // vt+0x6c
+    child->DisconnectAnchors();                     // vt+0x60
+    const uint32_t count = m_vUnk38.m_ui32NbUsedElt;
+    if (count == 0) return;
+    uint32_t i = 0;
+    while (m_vUnk38.m_pBlock[i] != child) {
+        if (++i == count) return;
+    }
+    const uint32_t last = count - 1;
+    m_vUnk38.m_ui32NbUsedElt = last;
+    if (last != i) m_vUnk38.m_pBlock[i] = m_vUnk38.m_pBlock[last];
+    const uint32_t capacity = m_vUnk38.m_ui32NbElt - 1;
+    if (static_cast<int32_t>(capacity) < static_cast<int32_t>(m_vUnk38.m_ui32NbUsedElt)) return;
+    if (capacity == 0) {
+        m_vUnk38.m_pBlock = static_cast<IKSerializable**>(
+            Mem_ReallocAligned16(m_vUnk38.m_pBlock, static_cast<uint32_t>(sizeof(IKSerializable*))));
+        m_vUnk38.m_ui32NbElt = 1;
+    } else {
+        m_vUnk38.m_pBlock = static_cast<IKSerializable**>(
+            Mem_ReallocAligned16(m_vUnk38.m_pBlock, capacity * static_cast<uint32_t>(sizeof(IKSerializable*))));
+        m_vUnk38.m_ui32NbElt = capacity;
+    }
+}
+
+namespace {
+// The button-mask OR over the KBase628C children that RefreshButtonMaskUpward and AddChild inline.
+void RecomputeButtonMask(CKInputBlockSequential* block) {
+    block->m_unk0c = 0;
+    for (uint32_t i = 0; i < block->m_vUnk38.m_ui32NbUsedElt; ++i) {
+        KBase60CC* child = static_cast<KBase60CC*>(block->m_vUnk38.m_pBlock[i]);
+        if (static_cast<uint8_t>(child->IsKindOfClass(0x628c)) == 0) continue;
+        block->m_unk0c = static_cast<uint16_t>(child->m_unk0c | block->m_unk0c);
+    }
+}
+}  // namespace
+
+// 0x002090c8 CKInputBlockSequential_RefreshButtonMaskUpward_maybe
+void CKInputBlockSequential::RefreshButtonMaskUpward() {
+    CKInputBlockSequential* block = this;
+    for (;;) {
+        RecomputeButtonMask(block);
+        CKInputBlockSequential* parent = static_cast<CKInputBlockSequential*>(block->m_unk08);
+        if (parent == nullptr || block->m_unk0c == parent->m_unk0c) return;
+        block = parent;
+    }
+}
+
+// 0x002096b8 InputBlock_AddChild_maybe
+void CKInputBlockSequential::AddChild(KBase60CC* child) {
+    if (static_cast<uint8_t>(child->IsKindOfClass(0x628c)) != 0) {
+        CKOutputAnchor* output = m_apUnk70[1];
+        CKInputAnchor* input = static_cast<KBase628C*>(child)->m_apInputs[1];
+        CKSrvInput* service = static_cast<CKSrvInput*>(g_pEngine->m_srvInput);
+        if (output->Connect(input) != 0 && input->Connect(output) != 0) service->m_unk10 += 1;  // vt+0x60 both ways
+    }
+    if (m_vUnk38.m_ui32NbElt == m_vUnk38.m_ui32NbUsedElt) {
+        uint32_t capacity = m_vUnk38.m_ui32NbUsedElt + 1;
+        if (capacity == 0) capacity = 1;
+        m_vUnk38.m_pBlock = static_cast<IKSerializable**>(
+            Mem_ReallocAligned16(m_vUnk38.m_pBlock, capacity * static_cast<uint32_t>(sizeof(IKSerializable*))));
+        m_vUnk38.m_ui32NbElt = capacity;
+    }
+    m_vUnk38.m_pBlock[m_vUnk38.m_ui32NbUsedElt] = child;
+    m_vUnk38.m_ui32NbUsedElt += 1;
+    if (static_cast<uint8_t>(child->IsKindOfClass(0x628c)) == 0 || m_unk0c == child->m_unk0c) return;
+    RecomputeButtonMask(this);
+    CKInputBlockSequential* parent = static_cast<CKInputBlockSequential*>(m_unk08);
+    if (parent != nullptr && m_unk0c != parent->m_unk0c) parent->RefreshButtonMaskUpward();
+}

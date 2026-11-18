@@ -18,7 +18,7 @@ public:
     DOTD_DECLARE_FACTORIES(CCloneManager)
 
     CCloneManager();                                    // 0x000873d0 CCloneManager_Create (inlined)
-    ~CCloneManager() override {}                        // STUB(C1.6): 0x87a98 frees the team and the clones
+    ~CCloneManager() override;                          // 0x00087a98 CCloneManager_Destructor
     int32_t IsKindOfClass(uint32_t key) override { return key == 0xcd || key == 0xa8d || key == 0xc; }  // 0x99c288
     void Destroy() override;                            // vt+0x10 0x00086f68 CCloneManager_Destroy
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00087440 CCloneManager_Load
@@ -31,9 +31,13 @@ public:
     void UpdateAndExtract(float maxDistanceSquared, RenderQueue** stages, IKTime* frameClock, RwCamera* camera,
                           int32_t distanceCull) override;
     // vt+0x5c 0x00086eb8 CCloneManager_Render (CCloneManager_DrawClones): no face culling, then the team's passes 2 | 4 | 8.
-    void Render() override;
+    void Render(IKTime* frameClock) override;
     // vt+0x70 0x000872b0 CCloneManager_CanBeUpdated: not while the renderer skips the scene roots' extraction (bit 2 of its flags).
     int32_t CanBeUpdated() override;
+    // vt+0x24 0x000871a8 CCloneManager_RecursiveRegistration: type 0 registers the manager, then every clone's own (type 0).
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x6c 0x00086548 CCloneManager_GetRenderingProperties: 0, 0xff, 1, blend mode 1.
+    void GetRenderingProperties(uint8_t* first, uint8_t* second, uint8_t* third, uint32_t* blendMode) override;
     // 0x00086708 CCloneManager_GetTeamElementFirstMaterial: the first RpMaterial of the geometry of the LOD 0 atomic of
     // dictionary element `index` (the clone materials' CMaterial adopts it in its PostLoad).
     RpMaterial* GetTeamElementFirstMaterial(uint32_t index);

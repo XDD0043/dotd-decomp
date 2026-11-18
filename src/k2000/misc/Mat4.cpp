@@ -6,44 +6,44 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x23f048  Seg2D_IntersectCircle
 //   [x] 0x23f238  Seg2D_IntersectSegment
-//   [ ] 0x23f2e8  Line2D_ProjectPoint
+//   [x] 0x23f2e8  Line2D_ProjectPoint  (no caller in the original either)
 //   [ ] 0x23f3a8  Seg2D_DistanceSqToPoint_maybe  [dead]
-//   [ ] 0x23f440  Line2D_GetNormal
+//   [x] 0x23f440  Line2D_GetNormal  (no caller in the original either)
 //   [x] 0x23f4c0  CMatrix34_LoadMatrix
 //   [x] 0x23f648  Mat4_OrthoNormalizeInPlace
-//   [ ] 0x23f670  RwMatrixScalePreConcat_Thunk
-//   [ ] 0x23f698  Matrix_SetRotationKeepPosition
-//   [ ] 0x23f708  RwMatrixRotate_Thunk
-//   [ ] 0x23f738  Mat4_TransformPreConcat
-//   [ ] 0x23f760  Mat4_TransformPostConcat
+//   [x] 0x23f670  RwMatrixScalePreConcat_Thunk
+//   [x] 0x23f698  Matrix_SetRotationKeepPosition  (no caller in the original either)
+//   [x] 0x23f708  RwMatrixRotate_Thunk  (its caller CKCameraFirstPersonTrack_ApplyStickLook_maybe is not ported yet)
+//   [x] 0x23f738  Mat4_TransformPreConcat
+//   [x] 0x23f760  Mat4_TransformPostConcat
 //   [x] 0x23f788  Mat4_Multiply
 //   [x] 0x23f7b0  Mat4_TransformVectors
 //   [x] 0x23f7e8  Mat4_TransformPoints
-//   [ ] 0x23f820  RwMatrixRotateOneMinusCosineSine_Thunk
-//   [ ] 0x23f850  RwMatrixQueryRotate_Thunk
+//   [x] 0x23f820  RwMatrixRotateOneMinusCosineSine_Thunk  (no caller in the original either)
+//   [ ] 0x23f850  RwMatrixQueryRotate_Thunk  [dead: no pointer to its descriptor 0xb82270, no call (raw ELF scan, R08)]
 //   [x] 0x23f878  Mat4_Invert_maybe
 //   [ ] 0x23f8a0  Mat4_Save
 //   [x] 0x23f968  RwMatrixDestroy_Thunk
-//   [ ] 0x23f990  Matrix_CreateCopy
+//   [x] 0x23f990  Matrix_CreateCopy  (no caller in the original either)
 //   [x] 0x23fa68  RwMatrixCreate_Thunk
 //   [x] 0x23fa90  Mat4_SetBasisFromRightUp
-//   [ ] 0x23fba8  Mat4_RotateAboutPoint_maybe
+//   [x] 0x23fba8  Mat4_RotateAboutPoint_maybe
 //   [ ] 0x23fc68  Mat4_SetAxisRotationCosSin_maybe  [dead]
 //   [x] 0x23fd30  Mat4_SetBasisFromAtUp
 //   [x] 0x23fe58  Mat4_SetBasisFromAtRight
 //   [x] 0x23ff80  Mat4_BuildFromUpAndForward
 //   [x] 0x2400a8  Mat4_SetBasisFromUpAt
-//   [ ] 0x2401d0  Matrix_OrthonormalFromTwoAxes_maybe
-//   [ ] 0x2402e8  Mat4_Add_maybe
-//   [ ] 0x2403e0  Mat4_TransformVec4Array_VMX_maybe
+//   [x] 0x2401d0  Matrix_OrthonormalFromTwoAxes_maybe  (its caller CSGMovable_OrthonormalizeMatrix_maybe is not ported yet)
+//   [x] 0x2402e8  Mat4_Add_maybe  (its caller CKPxBody_UpdateInertiaTensor_maybe is not ported (CKPx core))
+//   [x] 0x2403e0  Mat4_TransformVec4Array_VMX_maybe
 //   [x] 0x240498  Mat4_RotateInPlace
-//   [ ] 0x240520  Mat4_TransformVectorsInline
-//   [ ] 0x2405b0  Mat4_InverseTransformPoints
-//   [ ] 0x240660  Matrix_SetRotationKeepPosition_2
-//   [ ] 0x2406d0  Mat4_TransformPointsStrided
-//   [ ] 0x2407a8  V3d_TransformVectorsStrided
-//   [ ] 0x240880  Matrix_CreateCopyClearFlags
-//   [ ] 0x240938  Matrix_LookAt
+//   [x] 0x240520  Mat4_TransformVectorsInline  (its callers are CKPx (not ported) and ShaderMatrixCache_WorldDirToObject (native double precision by design))
+//   [x] 0x2405b0  Mat4_InverseTransformPoints  (its callers are CKPx / CKHkPxObject (not ported) and ShaderMatrixCache_WorldPointToObject (native double precision by design))
+//   [x] 0x240660  Matrix_SetRotationKeepPosition_2  (the same code as 0x23f698 Matrix_SetRotationKeepPosition)
+//   [x] 0x2406d0  Mat4_TransformPointsStrided  (CGlowNodeFx.cpp keeps its local copy (TransformPointsStrided))
+//   [x] 0x2407a8  V3d_TransformVectorsStrided  (no caller in the original either)
+//   [x] 0x240880  Matrix_CreateCopyClearFlags  (no caller in the original either)
+//   [x] 0x240938  Matrix_LookAt  (no caller in the original either)
 //   [ ] 0x240b48  Mat4_RotateFromTo_maybe  [dead]
 //   [x] 0x241118  Mat4_RotateLocalXDeg
 //   [x] 0x2413d0  Mat4_RotateLocalYDeg
@@ -52,6 +52,7 @@
 #include "k2000/misc/Mat4.h"
 
 #include "Renderware/rwcore/RwMatrix.h"
+#include <cmath>
 #include <cstring>
 
 #include "crt/ppc_ops.h"
@@ -74,6 +75,11 @@ void CMatrix34_LoadMatrix(CMatrix34* matrix, IKFile* file) {
 // 0x0023f648 Mat4_OrthoNormalizeInPlace
 void Mat4_OrthoNormalizeInPlace(CMatrix34* matrix) {
     RwMatrixOrthoNormalize(reinterpret_cast<RwMatrix*>(matrix), reinterpret_cast<RwMatrix*>(matrix));
+}
+
+// 0x0023f670 RwMatrixScalePreConcat_Thunk (through TocBridge_RwMatrixScale)
+void RwMatrixScalePreConcat_Thunk(CMatrix34* matrix, const CVector3* scale) {
+    RwMatrixScale(reinterpret_cast<RwMatrix*>(matrix), reinterpret_cast<const RwV3d*>(scale), rwCOMBINEPRECONCAT);
 }
 
 // 0x0023f968 RwMatrixDestroy_Thunk
@@ -255,6 +261,16 @@ void Mat4_TransformPoints(const CMatrix34* m, CVector3* out, const CVector3* in,
 // 0x0023f788 Mat4_Multiply: RwMatrixMultiply (through its TocBridge).
 void Mat4_Multiply(CMatrix34* out, const CMatrix34* a, const CMatrix34* b) {
     RwMatrixMultiply(reinterpret_cast<RwMatrix*>(out), reinterpret_cast<const RwMatrix*>(a), reinterpret_cast<const RwMatrix*>(b));
+}
+
+// 0x0023f738 Mat4_TransformPreConcat (RwMatrixTransform through its TocBridge)
+void Mat4_TransformPreConcat(CMatrix34* m, const CMatrix34* transform) {
+    RwMatrixTransform(reinterpret_cast<RwMatrix*>(m), reinterpret_cast<const RwMatrix*>(transform), rwCOMBINEPRECONCAT);
+}
+
+// 0x0023f760 Mat4_TransformPostConcat (RwMatrixTransform through its TocBridge)
+void Mat4_TransformPostConcat(CMatrix34* m, const CMatrix34* transform) {
+    RwMatrixTransform(reinterpret_cast<RwMatrix*>(m), reinterpret_cast<const RwMatrix*>(transform), rwCOMBINEPOSTCONCAT);
 }
 
 // 0x0023f878 Mat4_Invert_maybe
@@ -495,4 +511,245 @@ void Mat4_RotateLocalZDeg(float degrees, CMatrix34* m) {
     m->m_right.x = newRightX;
     m->m_right.y = newRightY;
     m->m_ui32Flags &= ~0x20000u;
+}
+
+// ---- C2.8 port-all P10 ----------------------------------------------------------------------------------------
+
+// 0x0023f2e8 Line2D_ProjectPoint
+CVector2* Line2D_ProjectPoint(CVector2* out, const CLine2D* line, const CVector2* point) {
+    float dx = line->m_VectDir.m_fX;
+    float dy = line->m_VectDir.m_fY;
+    const float length = std::sqrt(ppc::fmadds(dx, dx, dy * dy));  // Math_Sqrtf
+    if (length != 0.0f) {
+        const float inv = 1.0f / length;
+        dy = dy * inv;
+        dx = dx * inv;
+    }
+    const float py = point->m_fY - line->m_start.m_fY;
+    const float px = point->m_fX - line->m_start.m_fX;
+    const float t = ppc::fmadds(px, dx, py * dy);
+    out->m_fY = ppc::fmadds(t, dy, line->m_start.m_fY);
+    out->m_fX = ppc::fmadds(t, dx, line->m_start.m_fX);
+    return out;
+}
+
+// 0x0023f440 Line2D_GetNormal
+CVector2* Line2D_GetNormal(CVector2* out, const CLine2D* line) {
+    float dx = line->m_VectDir.m_fX;
+    float dy = line->m_VectDir.m_fY;
+    const float length = std::sqrt(ppc::fmadds(dx, dx, dy * dy));  // Math_Sqrtf
+    if (length != 0.0f) {
+        const float inv = 1.0f / length;
+        dy = dy * inv;
+        dx = dx * inv;
+    }
+    out->m_fX = dy;
+    out->m_fY = -dx;
+    return out;
+}
+
+// 0x0023f698 Matrix_SetRotationKeepPosition (0x00240660 Matrix_SetRotationKeepPosition_2: the same code)
+void Matrix_SetRotationKeepPosition(CMatrix34* m, const CVector3* axis, float angle) {
+    const float x = m->m_pos.x;
+    const float z = m->m_pos.z;
+    const float y = m->m_pos.y;
+    RwMatrixRotate(reinterpret_cast<RwMatrix*>(m), reinterpret_cast<const RwV3d*>(axis), angle, rwCOMBINEREPLACE);
+    m->m_pos.x = x;
+    m->m_pos.z = z;
+    m->m_pos.y = y;
+}
+
+// 0x0023f708 RwMatrixRotate_Thunk
+CMatrix34* RwMatrixRotate_Thunk(CMatrix34* m, const CVector3* axis, float angle) {
+    return reinterpret_cast<CMatrix34*>(
+        RwMatrixRotate(reinterpret_cast<RwMatrix*>(m), reinterpret_cast<const RwV3d*>(axis), angle, rwCOMBINEREPLACE));
+}
+
+// 0x0023f820 RwMatrixRotateOneMinusCosineSine_Thunk
+CMatrix34* RwMatrixRotateOneMinusCosineSine_Thunk(CMatrix34* m, const CVector3* unitAxis, float oneMinusCosine,
+                                                  float sine) {
+    return reinterpret_cast<CMatrix34*>(RwMatrixRotateOneMinusCosineSine(
+        reinterpret_cast<RwMatrix*>(m), reinterpret_cast<const RwV3d*>(unitAxis), oneMinusCosine, sine,
+        rwCOMBINEREPLACE));
+}
+
+// 0x0023f990 Matrix_CreateCopy
+CMatrix34* Matrix_CreateCopy(const CMatrix34* source) {
+    CMatrix34* m = RwMatrixCreate_Thunk();
+    std::memcpy(m, source, sizeof(CMatrix34));
+    return m;
+}
+
+// 0x00240880 Matrix_CreateCopyClearFlags
+CMatrix34* Matrix_CreateCopyClearFlags(const CMatrix34* source) {
+    CMatrix34* m = RwMatrixCreate_Thunk();
+    m->m_right = source->m_right;
+    m->m_up = source->m_up;
+    m->m_at = source->m_at;
+    m->m_pos = source->m_pos;
+    m->m_ui32Flags = m->m_ui32Flags & 0xfffdfffcu;
+    return m;
+}
+
+// 0x002401d0 Matrix_OrthonormalFromTwoAxes_maybe
+int32_t Matrix_OrthonormalFromTwoAxes(CMatrix34* m, const CVector3* right, const CVector3* other) {
+    const float t8 = right->z * other->x;
+    const float t11 = other->z * right->y;
+    const float t13 = other->y * right->x;
+    const float cy = ppc::fmsubs(other->z, right->x, t8);
+    const float cx = ppc::fmsubs(other->y, right->z, t11);
+    const float cz = ppc::fmsubs(right->y, other->x, t13);
+    float len2 = cy * cy;
+    len2 = ppc::fmadds(cx, cx, len2);
+    len2 = ppc::fmadds(cz, cz, len2);
+    if (len2 < 1.75e-2f) return 0;
+    const float inv = rwInvSqrt(len2);  // Math_InvSqrtf 0x114d8
+    const float rz = right->z, rx = right->x, ry = right->y;
+    const float uy = cy * inv;
+    const float uz = cz * inv;
+    const float ux = cx * inv;
+    m->m_right.x = rx;
+    m->m_right.z = rz;
+    m->m_right.y = ry;
+    const float v9 = uy * rz;
+    const float v8 = uz * rx;
+    const float v7 = ux * ry;
+    m->m_up.x = ux;
+    m->m_up.z = uz;
+    m->m_up.y = uy;
+    m->m_at.x = ppc::fmsubs(uz, ry, v9);
+    m->m_at.y = ppc::fmsubs(ux, rz, v8);
+    m->m_at.z = ppc::fmsubs(uy, rx, v7);
+    m->m_ui32Flags = 3;
+    return 1;
+}
+
+// 0x002402e8 Mat4_Add_maybe (row by row: each row's loads before its stores)
+void Mat4_Add(CMatrix34* out, const CMatrix34* a, const CMatrix34* b) {
+    const CVector3* ra[4] = {&a->m_right, &a->m_up, &a->m_at, &a->m_pos};
+    const CVector3* rb[4] = {&b->m_right, &b->m_up, &b->m_at, &b->m_pos};
+    CVector3* ro[4] = {&out->m_right, &out->m_up, &out->m_at, &out->m_pos};
+    for (int i = 0; i < 4; ++i) {
+        const float x = ra[i]->x + rb[i]->x;
+        const float y = ra[i]->y + rb[i]->y;
+        const float z = ra[i]->z + rb[i]->z;
+        ro[i]->x = x;
+        ro[i]->y = y;
+        ro[i]->z = z;
+    }
+    out->m_ui32Flags = out->m_ui32Flags & 0xfffdfffeu;
+}
+
+// 0x00240520 Mat4_TransformVectorsInline
+void Mat4_TransformVectorsInline(const CMatrix34* m, CVector3* out, const CVector3* in, uint32_t count) {
+    for (uint32_t i = 0; i < count; ++i, ++in, ++out) {
+        const float y = in->y;
+        const float uy = y * m->m_up.y;
+        const float ry = y * m->m_right.y;
+        const float ay = y * m->m_at.y;
+        const float x = in->x;
+        const float z = in->z;
+        const float u = ppc::fmadds(x, m->m_up.x, uy);
+        const float r = ppc::fmadds(x, m->m_right.x, ry);
+        const float a = ppc::fmadds(x, m->m_at.x, ay);
+        const float oy = ppc::fmadds(z, m->m_up.z, u);
+        const float ox = ppc::fmadds(z, m->m_right.z, r);
+        const float oz = ppc::fmadds(z, m->m_at.z, a);
+        out->y = oy;
+        out->x = ox;
+        out->z = oz;
+    }
+}
+
+// 0x002405b0 Mat4_InverseTransformPoints
+void Mat4_InverseTransformPoints(const CMatrix34* m, CVector3* out, const CVector3* in, uint32_t count) {
+    for (uint32_t i = 0; i < count; ++i, ++in, ++out) {
+        const float dy = in->y - m->m_pos.y;
+        const float dx = in->x - m->m_pos.x;
+        const float dz = in->z - m->m_pos.z;
+        const float ry = dy * m->m_right.y;
+        const float uy = dy * m->m_up.y;
+        const float ay = dy * m->m_at.y;
+        const float r = ppc::fmadds(dx, m->m_right.x, ry);
+        const float u = ppc::fmadds(dx, m->m_up.x, uy);
+        const float a = ppc::fmadds(dx, m->m_at.x, ay);
+        const float ox = ppc::fmadds(dz, m->m_right.z, r);
+        const float oy = ppc::fmadds(dz, m->m_up.z, u);
+        const float oz = ppc::fmadds(dz, m->m_at.z, a);
+        out->x = ox;
+        out->y = oy;
+        out->z = oz;
+    }
+}
+
+// 0x002406d0 Mat4_TransformPointsStrided (CGlowNodeFx_Enqueue's local copy is TransformPointsStrided in CGlowNodeFx.cpp)
+void Mat4_TransformPointsStrided(const CMatrix34* m, uint8_t* out, int32_t outStride, const uint8_t* in,
+                                 int32_t inStride, int32_t count) {
+    if (outStride == 0xc && inStride == 0xc) {
+        Mat4_TransformPoints(m, reinterpret_cast<CVector3*>(out), reinterpret_cast<const CVector3*>(in), count);
+        return;
+    }
+    for (int32_t i = 0; i != count; ++i) {
+        Mat4_TransformPoints(m, reinterpret_cast<CVector3*>(out), reinterpret_cast<const CVector3*>(in), 1);
+        in += inStride;
+        out += outStride;
+    }
+}
+
+// 0x002407a8 V3d_TransformVectorsStrided
+void V3d_TransformVectorsStrided(const CMatrix34* m, uint8_t* out, int32_t outStride, const uint8_t* in,
+                                 int32_t inStride, int32_t count) {
+    if (outStride == 0xc && inStride == 0xc) {
+        Mat4_TransformVectors(m, reinterpret_cast<CVector3*>(out), reinterpret_cast<const CVector3*>(in), count);
+        return;
+    }
+    for (int32_t i = 0; i != count; ++i) {
+        Mat4_TransformVectors(m, reinterpret_cast<CVector3*>(out), reinterpret_cast<const CVector3*>(in), 1);
+        in += inStride;
+        out += outStride;
+    }
+}
+
+namespace {
+// Matrix_LookAt's normalisation: the three components times 1 / length unless the length is 0 (z, x, y stored).
+void NormalizeUnlessZero(CVector3* v, float length) {
+    if (length == 0.0f) return;
+    const float inv = 1.0f / length;
+    const float z = inv * v->z;
+    const float x = inv * v->x;
+    const float y = inv * v->y;
+    v->z = z;
+    v->x = x;
+    v->y = y;
+}
+}  // namespace
+
+// 0x00240938 Matrix_LookAt
+CMatrix34* Matrix_LookAt(CMatrix34* m, const CVector3* target, const CVector3* up) {
+    CVector3* at = &m->m_at;
+    const float dy = target->y - m->m_pos.y;
+    const float dx = target->x - m->m_pos.x;
+    const float dz = target->z - m->m_pos.z;
+    at->x = dx;
+    at->y = dy;
+    at->z = dz;
+    NormalizeUnlessZero(at, std::sqrt(ppc::fmadds(dz, dz, ppc::fmadds(dx, dx, dy * dy))));  // Math_Sqrtf
+    CVector3* right = &m->m_right;
+    const float rx = ppc::fmsubs(up->y, at->z, up->z * at->y);
+    right->x = rx;
+    const float ry = ppc::fmsubs(up->z, at->x, up->x * at->z);
+    right->y = ry;
+    const float rz = ppc::fmsubs(up->x, at->y, up->y * at->x);
+    right->z = rz;
+    NormalizeUnlessZero(right, std::sqrt(ppc::fmadds(rz, rz, ppc::fmadds(rx, rx, ry * ry))));
+    CVector3* u = &m->m_up;
+    const float ux = ppc::fmsubs(at->y, right->z, at->z * right->y);
+    u->x = ux;
+    const float uy = ppc::fmsubs(at->z, right->x, at->x * right->z);
+    u->y = uy;
+    const float uz = ppc::fmsubs(at->x, right->y, at->y * right->x);
+    u->z = uz;
+    NormalizeUnlessZero(u, std::sqrt(ppc::fmadds(uz, uz, ppc::fmadds(ux, ux, uy * uy))));
+    m->m_ui32Flags = 3;
+    return m;
 }

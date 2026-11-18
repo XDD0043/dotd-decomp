@@ -6,8 +6,8 @@
 //   [x] 0x549bb0  CKS08MenuCopyrights_Delete
 //   [ ] 0x549c00  CKS08MenuCopyrights_Construct  [dead]
 //   [ ] 0x549ca8  CKS08MenuCopyrights_Save
-//   [ ] 0x549cd0  CKS08MenuCopyrights_RecursiveRegistration
-//   [ ] 0x549de0  CKS08MenuCopyrights_Destroy
+//   [x] 0x549cd0  CKS08MenuCopyrights_RecursiveRegistration
+//   [x] 0x549de0  CKS08MenuCopyrights_Destroy  (inherited: CKMenuBase114c::Destroy)
 //   [x] 0x549e08  CKS08MenuCopyrights_DeleteArray
 //   [ ] 0x549eb0  RegisterCKS08MenuCopyrightsClass
 //   [ ] 0x549f38  _GLOBAL__D_549f38
@@ -18,9 +18,9 @@
 //   [x] 0x54a4b0  CKS08MenuCopyrights_CreateArray
 //   [x] 0x54a5f8  CKS08MenuCopyrights_Create
 //   [x] 0x54a6e0  CKS08MenuCopyrights_Load
-//   [ ] 0x54a9f0  CKS08MenuCopyrights_Destructor_2
-//   [ ] 0x54ab28  CKS08MenuCopyrights_DeletingDestructor
-//   [ ] 0x54ac60  CKS08MenuCopyrights_Destructor
+//   [x] 0x54a9f0  CKS08MenuCopyrights_Destructor_2  (implicit destructor: CKMenuBase114c's inlined)
+//   [x] 0x54ab28  CKS08MenuCopyrights_DeletingDestructor  (implicit destructor: CKMenuBase114c's inlined)
+//   [x] 0x54ac60  CKS08MenuCopyrights_Destructor  (implicit destructor: CKMenuBase114c's inlined)
 //
 //   [x] 0x9c9890  CKS08MenuCopyrights_IsKindOfClass  [inline]
 //   [x] 0x9c98d0  CKS08MenuCopyrights_GetClassType  [inline]
@@ -132,4 +132,15 @@ uint8_t CKS08MenuCopyrights::OnMenuState(int32_t phase, uint8_t /*other*/) {
         }
     }
     return static_cast<uint8_t>(GetMenuId());
+}
+
+// 0x00549cd0 CKS08MenuCopyrights_RecursiveRegistration: the referenced objects' registration (the colorized screen data and FX only with the flash UI loaded), then the base.
+void CKS08MenuCopyrights::RecursiveRegistration(int32_t type) {
+    if (m_pFlashUI != nullptr) {
+        m_pColorizedData0->RecursiveRegistration(type);
+        m_pColorizedData1->RecursiveRegistration(type);
+        m_pColorizedFx->RecursiveRegistration(type);
+    }
+    m_pText->RecursiveRegistration(type);
+    CKMenuBase114c::RecursiveRegistration(type);
 }

@@ -139,6 +139,11 @@ void HAnimFrameCopy(RwFrame* dstFrame, const RwFrame* srcFrame);
 // frame's id, the node count; with nodes, the flags, the key frame size and the nodes (id, index, flags)
 // into a new hierarchy owned by the frame. Null on a short read or another version.
 RwStream* HAnimStreamRead(RwStream* stream, RwInt32 length, RwFrame* frame);
+// 0x006e8330 HAnimFrameDestructor_maybe (the frame plugin's destructor, run by the frame's _rwPluginRegistryDeInitObject):
+// a hierarchy on the frame has every node's frame cleared; the frame that streamed it (parentFrame) destroys it (the
+// matrix array unless rpHANIMHIERARCHYNOMATRICES and the node array, unless a sub-hierarchy; the interpolator; the
+// hierarchy) and clears the hierarchy pointer of that frame. Then the frame's hierarchy is null and its id -1.
+void HAnimFrameDestructor(RwFrame* frame);
 // 0x006e62f8 RpHAnimFrameGetHierarchy
 RpHAnimHierarchy* RpHAnimFrameGetHierarchy(RwFrame* frame);
 // 0x006e6330 RpHAnimFrameGetID

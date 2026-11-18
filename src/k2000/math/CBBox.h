@@ -15,6 +15,12 @@ void BBox_TransformByMatrix(CBBox* out, const CBBox* in, const CMatrix34* m);
 // 0x0023c4b8 AABB_ClampPoint: the point clamped into the box, axis by axis (each axis reads the point before writing
 // it, so `out` may be `point`).
 void AABB_ClampPoint(const CBBox* box, const CVector3* point, CVector3* out);
+// 0x0023c280 AABB_ContainsAABB: `inner` lies inside `outer` (inner.sup <= outer.sup and outer.inf <= inner.inf on every
+// axis; an unordered compare gives false).
+bool AABB_ContainsAABB(const CBBox* inner, const CBBox* outer);
+// 0x0023d550 BBox_SetFromCenterExtents_maybe (misc/BBox_2.cpp): the box around `center` with the half extents `half`
+// (the two corners centre +- half folded into an empty box).
+void BBox_SetFromCenterExtents(CBBox* box, const CVector3* center, const CVector3* half);
 
 struct CLine;
 // 0x0023ccb8 AABB_OverlapsSegmentBounds_maybe: the segment (a CLine) can touch the box: its bounds overlap the box's on

@@ -12,10 +12,10 @@
 //   [ ] 0x2f8620  KStub_ReturnFloat0_2f8620  [dead]
 //   [x] 0x2f8628  CKHkS08Hero_PartnerShouldStayClimbing
 //   [x] 0x2f8678  CKHkS08Hero_vf174
-//   [ ] 0x2f86b8  StaticInitAndDestruction_2f86b8
+//   [x] 0x2f86b8  StaticInitAndDestruction_2f86b8  (the two file statics at the end)
 //   [ ] 0x2f86e8  _GLOBAL__D_2f86e8
 //   [ ] 0x2f86f8  _GLOBAL__I_2f86f8
-//   [ ] 0x2f8708  CKHkS08Hero_vf178
+//   [x] 0x2f8708  CKHkS08Hero_vf178
 //   [x] 0x2f87e8  CKHkS08Hero_IsPartnerClimbFlagSet_maybe
 //   [x] 0x2f8818  CKHkS08Hero_GetMass_maybe
 //   [x] 0x2f8958  FUN_002f8958
@@ -32,8 +32,8 @@
 //   [x] 0x2fbbf8  Vec3_AngleBetween
 //   [x] 0x2fbd78  Vec3_TiltUpVectorAroundLocalX_maybe
 //   [x] 0x2fbfc0  CKHkS08Hero_UpdateBodyTiltSprings_maybe
-//   [ ] 0x2fc1b0  CKHkS08Hero_IsComboKindFlagSet
-//   [ ] 0x2fc208  CKHkS08Hero_IsGrabComboKind
+//   [x] 0x2fc1b0  CKHkS08Hero_IsComboKindFlagSet
+//   [x] 0x2fc208  CKHkS08Hero_IsGrabComboKind  (CKHkS08Hero.h)
 //   [x] 0x2fc228  CKHkS08Hero_IsAbilityActive
 //   [ ] 0x2fc248  FUN_002fc248  [dead]
 //   [ ] 0x2fc250  CKHkS08Hero_IsObjectInTargetKindMask_maybe  [dead]
@@ -242,7 +242,7 @@ void CKHkS08Hero::ResetMovementFromFrame(int32_t flag) {
     m_unk1444 = 0;
     m_unk19e0 = 0;
     m_unk19e8 = 0;
-    m_unk19f4 = 0;
+    m_unk19f4 = nullptr;
     m_unk11c4 = 0;
     m_unk11f8 = 1.0f;
     m_unk164c = 0.0f;
@@ -604,11 +604,7 @@ CMatrix34 CKHkS08Hero::BlendClimbAttachMatrix(const CMatrix34* from, const CMatr
         t = 1.0f - t;
     }
     // TocBridge_Math_SmoothStep_maybe 0x98f350 -> 0x582bc8: 3t^2 - 2t^3 inside (0, 1).
-    float s = t;
-    if (t < 1.0f && t > 0.0f) {
-        const float t2 = t * t;
-        s = ppc::fmadds(t * t2, -2.0f, t2 * 3.0f);
-    }
+    const float s = Math_SmoothStep(t);
     float q[4];
     Quat_Slerp(s, q, qa, qb);  // 0x00242728
     alignas(16) CMatrix34 rotation;
@@ -1060,3 +1056,16 @@ void CKHkS08Hero::PlayFootstepSounds(IKTime* clock) {
     }
     m_unked8 = 0;
 }
+
+// 0x002fc1b0 CKHkS08Hero_IsComboKindFlagSet
+uint8_t CKHkS08Hero::IsComboKindFlagSet() const {
+    if (m_unk1abc != 0 || m_unk1abd != 0 || m_unk1ac3 != 0 || m_unk1ac0 != 0 || m_unk1ac1 != 0) return 1;
+    return m_unk1ac2;
+}
+
+// 0x002f86b8 StaticInitAndDestruction_2f86b8: two file statics (0x00ceadf4, 0x00ceadf8) set to -1.0f. Nothing in the game
+// reads them (their only references are the initialiser's TOC entries).
+namespace {
+[[maybe_unused]] float s_unkceadf4 = -1.0f;
+[[maybe_unused]] float s_unkceadf8 = -1.0f;
+}  // namespace

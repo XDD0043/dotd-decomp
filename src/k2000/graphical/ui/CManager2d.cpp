@@ -8,17 +8,17 @@
 //   [ ] 0x61b08  CManager2d_Construct  [dead]
 //   [ ] 0x61b48  CManager2d_Construct_2  [dead]
 //   [x] 0x61b88  CManager2d_GetSystemMessageString_maybe
-//   [ ] 0x61bd0  CManager2d_RecursiveRegistration
+//   [x] 0x61bd0  CManager2d_RecursiveRegistration  (RecursiveRegistration: returns 1, the default slot)
 //   [ ] 0x61bd8  KStub_Nop_61bd8  [dead]
-//   [ ] 0x61be0  Font_SetTextureFilterLinear_Callback_maybe
-//   [ ] 0x61bf8  CManager2d_GetFont_maybe
+//   [x] 0x61be0  Font_SetTextureFilterLinear_Callback_maybe
+//   [x] 0x61bf8  CManager2d_GetFont_maybe  (CManager2d::GetFont)
 //   [ ] 0x61c38  CManager2d_GetNthLoadedFont_maybe  [dead]
 //   [x] 0x61da8  CManager2d_vf74 (ComputeSortingCoef, in the header)
 //   [x] 0x61dc8  SetUIOverlayRenderStates
 //   [x] 0x61f60  CManager2d_GetMaterialRenderInfo (GetRenderingProperties, in the header)
-//   [ ] 0x61f80  RegisterCManager2dType
+//   [x] 0x61f80  RegisterCManager2dType  (RegisterAllClasses: ClassTable.inc)
 //   [ ] 0x61ff8  _GLOBAL__I_61ff8
-//   [ ] 0x62008  CManager2d_GetOrCreateBrush_maybe
+//   [x] 0x62008  CManager2d_GetOrCreateBrush_maybe  (CManager2d::GetOrCreateBrush)
 //   [x] 0x62068  CManager2d_BroadcastEvent_maybe
 //   [ ] 0x621a8  CManager2d_FlushPendingEvents_maybe  [dead]
 //   [x] 0x62358  CManager2d_PostEvent_maybe
@@ -31,13 +31,13 @@
 //   [x] 0x62610  CManager2d_UnloadLocalizedFonts
 //   [x] 0x62820  CManager2d_DestroyGame
 //   [x] 0x628b8  CManager2d_Destroy
-//   [ ] 0x62920  CManager2d_Shutdown_maybe
+//   [x] 0x62920  CManager2d_Shutdown_maybe
 //   [x] 0x62a58  CManager2d_DeleteArray
-//   [ ] 0x62af8  CManager2d_vf70
+//   [x] 0x62af8  CManager2d_vf70  (CManager2d::CanBeUpdated)
 //   [ ] 0x62b18  UI2d_RasterPixelsToNormalized_maybe  [dead]
 //   [x] 0x62b98  CManager2d_BindRt2dToUICamera_maybe
 //   [x] 0x62c00  CManager2d_DrawSystemText_maybe
-//   [ ] 0x62e98  UI2d_NormalizedToRasterPixels_maybe
+//   [x] 0x62e98  UI2d_NormalizedToRasterPixels_maybe
 //   [ ] 0x62f18  UI2d_RasterPixelsToNormalizedNoFlip_maybe  [dead]
 //   [ ] 0x62f90  UI2d_NormalizedToRasterPixelsNoFlip_maybe  [dead]
 //   [x] 0x63008  EnqueueUIManagerRenderStages
@@ -52,9 +52,9 @@
 //   [x] 0x63788  CManager2d_LoadFonts_maybe
 //   [x] 0x63ac8  CManager2d_LoadLocalizedFonts_maybe
 //   [x] 0x63db8  CManager2d_Load
-//   [ ] 0x64180  CManager2d_Destructor
+//   [x] 0x64180  CManager2d_Destructor  (C++ destructor chain: vtable stores only)
 //   [ ] 0x641a0  CManager2d_Destructor_2  [dead]
-//   [ ] 0x641c0  CManager2d_DeletingDestructor
+//   [x] 0x641c0  CManager2d_DeletingDestructor  (the destructor; delete)
 //
 //   [ ] 0x997b10  CManager2d_GetClassType  [inline]
 //   [ ] 0x997b18  CManager2d_GetClassID  [inline]
@@ -62,9 +62,12 @@
 //   [x] 0x997b28  CManager2d_IsKindOfClass  [inline]
 #include "k2000/graphical/ui/CManager2d.h"
 
+#include <cstdio>
 #include <cstring>
 
 #include "Renderware/rt2d/Rt2d.h"
+#include "platform/config.h"
+#include "platform/frame_loop.h"
 #include "Renderware/rwcore/RwIm3D.h"
 #include "k2000/geometry/CGeometry.h"
 #include "k2000/graphical/ui/CKFlashManager.h"
@@ -74,6 +77,7 @@
 #include "k2000/misc/CKGameLoop.h"
 #include "k2000/misc/Engine.h"
 #include "k2000/graphical/ui/CText2d.h"
+#include "Renderware/rwcore/RwRaster.h"
 #include "Renderware/rwcore/RwStream.h"
 #include "Renderware/rwcore/RwTexture.h"
 #include "k2000/io/IKFile.h"
@@ -81,6 +85,7 @@
 #include "k2000/misc/ClassRegistry.h"
 #include "k2000/managers/CKGraphic.h"
 #include "k2000/render/CRenderer.h"
+#include "k2000/render/TextureBank.h"
 #include "k2000/misc/MessageBox.h"
 #include "k2000/system/CTimeManager.h"
 #include "k2000/misc/Wcs.h"
@@ -99,7 +104,7 @@ CManager2d::CManager2d() {
     m_BitProperties = 0;
     m_pPriorityParent = 0;
     m_pLightSet = nullptr;
-    m_unkA84 = 0;
+    m_pBrush = nullptr;
     m_unkA48 = nullptr;
     m_pLocalizedFont = nullptr;
     m_pLocalizedTextures = nullptr;
@@ -129,9 +134,9 @@ void CManager2d::Init() {
     m_ui32PendingEvents_maybe = 0;
     m_bUpdateScreen = 1;
     m_ui32FontsCount = 0;
-    // DEV: the CMenuManager the GAME file's global provider hands out (CKGraphic slot 0x11 reads +0xa78).
-    // Where the original creates it is not traced (this Init clears +0xa78). STUB(C1.5) creation point.
-    m_menuManager = static_cast<IKSerializable*>(ClassRegistry_CreateObjectByKey(0x44d));
+    // +0xa78 stays null here: every level file creates its CMenuManager (13:17, stream type 1: level-unique) and the
+    // level's Load (K_LEVEL_PLATEFORMS) reads the reference; the GAME file has none (stores to +0xa78 in the EBOOT:
+    // the constructors, Destroy, this Init, Create, CreateArray).
 }
 
 namespace {
@@ -140,21 +145,11 @@ namespace {
 // the first time); -1 until then. Later loads skip the bytes while the font is still loaded.
 int32_t s_localizedFontsSize = -1;
 
-// An RwImage chunk (0x18) as a raster: the struct chunk's width, height and depth, the pixels kept as
-// they are. STUB(C1.4): Raster_CreateFromImage_maybe (the texture bank's raster); here the raster records
-// the image so the fonts' rasters exist (Rt2dFontStreamRead requires one per page).
-RwShim_DdsRaster* RasterFromImageChunk(RwStream* stream) {
-    RwShim_Blob* image = RwShim_ReadChunkBlob(stream, 0x18);
-    RwShim_DdsRaster* raster = RwShim_RasterFromImageBlob(image);
-    RwShim_FreeBlob(image);
-    return raster;
-}
-
 // The texture part both font loaders share: count, then per texture its name and mask
-// (IKFile_ReadLengthPrefixedString, no limit) and an RwImage chunk (RwStreamFindChunk(0x18),
-// RwImageStreamRead), made into a raster (Raster_CreateFromImage_maybe with the texture bank) and a
-// texture named name/mask (STRCPY into RwTexture +0x10/+0x30) added to the dictionary; the image is then
-// destroyed. Thread_YieldDuringLoad(1) before each.
+// (IKFile_ReadLengthPrefixedString, no limit), RwStreamFindChunk(rwID_IMAGE) (result not checked) and
+// RwImageStreamRead, a raster from the image (Raster_CreateFromImage_maybe with the engine's texture bank, no
+// mipmaps), a texture of it (not checked) named name/mask (STRCPY into RwTexture +0x10 / +0x30) added to the
+// dictionary, the image destroyed. Thread_YieldDuringLoad(1) before each.
 void LoadFontTextures(IKFile* file, RwTexDictionary* dictionary) {
     uint32_t count = 0;
     ReadU32LE(file, &count);
@@ -164,20 +159,23 @@ void LoadFontTextures(IKFile* file, RwTexDictionary* dictionary) {
         char mask[0x100];
         IKFile_ReadLengthPrefixedString(file, name, -1);
         IKFile_ReadLengthPrefixedString(file, mask, -1);
-        RwTexture* texture = RwTextureCreate(RasterFromImageChunk(file->m_pRwStream));
-        // STRCPY in the original (no limit); the shim's names hold 32 characters like RW's.
+        RwStreamFindChunk(file->m_pRwStream, 0x18, nullptr, nullptr);
+        RwImage* image = RwImageStreamRead(file->m_pRwStream);
+        RwRaster* raster = Raster_CreateFromImage(g_pEngine->m_textureBank, image, 0, nullptr);
+        RwTexture* texture = RwTextureCreate(raster);
+        // BUG(original): STRCPY without a limit into the 32-byte name and mask; the font files' names fit.
         std::strncpy(texture->name, name, sizeof(texture->name) - 1);
         std::strncpy(texture->mask, mask, sizeof(texture->mask) - 1);
         RwTexDictionaryAddTexture(dictionary, texture);
+        RwImageDestroy(image);
     }
 }
 
-// RwTexDictionaryForAllTextures(dict, 0x00061be0 Font_SetTextureFilterLinear_Callback_maybe, 0): every
-// texture's filter mode becomes 2 (linear).
-void SetFontTexturesLinear(RwTexDictionary* dictionary) {
-    for (RwTexture* texture : dictionary->textures) {
-        texture->filterAddressing = (texture->filterAddressing & 0xffffff00u) | 2u;
-    }
+// 0x00061be0 Font_SetTextureFilterLinear_Callback_maybe (RwTexDictionaryForAllTextures' callback): the texture's
+// filter mode becomes 2 (rwFILTERLINEAR); the texture is returned (r3 untouched), so the walk goes on.
+RwTexture* SetTextureFilterLinear(RwTexture* texture, void* /*data*/) {
+    texture->filterAddressing = (texture->filterAddressing & 0xffffff00u) | 2u;
+    return texture;
 }
 
 // 0x00063788 CManager2d_LoadFonts_maybe (K_LEVEL_LOCALIZATION): a new texture dictionary for the font
@@ -191,7 +189,7 @@ void LoadFonts(CManager2d* self, IKFile* file) {
     RwTexDictionarySetCurrent(dictionary);
     LoadFontTextures(file, dictionary);
     RwTexDictionarySetCurrent(previous);
-    SetFontTexturesLinear(dictionary);
+    RwTexDictionaryForAllTextures(dictionary, SetTextureFilterLinear, nullptr);
     Rt2dFontTexDictionarySet(dictionary);
     uint32_t count = 0;
     ReadU32LE(file, &count);
@@ -222,7 +220,7 @@ void LoadLocalizedFonts(CManager2d* self, IKFile* file) {
     RwTexDictionarySetCurrent(self->m_pLocalizedTextures);
     LoadFontTextures(file, self->m_pLocalizedTextures);
     RwTexDictionarySetCurrent(previous);
-    SetFontTexturesLinear(self->m_pLocalizedTextures);
+    RwTexDictionaryForAllTextures(self->m_pLocalizedTextures, SetTextureFilterLinear, nullptr);
     RwTexDictionary* previousFonts = Rt2dFontTexDictionaryGet();
     Rt2dFontTexDictionarySet(self->m_pLocalizedTextures);
     self->m_pLocalizedFont = nullptr;
@@ -252,8 +250,8 @@ void CManager2d::Destroy() {
 }
 
 // 0x00062820 CManager2d_DestroyGame: with the localised font loaded, under its texture dictionary as the
-// font texture dictionary: the font out of the font dictionary and destroyed; then the dictionary.
-// STUB(C1.4): RwTexDictionaryDestroy (the shim keeps its dictionaries).
+// font texture dictionary: the font out of the font dictionary and destroyed; then the dictionary destroyed
+// (RwTexDictionaryDestroy: the fonts' references are gone, so its textures and rasters go with it).
 void CManager2d::DestroyGame() {
     if (m_pLocalizedFont == nullptr) return;
     RwTexDictionary* previous = Rt2dFontTexDictionaryGet();
@@ -262,7 +260,29 @@ void CManager2d::DestroyGame() {
     Rt2dFontDestroy(m_pLocalizedFont);
     m_pLocalizedFont = nullptr;
     Rt2dFontTexDictionarySet(previous);
+    RwTexDictionaryDestroy(m_pLocalizedTextures);
     m_pLocalizedTextures = nullptr;
+}
+
+// 0x00062920 CManager2d_Shutdown_maybe
+void CManager2d::Shutdown() {
+    DestroyGame();  // vt+0x0c
+    if (m_unkA48 != nullptr) {
+        m_unkA48->Destroy();  // vt+0x10
+        ClassRegistry_DestroyObject(m_unkA48);
+        m_unkA48 = nullptr;
+    }
+    if (m_pBrush != nullptr) {
+        Rt2dBrushDestroy(m_pBrush);
+        m_pBrush = nullptr;
+    }
+    for (uint16_t*& text : m_apwszSystemMessages) {  // +0xa54 .. +0xa60 (CManager2d_CacheLocStrings' copies)
+        if (text != nullptr) {
+            Mem_FreeAligned16(text);
+            text = nullptr;
+        }
+    }
+    Rt2dClose();
 }
 
 // 0x00063db8 CManager2d_Load. IRendableObject's Load for every type, then one branch per type; every
@@ -363,17 +383,58 @@ uint8_t CManager2d::UpdateScreen() {
 }
 
 // 0x00063428 CManager2d_Render (DrawUIManagerScenesAndMenus)
-void CManager2d::Render() {
+void CManager2d::Render(IKTime* frameClock) {
     if (m_bUpdateScreen != 0) UpdateScreen();
-    static_cast<CScene2d*>(m_pFirstScene)->Render();
+    static_cast<CScene2d*>(m_pFirstScene)->Render(frameClock);
     CKFlashManager* flashManager = g_pEngine->m_flashManager;
     PushRenderStates(g_pRenderStateRenderer);  // the renderer's state stack (TOC1 -0x702c -> 0x00c5c90c)
     SetUIOverlayRenderStates();
     flashManager->Render(nullptr);
     PopRenderStates(g_pRenderStateRenderer);
-    static_cast<CMenuManager*>(m_menuManager)->DrawActiveUIMenu();  // vt+0x50
-    static_cast<CScene2d*>(m_pScene)->Render();
+    static_cast<CMenuManager*>(m_menuManager)->DrawActiveUIMenu(frameClock);  // vt+0x50
+    static_cast<CScene2d*>(m_pScene)->Render(frameClock);
 }
+
+namespace {
+// PLATFORM (not in the original): the presented frame rate in the top right corner, with --show-fps (platform/config.h;
+// on by default in the web build). It is drawn the way the game draws its own texts (TextData.cpp: the CTM moved to
+// the place, the brush coloured, Rt2dFontShow) in the localised font, the font of the loading screens' and system
+// messages' text: once in black a little down and right, then in yellow. The 2D device's coordinates: x 0..aspect
+// left to right, y 0..1 bottom to top. The font takes 16-bit characters when its flag 2 is set.
+void DrawFpsCounter(CManager2d* manager) {
+    Rt2dFont* font = manager->GetFont(0x29a);
+    if (!dotd::platform::GetConfig().showFps || font == nullptr) return;
+    const float fps = dotd::platform::PresentedFps();
+    if (!(fps > 0.0f)) return;
+    char bytes[16];
+    std::snprintf(bytes, sizeof bytes, "%d", static_cast<int>(fps + 0.5f));
+    uint16_t wide[16];
+    for (size_t i = 0; i < sizeof bytes; ++i) wide[i] = static_cast<uint8_t>(bytes[i]);
+    const RwChar* text = (font->flag & 2) != 0 ? reinterpret_cast<const RwChar*>(wide) : bytes;
+    static Rt2dBrush* s_brush = Rt2dBrushCreate();
+    const float height = 0.05f;   // of the screen's height
+    const float margin = 0.025f;
+    const float x = manager->m_fAspect - margin - Rt2dFontGetStringWidth(font, text, height);
+    const float y = 1.0f - margin - height;
+    PushRenderStates(g_pRenderStateRenderer);
+    SetUIOverlayRenderStates();
+    RwRGBA black = {0, 0, 0, 255};
+    RwRGBA yellow = {255, 230, 64, 255};
+    const struct {
+        float x, y;
+        RwRGBA* color;
+    } passes[] = {{x + 0.0035f, y - 0.0035f, &black}, {x, y, &yellow}};
+    for (const auto& pass : passes) {
+        Rt2dCTMPush();
+        Rt2dCTMTranslate(pass.x, pass.y);
+        Rt2dBrushSetRGBA(s_brush, pass.color, pass.color, pass.color, pass.color);
+        RwV2d anchor = {0.0f, 0.0f};
+        Rt2dFontShow(font, text, height, &anchor, s_brush);
+        Rt2dCTMPop();
+    }
+    PopRenderStates(g_pRenderStateRenderer);
+}
+}  // namespace
 
 // 0x00063550 CManager2d_PostRenderPass_maybe (XXL2 RenderMsgBox)
 uint8_t CManager2d::RenderMsgBox() {
@@ -382,6 +443,7 @@ uint8_t CManager2d::RenderMsgBox() {
     // Rt2d CTM stack, which the loader thread's CKFlashUI::PostLoad (Rt2dSceneUpdateLTM) also pushes onto.
     RenderLock_Lock();
     CManager2d_DrawSystemMessageOverlay();  // 0x68ef0
+    DrawFpsCounter(this);                   // PLATFORM (not in the original): --show-fps
     RenderLock_Unlock();
     return 1;
 }
@@ -454,8 +516,8 @@ void CManager2d::PostEvent(uint8_t event, void* data) {
 }
 
 // vt+0x7c 0x00062610 CManager2d_UnloadLocalizedFonts (the language switch): the ten level fonts out of the
-// Rt2d font dictionary and destroyed, then the font texture dictionary released. RwTexDictionaryDestroy is
-// STUB(C1.4) (the shim keeps its dictionaries, as CManager2d_DestroyGame).
+// Rt2d font dictionary and destroyed, then the font texture dictionary (when there is one) no longer Rt2d's and
+// destroyed.
 void CManager2d_UnloadLocalizedFonts(CManager2d* manager) {
     for (Rt2dFont*& font : manager->m_apFonts) {
         if (font == nullptr) continue;
@@ -463,7 +525,11 @@ void CManager2d_UnloadLocalizedFonts(CManager2d* manager) {
         Rt2dFontDestroy(font);
         font = nullptr;
     }
-    if (Rt2dFontTexDictionaryGet() != nullptr) Rt2dFontTexDictionarySet(nullptr);
+    RwTexDictionary* dictionary = Rt2dFontTexDictionaryGet();
+    if (dictionary != nullptr) {
+        Rt2dFontTexDictionarySet(nullptr);
+        RwTexDictionaryDestroy(dictionary);
+    }
 }
 
 // 0x00062508 CManager2d_CacheLocStrings_maybe: copies of the TRC texts 200..203 into +0xa54..+0xa60,
@@ -481,4 +547,43 @@ void CManager2d_CacheLocStrings(CManager2d* manager) {
         }
         WStr_CopyReturnEnd(copy, text);
     }
+}
+
+// 0x00062e98 UI2d_NormalizedToRasterPixels_maybe: a point in the 2D scene's normalised space (y up) to frame
+// buffer pixels (y down): (x x width, (1 - y) x height) of the renderer camera context's colour raster
+// (engine graphic +0x04 -> renderer +0x28 -> +0x04); 0 for both without a raster. The manager is not read.
+void UI2d_NormalizedToRasterPixels(CManager2d* /*manager*/, CVector2* out, const CVector2* in) {
+    float height = 0.0f;  // TOC1 -0x7034
+    float width = 0.0f;
+    const RwRaster* raster = g_pEngine->m_graphic->m_renderer->m_cameraContext->m_pFinalColorRaster;
+    if (raster != nullptr) {
+        height = static_cast<float>(static_cast<double>(raster->height));
+        width = static_cast<float>(static_cast<double>(raster->width));
+    }
+    const float y = in->m_fY;
+    const float flipped = 1.0f - y;  // TOC1 -0x7038
+    const float x = width * in->m_fX;
+    out->m_fX = x;
+    out->m_fY = height * flipped;
+}
+
+#include "k2000/managers/CKGraphic.h"
+
+// 0x00062af8 CManager2d_vf70
+int32_t CManager2d::CanBeUpdated() {
+    return static_cast<int32_t>(((g_pEngine->m_graphic->m_renderer->m_bitProperties ^ 4u) >> 2) & 1u);
+}
+
+// 0x00061bf8 CManager2d_GetFont_maybe
+Rt2dFont* CManager2d::GetFont(uint32_t id) const {
+    if (id == 0x29a) return m_pLocalizedFont;
+    if (id < 10) return m_apFonts[id];
+    return nullptr;
+}
+
+// 0x00062008 CManager2d_GetOrCreateBrush_maybe
+Rt2dBrush* CManager2d::GetOrCreateBrush() {
+    if (m_pBrush != nullptr) return m_pBrush;
+    m_pBrush = Rt2dBrushCreate();
+    return m_pBrush;
 }

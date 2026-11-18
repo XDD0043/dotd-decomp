@@ -33,7 +33,17 @@ struct ParticleUpdateScheduler {
     uint32_t activeCount;              // +0x1c
     uint32_t workerState;              // +0x20
     IKTime* frameClock;                // +0x24 the worker's frame
+    // +0x7c the shutdown was requested (ShutdownParticleUpdateScheduler; the destruction body requests it too). The
+    // condition +0x30, the mutex +0x60 and the thread reference +0x78 between them are not modelled (see above).
+    uint8_t shutdownRequested;
 };
+
+// 0x000ed028 ShutdownParticleUpdateScheduler (CKGameLoop_ShutdownAndExit_maybe, CNodeFx.cpp): once, the shutdown
+// requested; with a worker (concurrency above 1) the worker told to stop (state 2) and joined.
+void ShutdownParticleUpdateScheduler(ParticleUpdateScheduler* scheduler);
+// 0x000ed978 ParticleUpdateScheduler_DestructBody_maybe (CKCoreManager's ShutdownParticleUpdateScheduler_maybe, before
+// the delete): the shutdown as above, the thread reference released, the active-node and work-item arrays freed.
+void ParticleUpdateScheduler_DestructBody(ParticleUpdateScheduler* scheduler);
 
 // 0x000ed0d0 InitializeParticleUpdateScheduler
 void InitializeParticleUpdateScheduler(ParticleUpdateScheduler* scheduler);

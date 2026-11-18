@@ -11,13 +11,13 @@
 //   [x] 0x592038  CKProjectileDataTypeScrap_DeleteArray
 //   [x] 0x5920e0  CKProjectileDataTypeScrap_Create
 //   [x] 0x592128  CKProjectileDataTypeScrap_CreateArray
-//   [ ] 0x5921d0  CKProjectileDataTypeScrap_PostLoad
-//   [ ] 0x5921d8  CKProjectileDataTypeScrap_Destroy
-//   [ ] 0x5921e0  CKProjectileDataTypeScrap_RecursiveRegistration
+//   [x] 0x5921d0  CKProjectileDataTypeScrap_PostLoad  (returns 1: IKSerializable default)
+//   [x] 0x5921d8  CKProjectileDataTypeScrap_Destroy  (empty: the default)
+//   [x] 0x5921e0  CKProjectileDataTypeScrap_RecursiveRegistration
 //   [x] 0x592328  CKProjectileDataTypeScrap_Load
 //   [x] 0x5928a8  CKProjectileTypeScrap_Delete
-//   [ ] 0x5928f8  CKProjectileTypeScrap_vf98
-//   [ ] 0x592900  CKProjectileTypeScrap_vf9C
+//   [x] 0x5928f8  CKProjectileTypeScrap_vf98
+//   [x] 0x592900  CKProjectileTypeScrap_vf9C
 //   [ ] 0x592908  CKProjectileTypeScrap_AddFxEmitPointAndStart_maybe  [dead]
 //   [ ] 0x5929d0  KStub_Nop_5929d0  [dead]
 //
@@ -29,6 +29,8 @@
 #include "k2000/logic/CKProjectileDataTypeScrap.h"
 
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 
 // 0x00592328 CKProjectileDataTypeScrap_Load: level data only, 67 bytes (fields out of address order as in
 // the original).
@@ -53,4 +55,16 @@ int32_t CKProjectileDataTypeScrap::Load(IKFile* file, int32_t type) {
     IKFile_ReadRef(file, &m_unk3c);
     IKFile_ReadRef(file, &m_unk40);
     return 1;
+}
+
+// 0x005921e0 CKProjectileDataTypeScrap_RecursiveRegistration
+void CKProjectileDataTypeScrap::RecursiveRegistration(int32_t type) {
+    if (type == 0) {
+        g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    } else if (static_cast<uint32_t>(type - 4) < 4) {
+        return;
+    }
+    if (m_unk3c != nullptr) m_unk3c->RecursiveRegistration(type);
+    if (m_unk40 != nullptr) m_unk40->RecursiveRegistration(type);
+    if (m_unk44 != nullptr) m_unk44->RecursiveRegistration(type);
 }

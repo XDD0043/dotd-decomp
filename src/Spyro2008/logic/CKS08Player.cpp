@@ -11,8 +11,8 @@
 //   [x] 0x4f58e0  CKS08Player_vf58
 //   [x] 0x4f5908  CKS08Player_vf50
 //   [x] 0x4f5930  CKS08Player_Load
-//   [ ] 0x4f5958  CKS08Player_Save
-//   [ ] 0x4f5980  CKS08Player_RecursiveRegistration
+//   [x] 0x4f5958  CKS08Player_Save
+//   [x] 0x4f5980  CKS08Player_RecursiveRegistration
 //   [x] 0x4f5a38  CKS08Player_DeleteArray
 //   [ ] 0x4f5ae0  RegisterCKS08PlayerClass
 //   [ ] 0x4f5b68  _GLOBAL__D_4f5b68
@@ -20,9 +20,9 @@
 //   [x] 0x4f5b88  CKS08Player_CreateArray
 //   [x] 0x4f5c40  CKS08Player_Create
 //   [x] 0x4f5c98  CKS08Player_vf54
-//   [ ] 0x4f5cc0  CKS08Player_Destructor
+//   [x] 0x4f5cc0  CKS08Player_Destructor  (~CKS08Player, CKS08Player.h)
 //   [ ] 0x4f5ce0  CKS08Player_Destructor_2  [dead]
-//   [ ] 0x4f5d00  CKS08Player_DeletingDestructor
+//   [x] 0x4f5d00  CKS08Player_DeletingDestructor  (~CKS08Player, CKS08Player.h)
 //
 //   [ ] 0x9c6bb8  CKS08Player_IsKindOfClass  [inline]
 //   [x] 0x9c6be0  CKS08Player_GetClassType  [inline]
@@ -43,3 +43,11 @@ void CKS08Player::InitializeNewGame() { InitializeNewGameImpl(); }
 
 // 0x004f58e0 CKS08Player_vf58: IKPlayer's (0x1a0d8).
 void CKS08Player::CopyGameStructure() { IKPlayer::CopyGameStructure(); }
+
+// 0x004f5980 CKS08Player_RecursiveRegistration (C2.8 save-menu)
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
+void CKS08Player::RecursiveRegistration(int32_t type) {
+    if (type == K_OPTIONS_MEMCARD) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    LevelResetImpl(type);
+}

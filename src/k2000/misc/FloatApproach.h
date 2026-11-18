@@ -16,4 +16,9 @@ void FloatApproach_StepAngle(float dt, float* approach);
 // state[3] gets the wrapped current + step, not wrapped again, or the wrapped target) and returns the wrapped current angle without
 // storing it when there is nothing to do.
 float Math_ApproachWithAccelDecel(float dt, float* state);
+// 0x00243800 FloatApproachAccel_Step_maybe: state {target, top speed, speed, acceleration, current}: on the target the
+// speed decays by dt * acceleration down to 0; otherwise the speed moves towards the top speed by dt * acceleration
+// (stopping on it), then current moves towards the target by dt * speed (stopping on it). Returns current. Callers: the
+// bridges (CKHkBridgeBase State1 / State7), CKHkLedge_Update, CKHkPushKillObject_UpdateAxisPosition_maybe (not ported).
+float FloatApproachAccel_Step(float dt, float* state);
 float Math_ApproachAngleWithAccelDecel(float dt, float* state);

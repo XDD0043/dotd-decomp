@@ -13,9 +13,14 @@ public:
     DOTD_DECLARE_FACTORIES(CKSekensBlock)
 
     CKSekensBlock() { m_pText = nullptr; }  // 0x001f71d8 CKSekensBlock_Construct
-    ~CKSekensBlock() override {}
+    ~CKSekensBlock() override { m_pText = nullptr; }  // 0x001f71a0 CKSekensBlock_Destructor
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001f7388 CKSekensBlock_Load
+    // vt+0x30 0x001f7100 CKSekensBlock_PostLoad: CKSekensMarker_PostLoad 0x1fa8a0 (+0x08 = 0), then 1.
+    int32_t PostLoad(int32_t /*type*/) override {
+        m_unk08 = 0;
+        return 1;
+    }
     int32_t IsKindOfClass(uint32_t key) override { return key == kClassKey || key == 0x658c || key == 0xc; }  // 0x9b0e40
     uint8_t Vf50() override { return m_unk18; }                 // vt+0x50 0x001f7068
     uint8_t Vf58() override { return m_unk19; }                 // vt+0x58 0x009b0e78

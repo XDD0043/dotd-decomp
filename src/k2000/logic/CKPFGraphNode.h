@@ -21,6 +21,11 @@ public:
 
     // 0x001ebdd0 CKPFGraphNode_LoadBoundsAndCells: m_box.m_inf, m_box.m_sup (12-byte reads), the grid.
     int32_t Load(IKFile* file, int32_t type);
+    // 0x001ebf00 CKPFGraphNode_SaveBoundsAndCells_maybe (CKPFGraphNode_Save's sector part): m_box.m_inf then m_box.m_sup
+    // as little-endian words, then the grid's (KStub_Return1_1f0fd8: nothing); 1.
+    int32_t Save(IKFile* file, int32_t type);
+    // 0x001ebd30 CKPFGraphNode_FreeCells_maybe: the grid's cells freed (NavGrid_FreeCells_maybe).
+    void FreeCells() { m_grid.FreeCells(); }
 
     // The grid is in cells of g_pfGridScale.m_cellSize from the box's minimum corner (x, z); cell coordinates as
     // floats (CVector2: x, z) are those positions times the inverse cell size.
@@ -53,6 +58,10 @@ public:
     // (FindNearestWalkableCell), then kept `radius` away from the closed cells around that cell (the sides, and the
     // corner of a closed diagonal cell). 0 when no open cell was found.
     uint8_t ClampPointWithClearance(float radius, const CVector3* point, CVector3* out) const;
+    // 0x001ed3c0 NavGrid_SetBoxBlocked (this = the node's sector, node +0x04): the cells under the box `min`..`max`
+    // (x, z) get the dynamic obstacle bit (`blocked`) or lose it (CPFGrid::SetCellBlocked). A corner outside the
+    // sector's box is clamped into it; a `max` inside it is moved 0.001 down on every axis. Returns 1.
+    uint32_t SetBoxBlocked(const CVector3* min, const CVector3* max, uint8_t blocked);
 
     CBBox m_box;      // +0x04 XXL2 m_box
     CPFGrid m_grid;   // +0x1c XXL2 m_grid
@@ -64,6 +73,7 @@ DOTD_ASSERT_OFFSET(CPFSector, m_grid, 0x1c);
 class CKPFGraphNode : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x10)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x40c || key == 0xc; }  // vt+0x08 0x9b04c0
     DOTD_DECLARE_FACTORIES(CKPFGraphNode)
 
     // XXL2 CKPFGraphNode::GraphNodeList node (8 bytes; FreeListPool 0x00cea8.. in the original).
@@ -72,7 +82,13 @@ public:
         IncludedNode* m_pNext;    // +0x04
     };
 
-    CKPFGraphNode();  // 0x001efc58 CKPFGraphNode_Construct
+    CKPFGraphNode();  // 0x001efc58 CKPFGraphNode_Construct (0x001efca8 Construct_2: the same code)
+    // vt+0x10 0x001eff00 CKPFGraphNode_Destroy: the included nodes back to their pool (deleted here), the transition
+    // block freed, the sector's cells freed.
+    void Destroy() override;
+    // vt+0x24 0x001efb60 CKPFGraphNode_RecursiveRegistration: outside the memory-card types (4..7) the node registers
+    // with the saving manager (vt+0x24). (vt+0x30 0x001efbc8 PostLoad: 1, the inherited default.)
+    void RecursiveRegistration(int32_t type) override;
     ~CKPFGraphNode() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001effa8 CKPFGraphNode_Load

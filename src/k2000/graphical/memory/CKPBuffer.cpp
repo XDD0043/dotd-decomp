@@ -14,14 +14,14 @@
 //   [ ] 0x950e0  RegisterCKPBufferClass
 //   [ ] 0x951c0  _GLOBAL__I_951c0
 //   [x] 0x951d0  CKPBuffer_BindSharedRasterToTexture_maybe
-//   [ ] 0x95210  RenderBlurPassChainNoShader_maybe  (only without the shader pipelines, which the PS3 always has: not ported)
+//   [ ] 0x95210  RenderBlurPassChainNoShader_maybe  (only without the shader pipelines, which the PS3 always has: not ported)  [platform]  (the fixed-function blur, only without the shader pipelines, which the PS3 build always has (ConstructShaderManagerPSGL); CPostRenderingFx::Render keeps the shader path)
 //   [ ] 0x95ba8  CKPBuffer_Save
-//   [ ] 0x95bd0  CKPBuffer_RecursiveRegistration
+//   [x] 0x95bd0  CKPBuffer_RecursiveRegistration  (CKPBuffer::RecursiveRegistration)
 //   [x] 0x95c50  CKPBuffer_ReleaseSharedRasters_maybe
 //   [x] 0x95e08  CKPBuffer_Destroy
 //   [x] 0x95e40  CKPBuffer_DeleteArray
 //   [x] 0x95ee8  CKPBuffer_Create
-//   [ ] 0x95f40  RenderMultiTapScreenBlur  (STUB(C2.7): the blur effect, CPostRenderingFx flag 0x100)
+//   [x] 0x95f40  RenderMultiTapScreenBlur
 //   [x] 0x96670  CKPBuffer_CreateArray
 //   [x] 0x96728  CKPBuffer_Enqueue  (UpdateAndExtract)
 //   [x] 0x967a0  CKPBuffer_Load
@@ -32,16 +32,20 @@
 //   [x] 0x97a20  DownSampleAndBlurRaster_maybe
 //   [x] 0x97b68  CopySceneColorToRaster
 //   [x] 0x97c28  CKPBuffer_Draw  (Render)
-//   [ ] 0x97db0  CLightManager_Delete
-//   [ ] 0x97e00  CLightSet_Delete
+//   [x] 0x97db0  CLightManager_Delete  (the registry factory: DOTD_DECLARE_FACTORIES(CLightManager))
+//   [x] 0x97e00  CLightSet_Delete  (the registry factory: DOTD_DECLARE_FACTORIES(CLightSet))
 //
 //   [x] 0x99c948  CKPBuffer_IsKindOfClass  [inline]
 //   [x] 0x99c970  CKPBuffer_GetClassType  [inline]
 //   [x] 0x99c978  CKPBuffer_GetClassID  [inline]
 //   [x] 0x99c980  CKPBuffer_vf70  [inline]  (CanBeUpdated)
-//   [ ] 0x99c988  CKPBuffer_Destructor  [inline]
-//   [ ] 0x99c9a8  CKPBuffer_DeletingDestructor  [inline]
+//   [x] 0x99c988  CKPBuffer_Destructor  [inline]
+//   [x] 0x99c9a8  CKPBuffer_DeletingDestructor  [inline]
 #include "k2000/graphical/memory/CKPBuffer.h"
+
+#include <cstring>
+
+#include "crt/ppc_ops.h"
 
 #include "Renderware/rwcore/RwCamera.h"
 #include "Renderware/rwcore/RwDevice.h"
@@ -78,9 +82,9 @@ const uint8_t kColorWhite[4] = {0xff, 0xff, 0xff, 0xff};  // 0x00c50dfc
 CameraContext* Context() { return static_cast<CameraContext*>(g_pEngine->m_cameraContext); }
 // The renderer's scene colour raster (graphic +4 -> renderer +0x28 -> camera context +0x1c).
 RwRaster* SceneColorRaster() { return g_pEngine->m_graphic->m_renderer->m_cameraContext->m_pSceneColorRaster; }
-// RwTextureSetRaster with a camera raster: the device finds a camera raster's colour target by its address
-// (RwDevice_GetRasterTexture), so the texture's raster slot holds the RwRaster.
-void TextureSetRaster(RwTexture* texture, RwRaster* raster) { texture->raster = reinterpret_cast<RwShim_DdsRaster*>(raster); }
+// RwTextureSetRaster (TocBridge 0x98e220): a camera raster's colour target is what the device samples
+// (RwDevice_GetRasterTexture).
+void TextureSetRaster(RwTexture* texture, RwRaster* raster) { RwTextureSetRaster(texture, raster); }
 }  // namespace
 
 // 0x00095c50 CKPBuffer_ReleaseSharedRasters_maybe: one object fewer; the last one destroys the shared rasters, the
@@ -317,6 +321,142 @@ void DrawFullscreenRasterQuad(RwRaster* raster, int32_t srcBlend, int32_t destBl
     RwIm2DRenderPrimitive(rwPRIMTYPETRISTRIP, vertices, 4);  // RWEngine +0x30
 }
 
+namespace {
+// 0x00a6f480 / 0x00a6f498 (TOC -0x638c + 0x60 / + 0x78): the index lists of the blur's fans: the centre and the first
+// ring, then the centre and every further ring (copied onto the stack, memcpy 0xb8 bytes).
+const RwImVertexIndex kBlurFirstRing[6] = {0, 1, 2, 3, 4, 1};
+const RwImVertexIndex kBlurOuterRings[46] = {0,    5,    6,    7,    8,    5,    9,    0xa,  0xb,  0xc,  9,    0xd,
+                                             0xe,  0xf,  0x10, 0xd,  0x11, 0x12, 0x13, 0x14, 0x11, 0x15, 0x16, 0x17,
+                                             0x18, 0x15, 0x19, 0x1a, 0x1b, 0x1c, 0x19, 0x1d, 0x1e, 0x1f, 0x20, 0x1d,
+                                             0x21, 0x22, 0x23, 0x24, 0x21, 0x25, 0x26, 0x27, 0x28, 0x25};
+}  // namespace
+
+// 0x00095f40 RenderMultiTapScreenBlur: `source` drawn into `destination` (the UI camera on it, no depth buffer) as
+// concentric full-screen rectangles: a centre vertex at `center` (0..1 of the destination; the colour white with the
+// centre intensity's alpha) and `rings` rings of four corners whose texture rectangle grows by `start` + k `step` texels
+// (the vertical by the destination's aspect), their alpha the border intensity's falling by 1 / (rings + 1) per ring;
+// the texture coordinates flipped vertically with `flipV`. The first ring's fan is drawn ONE / ZERO without vertex
+// alpha, the others' (with more than one ring) SRCALPHA / INVSRCALPHA with it; no Z, fog or culling, filtered, clamped,
+// alpha test always, Gouraud. The camera's rasters put back.
+void RenderMultiTapScreenBlur(RwRaster* source, RwRaster* destination, uint32_t rings, const float* center, float start,
+                              float step, float borderIntensity, float centerIntensity, uint8_t flipV) {
+    RwCamera* camera = Context()->m_pUICamera;  // 0x00c5c9c4
+    const float kFull = 255.0f;                // TOC -0x6370
+    const float one = 1.0f;                    // TOC -0x63b8
+    const float zero = 0.0f;                   // TOC -0x6384
+    const float width = static_cast<float>(static_cast<double>(static_cast<int32_t>(destination->width)));
+    const float height = static_cast<float>(static_cast<double>(static_cast<int32_t>(destination->height)));
+    const float sourceWidth = static_cast<float>(static_cast<double>(static_cast<int32_t>(source->width)));
+    const float sourceHeight = static_cast<float>(static_cast<double>(static_cast<int32_t>(source->height)));
+    RwRaster* savedFrameBuffer = camera->frameBuffer;
+    RwRaster* savedZBuffer = camera->zBuffer;
+    uint8_t color[4] = {kColorWhite[0], kColorWhite[1], kColorWhite[2], kColorWhite[3]};
+    color[3] = static_cast<uint8_t>(ppc::fctiwz(borderIntensity * kFull));  // the low byte
+    const float texelU = one / sourceWidth;
+    const float texelV = one / sourceHeight;
+    RwImVertexIndex outerIndices[46];
+    std::memcpy(outerIndices, kBlurOuterRings, sizeof outerIndices);
+    const float nearZ = RwIm2DGetNearScreenZ();  // RWEngine +0x18
+    const float recipZ = one / camera->nearPlane;
+    const float stepV = step * (height / width);
+    float flipBase = zero;
+    float flipScale = one;
+    if (flipV != 0) {
+        flipBase = one;
+        flipScale = -1.0f;  // TOC -0x636c
+    }
+    // The centre (vertex 0) and four corners per ring.
+    // BUG(original): the stack holds the centre and ten rings (the index lists too); more rings run past it.
+    RwIm2DVertex vertices[1 + 4 * 10];
+    {
+        RwIm2DVertex& c = vertices[0];
+        const float v = ppc::fmadds(texelV, zero, center[1]);
+        const float u = ppc::fmadds(texelU, zero, center[0]);
+        c.x = width * center[0];
+        c.y = height * center[1];
+        c.z = nearZ;
+        c.emissiveColor.red = color[0];
+        c.emissiveColor.green = color[1];
+        c.emissiveColor.blue = color[2];
+        c.emissiveColor.alpha = static_cast<uint8_t>(ppc::fctiwz(centerIntensity * kFull));
+        c.s = u;
+        c.t = v;
+        c.r = zero;
+        c.q = one;
+        c.recipZ = recipZ;
+    }
+    if (rings != 0) {
+        const float fall = static_cast<float>(static_cast<double>(color[3])) /
+                           static_cast<float>(static_cast<double>(static_cast<uint64_t>(rings + 1)));
+        const uint8_t fallByte = static_cast<uint8_t>(ppc::fctiwz(fall));
+        float offsetV = start;  // f1, growing by the aspect-scaled step
+        float offsetU = start;  // f9, growing by the step
+        for (uint32_t ring = 0; ring < rings; ++ring) {
+            float top = ppc::fmadds(texelV, offsetV + zero, zero);
+            float bottom = ppc::fmadds(texelV, zero - offsetV, one);
+            const float left = ppc::fmadds(texelU, offsetU + zero, zero);
+            const float right = ppc::fmadds(texelU, zero - offsetU, one);
+            offsetV = offsetV + stepV;
+            offsetU = offsetU + step;
+            top = ppc::fmadds(flipScale, top, flipBase);
+            bottom = ppc::fmadds(flipScale, bottom, flipBase);
+            const float x[4] = {zero, width, width, zero};
+            const float y[4] = {zero, zero, height, height};
+            const float s[4] = {left, right, right, left};
+            const float t[4] = {top, top, bottom, bottom};
+            for (uint32_t k = 0; k < 4; ++k) {
+                RwIm2DVertex& v = vertices[1 + ring * 4 + k];
+                v.x = x[k];
+                v.y = y[k];
+                v.z = nearZ;
+                v.emissiveColor.red = color[0];
+                v.emissiveColor.green = color[1];
+                v.emissiveColor.blue = color[2];
+                v.emissiveColor.alpha = color[3];
+                v.s = s[k];
+                v.t = t[k];
+                v.r = zero;
+                v.q = one;
+                v.recipZ = recipZ;
+            }
+            color[3] = static_cast<uint8_t>(color[3] - fallByte);
+        }
+    }
+    camera->frameBuffer = destination;
+    camera->zBuffer = nullptr;
+    if (BeginRenderCameraUpdate(camera) != nullptr) {
+        const int32_t passes = rings > 1 ? 2 : 1;
+        for (int32_t pass = 0; pass < passes; ++pass) {
+            if (pass == 0) {
+                RwRenderStateSet(rwRENDERSTATEZTESTENABLE, StateWord(0));
+                RwRenderStateSet(rwRENDERSTATEZWRITEENABLE, StateWord(0));
+                RwRenderStateSet(rwRENDERSTATEFOGENABLE, StateWord(0));
+                RwRenderStateSet(rwRENDERSTATECULLMODE, StateWord(1));
+                RwRenderStateSet(rwRENDERSTATETEXTUREFILTER, StateWord(2));
+                RwRenderStateSet(rwRENDERSTATETEXTUREADDRESS, StateWord(3));
+                RwRenderStateSet(rwRENDERSTATEALPHATESTFUNCTION, StateWord(8));
+                RwRenderStateSet(rwRENDERSTATESHADEMODE, StateWord(2));
+                RwRenderStateSet(rwRENDERSTATETEXTURERASTER, source);
+                RwRenderStateSet(rwRENDERSTATESRCBLEND, StateWord(2));
+                RwRenderStateSet(rwRENDERSTATEDESTBLEND, StateWord(1));
+                RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, StateWord(0));
+                RwImVertexIndex firstIndices[6];
+                std::memcpy(firstIndices, kBlurFirstRing, sizeof firstIndices);
+                RwIm2DRenderIndexedPrimitive(rwPRIMTYPETRIFAN, vertices, 5, firstIndices, 6);  // RWEngine +0x34
+            } else {
+                RwRenderStateSet(rwRENDERSTATESRCBLEND, StateWord(5));
+                RwRenderStateSet(rwRENDERSTATEDESTBLEND, StateWord(6));
+                RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, StateWord(1));
+                RwIm2DRenderIndexedPrimitive(rwPRIMTYPETRIFAN, vertices, static_cast<RwInt32>(rings * 4 + 1), outerIndices,
+                                             static_cast<RwInt32>(rings * 5 - 4));
+            }
+        }
+    }
+    RwCameraEndUpdate(camera);
+    camera->frameBuffer = savedFrameBuffer;
+    camera->zBuffer = savedZBuffer;
+}
+
 // 0x00097a20 DownSampleAndBlurRaster_maybe
 void DownSampleAndBlurRaster_maybe(RwRaster* source, RwRaster* destination) {
     CameraContext* context = Context();
@@ -378,7 +518,7 @@ void CKPBuffer_DrawAltSceneComposite() {
 // depth of field composite, the current camera's update ended, the shared rasters made, the frame noted (+0x6c), the
 // scene colour raster copied into the full-size shared raster with the UI camera (no z buffer), the camera's update begun
 // again, the states popped.
-void CKPBuffer::Render() {
+void CKPBuffer::Render(IKTime* /*frameClock*/) {
     if ((g_pEngine->m_graphic->m_baHardwareCaps & 0x400) == 0) return;
     PushRenderStates(g_pRenderStateRenderer);
     CKPBuffer_DrawAltSceneComposite();
@@ -427,4 +567,13 @@ int32_t CKPBuffer::Load(IKFile* file, int32_t type) {
     m_si32RefCount = count + 1;
     m_ui16LastPushedFrame = 0;
     return 1;
+}
+
+#include "k2000/logic/CKSavingManager.h"
+
+// 0x00095bd0 CKPBuffer_RecursiveRegistration
+void CKPBuffer::RecursiveRegistration(int32_t type) {
+    if (type != 0) return;
+    IRendableObject::RecursiveRegistration(0);
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
 }

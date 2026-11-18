@@ -51,6 +51,7 @@ int main() {
         for (uint32_t slot = 0; slot < 2; ++slot) RpTeamPlayerSetElement(player, slot, slots[p][slot]);
         RwFrame* frame = RwFrameCreate();
         frame->modelling.pos = {10.0f * (p + 1), 0.0f, 0.0f};
+        RwFrameUpdateObjects(frame);  // as RwFrameTranslate would: the LTM follows at the next RwFrameGetLTM
         RpTeamPlayerSetHierarchyFrame(player, frame);
     }
     Expect(dictionary->elements[0].refCount == 2 && dictionary->elements[1].refCount == 2, "every slot counts on its element");

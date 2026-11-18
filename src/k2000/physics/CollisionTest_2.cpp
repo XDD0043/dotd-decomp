@@ -7,7 +7,7 @@
 //   [x] 0x1a0238  CollisionTest_BoxVsSweptSphere_maybe
 //   [x] 0x1a0868  CollisionTest_SphereVsSweptSphere_maybe
 //   [x] 0x1a0d40  CollisionTest_SphereVsSphere
-//   [ ] 0x1a0f90  CollisionTest_SweptSphereVsSweptSphere_maybe
+//   [x] 0x1a0f90  CollisionTest_SweptSphereVsSweptSphere_maybe  (port-final F05)
 #include "k2000/physics/CollisionTest.h"
 
 #include <cmath>
@@ -501,10 +501,138 @@ uint8_t SphereVsSphere(IKBoundingVolume* a, IKBoundingVolume* b, CContactSet* se
     return 1;
 }
 
-// 0x001a0f90 CollisionTest_SweptSphereVsSweptSphere_maybe. STUB(C2.9): two moving spheres (no LVL010 contact pairs two moving spheres).
-uint8_t SweptSphereVsSweptSphere(IKBoundingVolume*, IKBoundingVolume*, CContactSet*) {
-    DOTD_STUB_ONCE("CollisionTest_SweptSphereVsSweptSphere_maybe 0x1a0f90 (C2.9: no volume pair of LVL010 has these shapes)");
-    return 0;
+/// 0x001a0f90 CollisionTest_SweptSphereVsSweptSphere_maybe (C2.8 port-final F05): two moving spheres
+// (CKDynamicBoundingSphere: each from its old position +0x38 while it follows its frame (infos bit 4), else its frame's).
+// Relative to the first: the move v = move2 - move1 (+0x2c) and the start offset d = start2 - start1. Per axis (x, z, y)
+// the swept range against the sum of the radii (r2 + r1; blt / bgt / ble: an unordered compare goes on). Already
+// touching at the start (|d|^2 - radii^2 <= 0, fused y, x, z): response 0xa at the first start when the distance (fsqrts)
+// is not above 0, else 0xe with the unit normal from the first start to the second, the interpenetration and the contact
+// point on the first sphere's surface pushed back by half of it. Else the first time t in [-1e-6, 1.0000010] the
+// distance is the sum (the quadratic's smaller root unless the larger is not above it or the smaller is before the
+// start): response 0xd, the time, the normal (d + v t) / radii and the contact point on the first sphere at that time
+// (start1 + move1 t + r1 n).
+uint8_t SweptSphereVsSweptSphere(IKBoundingVolume* a, IKBoundingVolume* b, CContactSet* set) {
+    const CKDynamicBoundingSphere* sa = static_cast<const CKDynamicBoundingSphere*>(a);
+    const CKDynamicBoundingSphere* sb = static_cast<const CKDynamicBoundingSphere*>(b);
+    const CVector3* pa = ((a->m_ba8Infos >> 4) & 1) != 0 ? &sa->m_v3OldPos : Position(a);
+    const CVector3* pb = ((b->m_ba8Infos >> 4) & 1) != 0 ? &sb->m_v3OldPos : Position(b);
+    const float vx = sb->m_v3WorldMove.x - sa->m_v3WorldMove.x;
+    const float dx = pb->x - pa->x;
+    const float radii = b->m_fRadius + a->m_fRadius;
+    const float minus = -radii;
+    if (vx < 0.0f) {
+        if (radii - vx < dx) return 0;
+        if (minus > dx) return 0;
+    } else {
+        if (radii < dx) return 0;
+        if (minus - vx > dx) return 0;
+    }
+    const float vz = sb->m_v3WorldMove.z - sa->m_v3WorldMove.z;
+    const float dz = pb->z - pa->z;
+    if (vz < 0.0f) {
+        if (radii - vz < dz) return 0;
+        if (minus > dz) return 0;
+    } else {
+        if (radii < dz) return 0;
+        if (minus - vz > dz) return 0;
+    }
+    const float vy = sb->m_v3WorldMove.y - sa->m_v3WorldMove.y;
+    const float dy = pb->y - pa->y;
+    if (vy < 0.0f) {
+        if (radii - vy < dy) return 0;
+        if (minus > dy) return 0;
+    } else {
+        if (radii < dy) return 0;
+        if (minus - vy > dy) return 0;
+    }
+    const float distance2 = ppc::fmadds(dz, dz, ppc::fmadds(dx, dx, dy * dy));
+    const float c = distance2 - radii * radii;
+    if (c <= 0.0f) {
+        const float distance = std::sqrt(distance2);  // fsqrts
+        if (!(distance > 0.0f)) {
+            set->m_Infos = (set->m_Infos & 0xfffffff0u) | 0xau;
+            set->m_WorldContactPoint.x = pa->x;
+            set->m_WorldContactPoint.z = pa->z;
+            set->m_WorldContactPoint.y = pa->y;
+            set->m_fdInterpenetration = radii;
+            return 1;
+        }
+        const float inverse = 1.0f / distance;
+        set->m_Infos = (set->m_Infos & 0xfffffff0u) | 0xeu;
+        const float ax = pa->x, ay = pa->y, az = pa->z;
+        const float ny = pb->y - ay;
+        const float nx = pb->x - ax;
+        const float nz = pb->z - az;
+        const float penetration = radii - distance;
+        set->m_Normale12.x = nx;
+        set->m_Normale12.x = inverse * nx;
+        set->m_Normale12.z = inverse * nz;
+        set->m_Normale12.y = inverse * ny;
+        set->m_fdInterpenetration = penetration;
+        const float along = ppc::fmadds(penetration, -0.5f, a->m_fRadius);
+        const float cx = pa->x, cy = pa->y, cz = pa->z;
+        set->m_WorldContactPoint.x = cx;
+        set->m_WorldContactPoint.y = cy;
+        set->m_WorldContactPoint.z = cz;
+        set->m_WorldContactPoint.z = ppc::fmadds(along, set->m_Normale12.z, cz);
+        set->m_WorldContactPoint.x = ppc::fmadds(along, set->m_Normale12.x, cx);
+        set->m_WorldContactPoint.y = ppc::fmadds(along, set->m_Normale12.y, cy);
+        return 1;
+    }
+    const float speed2 = ppc::fmadds(vz, vz, ppc::fmadds(vx, vx, vy * vy));
+    const float half = ppc::fmadds(dz, vz, ppc::fmadds(dx, vx, dy * vy));
+    const float twice = half + half;
+    constexpr float kEarliest = -0x1.0c6f7ap-20f;  // TOC1 -0x27d8 -1e-6 (0xb58637bd)
+    constexpr float kLatest = 0x1.00001p+0f;       // TOC1 -0x27cc 1.0000010 (0x3f800008)
+    float t;
+    bool valid;
+    if (speed2 != 0.0f) {
+        const float discriminant = ppc::fmadds(twice, twice, c * (speed2 * -4.0f));  // TOC1 -0x27d4
+        if (discriminant < 0.0f) return 0;
+        const float root = std::sqrt(discriminant);  // Math_Sqrtf 0x10690
+        const float scale = 0.5f / speed2;           // TOC1 -0x27d0
+        const float t1 = scale * (-twice - root);
+        const float t2 = scale * (root - twice);
+        if (!(t2 <= t1) && t1 >= kEarliest) {
+            t = t1;
+            valid = true;
+        } else {
+            t = t2;
+            valid = t2 >= kEarliest;
+        }
+    } else if (twice != 0.0f) {
+        t = -c / twice;
+        valid = t >= kEarliest;
+    } else {
+        return 0;  // c > 0 here (bne cr6)
+    }
+    if (!valid) return 0;
+    if (!(t <= kLatest)) return 0;
+    const float hx = ppc::fmadds(vx, t, dx);
+    const float hy = ppc::fmadds(vy, t, dy);
+    const float hz = ppc::fmadds(vz, t, dz);
+    set->m_Infos = (set->m_Infos & 0xfffffff0u) | 0xdu;
+    const float inverse = 1.0f / radii;  // TOC1 -0x27e0
+    set->m_fUDeltaTime = t;
+    set->m_Normale12.x = hx;
+    set->m_Normale12.x = inverse * hx;
+    set->m_Normale12.z = inverse * hz;
+    set->m_Normale12.y = inverse * hy;
+    const float ax = pa->x, az = pa->z, ay = pa->y;
+    set->m_WorldContactPoint.x = ax;
+    set->m_WorldContactPoint.y = ay;
+    set->m_WorldContactPoint.z = az;
+    const float mx = ppc::fmadds(t, sa->m_v3WorldMove.x, ax);
+    const float mz = ppc::fmadds(t, sa->m_v3WorldMove.z, az);
+    const float my = ppc::fmadds(t, sa->m_v3WorldMove.y, ay);
+    set->m_WorldContactPoint.z = mz;
+    set->m_WorldContactPoint.x = mx;
+    set->m_WorldContactPoint.y = my;
+    const float r = a->m_fRadius;
+    set->m_WorldContactPoint.z = ppc::fmadds(r, set->m_Normale12.z, mz);
+    set->m_WorldContactPoint.x = ppc::fmadds(r, set->m_Normale12.x, mx);
+    set->m_WorldContactPoint.y = ppc::fmadds(r, set->m_Normale12.y, my);
+    return 1;
 }
 
 }  // namespace collision_test

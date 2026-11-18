@@ -4,14 +4,14 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1a3e90  CGround_Delete
-//   [ ] 0x1a3ee0  CGround_RecursiveRegistration
+//   [x] 0x1a3ee0  CGround_RecursiveRegistration
 //   [x] 0x1a3f48  CGround_vf50
 //   [x] 0x1a3f50  CGround_vf54
 //   [x] 0x1a3f58  CGround_RefreshTransform_maybe
 //   [ ] 0x1a3f60  FUN_001a3f60  [dead]
 //   [ ] 0x1a3f78  RegisterCGroundClass
 //   [ ] 0x1a3ff0  _GLOBAL__I_1a3ff0
-//   [ ] 0x1a4000  CGround_vf60
+//   [x] 0x1a4000  CGround_vf60
 //   [x] 0x1a4060  CGround_DeleteArray
 //   [x] 0x1a4108  CGround_Create
 //   [x] 0x1a4140  CGround_vf6C
@@ -19,9 +19,9 @@
 //   [x] 0x1a4868  CGround_GetTriangleNormalAtPoint_maybe
 //   [x] 0x1a4c20  CGround_CreateArray
 //   [x] 0x1a4cb8  CGround_RaycastTriangles_maybe
-//   [ ] 0x1a4fb0  CGround_GetInfo
-//   [ ] 0x1a4fb8  CGround_MessageProc
-//   [ ] 0x1a5078  CGround_PostLoad
+//   [x] 0x1a4fb0  CGround_GetInfo  (IKSerializable's: returns 1)
+//   [x] 0x1a4fb8  CGround_MessageProc
+//   [x] 0x1a5078  CGround_PostLoad  (IKSerializable's: returns 1)
 //   [x] 0x1a5080  CGround_vf70
 //   [x] 0x1a5610  CGround_Load
 //   [ ] 0x1a5998  CGround_Save
@@ -39,6 +39,8 @@
 #include "k2000/core/Stub.h"
 #include "k2000/hooks/GroundContact.h"
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 #include "k2000/math/CBBox.h"
 #include "k2000/memory/Mem.h"
 #include "k2000/misc/Mat4.h"
@@ -393,4 +395,41 @@ void CGround::FindAllPotentialEdgesForIntersection(SExtrapolated_Edge2D_Full_Inf
 void CGround::FindAllPotentialEdgesForIntersection(SExtrapolated_Edge2D_Full_Infos* edges, uint8_t* count,
                                                    const CLine* line, const CBBox* box, float radius, uint8_t cull) {
     ground_test::GatherEdges(*this, nullptr, edges, count, line, box, true, radius, cull);
+}
+
+// 0x001a4000 CGround_vf60 (MyDestroy)
+void CGround::MyDestroy() {
+    Mem_FreeAligned16(m_aVertex);
+    m_ui16NbEdgeWithHeight = 0;
+    m_aVertex = nullptr;
+    m_aTriangle = nullptr;
+    m_aEdge = nullptr;
+    m_aEdgeWithHeight = nullptr;
+    m_ui16NbVertex = 0;
+    m_ui16NbTriangle = 0;
+    m_ui16NbEdge = 0;
+}
+
+// 0x001a3ee0 CGround_RecursiveRegistration
+void CGround::RecursiveRegistration(int32_t type) {
+    if (static_cast<uint32_t>(type) - 4u > 3u) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);
+}
+
+// 0x001a4fb8 CGround_MessageProc. The first range ANDs with ~(1 << n) and ORs the data byte << n (not normalised).
+int32_t CGround::MessageProc(uint16_t message, void* data) {
+    if (((message >> 8) & 0xff) != 0x0b) return 1;
+    const uint32_t low = message & 0xffu;
+    const uint8_t value = *static_cast<const uint8_t*>(data);
+    if (low <= 0x0f) {
+        m_ba16EngineFlags = static_cast<uint16_t>((m_ba16EngineFlags & ~(1u << low)) | (static_cast<uint32_t>(value) << low));
+        return 0;
+    }
+    if (low > 0x1f) return 1;
+    const uint32_t bit = (low - 0x10) & 0xffffu;
+    if (value != 0) {
+        m_ui16PropertiesFlags = static_cast<uint16_t>(m_ui16PropertiesFlags | (1u << bit));
+    } else {
+        m_ui16PropertiesFlags = static_cast<uint16_t>(m_ui16PropertiesFlags & ~(1u << bit));
+    }
+    return 0;
 }

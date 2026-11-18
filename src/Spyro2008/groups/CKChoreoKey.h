@@ -8,11 +8,13 @@
 #include "k2000/core/IKSerializable.h"
 #include "k2000/core/Layout.h"
 #include "k2000/math/CMatrix34.h"
+#include "k2000/memory/Mem.h"
 #include "k2000/util/TVector.h"
 
 class CKChoreoKey : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0xf)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x3cc || key == 0xc; }  // vt+0x08 0x9bb158
     DOTD_DECLARE_FACTORIES(CKChoreoKey)
 
     // XXL2 SChoreoPos (0x1c bytes): two vectors read 0xc bytes at a time, each word swapped, two bytes,
@@ -34,6 +36,22 @@ public:
     }
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x002651b0 CKChoreoKey_Load
+    // vt+0x24 0x00264e68 CKChoreoKey_RecursiveRegistration (k2000/logic/CKChoreoKey.cpp): registered with the saving
+    // manager (vt+0x24, no owner) unless the type is 4..7.
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x10 0x00264ed8 CKChoreoKey_Destroy (k2000/logic/CKChoreoKey.cpp's unit): the position block freed and emptied.
+    void Destroy() override {
+        if (m_asPos.m_pBlock != nullptr) {
+            Mem_FreeAligned16(m_asPos.m_pBlock);
+            m_asPos.m_pBlock = nullptr;
+        }
+        m_asPos.m_ui32NbUsedElt = 0;
+        m_asPos.m_pBlock = nullptr;
+    }
+    // 0x002650b0 CKChoreoKey_ClearSlotsTaken_maybe: every position's m_bUsed cleared.
+    void ClearSlotsTaken() {
+        for (uint32_t i = 0; i < m_asPos.m_ui32NbUsedElt; ++i) m_asPos.m_pBlock[i].m_bUsed = 0;
+    }
 
     TVector<SChoreoPos, 5> m_asPos;  // +0x04
     float m_fKeyDuration;            // +0x10

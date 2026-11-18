@@ -10,6 +10,9 @@
 class CKTrcText : public CKLocText {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x1a1)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9945a8
+        return key == 0x684c || key == 0x680c || key == 0x700c || key == 0x330c || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKTrcText)
 
     // The live constructor is inlined in CKTrcText_Create 0x36ed0 / CreateArray 0x36e18 (CKTrcText_Construct

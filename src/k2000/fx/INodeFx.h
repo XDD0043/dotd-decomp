@@ -16,6 +16,15 @@ public:
     ~INodeFx() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x000eccd8 CNodeFx_Load
+    // vt+0x30 0x000eca78 INodeFx_PostLoad (CNodeFx_PostLoadBase_maybe): in a level load (type 0) the three bytes
+    // +0x28..+0x2a into every geometry's render flag bits 22, 23 and 25; every geometry's vt+0x80 (0 with render
+    // flag 0x80000, else 2); then CNode's.
+    int32_t PostLoad(int32_t type) override;
+
+    // 0x000ec920 NodeFx_EnqueueBase_maybe: the effect nodes' UpdateAndExtract prologue, the same code as CNode's
+    // (0xcc160): unless hidden (flag 4) the own geometry culled and queued (vt+0x84), stamped drawn when queued, every
+    // child traversed.
+    void EnqueueBase(RenderQueue** stages, IKTime* frameClock, RwCamera* camera);
 
     // +0x24 XXL2 m_fDeltaTime: the particle node's frame time (PrepareParticleNodeForRendering /
     // UpdateParticleNodeSimulation); not set by the constructor or Load.

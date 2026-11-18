@@ -16,6 +16,10 @@ public:
         return key == 0x734c || key == 0x114c || key == 0x730c || key == 0xc;
     }
     int32_t Load(IKFile* file, int32_t type) override;                                   // vt+0x2c 0x52c9e8 CKMenuMessageBox_Load
+    // vt+0x50 0x52d1f8 CKMenuMessageBox_Open: the menus' Open, the three buttons' texts kept suppressed (the box writes
+    // them), answers blocked on the opening frame (+0xd8) and the +0x6c / +0x6d bytes cleared.
+    void Open() override;
+    void Close() override;  // vt+0x5c 0x52c9c0 CKMenuMessageBox_Close: the menus' Close
     uint32_t GetWidgetSlotCount() override { return 1; }                                 // vt+0x68 0x9c8710
     WidgetSlot* GetWidgetSlots() override { return m_aWidgetSlots; }                     // vt+0x6c 0x9c8718
     const char* GetMenuName() override { return "Menu Message Box"; }                    // vt+0xb8 0x9c8700

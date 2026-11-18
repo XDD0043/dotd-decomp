@@ -18,6 +18,10 @@ public:
         return key == 0x1306 || key == 0x606 || key == 0x6 || key == 0xc;
     }
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x005ba2f8 CKS08BonusCpnt_Load
+    // vt+0x24 0x005ba210 CKS08BonusCpnt_LevelReset (port-all P22): outside the types 4..7 the component registered with
+    // the saving manager and, for type 0, its sound dictionary's (+0x0c) registration with 0; then +0x48's with `type`.
+    // vt+0x10 0x005b9f58 (Ghidra _ClearReferences / _Destroy): empty (IKBaseClass's).
+    void RecursiveRegistration(int32_t type) override;
 
     // All words byte-swapped; the read order is +0x4c, +0x50, +0x14..+0x20, +0x2c..+0x44, +0x24, +0x28,
     // +0x54..+0x60, then the byte at +0x10.

@@ -17,7 +17,7 @@ public:
     DOTD_DECLARE_FACTORIES(CColorizedScreenFx)
 
     CColorizedScreenFx();                 // 0x000b07a8 CColorizedScreenFx_Create (inlined)
-    ~CColorizedScreenFx() override {}     // STUB(C1.6): 0x9a0948 / 0x9a0900
+    ~CColorizedScreenFx() override {}     // 0x009a0948 / 0x009a0900 CColorizedScreenFx_Destructor / _DeletingDestructor: the vtables only
     // vt+0x08 0x9a07e0
     int32_t IsKindOfClass(uint32_t key) override { return key == 0xccd || key == 0xa8d || key == 0xc; }
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x000b05e8 CColorizedScreenFx_Load
@@ -27,9 +27,13 @@ public:
     void UpdateAndExtract(float maxDistanceSquared, RenderQueue** stages, IKTime* frameClock, RwCamera* camera, int32_t distanceCull) override;
     // vt+0x5c 0x000b10e8 CColorizedScreenFx_Render: when shown (+0x14 bit 0x100), the full-screen quad in
     // the current colour (+0x24) with the blend of the table entry +0x3c (DrawScreenColorQuad).
-    void Render() override;
+    void Render(IKTime* frameClock) override;
     int32_t CanBeUpdated() override;                    // vt+0x70 0x9a0818 CColorizedScreenFx_CanBeUpdated
     void ComputeSortingCoef(int32_t sortingOrder) override;  // vt+0x74 0x000b0c80 (by the sort mode)
+    // vt+0x24 0x000b0240 CColorizedScreenFx_RecursiveRegistration: type 0 registers the effect.
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x78 0x000b02a0 CColorizedScreenFx_vf78 (XXL2 CColorizedScreenFx::Clear): a bare blr.
+    virtual void Clear() {}
 
     // XXL2 CSmoothedCColorLinear (0x1c bytes): a colour moving towards its target at m_fSpeed (in units of
     // 255 per second), kept both as floats and as the CColor the draw reads. The member names are ours

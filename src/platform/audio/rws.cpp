@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstring>
 
+#include "platform/hostfs.h"
 #include "platform/log.h"
 
 #if DOTD_HAVE_FFMPEG_BINK
@@ -32,6 +33,7 @@ uint32_t BE32(const uint8_t* p) {
            static_cast<uint32_t>(p[3]);
 }
 uint32_t BE16(const uint8_t* p) { return (static_cast<uint32_t>(p[0]) << 8) | p[1]; }
+uint64_t LE64(const uint8_t* p) { return static_cast<uint64_t>(LE32(p)) | (static_cast<uint64_t>(LE32(p + 4)) << 32); }
 
 // A NUL-terminated name padded to 16 bytes; false when it runs past the end.
 bool ReadName(const std::vector<uint8_t>& b, uint32_t* at, std::string* out) {
@@ -54,7 +56,7 @@ void RwsFile::Close() {
 
 bool RwsFile::Open(const std::string& hostPath) {
     Close();
-    file_ = std::fopen(hostPath.c_str(), "rb");
+    file_ = dotd::platform::hostfs::OpenStdio(hostPath);
     if (file_ == nullptr) return false;
     uint8_t top[0x18];
     if (std::fread(top, 1, sizeof(top), file_) != sizeof(top) || LE32(top) != 0x80d || LE32(top + 0xc) != 0x80e) {
@@ -238,6 +240,156 @@ bool RwsFile::DecodeAtrac3(uint32_t segment, uint32_t layer, std::vector<int16_t
     return ok;
 #else
     return false;
+#endif
+}
+
+// ---- OgvFile ----------------------------------------------------------------------------------------------------
+OgvFile::~OgvFile() { Close(); }
+
+void OgvFile::CloseDecoder() {
+#if DOTD_HAVE_FFMPEG_BINK
+    AVCodecContext* ctx = static_cast<AVCodecContext*>(decoder_);
+    AVFrame* frame = static_cast<AVFrame*>(frame_);
+    AVPacket* packet = static_cast<AVPacket*>(packet_);
+    if (ctx != nullptr) avcodec_free_context(&ctx);
+    if (frame != nullptr) av_frame_free(&frame);
+    if (packet != nullptr) av_packet_free(&packet);
+#endif
+    decoder_ = nullptr;
+    frame_ = nullptr;
+    packet_ = nullptr;
+    item_ = 0xffffffffu;
+}
+
+void OgvFile::Close() {
+    CloseDecoder();
+    if (file_ != nullptr) std::fclose(file_);
+    file_ = nullptr;
+    items_.clear();
+}
+
+bool OgvFile::Open(const std::string& hostPath) {
+    Close();
+    file_ = dotd::platform::hostfs::OpenStdio(hostPath);
+    if (file_ == nullptr) return false;
+    uint8_t head[12];
+    if (std::fread(head, 1, sizeof(head), file_) != sizeof(head) || std::memcmp(head, "DVOR", 4) != 0 || LE32(head + 4) != 1 ||
+        LE32(head + 8) == 0 || LE32(head + 8) > 4096) {
+        Close();
+        return false;
+    }
+    std::vector<uint8_t> table(32 * static_cast<size_t>(LE32(head + 8)));
+    if (std::fread(table.data(), 1, table.size(), file_) != table.size()) {
+        Close();
+        return false;
+    }
+    items_.resize(table.size() / 32);
+    for (size_t i = 0; i < items_.size(); ++i) {
+        const uint8_t* e = &table[32 * i];
+        items_[i].rate = LE32(e);
+        items_[i].channels = LE32(e + 4);
+        items_[i].frames = LE64(e + 8);
+        items_[i].setup = LE32(e + 16);
+        items_[i].packets = LE32(e + 20);
+        items_[i].offset = LE64(e + 24);
+    }
+    return true;
+}
+
+bool OgvFile::Select(uint32_t item) {
+#if DOTD_HAVE_FFMPEG_BINK
+    if (file_ == nullptr || item >= items_.size()) return false;
+    const Item& it = items_[item];
+    if (it.frames == 0 || it.packets == 0 || it.channels == 0 || it.channels > 8 || it.setup == 0 || it.setup > (1u << 20)) {
+        return false;
+    }
+    if (item != item_ || decoder_ == nullptr) {
+        CloseDecoder();
+        std::vector<uint8_t> setup(it.setup), raw(2 * static_cast<size_t>(it.packets));
+        if (std::fseek(file_, static_cast<long>(it.offset), SEEK_SET) != 0 ||
+            std::fread(setup.data(), 1, setup.size(), file_) != setup.size() ||
+            std::fread(raw.data(), 1, raw.size(), file_) != raw.size()) {
+            return false;
+        }
+        sizes_.resize(it.packets);
+        for (uint32_t i = 0; i < it.packets; ++i) sizes_[i] = static_cast<uint16_t>(raw[2 * i] | (raw[2 * i + 1] << 8));
+        const AVCodec* codec = avcodec_find_decoder(AV_CODEC_ID_VORBIS);
+        AVCodecContext* ctx = codec != nullptr ? avcodec_alloc_context3(codec) : nullptr;
+        if (ctx == nullptr) return false;
+        av_channel_layout_default(&ctx->ch_layout, static_cast<int>(it.channels));
+        ctx->sample_rate = static_cast<int>(it.rate);
+        ctx->extradata = static_cast<uint8_t*>(av_mallocz(setup.size() + AV_INPUT_BUFFER_PADDING_SIZE));
+        std::memcpy(ctx->extradata, setup.data(), setup.size());
+        ctx->extradata_size = static_cast<int>(setup.size());
+        if (avcodec_open2(ctx, codec, nullptr) != 0) {
+            avcodec_free_context(&ctx);
+            return false;
+        }
+        decoder_ = ctx;
+        frame_ = av_frame_alloc();
+        packet_ = av_packet_alloc();
+        item_ = item;
+    } else {
+        avcodec_flush_buffers(static_cast<AVCodecContext*>(decoder_));
+    }
+    if (std::fseek(file_, static_cast<long>(it.offset + it.setup + 2ull * it.packets), SEEK_SET) != 0) return false;
+    next_ = 0;
+    emitted_ = 0;
+    pending_.clear();
+    pendingAt_ = 0;
+    sampleRate = it.rate;
+    channels = it.channels;
+    return true;
+#else
+    (void)item;
+    return false;
+#endif
+}
+
+uint32_t OgvFile::Read(float* out, uint32_t frames) {
+#if DOTD_HAVE_FFMPEG_BINK
+    if (file_ == nullptr || decoder_ == nullptr || item_ >= items_.size()) return 0;
+    const Item& it = items_[item_];
+    AVCodecContext* ctx = static_cast<AVCodecContext*>(decoder_);
+    AVFrame* frame = static_cast<AVFrame*>(frame_);
+    AVPacket* packet = static_cast<AVPacket*>(packet_);
+    uint32_t done = 0;
+    while (done < frames && emitted_ < it.frames) {
+        if (pendingAt_ < pending_.size()) {
+            const uint64_t have = (pending_.size() - pendingAt_) / it.channels;
+            const uint32_t n = static_cast<uint32_t>(std::min<uint64_t>(std::min<uint64_t>(have, frames - done), it.frames - emitted_));
+            std::memcpy(out + static_cast<size_t>(done) * it.channels, &pending_[pendingAt_],
+                        static_cast<size_t>(n) * it.channels * sizeof(float));
+            pendingAt_ += static_cast<size_t>(n) * it.channels;
+            done += n;
+            emitted_ += n;
+            continue;
+        }
+        if (next_ >= it.packets) break;
+        const uint32_t size = sizes_[next_++];
+        bytes_.assign(size + AV_INPUT_BUFFER_PADDING_SIZE, 0);
+        if (std::fread(bytes_.data(), 1, size, file_) != size) break;
+        packet->data = bytes_.data();
+        packet->size = static_cast<int>(size);
+        pending_.clear();
+        pendingAt_ = 0;
+        if (avcodec_send_packet(ctx, packet) < 0) continue;  // (a packet the decoder refuses: on with the next)
+        while (avcodec_receive_frame(ctx, frame) >= 0) {
+            const bool planar = frame->format == AV_SAMPLE_FMT_FLTP;
+            for (int i = 0; i < frame->nb_samples; ++i) {
+                for (uint32_t c = 0; c < it.channels; ++c) {
+                    const float* src = reinterpret_cast<const float*>(frame->extended_data[planar ? c : 0]);
+                    pending_.push_back(planar ? src[i] : src[static_cast<size_t>(i) * it.channels + c]);
+                }
+            }
+            av_frame_unref(frame);
+        }
+    }
+    return done;
+#else
+    (void)out;
+    (void)frames;
+    return 0;
 #endif
 }
 

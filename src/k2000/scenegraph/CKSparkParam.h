@@ -10,12 +10,30 @@
 class CKSparkParam : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryNode, 0x44)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x110b || key == 0xc; }  // vt+0x08 0x9a5490
     DOTD_DECLARE_FACTORIES(CKSparkParam)
 
     CKSparkParam() {}  // 0x000e5280 CKSparkParam_Create: only the vtable
-    ~CKSparkParam() override {}
+    ~CKSparkParam() override {}  // 0x0e5318 / 0xe5348 (+ delete): vtable stores only
+    // vt+0x10 0x000e52d0 CKSparkParam_Destroy: the texture destroyed (RwTextureDestroy) and cleared. PostLoad 0xe52c8 /
+    // RecursiveRegistration 0xe52c0 return 1 (the defaults).
+    void Destroy() override;
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x000e5388 CKSparkParam_Load
+    // 0x000e5058 CKSparkParam_Copy_maybe: every field from +0x04 to +0x9a taken from `from` (+0x9b is not).
+    void CopyFrom(const CKSparkParam* from) {
+        for (uint32_t i = 0; i < 29; ++i) m_afUnk04[i] = from->m_afUnk04[i];
+        for (uint32_t i = 0; i < 4; ++i) {
+            for (uint32_t j = 0; j < 4; ++j) m_aColor78[i][j] = from->m_aColor78[i][j];
+        }
+        m_unk88 = from->m_unk88;
+        m_unk8c = from->m_unk8c;
+        m_unk90 = from->m_unk90;
+        m_pTexture94 = from->m_pTexture94;
+        m_aUnk98[0] = from->m_aUnk98[0];
+        m_aUnk98[1] = from->m_aUnk98[1];
+        m_aUnk98[2] = from->m_aUnk98[2];
+    }
 
     // +0x04..+0x74: 29 words read in groups (3, 3, 3, 3, 3, 2, 2, 2, 2, then 1 each), each byte-swapped.
     // The words at +0x10, +0x28, +0x30..+0x3c are 0 in every LVL010 sample (the decompiler types them

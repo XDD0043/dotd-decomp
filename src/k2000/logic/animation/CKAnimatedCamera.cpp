@@ -16,13 +16,13 @@
 //   [x] 0x5bffe8  CKAnimatedCamera_End_maybe
 //   [x] 0x5c0058  CKAnimatedCamera_CreateArray
 //   [x] 0x5c00e8  CKAnimatedCamera_Create
-//   [ ] 0x5c0120  CKAnimatedCamera_RecursiveRegistration
+//   [x] 0x5c0120  CKAnimatedCamera_RecursiveRegistration  (returns 1: the default slot)
 //   [x] 0x5c0128  CKAnimatedCamera_PostLoad
-//   [ ] 0x5c0170  CKAnimatedCamera_Destroy
+//   [x] 0x5c0170  CKAnimatedCamera_Destroy  (empty: the default slot)
 //   [x] 0x5c0178  CKAnimatedCamera_Load
 //   [ ] 0x5c03a0  CKAnimatedCamera_Save
-//   [ ] 0x5c05d8  CKAnimatedCamera_DeletingDestructor
-//   [ ] 0x5c0618  CKAnimatedCamera_Destructor
+//   [x] 0x5c05d8  CKAnimatedCamera_DeletingDestructor  (the destructor; delete)
+//   [x] 0x5c0618  CKAnimatedCamera_Destructor  (C++ destructor chain: vtable stores only)
 //   [ ] 0x5c0630  CKAnimatedCamera_Destructor_2  [dead]
 //
 //   [ ] 0x9cd230  CKAnimatedCamera_GetClassType  [inline]
@@ -30,8 +30,12 @@
 //   [ ] 0x9cd240  CKAnimatedCamera_IsKindOfClass  [inline]
 #include "k2000/logic/animation/CKAnimatedCamera.h"
 
+#include "Renderware/rwcore/RwCamera.h"
+#include "k2000/cameras/CKSrvCamera.h"
 #include "k2000/components/CKCameraEventCpnt.h"
 #include "k2000/core/Stub.h"
+#include "k2000/math/Vec3.h"
+#include "k2000/misc/Engine.h"
 #include "k2000/dictionaries/CAnimationDictionary.h"
 #include "k2000/io/IKFile.h"
 #include "k2000/logic/CSGHotSpot.h"
@@ -50,8 +54,8 @@ int32_t CKAnimatedCamera::Load(IKFile* file, int32_t type) {
 namespace {
 CAnimatedNode* NodeOf(const CKAnimatedCamera* camera) { return static_cast<CAnimatedNode*>(camera->m_apUnk04[1]); }
 CKCameraEventCpnt* HandleOf(const CKAnimatedCamera* camera) { return static_cast<CKCameraEventCpnt*>(camera->m_apUnk04[3]); }
-// The handle's byte at +0x10 (set while the handle is active: ScriptedCameraHandle_Activate_maybe 0x165bd8).
-uint8_t HandleActive(const CKCameraEventCpnt* handle) { return reinterpret_cast<const uint8_t*>(&handle->m_unk10)[0]; }
+// The handle's active byte (+0x10, ScriptedCameraHandle_Activate_maybe 0x165bd8).
+uint8_t HandleActive(const CKCameraEventCpnt* handle) { return handle->m_bActive; }
 }  // namespace
 
 // 0x005c0128 CKAnimatedCamera_PostLoad
@@ -70,11 +74,7 @@ void CKAnimatedCamera::Reset() {
 // 0x005bffe8 CKAnimatedCamera_End_maybe
 void CKAnimatedCamera::End() {
     if (m_bActive == 0) return;
-    if (HandleActive(HandleOf(this)) == 0) {
-        // ScriptedCameraHandle_Release_maybe 0x166130 (k2000/components/CKCameraEventCpnt.cpp). STUB(C2.8): the scripted
-        // camera handles are scripting.
-        DOTD_STUB_ONCE("CKAnimatedCamera_End_maybe: ScriptedCameraHandle_Release_maybe 0x166130 (C2.8)");
-    }
+    if (HandleActive(HandleOf(this)) == 0) HandleOf(this)->Release();  // 0x00166130 (BUG(original)_maybe: when NOT active, a no-op)
     m_bActive = 0;
     m_fUnk1c = 0.2f;
     m_fSpeed = 1.0f;
@@ -96,46 +96,54 @@ uint8_t CKAnimatedCamera::Start(float start, CKAnimatedCameraData* data, CSGBran
     parent->AddChild(node);  // vt+0x70
     if (data->GetAlignToCamera(index) != 0) {  // vt+0x5c
         // The node turned about its position (modelling +0x40) and axis (modelling up, +0x20) by the difference of the
-        // camera's real heading (CKSrvCamera +0x5c8) and the node's (LTM at, +0x70), in degrees (x 57.29578f):
-        // Vec3_GetYawAngleFromZ 0x244528 and CSGMovable_RotateAboutPoint_maybe 0xd0f80. STUB(C2.7): the turn needs
-        // RwFrameRotate / RwFrameTranslate (not ported); only the heroes' abilities start an animated camera.
-        DOTD_STUB_ONCE("CKAnimatedCamera_Start_maybe: CSGMovable_RotateAboutPoint_maybe 0xd0f80 (C2.7)");
+        // camera's real heading (CKSrvCamera +0x5c8, copied) and the node's (LTM at, +0x70), in degrees (fsubs, then
+        // fmuls by TOC2 -0x616c 57.29578f).
+        const CVector3 heading = static_cast<CKSrvCamera*>(g_pEngine->m_srvCamera)->m_v3RealAxisZ;
+        const float cameraYaw = Vec3_GetYawAngleFromZ(&heading);  // 0x00244528 (through its TocBridge)
+        RwFrame* frame = node->m_pRwFrame;
+        const float nodeYaw = Vec3_GetYawAngleFromZ(reinterpret_cast<const CVector3*>(&FrameLtm(frame)->at));  // stored LTM
+        const float degrees = (cameraYaw - nodeYaw) * 57.2957802f;
+        node->RotateAboutPoint(degrees, reinterpret_cast<const CVector3*>(&frame->modelling.pos),
+                               reinterpret_cast<const CVector3*>(&frame->modelling.up));  // 0x000d0f80
     } else {
-        // CSGMovable_SetIdentity 0xd08f0 (RwFrameSetIdentity). STUB(C2.7): as above.
-        DOTD_STUB_ONCE("CKAnimatedCamera_Start_maybe: CSGMovable_SetIdentity 0xd08f0 (C2.7)");
+        node->SetIdentity();  // 0x000d08f0 CSGMovable_SetIdentity (RwFrameSetIdentity)
     }
     PlayAnim(start, index & 0xffffu);  // vt+0x60 with the index's low half
-    // ScriptedCameraHandle_Reset_maybe 0x165af8 (CKCameraEventCpnt.cpp). STUB(C2.8): the scripted camera handles.
-    DOTD_STUB_ONCE("CKAnimatedCamera_Start_maybe: ScriptedCameraHandle_Reset_maybe 0x165af8 (C2.8)");
+    HandleOf(this)->Reset();  // 0x00165af8
     m_bActive = 1;
     m_fSpeed = data->GetSpeed(index);   // vt+0x54
     m_fUnk1c = data->GetUnk74(index);   // vt+0x58
     return 1;
 }
 
-// 0x005bfad8 CKAnimatedCamera_Update_maybe. The handle's activation (ScriptedCameraHandle_TryActivate_maybe 0x165eb8,
-// weight 1.0, with the hot spot's position and its world matrix's at axis) and pose (ScriptedCameraHandle_
-// SetPositionAndTarget_maybe 0x165a78) are scripting: STUB(C2.8); without them TryActivate counts as refused (the camera
-// ends, as the original does when the service refuses). CSGHotSpot_GetWorldMatrix 0xce970 only feeds them.
+// 0x005bfad8 CKAnimatedCamera_Update_maybe: the hot spot's world position and its world matrix's at axis; an inactive
+// handle is activated there (ScriptedCameraHandle_TryActivate_maybe 0x165eb8: fov scale 1.0, blend +0x1c, not forced;
+// refused, the camera ends), an active one is moved there (_SetPositionAndTarget_maybe 0x165a78); then the animation
+// runs at +0x18 and past its end the handle is released and the camera ends.
 uint8_t CKAnimatedCamera::Update(float dt) {
     if (m_bActive == 0) return 0;
+    CSGHotSpot* hotSpot = static_cast<CSGHotSpot*>(m_apUnk04[2]);
     CVector3 position;
-    static_cast<CSGHotSpot*>(m_apUnk04[2])->GetWorldPosition(&position);  // 0x000ce790
+    hotSpot->GetWorldPosition(&position);  // 0x000ce790
+    alignas(16) CMatrix34 matrix;
+    hotSpot->GetWorldMatrix(&matrix);  // 0x000ce970
+    const CVector3 direction = matrix.m_at;
     CKCameraEventCpnt* handle = HandleOf(this);
     if (HandleActive(handle) == 0) {
-        DOTD_STUB_ONCE("CKAnimatedCamera_Update_maybe: ScriptedCameraHandle_TryActivate_maybe 0x165eb8 (C2.8)");
-        m_bActive = 0;
-        m_fUnk1c = 0.2f;
-        m_fSpeed = 1.0f;
-        return 0;
+        if (handle->TryActivate(&position, &direction, 1.0f, m_fUnk1c, 0) == 0) {  // TOC2 -0x61a0 1.0
+            m_bActive = 0;
+            m_fUnk1c = 0.2f;  // TOC2 -0x619c
+            m_fSpeed = 1.0f;
+            return 0;
+        }
+    } else {
+        handle->SetPositionAndTarget(1.0f, &position, &direction);
     }
-    DOTD_STUB_ONCE("CKAnimatedCamera_Update_maybe: ScriptedCameraHandle_SetPositionAndTarget_maybe 0x165a78 (C2.8)");
     CAnimatedNode* node = NodeOf(this);
     node->AddAnimTime(static_cast<double>(dt * m_fSpeed));
     const float now = node->GetAnimTimeNow();
-    if (now <= node->GetCurrentAnimDuration()) return 1;
-    // ScriptedCameraHandle_Release_maybe 0x166130. STUB(C2.8).
-    DOTD_STUB_ONCE("CKAnimatedCamera_Update_maybe: ScriptedCameraHandle_Release_maybe 0x166130 (C2.8)");
+    if (!(now > node->GetCurrentAnimDuration())) return 1;  // ble: a NaN keeps it running
+    handle->Release();  // 0x00166130
     m_fUnk1c = 0.2f;
     m_bActive = 0;
     m_fSpeed = 1.0f;

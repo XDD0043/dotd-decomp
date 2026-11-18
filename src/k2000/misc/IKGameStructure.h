@@ -23,7 +23,7 @@ class IKPlayer;
 class IKGameStructure : public IKSerializable {
 public:
     IKGameStructure();             // 0x000415f8 IKGameStructure_Construct
-    ~IKGameStructure() override {} // vt+0x00 / +0x04  0x995470 / 0x995528
+    ~IKGameStructure() override;   // vt+0x00 / +0x04  0x995470 / 0x995528 (CKGameState.cpp)
 
     int32_t GetClassType() override { return 0xc; }          // vt+0x14 0x995440
     int32_t GetClassID() override { return 0xed; }           // vt+0x18 0x995448
@@ -34,12 +34,21 @@ public:
     int32_t Load(IKFile* file, int32_t type) override;       // vt+0x2c 0x00041f90
     int32_t GetSerializationFlags() override { return 0; }   // vt+0x34 0x9948c8
     // vt+0x30 0x00041aa0 CKDefaultGameStructure_PostLoad (CKS08GameStructure's 0x50f9a8 calls it): the level part (type 0)
-    // gives each module its trigger synchro (the +0x24 list: synchro -> module). STUB(C2.3): the GAME.KP3 part (type 1:
-    // the boot configuration's level picked as the start level, +0x40, and the manager's requested level) is not
-    // ported; the front end starts the first level through its own path.
+    // gives each module its trigger synchro (the +0x24 list: synchro -> module). GAME.KP3 (type 1): the start game state
+    // (+0x40) is the boot configuration's (-GameState: the state with that GUID, else the state at its index +0xac
+    // when that is in range; the file's otherwise); it is applied to the structure (vt+0x70) and the game manager's
+    // requested level and sector are those of the current spawn point; without a start state no spawn point is current.
     int32_t PostLoad(int32_t type) override;
-    // Not ported: vt+0x0c 0x41888, +0x24 0x416c0, +0x28 0x416b8,
-    // +0x50, +0x54, +0x64, +0x68 (STUB(C1.6)).
+    // vt+0x0c 0x00041888 CKDefaultGameStructure_DestroyGame (IKGameStructure's slot; Ghidra names it after the class):
+    // the game states' list freed and emptied, then the stages' block freed (its length cleared only then).
+    void DestroyGame() override;
+    // vt+0x24 0x000416c0 IKGameStructure_vf24 (XXL2 RecursiveRegistration): below type 2 the structure registers with
+    // the saving manager (CKSavingManager_RegisterSerializableObject 0x2bdb8, vt+0x24), then its
+    // stages and game states register (first to last), type 0 also the +0x24 synchros.
+    void RecursiveRegistration(int32_t type) override;
+    int32_t Save(IKFile*, int32_t) override { return 1; }  // vt+0x28 0x000416b8 IKGameStructure_vf28
+    virtual void Vf50() {}  // vt+0x50 0x00040bd0 IKGameStructure_vf50 (empty)
+    virtual void Vf54() {}  // vt+0x54 0x00040bd8 IKGameStructure_vf54 (empty)
     // C1.6 gm: vt+0x58 0x00041448 (Ghidra CKDefaultGameStructure_vf58; it is IKGameStructure's slot): every
     // stage's vt+0x70 (CKGameLevel::Vf70: all its modules activated), from the last stage down.
     virtual void Vf58();
@@ -49,6 +58,12 @@ public:
     // C1.6 gm: vt+0x60 0x00040cd0 IKGameStructure_vf60: the player's game state (+0x0c) applied to the
     // structure (CKGameState vt+0x70). Name ours.
     virtual void ApplyPlayerGameState(IKPlayer* player);
+    virtual uint8_t Vf64() { return 0; }  // vt+0x64 0x009948d0 IKGameStructure_vf64
+    // vt+0x68 0x00041290 IKGameStructure_vf68: the game states' count; with a filter, the states whose flag bit 0
+    // equals *filter (counted from the last). Name ours.
+    virtual uint32_t CountGameStates(const uint8_t* filter);
+    // 0x000413c8 CKDefaultGameStructure_CountLevels (in CKGameState.cpp's unit): the same for the stages. Name Ghidra's.
+    uint32_t CountLevels(const uint8_t* filter);
     // C1.6 gm: vt+0x6c 0x000413a8 IKGameStructure_SetCurrentSpawnPoint_maybe: +0x08, and +0x44 = its flags'
     // bit 0 (CKS08GameManager_vf2E8).
     virtual void SetCurrentSpawnPoint(CKGameSpawnPoint* spawnPoint);
@@ -67,6 +82,10 @@ public:
     // 0x00041da8 CKDefaultGameStructure_MarkSekensSeenInCurrentLevel_maybe: the last stage that is the loaded level
     // (vt+0x54) marks the sekens seen (CKGameLevel_MarkSekensSeen_maybe).
     void MarkSekensSeenInCurrentLevel(const void* sekens);
+    // 0x00040dd0 CKDefaultGameStructure_CountTrackedActiveModules_maybe / 0x00040f58 ..._CountTrackedModules_maybe:
+    // the stages' (from the last) CKGameLevel counts summed.
+    uint32_t CountTrackedActiveModules();
+    uint32_t CountTrackedModules();
 
     CDefaultGameManager* m_pGameManager;      // +0x04 (XXL2 IKGameManager*) GAME.KP3: the CKS08GameManager
     CKGameSpawnPoint* m_pCurrentSpawnPoint;   // +0x08 set at run time (0x413a8)

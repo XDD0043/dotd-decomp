@@ -18,12 +18,21 @@ class CKCinematicScene : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x25)
     DOTD_DECLARE_FACTORIES(CKCinematicScene)
+    // vt+0x40 0x0016b3c0 CKCinematicScene_GetInfo: the trigger values 5 (the scene plays).
+    int32_t GetInfo(IKInfo* info, int32_t request) override;
     int32_t IsKindOfClass(uint32_t key) override { return key == kClassKey || key == 0xc; }  // 0x9a8c98
 
     CKCinematicScene();  // 0x0016b618 CKCinematicScene_Create (the constructor inlined)
     ~CKCinematicScene() override {}
+    // vt+0x10 0x0016b4b8 CKCinematicScene_Destroy: the running list unlinked (each element's +0x04 cleared) and emptied,
+    // then the three reference arrays deleted (the pointers are kept, as the original's).
+    void Destroy() override;
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x0016d3b0 CKCinematicScene_Load
+    // vt+0x24 0x0016ad20 CKCinematicScene_RecursiveRegistration: for type 0 the scene registers itself with the saving
+    // manager, then every element and every scene data (vt+0x24 with 0), the start door when there is one and the sound
+    // dictionary (not null-checked). The three trigger starters' registration (KStub_Return1_2361b0) does nothing.
+    void RecursiveRegistration(int32_t type) override;
 
     void ResetRuntimeState();  // 0x00168ec0 CKCinematicScene_ResetRuntimeState
     // 0x0016b3a8 CKCinematicScene_ClearFlag22Bit5_maybe

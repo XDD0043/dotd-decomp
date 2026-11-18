@@ -15,7 +15,7 @@ public:
     DOTD_DECLARE_FACTORIES(CBackgroundCopyRender)
 
     CBackgroundCopyRender();                  // 0x00093020 CBackgroundCopyRender_Create (inlined)
-    ~CBackgroundCopyRender() override {}      // STUB(C1.6): 0x99c840 / 0x99c7d8
+    ~CBackgroundCopyRender() override {}      // 0x0099c840 / 0x0099c7d8 CBackgroundCopyRender_Destructor / _DeletingDestructor: the vtables only
     // vt+0x08 0x99c758
     int32_t IsKindOfClass(uint32_t key) override {
         return key == 0x4d0d || key == 0xacd || key == 0xa8d || key == 0xc;
@@ -23,9 +23,12 @@ public:
     int32_t Load(IKFile* file, int32_t type) override;      // vt+0x2c 0x00093438 CBackgroundCopyRender_Load
     int32_t GetSerializationFlags() override { return 2; }  // vt+0x34 0x99c6b8
     int32_t PostLoad(int32_t type) override;                // vt+0x30 0x000931d0 CBackgroundCopyRender_PostLoad
+    // vt+0x24 0x00092e50 CBackgroundCopyRender_RecursiveRegistration: type 0 only, itself registered, then the buffer's
+    // (+0x18, no null test).
+    void RecursiveRegistration(int32_t type) override;
     // vt+0x58 0x00093078 / vt+0x5c 0x000931e0 (CBackgroundCopyRender.cpp)
     void UpdateAndExtract(float maxDistanceSquared, RenderQueue** stages, IKTime* frameClock, RwCamera* camera, int32_t distanceCull) override;
-    void Render() override;
+    void Render(IKTime* frameClock) override;
 
     CKPBuffer* m_unk18;  // +0x18 a CKPBuffer reference (read last)
     float m_unk1c;       // +0x1c

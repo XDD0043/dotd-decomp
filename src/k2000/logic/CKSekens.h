@@ -46,6 +46,14 @@ public:
     // vt+0x30 0x001f4c60 CKSekens_PostLoad: the level type (0) clears bit 3, hides the text, counts the lines that take
     // part in the choice (Vf58) to size the unplayed-lines list (order modes 0-2) and makes the speech stream object.
     int32_t PostLoad(int32_t type) override;
+    // vt+0x38 0x001f3ec0 CKSekens_SetDefaultState: the earliest start back to -1.0 and the text hidden (any flag).
+    void SetDefaultState(int32_t flag) override;
+    // vt+0x1c 0x001f4ed0 CKSekens_MessageProc: 0x2701 asks the sekensor to run it (RequestSekens), 0x2702 to stop it
+    // (StopSekens); 0 for those two, 1 for the others.
+    int32_t MessageProc(uint16_t message, void* data) override;
+    // vt+0x40 0x001f4f80 CKSekens_GetInfo: the trigger value 4, whether it is the sekensor's current sekens (a byte;
+    // accessor 0x1f4a30 Sekensor_IsCurrentSekens_maybe).
+    int32_t GetInfo(struct IKInfo* info, int32_t request) override;
 
     // 0x001f56b0 CKSekens_Stop_maybe (returns 1).
     int32_t Stop();
@@ -53,6 +61,14 @@ public:
     // (m_ui32OrderMode: 0 in sequence, 1 random, 2 random without repeat), marked seen in the level, the begin
     // triggers queued, the first block started and the music ducked. 0 without lines, else 1.
     uint8_t Begin();
+    void Destroy() override;                          // vt+0x10 0x001f4800 CKSekens_Destroy
+    void PauseSound();                                // 0x001f45a0 CKSekens_PauseSound_maybe (no caller in the original)
+    void ResumeSound();                               // 0x001f4b70 CKSekens_ResumeSound_maybe (no caller in the original)
+    void StopSpeechStream();                          // 0x001f45d8 CKSekens_StopSpeechStream_maybe (no caller in the original)
+    void PlaySpeechStream(float volume);              // 0x001f4660 CKSekens_PlaySpeechStream_maybe (no caller in the original)
+    void ForEachLineCallVf54(uint8_t a, uint32_t b);  // 0x001f4ac0 CKSekens_ForEachLineCallVf54_maybe (CKSrvSekensor_vfA8)
+    // 0x001f4c58 KStub_Nop_1f4c58: empty (CKSrvSekensor_UpdateLocalizedData calls it on the current sekens).
+    void LocalizedDataChanged(uint8_t /*a*/, uint32_t /*b*/) {}
     // 0x001f5bf8 CKSekens_StartLine_maybe: line `line` starts: its times, the speech stream when the sekens has one
     // and the subtitle text. `first` is 1 for the first line of the sekens.
     void StartLine(int32_t line, int32_t first);
@@ -71,12 +87,24 @@ public:
     void UpdateVideoSubtitles(double elapsedSeconds, int32_t updateText);
     // 0x001f3eb0 CKSekens_GetCurrentLineIndex_maybe
     int32_t GetCurrentLineIndex() const { return m_i32CurrentLine; }
+    // 0x001f40a8 CKSekens_CallCurrentLineVf5C_maybe: the current line's (block's) text (vt+0x5c), null without a line.
+    IKSerializable* CallCurrentLineVf5C() const;
     // 0x001f4118 CKSekens_SetFlag14Bit3_maybe: bit 3 of the flags (the sekens follows a video, not the clock); set, it
     // also puts the earliest start time to -1.
     void SetFlag14Bit3(int32_t value) {
         m_flags = (m_flags & 0xfffffff7u) | (static_cast<uint32_t>(value) << 3);
         if (value != 0) m_fEarliestStart = -1.0f;
     }
+    // 0x001f4148 CKSekens_SetStreamStartPaused_maybe: the speech stream object's start-paused byte (+0x3a).
+    void SetStreamStartPaused(uint8_t paused);
+    // 0x001f4558 CKSekens_PollStreamPlaybackPosition_maybe: the seconds the speech stream has played (0 without one
+    // playing; the item is not used).
+    float PollStreamPlaybackPosition() const;
+    // 0x001f4ba8 CKSekens_IsStreamVoiceActive_maybe: whether the speech stream's player is in the state asked of it.
+    uint8_t IsStreamVoiceActive() const;
+    // 0x001f4c00 CKSekens_StartPausedStream_maybe: the line's start time taken from the clock and the speech stream
+    // unpaused, when its player exists.
+    void StartPausedStream();
     // 0x001f41e0 CKSekens_UsesSpeechStream_maybe: its data buffers say it has a speech stream.
     uint8_t UsesSpeechStream() const;
     // 0x001f4a88 CKSekens_GetSekensorDelayByIndex54_maybe

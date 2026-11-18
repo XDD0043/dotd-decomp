@@ -9,6 +9,9 @@
 class CKImpulsionCpnt : public IKComponent {
 public:
     DOTD_CLASS_KEY(kCategoryComponent, 0x20)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9b9fc8
+        return key == 0x806 || key == 0x6 || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKImpulsionCpnt)
 
     CKImpulsionCpnt() {}  // 0x0024c020 CKImpulsionCpnt_Create: the vtable only

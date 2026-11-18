@@ -21,6 +21,7 @@
 #include "crt/ppc_ops.h"
 #include "k2000/misc/ClassRegistry.h"
 #include "k2000/system/IKTime.h"
+#include "platform/fps.h"
 
 // 0x00c5b84c g_pTimeManager (written by CTimeManager_Construct_maybe)
 CTimeManager* g_pTimeManager = nullptr;
@@ -87,6 +88,8 @@ void CTimeManager::Update(int32_t /*unused*/) {
         m_fFixedDt = kOne / static_cast<float>(static_cast<double>(fps));  // fcfid, frsp, fdivs
     }
     m_pTime->Update();
+    // --fps N (not in the original; nothing while off): the 60 Hz frames this displayed frame stands for.
+    dotd::fps::OnClockUpdate(m_pTime->m_afDeltaTime);
     if (s_fpsFrameCount > 99) {
         // fcfid + frsp of the count (100), fdivs, fctidz, then sth of the low 16 bits.
         const float fps = static_cast<float>(static_cast<double>(s_fpsFrameCount)) / s_fpsTimeSum;

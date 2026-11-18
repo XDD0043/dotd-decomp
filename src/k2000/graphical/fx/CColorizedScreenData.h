@@ -10,12 +10,18 @@
 class CColorizedScreenData : public IKComponent {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x44)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a0850
+        return key == 0x110c || key == 0x6 || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CColorizedScreenData)
 
     CColorizedScreenData() {}  // 0x000b0800 CColorizedScreenData_Create: the vtable only
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x000b0d40 CColorizedScreenData_Load
-    // vt+0x30 PostLoad 0xb0838 returns 1.
+    void Destroy() override {}                           // vt+0x10 0x000b02a8 CColorizedScreenData_Destroy (blr)
+    // vt+0x24 0x000b0ce0 CColorizedScreenData_RecursiveRegistration: type 0 registers the data.
+    void RecursiveRegistration(int32_t type) override;
+    int32_t PostLoad(int32_t /*type*/) override { return 1; }  // vt+0x30 0x000b0838 CColorizedScreenData_PostLoad
 
     uint8_t m_baInfos;           // +0x04 XXL2 CBitArray8
     uint8_t m_pad05[3];

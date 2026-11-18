@@ -13,8 +13,8 @@
 //   [x] 0x7ac50  CKAnmKeyFrameController_PostLoad
 //   [x] 0x7ac78  CKAnmKeyFrameController_Load
 //   [ ] 0x7acc8  CKAnmKeyFrameController_Save
-//   [ ] 0x7acf0  CKAnmKeyFrameController_RecursiveRegistration
-//   [ ] 0x7ad18  CKAnmKeyFrameController_Destroy
+//   [x] 0x7acf0  CKAnmKeyFrameController_RecursiveRegistration  (CKAnmKeyFrameController.h)
+//   [x] 0x7ad18  CKAnmKeyFrameController_Destroy
 //   [x] 0x7ad60  CKAnmKeyFrameController_DeleteArray
 //   [x] 0x7ae08  CKAnmKeyFrameController_Create
 //   [x] 0x7ae60  CKAnmKeyFrameController_GetBoundingSphere_maybe
@@ -184,4 +184,13 @@ RtAnimInterpolator* CKAnmKeyFrameController::Evaluate(uint32_t* mask, float* wei
     }
     m_unk24 = g_ui16RenderFrameCounter;
     return interpolator;
+}
+
+// 0x0007ad18 CKAnmKeyFrameController_Destroy
+void CKAnmKeyFrameController::Destroy() {
+    ClearReferencesBase();
+    m_unk54 = 0.0f;
+    m_unk5c = nullptr;
+    m_unk50 = 0.0f;
+    m_unk58 = nullptr;
 }

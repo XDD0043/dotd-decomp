@@ -15,11 +15,15 @@ bool BootToFrontEnd();
 // machine (the front-end sequence of C1.4: auto-load, copyrights, logos, press start, main menu) is parked
 // on no state (0xff), so it opens no menu and plays no video of its own.
 void ParkFrontEndSequence();
-// One game frame (Run()) after advancing the fake system clock by 1/60 s.
+// One game frame (Run()) after advancing the fake system clock by 1/60 s (1/N s with DOTD_TEST_FPS=N).
 void RunFrame();
+// DOTD_TEST_FPS (60 when unset; 0 = irregular uncapped frames).
+int TestFps();
+// The fake system clock (microseconds).
+int64_t NowMicros();
 // Frames run since BootToFrontEnd started stepping in mode 5.
 uint32_t FrameCount();
-// The game's Cleanup().
+// The game's exit: the loop stopped as mode 9 does before the quit (CKGameLoop_StopAll_maybe), then Cleanup().
 void Shutdown();
 
 }  // namespace c15

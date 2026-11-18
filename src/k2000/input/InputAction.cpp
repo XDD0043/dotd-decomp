@@ -5,7 +5,7 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [ ] 0x1014a8  InputAction_Construct_2_maybe  [dead]
 //   [x] 0x1014f0  InputAction_Construct_maybe
-//   [ ] 0x101538  InputAction_ClearBinding_maybe
+//   [x] 0x101538  InputAction_ClearBinding_maybe  (CKAction::ClearBinding, CKAction.h (CKInput::DestroyGame))
 //   [x] 0x101550  InputAction_SetFilter_maybe
 //   [ ] 0x1015f0  InputAction_InitFilter_maybe  [dead]
 //   [ ] 0x101670  InputAction_SetSourceFromBytes_maybe  [dead]

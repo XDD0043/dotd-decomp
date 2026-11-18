@@ -6,5 +6,5 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0xfe138  ShaderGen_CompilePixelShaderBinary_maybe
-//   [ ] 0xfe258  ShaderGen_CompileCurrentPixelShaderBinary_maybe
+//   [ ] 0xfe138  ShaderGen_CompilePixelShaderBinary_maybe  [platform]  (the embedded Cg compiler: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
+//   [ ] 0xfe258  ShaderGen_CompileCurrentPixelShaderBinary_maybe  [platform]  (the embedded Cg compiler: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)

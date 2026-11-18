@@ -12,11 +12,11 @@
 //   [x] 0x16ef40  CKLogicalAnd_Complete
 //   [x] 0x16f128  CKLogicalAnd_Load
 //   [ ] 0x16f1e0  CKLogicalAnd_Save
-//   [ ] 0x16f208  CKLogicalAnd_RecursiveRegistration
+//   [x] 0x16f208  CKLogicalAnd_RecursiveRegistration
 //   [x] 0x16f298  CKLogicalAnd_DeleteArray
 //   [x] 0x16f338  CKLogicalAnd_Create
 //   [x] 0x16f3b0  CKLogicalAnd_Abort
-//   [ ] 0x16f3d0  CKLogicalAnd_Destroy
+//   [x] 0x16f3d0  CKLogicalAnd_Destroy
 //   [x] 0x16f428  CKLogicalAnd_CreateArray
 //   [x] 0x16f528  CKLogicalAnd_ActivateInput
 //
@@ -26,6 +26,8 @@
 //   [ ] 0x9a8fc0  CKLogicalAnd_Destructor  [inline]
 //   [ ] 0x9a9040  CKLogicalAnd_DeletingDestructor  [inline]
 #include "k2000/cinematics/CKLogicalAnd.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 
 #include "k2000/logic/CKCinematicScene.h"
 #include "k2000/memory/Mem.h"
@@ -91,4 +93,20 @@ void CKLogicalAnd::ActivateInput(IKCinematicElement* source) {
     }
     if (m_receivedCount != m_ui32IncomingNumber) return;
     Complete();  // vt+0x64
+}
+
+// 0x0016f208 CKLogicalAnd_RecursiveRegistration
+void CKLogicalAnd::RecursiveRegistration(int32_t type) {
+    if (static_cast<uint32_t>(type - 4) > 3u) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);
+    IKLogicalDoor::RecursiveRegistration(type);  // 0x0018fc20
+}
+
+// 0x0016f3d0 CKLogicalAnd_Destroy
+void CKLogicalAnd::Destroy() {
+    if (m_apReceived != nullptr) {
+        Mem_FreeAligned16(m_apReceived);
+        m_apReceived = nullptr;
+    }
+    m_receivedCount = 0;
+    m_apReceived = nullptr;
 }

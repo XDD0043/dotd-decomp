@@ -5,7 +5,7 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0xd7480  CKDynamicBoundingSphere_Delete
 //   [x] 0xd74d0  CKDynamicBoundingSphere_GetShapeType_maybe
-//   [ ] 0xd74e8  CKDynamicBoundingSphere_RecursiveRegistration
+//   [x] 0xd74e8  CKDynamicBoundingSphere_RecursiveRegistration  (CKBoundingSphere's: CSGLeaf's (nothing))
 //   [ ] 0xd7510  RegisterCKDynamicBoundingSphereClass
 //   [ ] 0xd7588  _GLOBAL__I_d7588
 //   [x] 0xd7598  CKDynamicBoundingSphere_DeleteArray
@@ -17,7 +17,7 @@
 //   [x] 0x993180  CKDynamicBoundingSphere_GetClassID  [inline]
 //   [ ] 0x993228  CKDynamicBoundingSphere_IsKindOfClass  [inline]
 //   [ ] 0x993280  CKDynamicBoundingSphere_DeletingDestructor  [inline]
-//   [ ] 0x9932e0  CKDynamicBoundingSphere_Destructor  [inline]
+//   [x] 0x9932e0  CKDynamicBoundingSphere_Destructor  [inline]  (C++ destructor chain: vtable stores only)
 //   [x] 0x993328  CKDynamicBoundingSphere_Load  [inline]
 //   [ ] 0x993508  CKDynamicBoundingSphere_Save  [inline]
 //   [ ] 0x993850  HashTableU32_HashKey  [inline]
@@ -35,7 +35,7 @@ void CKDynamicBoundingSphere::UpdateAndExtract(float /*maxDistanceSquared*/, Ren
     CSGLeaf::UpdateAndExtract(0.0f, stages, frameClock, camera, 0);
     if (((m_ba8Infos >> 4) & 1) == 0) return;
     m_v3OldPos = m_v3LastWorldPos;
-    const RwV3d& position = m_pRwFrame->ltm.pos;  // RwFrame +0x80
+    const RwV3d& position = m_pRwFrame->ltm.pos;  // RwFrame +0x80, read as stored (no RwFrameGetLTM)
     m_v3WorldMove.x = position.x - m_v3LastWorldPos.x;
     m_v3WorldMove.z = position.z - m_v3LastWorldPos.z;
     m_v3WorldMove.y = position.y - m_v3LastWorldPos.y;

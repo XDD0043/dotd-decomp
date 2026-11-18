@@ -13,6 +13,9 @@
 // chunk is {0x116, 1}; no atomic carries the legacy 0x116 chunk. The native vertex data already holds the weights and
 // the indices (four floats each, RpNativeMesh words 26 / 27, flag word 29), so the PSGL instance callback
 // (RpSkinPSGL_AtomicInstanceCallback_maybe 0x774a38, the generic geometry's interleaved layout) has nothing to do.
+// The generic path is ported all the same (port-final F06): the legacy atomic chunk 0x773e40, the weight sort 0x774488,
+// the instance callback's layout and vertices (inside RpAtomicPSGL.cpp's InstanceGeneric) and the reinstance callback
+// 0x7758c0, which runs for every skinned atomic (all are on the generic skin pipeline).
 #pragma once
 #include "Renderware/rwcore/RwTypes.h"
 
@@ -70,6 +73,9 @@ RpSkin* _rpSkinCreateInternal(RwUInt32 numVertices, RwUInt32 numBones, RwUInt32 
 // 0x00774280 RpSkinGeometryStreamRead_maybe: the geometry plugin chunk 0x116 (the caller has read its header). Returns
 // the stream, null on failure.
 RwStream* RpSkinGeometryStreamRead(RwStream* stream, RwInt32 length, RpGeometry* geometry);
+// 0x00772e48 RpSkinGeometryConstructor_maybe: the geometry's skin pointer cleared (the plugin's constructor,
+// RpGeometryCreate's plugin registry).
+RpGeometry* RpSkinGeometryConstructor(RpGeometry* geometry);
 // 0x00773d38 RpSkinGeometryDestructor_maybe: the geometry's skin freed (RpGeometryDestroy).
 RpGeometry* RpSkinGeometryDestructor(RpGeometry* geometry);
 
@@ -108,6 +114,34 @@ RwBool RpSkinAtomicAlwaysCallBack(RpAtomic* atomic);
 // 0x00773ae0 (Ghidra RpSkinAtomicRightsCallBack_maybe; it is the rights callback, RpAtomicSetStreamRightsCallBack): a
 // skinned atomic takes the pipeline of the right-to-render chunk's extra data (the type).
 RwBool RpSkinAtomicRightsCallBack(RpAtomic* atomic, RwUInt32 extraData);
+
+// 0x00773e40 RpSkinAtomicStreamRead_maybe: the atomic plugin's legacy chunk 0x116 (a skin stored with the atomic, older
+// files; none in the level files). A geometry that already has a skin skips `sizeInObject` bytes (the PS3 passes the
+// plugin's size, 4, not the chunk's length: BUG(original), kept). Else: the bone count, 4 bytes skipped, the vertices'
+// bone indices and weights, per bone 12 bytes skipped and the skin-to-bone matrix; the weights in use and the used
+// bone ids counted; the skin set on the geometry (a generic geometry's weights sorted). Returns the stream, null on a
+// read failure.
+RwStream* RpSkinAtomicStreamRead(RwStream* stream, RwInt32 length, RpAtomic* atomic, RwInt32 sizeInObject);
+// 0x00774488 _rpSkinSortVertexWeights_maybe: each vertex whose first weight is below 1.0 has its four weights sorted
+// largest first with their bone indices (signed word compares of the float bits); the skin's +0x1c becomes the most
+// weights a vertex uses (1..4). Returns the geometry.
+RpGeometry* _rpSkinSortVertexWeights(RpGeometry* geometry);
+
+struct RpNativeMesh;
+// 0x00774a38 RpSkinPSGL_AtomicInstanceCallback_maybe, the part a host instancer keeps (the GL buffer mapping is the
+// device's: RpAtomicPSGL.cpp's InstanceGeneric builds device meshes from the vertex arrays). The layout: the geometry
+// and the record take the format bit 0x400; after the interleaved attributes (`stride` bytes) the four weights (word 26)
+// and the four bone indices (word 27, +0x10), word 29 = 1. Returns the new stride (+0x20).
+RwUInt32 RpSkinPSGL_InstanceLayout(RpGeometry* geometry, RpNativeMesh* layout, RwUInt32 stride);
+// The vertices: per vertex the skin's four weights (the words as they are) and its four index bytes as floats (index k
+// = bits 8k..8k+7), at the layout's words 26 / 27, `layout->stride` bytes apart.
+void RpSkinPSGL_InstanceSkinVertices(const RpGeometry* geometry, const RpNativeMesh* layout, RwUInt8* vertices);
+// 0x007758c0 RpSkinPSGL_AtomicReinstanceCallback_maybe after its first call (the pipeline's own reinstance callback,
+// kept at the plugin globals +0x44 by _rpSkinCreatePlatformPipeline_maybe 0x774830; RpAtomicPSGL_Render runs it inline
+// first): for a skinned atomic with a hierarchy, unless the cache (hierarchy, render frame, atomic frame) matches,
+// RpSkinPrepareAtomicMatrices_maybe 0x776990 into the plugin's matrix buffer, their fourth column words cleared, and the
+// cache set (the render frame as it is: BuildPSGLSkinBoneMatrixPalette stores its complement in the same word). 1.
+RwBool RpSkinPSGL_AtomicReinstanceCallback(RpAtomic* atomic);
 
 // 0x00775478 BuildPSGLSkinBoneMatrixPalette(palette, atomic, skin): per hierarchy node, the skin-to-bone matrix times
 // the node's matrix (times the inverse of the atomic's LTM unless the hierarchy's matrices are in local space; the

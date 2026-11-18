@@ -9,6 +9,7 @@
 
 #include "k2000/core/Layout.h"
 
+class CKAction;
 class CKCombo;
 
 struct CKCommand {
@@ -63,6 +64,11 @@ public:
     // 0x001021d0 InputSequenceTracker_SetSequenceEnabled_maybe (XXL2 ActiveCombo): the combo's active flag,
     // then its Reset.
     void SetComboActive(uint32_t combo, uint8_t active);
+    // 0x00102220 InputSequenceTracker_Update_maybe (XXL2 Update(UInt8*, CKAction*)): every combo checked
+    // against the filtered actions; its progress in filtered[m_ui8NbAction + combo]. Returns 1.
+    int32_t Update(uint8_t* filtered, CKAction* actions);
+    // 0x00102068 KStub_Return1_102068 (CKInput_Shutdown_maybe calls it on the combo manager): 1, nothing else.
+    int32_t Shutdown() { return 1; }
 
     uint8_t m_bActive;      // +0x04
     uint8_t m_ui8NbCombo;   // +0x05

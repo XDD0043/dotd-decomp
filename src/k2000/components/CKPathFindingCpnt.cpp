@@ -8,14 +8,14 @@
 //   [ ] 0x1e10d0  RegisterCKPathFindingCpntClass
 //   [ ] 0x1e1148  _GLOBAL__I_1e1148
 //   [x] 0x1e1158  NavPoint_SnapToGround_maybe
-//   [ ] 0x1e1360  CKPathFindingCpnt_IsDirectPathWalkable_maybe
-//   [ ] 0x1e13f0  CKPathFindingCpnt_ReleasePathQuery_maybe
+//   [ ] 0x1e1360  CKPathFindingCpnt_IsDirectPathWalkable_maybe  [dead: no pointer to its descriptor 0xb75f78]
+//   [ ] 0x1e13f0  CKPathFindingCpnt_ReleasePathQuery_maybe  [dead: no pointer to its descriptor 0xb75f80]
 //   [x] 0x1e1478  CKPathFindingCpnt_DeleteArray
 //   [x] 0x1e1520  CKPathFindingCpnt_SetTargetPosition
 //   [ ] 0x1e1960  CKPathFindingCpnt_GetCurrentSegment_maybe  [dead]
 //   [x] 0x1e1be8  PathQuery_ClassifyReachability_maybe
-//   [ ] 0x1e1f10  CKPathFindingCpnt_RecursiveRegistration
-//   [ ] 0x1e1f68  CKPathFindingCpnt_Destroy
+//   [x] 0x1e1f10  CKPathFindingCpnt_RecursiveRegistration
+//   [x] 0x1e1f68  CKPathFindingCpnt_Destroy  (empty: the default)
 //   [x] 0x1e1f70  CKPathFindingCpnt_Create
 //   [x] 0x1e2040  CKPathFindingCpnt_Load
 //   [ ] 0x1e2220  CKPathFindingCpnt_Save
@@ -41,6 +41,7 @@
 #include "k2000/io/IKFile.h"
 #include "k2000/logic/CKPFGraphNode.h"
 #include "k2000/logic/CKPFGraphTransition.h"
+#include "k2000/logic/CKSavingManager.h"
 #include "k2000/misc/Engine.h"
 #include "k2000/misc/NavGrid.h"
 #include "k2000/services/CKSrvCollision.h"
@@ -197,7 +198,7 @@ uint8_t CKPathFindingCpnt::RequestPathTo(const CVector3* target, int16_t hint) {
         return 1;
     }
     if (mode == 4) return 1;
-    if (FlatDistanceSquared(point.m_position, m_ptOriginalTargetPosition.m_position) <= m_fPointValidationDistanceSquared) {
+    if (!(FlatDistanceSquared(point.m_position, m_ptOriginalTargetPosition.m_position) > m_fPointValidationDistanceSquared)) {  // ble
         m_bits70 = WithMode(m_bits70, 2);
         return 1;
     }
@@ -724,4 +725,11 @@ uint32_t CKPathFindingCpnt::SetDestination(const CVector3* destination) {
     m_unk3c = 9;
     m_bits70 = (m_bits70 & 0xfffffc7fu) | 0x380u;
     return 0;
+}
+
+// C2.8 port-all P11.
+
+// 0x001e1f10 CKPathFindingCpnt_RecursiveRegistration (no type test)
+void CKPathFindingCpnt::RecursiveRegistration(int32_t /*type*/) {
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
 }

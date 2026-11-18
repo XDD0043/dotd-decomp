@@ -3,12 +3,12 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x18e8d8  IKCinematicBloc_LevelReset
+//   [x] 0x18e8d8  IKCinematicBloc_LevelReset  (IKCinematicBloc::RecursiveRegistration (every bloc's RecursiveRegistration calls it first))
 //   [x] 0x18e940  IKCinematicBloc_IsOutputOf_maybe
 //   [x] 0x18e9e0  IKCinematicBloc_CheckSekensStop
-//   [ ] 0x18eac0  IKCinematicBloc_PostLoad
+//   [x] 0x18eac0  IKCinematicBloc_PostLoad  (= the inherited slot)
 //   [x] 0x18eae8  IKCinematicBloc_Construct
-//   [ ] 0x18eb50  IKCinematicBloc_Construct_2
+//   [x] 0x18eb50  IKCinematicBloc_Construct_2  (the same stores as 0x18eae8 IKCinematicBloc_Construct)
 //   [x] 0x18ebb8  IKCinematicBloc_InterruptConflictingBlocs
 //
 //   [ ] 0x9aa508  IKCinematicBloc_vf8  [inline]
@@ -26,6 +26,7 @@
 #include "k2000/logic/CKCinematicSceneData.h"
 #include "k2000/hooks/IKHook.h"
 #include "k2000/hooks/IKLife.h"
+#include "k2000/logic/CKSavingManager.h"
 #include "k2000/logic/CKSekens.h"
 #include "k2000/scenegraph/CSGMovable.h"
 #include "Renderware/rwcore/RwCamera.h"
@@ -41,6 +42,11 @@ namespace {
 // 0x00c50d58: three floats StaticInitAndDestruction_11578 sets to 1.0 (0x3f800000) at startup.
 constexpr float kCinematicBlocDefaultVector[3] = {1.0f, 1.0f, 1.0f};
 }  // namespace
+
+// 0x0018e8d8 IKCinematicBloc_LevelReset (returns 1)
+void IKCinematicBloc::RecursiveRegistration(int32_t type) {
+    if (static_cast<uint32_t>(type - 4) > 3u) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);
+}
 
 // 0x0018eae8 IKCinematicBloc_Construct
 IKCinematicBloc::IKCinematicBloc() {

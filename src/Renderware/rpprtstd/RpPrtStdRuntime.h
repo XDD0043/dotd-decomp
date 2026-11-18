@@ -8,6 +8,7 @@
 // offsets are the PS3's). Particle batches: the header, then the particles from `offset` (0x20, the PS3
 // value, in every build), each the particle class's object size.
 #pragma once
+#include <atomic>
 #include <cstdint>
 
 #include "Renderware/rpprtstd/RpPrtStd.h"
@@ -164,7 +165,13 @@ struct CachedOffsets {
     int32_t prtMatrixIndex;     // 0x00cfbb60
     int32_t prt2DRotateIndex;   // 0x00cfbb64
 };
-extern CachedOffsets g_offsets;
+// DEV (thread safety, not in the original): the PS3 keeps one cache, which the sector load worker (its FX PostLoads
+// update emitters) and the main thread's particle update share; natively the threads race on it (the main thread read
+// the worker's offsets: a crash in StdParticleUpdate while G streams sector 2 in). Each thread keeps its own copy. A
+// property table's destroy clears it in every thread: PropTabDestroy bumps g_propTabDestroyGeneration and each copy
+// forgets its tables when it sees a new generation (the offsets are looked up again: the same values).
+extern thread_local CachedOffsets g_offsets;
+extern std::atomic<uint32_t> g_propTabDestroyGeneration;
 // 0x0072a538 RW_CacheParticlePropertyOffsets
 RpPrtStdEmitter* CacheParticlePropertyOffsets(RpPrtStdEmitter* emitter);
 
@@ -209,8 +216,12 @@ struct AdvCachedOffsets {
     int32_t prtMultiColorIndex;  // 0x00cf9eb4
     int32_t prtMultiTexCoordsIndex;  // 0x00cf9eb8
     int32_t prtMultiSizeIndex;   // 0x00cf9ebc
+    // The 0x1000001 update's own cache (0x6f3348): its sub-emitter's property table and that table's
+    // standard property (1) offset. The destroy hook (0x6ef3b0) does not clear them.
+    const RpPrtStdPropertyTable* subEmitterTable;  // 0x00cf9e18
+    int32_t subEmtStd;                             // 0x00cf9e3c
 };
-extern AdvCachedOffsets g_advOffsets;
+extern thread_local AdvCachedOffsets g_advOffsets;  // per thread, as g_offsets
 // 0x006f00d8 RW_CacheParticlePropertyOffsets2_maybe
 RpPrtStdEmitter* CacheAdvPropertyOffsets(RpPrtStdEmitter* emitter);
 
@@ -228,6 +239,8 @@ RpPrtStdParticleBatch* EmitterNewParticleBatch(RpPrtStdEmitter* emitter);
 // 0x0072e0d8 RW_LockParticleTankProperties_maybe: every array of the PTank locked into the in/out pointers
 // and strides; dataFlags = the arrays locked.
 RpPrtStdEmitterPTank* LockParticleTankProperties(RpPrtStdEmitterPTank* ptank);
+// 0x0072b3a0 RpPrtStdEmitterUpdate_maybe: one emitter updated and emitting in one pass (RpPrtStdRuntime.cpp).
+RpPrtStdEmitter* EmitterUpdate(RpAtomic* atomic, RpPrtStdEmitter* emitter, float* deltaTime);
 
 // The emitter class callbacks ported in the other files.
 RpPrtStdEmitter* StdEmit(RpAtomic* atomic, RpPrtStdEmitter* emitter, void* data);            // 0x732c58 RpPrtStdEmit.cpp
@@ -236,10 +249,15 @@ RpPrtStdEmitter* StdScheduleEmit(RpAtomic* atomic, RpPrtStdEmitter* emitter, voi
 RpPrtStdEmitter* StdRenderPTank(RpAtomic* atomic, RpPrtStdEmitter* emitter, void* data);     // 0x731360
 RpPrtStdEmitter* PointListEmit(RpAtomic* atomic, RpPrtStdEmitter* emitter, void* data);      // 0x6f26c8 RpPrtAdv.cpp
 RpPrtStdEmitter* MultiEmit(RpAtomic* atomic, RpPrtStdEmitter* emitter, void* data);          // 0x6f41b0 RpPrtAdv.cpp
+RpPrtStdEmitter* SphereEmit(RpAtomic* atomic, RpPrtStdEmitter* emitter, void* data);         // 0x6f1110 RpPrtAdvRuntime.cpp
+RpPrtStdEmitter* CircleEmit(RpAtomic* atomic, RpPrtStdEmitter* emitter, void* data);         // 0x6f1a00
+RpPrtStdEmitter* PrtEmitterEmit(RpAtomic* atomic, RpPrtStdEmitter* emitter, void* data);     // 0x6f31b8
+RpPrtStdEmitter* TexCoordsStepEmit(RpAtomic* atomic, RpPrtStdEmitter* emitter, void* data);  // 0x6f5898
 // The particle class callbacks.
 RpPrtStdParticleBatch* StdParticleUpdate(RpPrtStdEmitter* emitter, RpPrtStdParticleBatch* batch, void* data);   // 0x734188 RpPrtStdUpdate.cpp
 RpPrtStdParticleBatch* KeyFramesUpdate(RpPrtStdEmitter* emitter, RpPrtStdParticleBatch* batch, void* data);     // 0x6f50e0 RpPrtAdv.cpp
 RpPrtStdParticleBatch* TexCoordStepUpdate(RpPrtStdEmitter* emitter, RpPrtStdParticleBatch* batch, void* data);  // 0x6f5df0
+RpPrtStdParticleBatch* PrtEmitterUpdate(RpPrtStdEmitter* emitter, RpPrtStdParticleBatch* batch, void* data);    // 0x6f3348 RpPrtAdvRuntime.cpp
 
 // 0x006ef410 RpPrtStdPClass_BuildStdCallBackArray_maybe (RpPrtAdv.cpp): the particle class setup callback.
 RpPrtStdParticleClass* PClassBuildCallBackArray(RpPrtStdParticleClass* pClass);

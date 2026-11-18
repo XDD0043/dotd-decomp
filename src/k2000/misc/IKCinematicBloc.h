@@ -18,6 +18,10 @@ public:
     int32_t IsKindOfClass(uint32_t key) override { return key == 0x84c || key == 0x808 || key == 0xc; }  // 0x9aa508
     IKCinematicBloc();  // 0x0018eae8 IKCinematicBloc_Construct
     ~IKCinematicBloc() override {}
+    // vt+0x24 0x0018e8d8 IKCinematicBloc_LevelReset (Ghidra's name; it is the blocs' RecursiveRegistration base, every
+    // bloc's RecursiveRegistration calls it first): registered with the saving manager (vt+0x24, no owner) unless the
+    // type is 4..7.
+    void RecursiveRegistration(int32_t type) override;
 
     // 0x0018edd8 CKCinematicBloc_Load (XXL2 IKCinematicBloc::BasicLoadCinematicElement): the element
     // part of every bloc's data; each bloc's Load calls it first.

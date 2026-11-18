@@ -5,27 +5,50 @@
 #include <cstdint>
 
 #include "k2000/core/Layout.h"
+#include "k2000/math/CMatrix34.h"
 #include "k2000/logic/CKGolemAttackCommon.h"
 
 class CKS08MaleforBigBombDeathBall : public CKGolemAttackCommon {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x2b0)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9c66a8
+        return key == 0xac0c || key == 0xc || key == 0x994c || key == 0x984c;
+    }
     DOTD_DECLARE_FACTORIES(CKS08MaleforBigBombDeathBall)
 
     // One entry of the +0xc8 array (OperatorNew(0x14)).
     struct Entry {
         float m_unk00;           // +0x00 (file: 10.3, 13.3, ...)
         float m_unk04;           // +0x04 (file: 2.07, 2.65, ...)
-        uint8_t m_unk08[0xc];    // +0x08..+0x13 not read by the Load
+        CVector3 m_vDir;         // +0x08 not read by the Load: the ball's direction (ComputeSpreadDirections_maybe)
     };
 
     CKS08MaleforBigBombDeathBall();  // 0x004e8170 CKS08MaleforBigBombDeathBall_Construct
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x004e8a40 CKS08MaleforBigBombDeathBall_Load
+    // vt+0x00 0x004e80a0 CKS08MaleforBigBombDeathBall_Destructor (and 0x4e8270 / 0x4e82e0): the entry block freed.
+    ~CKS08MaleforBigBombDeathBall() override;
+    // vt+0x10 0x004e8018 CKS08MaleforBigBombDeathBall_Destroy: CKGolemAttackCommon's, then every entry deleted (the
+    // block and its pointers kept: BUG(original), a second Destroy deletes them again).
+    void Destroy() override;
+    void StartAttack() override;          // vt+0x50 0x004e7f68: CKGolemAttackCommon's, then +0xa4 = 0
+    void Update(IKTime* clock) override;  // vt+0x60 0x004e8868: at the animation time +0xa0, the balls and the explosion
+    // 0x004e8358 CKS08MaleforBigBombDeathBall_ComputeSpreadDirections_maybe: the golem's flat forward (its node's at, y 0,
+    // unit) turned about Y by -spread..+spread degrees (+0xa8) over +0xac directions into the entries; 0 without
+    // directions or the golem's hot spot 6.
+    uint8_t ComputeSpreadDirections();
+    // 0x004e85f8 CKS08MaleforBigBombDeathBall_RandomizeBallParams_maybe: the directions, then per entry two rand draws: the
+    // speed in [+0xb8, +0xbc] and +0x04 in [+0xb0, +0xb4].
+    uint8_t RandomizeBallParams();
+    // 0x004e8720 CKS08MaleforBigBombDeathBall_LaunchBalls_maybe: the balls launched from the golem's hot spot 6 (the
+    // projectile accessor +0x98, damage +0xc4, the golem as owner); +0xa4 = 1.
+    uint8_t LaunchBalls();
+    void Explode();  // 0x004e7b98 CKS08MaleforBigBombDeathBall_Explode
 
     IKSerializable* m_unk98;   // +0x98 object reference
     IKSerializable* m_unk9c;   // +0x9c object reference
     float m_unka0;             // +0xa0 (file: 0.1)
-    uint32_t m_unka4;          // +0xa4 not read by the Load
+    uint8_t m_unka4;           // +0xa4 not read by the Load: the balls are launched (StartAttack clears it)
+    uint8_t m_pada5[3];
     float m_unka8;             // +0xa8 (file: 45.0)
     int32_t m_unkac;           // +0xac (file: 5, the entry count of that object)
     float m_unkb0;             // +0xb0 (file: 2.0)

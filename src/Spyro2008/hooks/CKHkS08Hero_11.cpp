@@ -27,7 +27,7 @@
 //   [ ] 0x31ee60  FUN_0031ee60  [dead]
 //   [x] 0x31ef70  CKHkS08Hero_ComputeClimbMoveVectorByMode_maybe
 //   [x] 0x31f2a0  CKHkS08Hero_LocoState2_Climb_maybe_Condition
-//   [ ] 0x31f2c8  StaticInitAndDestruction_31f2c8
+//   [x] 0x31f2c8  StaticInitAndDestruction_31f2c8  (the two file statics at the end)
 //   [ ] 0x31f2f8  _GLOBAL__D_31f2f8
 //   [ ] 0x31f308  _GLOBAL__I_31f308
 //   [x] 0x31f318  CKHkS08Hero_LocoState2_Climb_maybe
@@ -90,11 +90,6 @@ void ClearFollowTrail(IKSerializable* group) { static_cast<CKGrpS08Hero*>(group)
 // 0x002ce518 CKGrpS08Hero_GetMaxPartnerDistance_maybe (local copy): the group's +0x108.
 float GetMaxPartnerDistance(IKSerializable* group) { return static_cast<CKGrpS08Hero*>(group)->m_unk108; }
 
-// 0x003013c8 CKHkS08Hero_IsAnimFinished (local copy): +0x354 bit 15 while the animation is `animation`.
-uint8_t IsAnimFinished(const CKHkS08Hero* hero, uint16_t animation) {
-    if (hero->m_unk160 != animation) return 0;
-    return static_cast<uint8_t>((hero->m_unk354 >> 15) & 1u);
-}
 // The inner blender's active key-frame controller (vt+0x194 GetAnimBlendSlot, the slot's controller +4, its +0x50 array
 // at the slot's +0x10): the time (+0x50) is CKHkS08Hero_GetCurrentAnimTime 0x303368's answer.
 CKAnmKeyFrameController* ActiveController(CKHkS08Hero* hero) {
@@ -612,7 +607,7 @@ CVector3 CKHkS08Hero::ComputeClimbMountOffset(CKHkClimbZone* zone, uint16_t anim
     const float duration = ActiveController(this)->GetDuration();  // 0x0007ab60
     const float time = ActiveController(this)->m_unk50;
     CVector3 point = LerpByRangeClamped(0.0f, duration, time, &start, &target);  // 0x003342c0
-    if (IsAnimFinished(this, animation) != 0) point = target;  // 0x003013c8
+    if (IsAnimFinished(animation) != 0) point = target;  // 0x003013c8
     const float x = point.x + out.x;
     const float y = point.y + out.y;
     const float z = point.z + out.z;
@@ -1222,7 +1217,8 @@ float AcosClamped(float d) {
     return crt::Acosf(d);                      // 0x00780c90 (TocBridge 0x98e1a0)
 }
 
-// 0x00310be0 CKHkS08Hero_UpdateOrientationAngles_maybe (CKHkS08Hero_7.cpp's unit; local copy): the tilt springs' speeds
+// 0x00310be0 CKHkS08Hero_UpdateOrientationAngles_maybe (CKHkS08Hero_7.cpp's unit; ported here, beside its only callers,
+// checked against the disassembly: fmadds order, cror >= tests, Math_Sqrtf): the tilt springs' speeds
 // (+0x12e8 / +0x12ec) stop and their angles follow the node's up axis: the pitch +0x137c (Vec3_GetAngleInYZPlane, in
 // (-pi, pi]; 0 for an up axis without a (y, z) part) and the roll +0x12e4 (Vec3_GetAngleInXYPlane; pi / 2 without an
 // (x, y) part).
@@ -1364,7 +1360,7 @@ void CKHkS08Hero::UpdateClimbSustainedMovement(float dt) {
         m_unk1700[0] = m.m_up.x;
         m_unk1700[2] = m.m_up.z;
         m_unk1700[1] = m.m_up.y;
-    } else if (IsAnimFinished(this, 0x89) != 0 || IsAnimFinished(this, 0x8a) != 0) {
+    } else if (IsAnimFinished(0x89) != 0 || IsAnimFinished(0x8a) != 0) {
         // The mount is over: the hero on the attach point (0.05 out), climbing.
         m_unkecc = (m_unkecc & 0xfffffffeu) | 1u;
         m_unkec8 &= 0x7fffffffu;
@@ -2076,3 +2072,10 @@ void CKHkS08Hero::UpdateClimbSustainedLocomotion(float /*dt*/) {
         m_unk354 = (m_unk354 | 1u) & ~4u;
     }
 }
+
+// 0x0031f2c8 StaticInitAndDestruction_31f2c8: two file statics (0x00ceae3c, 0x00ceae40) set to -1.0f. Nothing in the game
+// reads them (their only references are the initialiser's TOC entries).
+namespace {
+[[maybe_unused]] float s_unkceae3c = -1.0f;
+[[maybe_unused]] float s_unkceae40 = -1.0f;
+}  // namespace

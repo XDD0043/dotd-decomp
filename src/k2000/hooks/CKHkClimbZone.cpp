@@ -10,21 +10,21 @@
 //   [ ] 0x456cb0  _GLOBAL__I_456cb0
 //   [x] 0x456cc0  CKHkClimbZone_RaycastAttachPoint_maybe
 //   [x] 0x457180  CKHkClimbZone_RemoveClimber_maybe
-//   [ ] 0x457288  CKHkClimbZone_GetInfo  (the info request 0x96; IKSerializable::GetInfo has no request argument natively)
+//   [x] 0x457288  CKHkClimbZone_GetInfo  (with 0x9c3f48 CKHkClimbZone_GetTriggerProp96)
 //   [x] 0x457368  CKHkClimbZone_Resume
 //   [x] 0x457390  CKHkClimbZone_Pause
 //   [x] 0x4573b8  CKHkClimbZone_Stop
 //   [x] 0x4573e0  CKHkClimbZone_Start
 //   [x] 0x457438  CKHkClimbZone_PostLoad
 //   [ ] 0x4574a0  CKHkClimbZone_Save
-//   [ ] 0x4574c8  CKHkClimbZone_RecursiveRegistration  (CKHkActorBase's, then 1: nothing of its own)
+//   [x] 0x4574c8  CKHkClimbZone_RecursiveRegistration  (CKHkActorBase's 0x3f6ee8, then 1: inherited)
 //   [x] 0x4574f0  CKHkClimbZone_Destroy
 //   [x] 0x457578  CKHkClimbZone_Construct  [dead]
 //   [x] 0x4575d8  CKHkClimbZone_DeleteArray
 //   [x] 0x457678  CKHkClimbZone_OnDeactivate
 //   [x] 0x457740  CKHkClimbZone_IsAboveBottom_maybe
 //   [x] 0x457768  CKHkClimbZone_IsBelowTop_maybe
-//   [ ] 0x457798  CKHkClimbZone_BaseDestructor
+//   [x] 0x457798  CKHkClimbZone_BaseDestructor  (the destructor 0x458548, CKHkClimbZone.h)
 //   [x] 0x457808  CKHkClimbZone_SetDefaultState
 //   [x] 0x4578b8  CKHkClimbZone_MessageProc
 //   [x] 0x4579d0  CKHkClimbZone_vfC8
@@ -33,8 +33,8 @@
 //   [x] 0x457c50  CKHkClimbZone_SetCollisionEnabled_maybe
 //   [x] 0x457d68  CKHkClimbZone_Update
 //   [ ] 0x458400  CKHkClimbZone_GetPerpendicularDistance_maybe  [dead]
-//   [ ] 0x4584d0  CKHkClimbZone_DeletingDestructor
-//   [ ] 0x458548  CKHkClimbZone_Destructor
+//   [x] 0x4584d0  CKHkClimbZone_DeletingDestructor  (C++ deleting destructor)
+//   [x] 0x458548  CKHkClimbZone_Destructor  (header)
 //   [x] 0x4585b8  CKHkClimbZone_CreateArray
 //   [x] 0x458698  CKHkClimbZone_Create
 //   [x] 0x458708  CKHkClimbZone_ResolveClimberOverlap_maybe
@@ -48,12 +48,14 @@
 //   [x] 0x9c3ee0  CKHkClimbZone_IsKindOfClass  [inline, in the header]
 //   [x] 0x9c3f38  CKHkClimbZone_GetClassType  [inline, DOTD_CLASS_KEY]
 //   [x] 0x9c3f40  CKHkClimbZone_GetClassID  [inline, DOTD_CLASS_KEY]
-//   [ ] 0x9c3f48  CKHkClimbZone_GetTriggerProp96  [inline]
+//   [x] 0x9c3f48  CKHkClimbZone_GetTriggerProp96  [inline]  (GetInfo's accessor)
 #include <cmath>
 #include <cstring>
 
 #include "k2000/hooks/CKHkClimbZone.h"
+#include "k2000/hooks/CKHkCrumblyZone.h"
 
+#include "k2000/core/IKInfo.h"
 #include "k2000/io/IKFile.h"
 #include "k2000/memory/Mem.h"
 #include "Renderware/rwcore/RwCamera.h"
@@ -83,12 +85,12 @@ RwFrame* FrameOf(IKSerializable* node) { return static_cast<CSGMovable*>(node)->
 // DOTD: the original reads the frames' LTM words as the scene's last sync left them; natively the LTM is made current on
 // read (RwFrameGetLTM recomputes it from the modelling matrices: the zones' frames do not move).
 const CMatrix34& CKHkClimbZone::NodeLtm() const {
-    return *reinterpret_cast<const CMatrix34*>(RwFrameGetLTM(FrameOf(m_pKGLObject)));
+    return *reinterpret_cast<const CMatrix34*>(FrameLtm(FrameOf(m_pKGLObject)));
 }
 const CMatrix34& CKHkClimbZone::NodeModelling() const {
     return *reinterpret_cast<const CMatrix34*>(&FrameOf(m_pKGLObject)->modelling);
 }
-const CMatrix34& CKHkClimbZone::BoxLtm() const { return *reinterpret_cast<const CMatrix34*>(RwFrameGetLTM(FrameOf(m_pUnk20))); }
+const CMatrix34& CKHkClimbZone::BoxLtm() const { return *reinterpret_cast<const CMatrix34*>(FrameLtm(FrameOf(m_pUnk20))); }
 
 // PORT: the original's climber key is the hero's 32-bit address; x64 folds the 64-bit address into the record's word.
 int32_t CKHkClimbZone::ClimberKey(const void* climber) {
@@ -135,6 +137,19 @@ int32_t CKHkClimbZone::PostLoad(int32_t type) {
 
 // 0x004574f0 CKHkClimbZone_Destroy: CKHkActorBase's (vt+0xc0, empty for the zone), the climber block and the +0x60
 // array freed.
+int32_t CKHkClimbZone::GetInfo(IKInfo* info, int32_t request) {
+    const int32_t base = CKHkActorBase::GetInfo(info, request);  // KStub_Return1_3f7140
+    int32_t own = 1;
+    if (request == kGetInfoValueAccessor && info->m_ui32Id == 0x96) {
+        own = AnswerInfo(info, [](IKSerializable* o, uint32_t) {
+            return (static_cast<CKHkClimbZone*>(o)->m_bitArray >> 16) & 1u;  // lhz +0x0c (big-endian high half), bit 0
+        }, 0);
+    }
+    if (base == 2 || own == 2) return 2;
+    if (base == 0) return 0;
+    return own;
+}
+
 void CKHkClimbZone::Destroy() {
     if (m_vUnkB4.m_pBlock != nullptr) {
         Mem_FreeAligned16(m_vUnkB4.m_pBlock);
@@ -164,10 +179,7 @@ void CKHkClimbZone::SetDefaultState(int32_t flag) {
 // and 0x997 clears it (both answer 0, any other message 1); the answers are merged (3 wins, then 2, then 0 when the
 // base answered 0).
 int32_t CKHkClimbZone::MessageProc(uint16_t message, void* data) {
-    // STUB(C2.8): CKHkActorBase_d82_maybe_MessageProc 0x3f7148 (its jump table for 0x908..0x90f: the actors' scripted
-    // messages); IKBaseClass's answer (1) for the others, as the original's for any message outside that range.
-    if (static_cast<uint16_t>(message - 0x908u) < 8) DOTD_STUB_ONCE("CKHkClimbZone_MessageProc: the actor messages 0x908..0x90f (C2.8)");
-    const int32_t base = CKHkActorBase::MessageProc(message, data);
+    const int32_t base = CKHkActorBase::MessageProc(message, data);  // 0x003f7148
     int32_t own;
     if (message == 0x996) {
         own = 0;
@@ -218,8 +230,7 @@ void CKHkClimbZone::SetEnabled(int32_t enabled) {
 // cached; then the pushes are cleared, bit 17 tells a crumbly zone (+0x54), the zone switches itself to its bit 16
 // (vt+0xcc) and starts with no climber active.
 void CKHkClimbZone::VfA0() {
-    // STUB(C2.8): CKHkActorBase_d82_maybe_OnActivate 0x3f7338 (ActiveActorList_AddUnique_maybe 0x3f80d0 on the game
-    // manager's +0xc meca group: the active actor list, which no ported code reads yet).
+    CKHkActorBase::VfA0();  // 0x003f7338 the active actor list
     if ((m_bitArray & 0x200u) == 0) {
         m_bitArray &= 0xffefffffu;
         IKBoundingBox* box = static_cast<IKBoundingBox*>(m_pUnk20);
@@ -253,7 +264,7 @@ void CKHkClimbZone::VfA0() {
 // 0x00457678 CKHkClimbZone_OnDeactivate (vt+0xa4): the box leaves the collision service and the zone's node for the
 // engine's dynamic scene root.
 void CKHkClimbZone::VfA4() {
-    // STUB(C2.8): CKHkActorBase_d82_maybe_OnDeactivate 0x3f7370 (ActiveActorList_Remove_maybe 0x3f8508), as OnActivate.
+    CKHkActorBase::VfA4();  // 0x003f7370
     IKBoundingBox* box = static_cast<IKBoundingBox*>(m_pUnk20);
     Collision()->RemoveVolume(box);  // 0x00192bc0
     if (box->m_pParent != nullptr) box->m_pParent->RemoveChild(box);  // vt+0x78
@@ -590,9 +601,12 @@ uint8_t CKHkClimbZone::AttachClimberIfValid(float dt, const CVector3* position, 
 void CKHkClimbZone::Update(IKTime* frameClock) {
     // WorldObjectBase_Update_Nop 0x3f6e68.
     if ((m_bitArray & 0x20000u) != 0) {
-        // STUB(C2.8): CKHkCrumblyZone_RestoreIfDestroyed_maybe 0x414808 / CrumbleIfIntact_maybe 0x414840 on +0x54 (no
-        // LVL010 climb zone has a crumbly zone).
-        DOTD_STUB_ONCE("CKHkClimbZone_Update: the crumbly zone +0x54 (C2.8)");
+        CKHkCrumblyZone* zone = static_cast<CKHkCrumblyZone*>(m_pUnk54);
+        if ((m_bitArray & 0x10000u) != 0) {
+            zone->RestoreIfDestroyed();  // 0x00414808
+        } else {
+            zone->CrumbleIfIntact();  // 0x00414840
+        }
     }
     const float dt = frameClock->m_afDeltaTime[0];
     CSGBranch* parent = static_cast<CSGLeaf*>(m_pKGLObject)->m_pParent;
@@ -643,10 +657,7 @@ void CKHkClimbZone::Update(IKTime* frameClock) {
         m_fUnkC0 = 0.0f;
         return;
     }
-    if (m_pUnk54 != nullptr) {
-        // STUB(C2.8): CKHkCrumblyZone_TryTriggerCollapse_maybe 0x414e00 on +0x54.
-        DOTD_STUB_ONCE("CKHkClimbZone_Update: the crumbly zone's collapse +0x54 (C2.8)");
-    }
+    if (m_pUnk54 != nullptr) static_cast<CKHkCrumblyZone*>(m_pUnk54)->TryTriggerCollapse();  // 0x00414e00
     m_fUnkC0 = m_fUnkC0 + dt;
     if (!(m_fUnk58 <= m_fUnkC0)) return;
     SetEnabled(0);  // vt+0xcc
@@ -661,7 +672,7 @@ void CKHkClimbZone::AddOrUpdateClimber(float dt, uint32_t active, const CVector3
     if (active8 != 0 && (m_bitArray & 0x8000) == 0) QueueTriggerSignals(&m_tsUnk68);  // 0x00236338
     m_bitArray = (m_bitArray & 0xffff7fffu) | (active8 << 15);
     if (climberKey == 0) return;
-    const RwMatrix* ltm = RwFrameGetLTM(FrameOf(m_pKGLObject));
+    const RwMatrix* ltm = FrameLtm(FrameOf(m_pKGLObject));
     float x = position->x;
     float y = position->y;
     float z = position->z;

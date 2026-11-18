@@ -11,11 +11,13 @@
 //   [x] 0xf1508  ShaderVariantKey_BuildForMesh_maybe
 //   [x] 0xf1c90  ShaderVariantKey_BuildForMesh_maybe  (thunk)
 //   [x] 0xf1c98  ShaderVariantKey_BuildForMesh_maybe  (thunk)
-//   [ ] 0xf1ca0  ShaderVariantKey_BuildForImmediate3D_maybe  (STUB(C2.4 step 8))
-//   [ ] 0xf1ca8  ShaderVariantKey_BuildForImmediate3D_maybe
+//   [x] 0xf1ca0  ShaderVariantKey_BuildForImmediate3D_maybe  (thunk; the body 0xf07a8 is MeshShaderPassState.cpp's range)
+//   [x] 0xf1ca8  ShaderVariantKey_BuildForImmediate3D_maybe  (thunk)
 //   [x] 0xf1cb0  ShaderVariantKey_BuildFromPassState_maybe  (thunk)
 //   [x] 0xf1cb8  ShaderVariantKey_BuildFromPassState_maybe  (thunk)
 //   (from MeshShaderPassState.cpp) [x] 0xf0108 ShaderVariantKey_BuildFromPassState_maybe
+//   (from MeshShaderPassState.cpp) [x] 0xf07a8 ShaderVariantKey_BuildForImmediate3D_maybe (bit 6 is cleared once more after
+//   bit 9: the word started at 0)
 //   [x] 0xf1cc0  KStub_Nop_f1cc0
 //   [ ] 0xf1cc8  KStub_Nop_f1cc8  [dead]
 //   [ ] 0xf1cd0  ShaderVariantKey_Copy_2_maybe  [dead]
@@ -23,8 +25,8 @@
 //   [x] 0xf1dc0  ShaderVariantKey_Copy_maybe  (struct copy)
 //   [x] 0xf1e38  ShaderVariantKey_MatchesVertexShader_maybe
 //   [x] 0xf2000  ShaderVariantKey_MatchesPixelShader_maybe
-//   [ ] 0xf21e8  ShaderCacheEntry_Read_maybe  (shfct.bin cache: not used)
-//   [ ] 0xf2448  ShaderCacheEntry_Write_maybe
+//   [ ] 0xf21e8  ShaderCacheEntry_Read_maybe  (shfct.bin cache: not used)  [platform]  (the shfct.bin shader cache / its offline variant lists: the programs are translated at run time (ShaderVariantKey.cpp header))
+//   [ ] 0xf2448  ShaderCacheEntry_Write_maybe  [platform]  (the shfct.bin shader cache / its offline variant lists: the programs are translated at run time (ShaderVariantKey.cpp header))
 //   (from other units) [x] 0xf00d8 Init, [x] 0xf0e48 Equals, [x] 0xf41b0 / 0xf44c0 / 0xf48c0 Collect*, [x] 0xf8840 GetShaderModeForKey
 //   Not ported: ShaderVariantList_AppendVariantsForMaterialMode_maybe 0xf0f00, ShaderVariantList_AppendFixedVariants_maybe 0xf26a0 and
 //   ShaderVariantList_BuildDefaults_maybe 0xf2900 list every key a material mode can need, to pre-generate shfct.bin offline; the
@@ -33,6 +35,7 @@
 
 #include <cstring>
 #include <string>
+#include <unordered_map>
 
 #include "Renderware/rpworld/RpAtomic.h"
 #include "Renderware/rpworld/RpGeometry.h"
@@ -132,6 +135,43 @@ void ShaderVariantKey_BuildFromPassState(ShaderVariantKey* key, ShaderPassState*
     SetBit(&flags, 21, pass->Bloom());                                    // vt+0x74
     SetBit(&flags, 0, pass->UvTransform());                               // vt+0x7c
     SetBit(&flags, 5, pass->RenderFarTexture());                          // vt+0xd8
+    SetBit(&flags, 7, pass->ShadowEnabled());                             // vt+0x54
+    SetBit(&flags, 8, pass->ModulateVertexColorFirst());                  // vt+0x3c
+    SetBit(&flags, 9, pass->UseNormalInfluence());                        // vt+0x40
+    SetBit(&flags, 10, pass->HasAuxLayerTexture());                       // vt+0x80
+    SetBit(&flags, 11, pass->HasSecondaryEffectTexture());                // vt+0x84
+    SetBit(&flags, 12, pass->HasAuxTexture8C());                          // vt+0x88
+    SetBit(&flags, 13, pass->HasAuxLayerTextureB());                      // vt+0x8c
+}
+
+// 0x000f07a8 ShaderVariantKey_BuildForImmediate3D_maybe (and the thunks 0xf1ca0 / 0xf1ca8)
+void ShaderVariantKey_BuildForImmediate3D(ShaderVariantKey* key, ShaderPassState* pass) {
+    key->texCoords = static_cast<uint8_t>(pass->TexCoordSets());          // vt+0x24
+    key->mode = pass->SpecularEnabled();                                  // vt+0xd4
+    if (key->texCoords == 0) key->mode = 0;
+    key->specialLights = static_cast<uint8_t>(pass->SpecialLightsRemaining());  // vt+0x10
+    key->dirLights = static_cast<uint8_t>(pass->DirLightsRemaining());    // vt+0x0c
+    key->pointLights = static_cast<uint8_t>(pass->PointLightsRemaining());  // vt+0x14
+    key->spotLights = static_cast<uint8_t>(pass->SpotLights());           // vt+0x18
+    key->weights = static_cast<uint8_t>(pass->SkinWeightsUsed());         // vt+0x1c
+    key->fogType = static_cast<uint8_t>(pass->FogFlag());                 // vt+0x28
+    key->dualBlend = pass->DualBlendMode();                               // vt+0x78
+    uint32_t& flags = key->flags;
+    flags = 0;
+    SetBit(&flags, 1, pass->VertexColor());                               // vt+0x44
+    SetBit(&flags, 2, pass->ModulateMaterial());                          // vt+0x48
+    SetBit(&flags, 3, 0);                                                 // vt+0x50 (KStub_Return0_9a5810 in every pass state)
+    SetBit(&flags, 4, pass->m_passIndex == 0 ? 1u : 0u);                  // (+5 - 1) >> 63: the first pass
+    SetBit(&flags, 14, pass->RenderDepthOfField());                       // vt+0x58
+    SetBit(&flags, 15, pass->PostDepthOfField());                         // vt+0x5c
+    SetBit(&flags, 17, pass->GaussianBlur());                             // vt+0x60
+    SetBit(&flags, 16, pass->CopyAlpha());                                // vt+0x64
+    SetBit(&flags, 18, pass->DownSample4x4());                            // vt+0x68
+    SetBit(&flags, 19, pass->DontModulateAlphaTexture());                 // vt+0x6c
+    SetBit(&flags, 20, pass->DownSample16x16());                          // vt+0x70
+    SetBit(&flags, 21, pass->Bloom());                                    // vt+0x74
+    SetBit(&flags, 0, pass->UvTransform());                               // vt+0x7c
+    SetBit(&flags, 5, pass->ImmediateKeyBit5());                          // vt+0xdc
     SetBit(&flags, 7, pass->ShadowEnabled());                             // vt+0x54
     SetBit(&flags, 8, pass->ModulateVertexColorFirst());                  // vt+0x3c
     SetBit(&flags, 9, pass->UseNormalInfluence());                        // vt+0x40
@@ -435,6 +475,31 @@ uint32_t CShaderManagerPSGL_GetShaderModeForKey(const ShaderVariantKey& key) {
 
 // (no original address: the run-time replacement of CShaderManagerPSGL_FindOrCreatePrograms_maybe 0xfd3f8 / the shader
 // cache: the program of a key, translated and compiled on first use)
+// The programs by key (perf): the define list of a key costs a vector of strings and the program lookup by that list a
+// string map search, on every mesh draw. Everything ShaderGen_CollectExternFragments reads is in the cache key: the key's
+// fields (all but the padding byte +0x0b) and ShaderSceneInputs::pixelLightning (externPixelLightning). The entries
+// hold what cg::GetProgram answered (programs are compiled once and never change); they are dropped when the program
+// cache is destroyed (cg::ProgramsGeneration, CShaderManagerPSGL::ReleaseShaderResources).
+namespace {
+struct ProgramCacheKey {
+    uint32_t words[6];
+    bool operator==(const ProgramCacheKey& o) const { return std::memcmp(words, o.words, sizeof words) == 0; }
+};
+struct ProgramCacheHash {
+    size_t operator()(const ProgramCacheKey& k) const {
+        uint64_t h = 0xcbf29ce484222325ull;
+        for (uint32_t w : k.words) h = (h ^ w) * 0x100000001b3ull;
+        return static_cast<size_t>(h ^ (h >> 32));
+    }
+};
+std::unordered_map<ProgramCacheKey, const dotd::gfx::cg::Program*, ProgramCacheHash> g_programsByKey;
+uint32_t g_programsByKeyGeneration = 0;
+// perf: the last key asked for and its answer (consecutive draws mostly share their variant): no hashing for a repeat.
+ProgramCacheKey g_lastProgramKey;
+const dotd::gfx::cg::Program* g_lastProgram = nullptr;
+bool g_lastProgramValid = false;
+}  // namespace
+
 const dotd::gfx::cg::Program* ShaderVariant_GetProgram(const ShaderVariantKey& key) {
     if (!dotd::gfx::cg::SourcesLoaded()) {
         const std::string path = dotd::platform::GetConfig().usrdir + "/EBOOT.elf";
@@ -444,6 +509,32 @@ const dotd::gfx::cg::Program* ShaderVariant_GetProgram(const ShaderVariantKey& k
             return nullptr;
         }
     }
-    const dotd::gfx::cg::Program* program = dotd::gfx::cg::GetProgram(ShaderGen_CollectExternFragments(key));
-    return program != nullptr && program->error.empty() ? program : nullptr;
+    if (g_programsByKeyGeneration != dotd::gfx::cg::ProgramsGeneration()) {
+        g_programsByKey.clear();
+        g_lastProgramValid = false;
+        g_programsByKeyGeneration = dotd::gfx::cg::ProgramsGeneration();
+    }
+    ProgramCacheKey cacheKey;
+    cacheKey.words[0] = key.mode;
+    cacheKey.words[1] = static_cast<uint32_t>(key.specialLights) | static_cast<uint32_t>(key.dirLights) << 8 |
+                        static_cast<uint32_t>(key.pointLights) << 16 | static_cast<uint32_t>(key.spotLights) << 24;
+    cacheKey.words[2] = static_cast<uint32_t>(key.weights) | static_cast<uint32_t>(key.texCoords) << 8 |
+                        static_cast<uint32_t>(key.fogType) << 16;
+    cacheKey.words[3] = key.dualBlend;
+    cacheKey.words[4] = key.flags;
+    cacheKey.words[5] = SceneInputs().pixelLightning != 0 ? 1u : 0u;
+    if (g_lastProgramValid && cacheKey == g_lastProgramKey) return g_lastProgram;
+    const dotd::gfx::cg::Program* program = nullptr;
+    auto found = g_programsByKey.find(cacheKey);
+    if (found != g_programsByKey.end()) {
+        program = found->second;
+    } else {
+        program = dotd::gfx::cg::GetProgram(ShaderGen_CollectExternFragments(key));
+        program = program != nullptr && program->error.empty() ? program : nullptr;
+        g_programsByKey.emplace(cacheKey, program);
+    }
+    g_lastProgramKey = cacheKey;
+    g_lastProgram = program;
+    g_lastProgramValid = true;
+    return program;
 }

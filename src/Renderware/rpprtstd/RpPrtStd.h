@@ -16,7 +16,7 @@
 // them) are only stored in 32-bit builds, the readers use the fixed positions instead.
 //
 // The running side (emitting, updating, rendering, the PTank property) is in RpPrtStdRuntime.h/.cpp and the
-// files it names. STUB(C2): stream writing, destruction.
+// files it names. STUB(C2): stream writing (nothing in the game writes RenderWare streams).
 #pragma once
 #include <cstdint>
 
@@ -132,6 +132,18 @@ struct RpPrtAdvEmtPointList {
 };
 DOTD_ASSERT_SIZE(RpPrtAdvEmtPointList, 0x18);
 
+// 0x1000001 (rpprtadv.h RpPrtAdvEmtPrtEmt): each particle drives a sub-emitter (the emitter itself's next in
+// the atomic's list until set). The pointer makes the native property bigger (its table size grows, see
+// RpPrtStd.cpp NativeGrowth).
+struct RpPrtAdvEmtPrtEmt {
+    RwReal time;             // +0x00 time before the first emission
+    RwReal timeBias;         // +0x04
+    RwReal timeGap;          // +0x08 time between the sub-emitter's emissions
+    RwReal timeGapBias;      // +0x0c
+    RpPrtStdEmitter* emitter;  // +0x10 the sub-emitter
+};
+DOTD_ASSERT_SIZE(RpPrtAdvEmtPrtEmt, 0x14);
+
 // 0x0072ee88 RW_GetParticlePropertyOffset (RpPrtStdPropTabGetPropOffset): -1 when absent.
 int32_t RpPrtStdPropTabGetPropOffset(const RpPrtStdPropertyTable* table, int32_t propID);
 // 0x0072ee20 RpPrtStdPropTabGetPropIndex: -1 when absent.
@@ -146,6 +158,9 @@ RpPrtStdEmitter* RpPrtStdAtomicGetEmitter(RpAtomic* atomic);
 uint32_t RpPrtStdAtomicStreamRead(RpAtomic* atomic, const uint8_t* data, uint32_t length);
 // 0x00730298 RpPrtStdAtomicPlugin_Copy_maybe (RpAtomicClone's plugin copy): every emitter cloned onto `dst`.
 void RpPrtStdAtomicCopy(RpAtomic* dst, const RpAtomic* src);
+// 0x00730158 RpPrtStdAtomicPlugin_Dtor_maybe (RpAtomicDestroy's plugin de-init): every emitter destroyed
+// (RpPrtStdEmitterDestroy_maybe 0x72cad0: its batches, its destroy callbacks, its PTank, its classes).
+void RpPrtStdAtomicDestruct(RpAtomic* atomic);
 
 // 0x00730cb8 RW_UpdateParticleAtomic / 0x00730990 RW_EmitParticleAtomic (RpPrtStdRuntime.cpp): every emitter
 // updated / emitting with `deltaTime`; null when one fails or the atomic has no emitters.

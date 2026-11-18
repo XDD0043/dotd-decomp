@@ -5,7 +5,7 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x110e40  CKSound_Delete
-//   [ ] 0x110e90  CKSound_RecursiveRegistration
+//   [x] 0x110e90  CKSound_RecursiveRegistration  (IKSerializable's empty default)
 //   [x] 0x110e98  CKSound_SetSpeed_maybe
 //   [x] 0x110ea0  CKSound_SetPitch_maybe
 //   [ ] 0x110ec8  CKSound_SetRandomPitchRange_maybe  [dead]
@@ -36,9 +36,9 @@
 //   [x] 0x1113c0  SoundInstance_ComputePlaybackRate_maybe
 //   [x] 0x1114c8  CKSound_CreateArray
 //   [x] 0x111568  CKSound_IsPlaying_maybe
-//   [ ] 0x111600  CKSound_GetInfo
+//   [x] 0x111600  CKSound_GetInfo  (IKSerializable's default (1))
 //   [ ] 0x111608  CKSound_Save
-//   [ ] 0x111610  CKSound_Destroy
+//   [x] 0x111610  CKSound_Destroy
 //   [ ] 0x111648  FUN_00111648  [dead]
 //   [x] 0x111728  CKSound_MessageProc
 //   [x] 0x111818  CKSound_UpdatePan_maybe
@@ -51,13 +51,14 @@
 //   [ ] 0x9a6978  CKSound_GetClassType  [inline]
 //   [ ] 0x9a6980  CKSound_GetClassID  [inline]
 //   [ ] 0x9a6988  CKSound_IsKindOfClass  [inline]
-//   [ ] 0x9a69a8  CKSound_DeletingDestructor  [inline]
-//   [ ] 0x9a6a28  CKSound_Destructor  [inline]
+//   [x] 0x9a69a8  CKSound_DeletingDestructor  [inline]
+//   [x] 0x9a6a28  CKSound_Destructor  [inline]
 #include "k2000/logic/sound/CKSound.h"
 
 #include <cstring>
 
 #include "crt/ppc_ops.h"
+#include "crt/xsinf.h"
 #include "k2000/io/IKFile.h"
 #include "k2000/logic/sound/CKWave.h"
 #include "k2000/managers/CKSoundManager.h"
@@ -162,6 +163,17 @@ bool IsNegative(float x) {
 
 // 0x00111310 CKSound_Create (the constructor is inlined there)
 CKSound::CKSound() { m_pInstances = nullptr; }
+
+// 0x009a6a28 CKSound_Destructor (inline in the original: out of line here, SoundNode is not in CKSound.h).
+CKSound::~CKSound() {
+    SoundNode* node = m_pInstances;
+    while (node != nullptr) {
+        SoundNode* next = node->m_pNext;
+        SoundNode_Free(node);
+        node = next;
+    }
+    m_pInstances = nullptr;
+}
 
 // 0x00111d08 CKSound_Load
 int32_t CKSound::Load(IKFile* file, int32_t type) {
@@ -277,6 +289,9 @@ float CKSound::GetRandomVolumeOffset() {
     return ppc::fmadds(f, kRandScale, kOne) * m_fRandomVolume;
 }
 
+// 0x00111610 CKSound_Destroy (the object database's unload of the sound's level or sector)
+void CKSound::Destroy() { VoiceManager()->RemoveSound(this); }
+
 // 0x001111b0 Sound_Stop
 int32_t CKSound::Stop(uint8_t immediate) {
     if (m_pKWave != nullptr && CountInstances() != 0) VoiceManager()->StopSound(this, immediate);
@@ -347,14 +362,13 @@ int32_t CKSound::MessageProc(uint16_t message, void*) {
 // 0x00111818 CKSound_UpdatePan_maybe: the position on the 10-unit circle in the listener's frame,
 // angle (m_fPan + 1) * pi/2 (pan -1: +x, the listener's right row, which RenderWare points to the
 // screen's left). The cosine and sine are inlined (octant polynomials); a negative angle (pan < -1)
-// calls the library's cosf 0x9a11d8 / sinf 0x9a1390, taken here as the same polynomials (never reached
-// by the data: pan is in [-1, 1]).
+// calls the library's cosf 0x9a11d8 (of -angle) and sinf 0x9a1390 (of -angle, negated).
 void CKSound::UpdatePan() {
     const float angle = (m_fPan + kOne) * kHalfPi;
     float c, s;
     if (IsNegative(angle)) {
-        c = InlineCos(-angle);
-        s = -InlineSin(-angle);
+        c = crt::LibCosf(-angle);
+        s = -crt::LibSinf(-angle);
     } else {
         c = InlineCos(angle);
         s = InlineSin(angle);

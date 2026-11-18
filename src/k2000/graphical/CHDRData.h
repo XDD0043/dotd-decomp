@@ -10,10 +10,15 @@
 class CHDRData : public IKComponent {
 public:
     DOTD_CLASS_KEY(kCategoryGraphical, 0x15)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a0e70
+        return key == 0x54d || key == 0x6 || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CHDRData)
 
     CHDRData() {}  // 0x000b6238 CHDRData_Create: the vtable only
 
+    void Destroy() override {}                           // vt+0x10 0x000b64d0 CHDRData_Destroy (blr)
+    void RecursiveRegistration(int32_t type) override;  // vt+0x24 0x000b6470 CHDRData_RecursiveRegistration (CDOFData.cpp)
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x000b6650 CHDRData_Load
 
     uint32_t m_eBlendMode;        // +0x04 XXL2 CMaterial::EBlendMode

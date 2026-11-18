@@ -9,31 +9,31 @@
 //   [ ] 0x190eb0  CKGroundCpnt_Construct_2  [dead]
 //   [ ] 0x190ed0  RegisterCKGroundCpntClass
 //   [ ] 0x190f48  _GLOBAL__I_190f48
-//   [ ] 0x190f58  CollisionMeshArray_SetActiveAt
-//   [ ] 0x190f98  CKGroundCpnt_Destructor_2
+//   [x] 0x190f58  CollisionMeshArray_SetActiveAt  (SetActiveAt; no caller in the original either)
+//   [x] 0x190f98  CKGroundCpnt_Destructor_2  (the same code as 0x1914d8 CKGroundCpnt_Destructor)
 //   [x] 0x190ff0  CKGroundCpnt_DeleteArray
-//   [ ] 0x191090  CollisionMeshArray_GetAt
-//   [ ] 0x1910a8  CollisionMeshArray_SetActive_maybe
+//   [x] 0x191090  CollisionMeshArray_GetAt  (GetGroundAt in the header; CKCrumblyZoneState::UpdateNavBlocking reads the vector inline)
+//   [x] 0x1910a8  CollisionMeshArray_SetActive_maybe
 //   [ ] 0x191128  CollisionMeshArray_IsActiveAt_maybe  [dead]
-//   [ ] 0x191148  CollisionMeshArray_GetCount_maybe
+//   [x] 0x191148  CollisionMeshArray_GetCount_maybe  (GetGroundCount in the header; CKCrumblyZoneState::UpdateNavBlocking reads the count byte inline)
 //   [x] 0x191150  CKGroundCpnt_CreateArray
 //   [x] 0x191210  CKGroundCpnt_Create
 //   [ ] 0x191260  CKGroundCpnt_Save
 //   [x] 0x191268  CKGroundCpnt_Load
-//   [ ] 0x191410  CKGroundCpnt_MessageProc
-//   [ ] 0x191418  CKGroundCpnt_RecursiveRegistration
-//   [ ] 0x191420  CKGroundCpnt_PostLoad
-//   [ ] 0x191428  CKGroundCpnt_Destroy
-//   [ ] 0x191478  CKGroundCpnt_DeletingDestructor
-//   [ ] 0x1914d8  CKGroundCpnt_Destructor
-//   [ ] 0x191530  CKSrvCollision_Delete
-//   [ ] 0x191580  CKSrvCollision_Start
-//   [ ] 0x191588  CKSrvCollision_Restart
-//   [ ] 0x191590  CKSrvCollision_Pause
-//   [ ] 0x191598  CKSrvCollision_Stop
-//   [ ] 0x1915a0  CKSrvCollision_Resume
+//   [x] 0x191410  CKGroundCpnt_MessageProc  (IKBaseClass's default (1))
+//   [x] 0x191418  CKGroundCpnt_RecursiveRegistration  (returns 1, registers nothing: the default)
+//   [x] 0x191420  CKGroundCpnt_PostLoad  (returns 1: the default)
+//   [x] 0x191428  CKGroundCpnt_Destroy
+//   [x] 0x191478  CKGroundCpnt_DeletingDestructor  (the deleting form of the destructor)
+//   [x] 0x1914d8  CKGroundCpnt_Destructor
+//   [x] 0x191530  CKSrvCollision_Delete  (CKSrvCollision::Delete, DOTD_DECLARE_FACTORIES)
+//   [x] 0x191580  CKSrvCollision_Start  (CKSrvCollision.h Start (empty))
+//   [x] 0x191588  CKSrvCollision_Restart  (empty: IKUpdatable's default Restart)
+//   [x] 0x191590  CKSrvCollision_Pause  (CKSrvCollision.h Pause (empty))
+//   [x] 0x191598  CKSrvCollision_Stop  (CKSrvCollision.h Stop (empty))
+//   [x] 0x1915a0  CKSrvCollision_Resume  (CKSrvCollision.h Resume (empty))
 //   [x] 0x1915a8  CKSrvCollision_DeactivateTestsOfDisabledVolumes_maybe
-//   [ ] 0x191a38  CKSrvCollision_ReleaseDynSphere_maybe
+//   [x] 0x191a38  CKSrvCollision_ReleaseDynSphere_maybe (in CKSrvCollision.cpp)
 //   [ ] 0x191a60  FUN_00191a60  [dead]
 //   [ ] 0x191ac0  FUN_00191ac0  [dead]
 //
@@ -43,8 +43,34 @@
 #include "k2000/components/CKGroundCpnt.h"
 
 #include "k2000/components/TVectorLoad.h"
+#include "k2000/memory/Mem.h"
 #include "k2000/scenegraph/IKBoundingVolume.h"
 #include "k2000/services/CKSrvCollision.h"
+#include "k2000/services/ICollisionMesh.h"
+
+// 0x001910a8 CollisionMeshArray_SetActive_maybe
+void CKGroundCpnt::SetActive(uint8_t active) {
+    for (uint32_t i = 0; i < m_vGrounds.m_ui32NbUsedElt; ++i) {
+        static_cast<ICollisionMesh*>(m_vGrounds.m_pBlock[i])->SetActive(active);  // 0x001a6b70
+    }
+}
+
+// 0x00190f58 CollisionMeshArray_SetActiveAt
+void CKGroundCpnt::SetActiveAt(uint32_t index, uint8_t active) {
+    static_cast<ICollisionMesh*>(m_vGrounds.m_pBlock[index])->SetActive(active);  // 0x001a6b70
+}
+
+// 0x001914d8 CKGroundCpnt_Destructor (0x191478 CKGroundCpnt_DeletingDestructor, 0x190f98 CKGroundCpnt_Destructor_2)
+CKGroundCpnt::~CKGroundCpnt() {
+    if (m_vGrounds.m_pBlock != nullptr) Mem_FreeAligned16(m_vGrounds.m_pBlock);
+}
+
+// 0x00191428 CKGroundCpnt_Destroy
+void CKGroundCpnt::Destroy() {
+    if (m_vGrounds.m_pBlock != nullptr) Mem_FreeAligned16(m_vGrounds.m_pBlock);
+    m_vGrounds.m_ui32NbUsedElt = 0;
+    m_vGrounds.m_pBlock = nullptr;
+}
 
 // 0x00191268 CKGroundCpnt_Load
 int32_t CKGroundCpnt::Load(IKFile* file, int32_t type) {

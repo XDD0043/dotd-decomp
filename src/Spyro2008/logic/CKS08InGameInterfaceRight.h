@@ -7,6 +7,8 @@
 #include "Spyro2008/logic/CKMenuBase114c.h"
 #include "k2000/core/Layout.h"
 
+struct RwTexture;
+
 class CKS08InGameInterfaceRight : public CKMenuBase114c {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x1fb)
@@ -29,6 +31,34 @@ public:
     void HidePanel();
     void ShowPanel(IKSerializable* text);
     void ShowPanelType1(IKSerializable* text);
+    // ---- C2.7 step 7 (the per-frame part; Left / Right share the code through HudSideOps.h) ----
+    // vt+0xdc: the update (phase 0 every frame while shown, 1 enter, 2 leave). Returns the menu id.
+    uint8_t OnMenuState(int32_t phase, uint8_t other) override;
+    void ResetWidgets() override;  // vt+0x98
+    void Resume() override;        // vt+0x58 (the base's, then the combo display shown again while it runs)
+    // The combo display (widget slot 8, its gauge +0x290, its shake +0x288, the time +0x278 of +0x27c).
+    void OnNewComboHit(float value);
+    void OnComboHit(float value);
+    void EndComboDisplay();
+    // The panel closed when no fight is on (message out 2).
+    void CloseTimedPanel();
+    // The element billboard (widget slot 6): its texture now (SetPanelElementObject) or after the bar shrank (SelectElement).
+    void SetPanelElementObject(RwTexture* texture);
+    void SelectElement(RwTexture* texture);
+    // The restored clips (message out 8 in group 1 / 0) and the shard rows (+0x264 / +0x265 / +0x266, time +0x260).
+    void QueueManaRestoredClip();
+    void QueueHealthRestoredClip();
+    void SetManaShardGauge(uint8_t count, uint8_t shake);
+    void SetHealthShardGauge(uint8_t count, uint8_t shake);
+    void UpdateShake(float dt, float scaledDt);
+    // 0x0053e300 CKS08InGameInterfaceRight_StartShake_maybe: +0x230 = +0x23c + +0x240, the quake updater started (no caller
+    // in the original: its descriptor is referenced nowhere; ShowUpgradeText inlines the same two statements).
+    void StartShake();
+    void UpdateUpgradeText(float dt);
+    IKSerializable* HealthGaugeUpdater() { return m_pGaugeUpdater21c; }
+    IKSerializable* ManaGaugeUpdater() { return m_pGaugeUpdater224; }
+    float& PanelTime() { return m_fUnk22c; }
+    float PanelHoldTime() const { return m_fUnk228; }
     uint32_t GetWidgetSlotCount() override { return 20; }                                // vt+0x68 0x9c95e8
     WidgetSlot* GetWidgetSlots() override { return m_aWidgetSlots; }                     // vt+0x6c 0x9c95f0
     uint8_t Vf84() override { return 4; }                                                // vt+0x84 0x9c9600
@@ -50,29 +80,37 @@ public:
     IKSerializable* m_apMessageOuts[15];         // +0x168 CKFlashMessageOut / CKFlashText (struct draft)
     RefGroup m_aRefGroups[4];                    // +0x1a4 m_pObject: CParticlesNodeFx (struct draft)
     GroupSlot m_aGroupSlots[4];                  // +0x1e4
-    uint32_t m_unk214;                           // +0x214
+    // +0x214 bit 0 the panel is up (a fight), bit 1 the element bar runs, bit 2 the label panel is shown (HudPanelOps.h).
+    uint8_t m_ui8Flags214;
+    uint8_t m_ui8Active215;                      // +0x215 the gauges, texts and shards update
+    uint8_t m_pad216[2];
     IKSerializable* m_pGauge218;                 // +0x218 CKSuperGaugeCpnt (struct draft)
     IKSerializable* m_pGaugeUpdater21c;          // +0x21c CKSuperGaugeCpntUpdater
     IKSerializable* m_pGauge220;                 // +0x220 CKSuperGaugeCpnt
     IKSerializable* m_pGaugeUpdater224;          // +0x224 CKSuperGaugeCpntUpdater
     float m_fUnk228;                             // +0x228 read by the Load
-    float m_fUnk22c;                             // +0x22c not read
-    float m_fUnk230;                             // +0x230 not read
+    float m_fUnk22c;                             // +0x22c the panel's time without a fight (closes at +0x228)
+    float m_fUnk230;                             // +0x230 the upgrade text's time (shown while positive)
     float m_fUnk234[2];                          // +0x234 one 8-byte read, both words swapped
     float m_fUnk23c;                             // +0x23c
     float m_fUnk240;                             // +0x240
     IKSerializable* m_pQuake244;                 // +0x244 CKQuakeCpnt (struct draft)
     IKSerializable* m_pQuakeUpdater248;          // +0x248 CKQuakeCpntUpdater
-    float m_fUnk24c;                             // +0x24c not read
+    float m_fUnk24c;                             // +0x24c the element bar's full height (its width at enter)
     float m_fUnk250;                             // +0x250 the Create sets 0.0
     float m_fUnk254;                             // +0x254 the Create sets 0.0
     float m_fUnk258;                             // +0x258 the Create sets 0.0
-    uint32_t m_aUnk25c[3];                       // +0x25c a heap pointer + two words in the draft (a TVector_maybe); not read
+    RwTexture* m_pPendingTexture;                // +0x25c the element texture set when the bar is down (SelectElement)
+    float m_fShardTime;                          // +0x260 the shard rows' time
+    uint8_t m_ui8ShardsA;                        // +0x264 the first row's count (Cynder: health, 5 shards)
+    uint8_t m_ui8ShardsB;                        // +0x265 the second row's count (Cynder: mana, 4 shards)
+    uint8_t m_ui8ShardShake;                     // +0x266 the last shard shakes (quake +0x274)
+    uint8_t m_pad267;
     float m_fUnk268;                             // +0x268
     float m_fUnk26c;                             // +0x26c
     IKSerializable* m_pQuake270;                 // +0x270 CKQuakeCpnt
     IKSerializable* m_pQuakeUpdater274;          // +0x274 CKQuakeCpntUpdater
-    int32_t m_unk278;                            // +0x278 not read
+    float m_fComboTime;                          // +0x278 the combo display's fade time (from +0x27c)
     float m_fUnk27c;                             // +0x27c
     uint8_t m_unk280;                            // +0x280 one byte read
     uint8_t m_pad281[3];

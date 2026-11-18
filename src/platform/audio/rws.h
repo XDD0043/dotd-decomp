@@ -62,4 +62,41 @@ private:
     std::vector<uint8_t> block_;
 };
 
+// The web pack's re-encoded music (dotd/web/pack_music.py): "<file>.RWS.OGV" next to a music file whose own
+// samples the pack left out. 'DVOR', a version, the item count; per item 32 bytes (sample rate, channels, frames
+// as u64, the bytes of decoder setup, the packet count, the offset as u64 of the item's data); an item's data is
+// the Vorbis setup (FFmpeg's extradata), the packets' sizes (u16 each) and the packets. Decoded with FFmpeg's
+// vorbis decoder (ffbink); an item is as many frames as the PCM it replaces.
+class OgvFile {
+public:
+    ~OgvFile();
+    bool Open(const std::string& hostPath);
+    void Close();
+    // Selects an item and rewinds. False when out of range, empty, or no decoder is built in.
+    bool Select(uint32_t item);
+    // Reads up to `frames` frames of the selected item as interleaved floats; returns the count (0 at the end).
+    uint32_t Read(float* out, uint32_t frames);
+
+    uint32_t sampleRate = 0, channels = 0;  // of the selected item
+
+private:
+    struct Item {
+        uint32_t rate = 0, channels = 0, setup = 0, packets = 0;
+        uint64_t frames = 0, offset = 0;
+    };
+    void CloseDecoder();
+    std::FILE* file_ = nullptr;
+    std::vector<Item> items_;
+    uint32_t item_ = 0xffffffffu;
+    void* decoder_ = nullptr;         // AVCodecContext
+    void* frame_ = nullptr;           // AVFrame
+    void* packet_ = nullptr;          // AVPacket
+    std::vector<uint16_t> sizes_;     // the selected item's packet sizes
+    std::vector<uint8_t> bytes_;
+    std::vector<float> pending_;      // decoded and not yet returned
+    size_t pendingAt_ = 0;
+    uint32_t next_ = 0;               // the next packet
+    uint64_t emitted_ = 0;            // frames returned of the selected item
+};
+
 }  // namespace dotd::audio

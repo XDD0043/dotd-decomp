@@ -10,11 +10,11 @@
 //   [x] 0x30f8c0  CKHkS08Hero_ScaleVec3_maybe
 //   [x] 0x30f8f0  CKHkS08Hero_GetGameManagerExternalForce_maybe
 //   [ ] 0x30f978  CKHkS08Hero_SumDisplacementVectors_maybe  [dead]
-//   [ ] 0x30fae0  Vec3_AddTwoScaled_maybe
+//   [x] 0x30fae0  Vec3_AddTwoScaled_maybe  (the local copy in CKHkS08Hero_11.cpp)
 //   [x] 0x30fb68  CKHkS08Hero_AccelToForce_maybe
 //   [x] 0x30fb98  CKHkS08Hero_AccelToVelocityDelta_maybe
 //   [ ] 0x30fbc8  FUN_0030fbc8  [dead]
-//   [ ] 0x30fd00  StaticInitAndDestruction_30fd00
+//   [x] 0x30fd00  StaticInitAndDestruction_30fd00  (the two file statics at the end)
 //   [ ] 0x30fd30  _GLOBAL__D_30fd30
 //   [ ] 0x30fd40  _GLOBAL__I_30fd40
 //   [x] 0x30fd50  CKHkS08Hero_ComputeBlendedVelocityFromFlagsEC8_maybe
@@ -28,7 +28,7 @@
 //   [x] 0x310708  CKHkS08Hero_UpdateLocomotionByMode_maybe
 //   [x] 0x310888  CKHkS08Hero_ComputePairedHotspotCollisionResponse_maybe
 //   [x] 0x310ba8  CKHkS08Hero_ForceToAccel_maybe
-//   [ ] 0x310be0  CKHkS08Hero_UpdateOrientationAngles_maybe
+//   [x] 0x310be0  CKHkS08Hero_UpdateOrientationAngles_maybe  (CKHkS08Hero_11.cpp, UpdateOrientationAngles: its only callers' unit)
 //   [x] 0x310d88  CKHkS08Hero_UpdateForwardAndSpeedStats_maybe
 //   [ ] 0x310e48  CKHkS08Hero_GetDistanceToHotspot4_maybe  [dead]
 //   [x] 0x310ef0  CKHkS08Hero_TryRequestFlightLedgeHop_maybe
@@ -959,10 +959,16 @@ void CKHkS08Hero::UpdateField794ByAnimAndElementLevel() {
             value = m_unk1724;
             m_unk794 = value;
         } else if (animation == 0xe2 && m_ui8Hero == 0) {
-            // STUB(C2.7: elements): GetElementLevel 0x4f9558 of the game manager for element +0x1cc7: 3 -> 1.5, 2 -> 1.25,
-            // else 1.0. Animation 0xe2 is not played before the first fight.
-            DOTD_STUB_ONCE("CKHkS08Hero_UpdateField794ByAnimAndElementLevel_maybe: element level (C2.7)");
-            value = 1.0f;  // TOC +0x2270
+            // Spyro's (dragon 0) level in the element of the byte +0x1cc7: 3 -> 1.5, 2 -> 1.25, else 1.0.
+            CKS08GameManager* manager = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager);  // TOC +0x2240
+            const uint32_t level = manager->GetElementLevel(0, static_cast<uint8_t>(m_unk1cc4));  // 0x004f9558
+            if (level == 3) {
+                value = 1.5f;  // TOC +0x2268
+            } else if (level == 2) {
+                value = 1.25f;  // TOC +0x226c
+            } else {
+                value = 1.0f;  // TOC +0x2270
+            }
             m_unk794 = value;
             m_unk218 = value;
         } else {
@@ -1007,3 +1013,10 @@ CVector3 CKHkS08Hero::ComputeBlendedVelocityFromFlagsEC8(const CVector3* base, f
     out.y = y + lift;
     return out;
 }
+
+// 0x0030fd00 StaticInitAndDestruction_30fd00: two file statics (0x00ceae1c, 0x00ceae20) set to -1.0f. Nothing in the game
+// reads them (their only references are the initialiser's TOC entries).
+namespace {
+[[maybe_unused]] float s_unkceae1c = -1.0f;
+[[maybe_unused]] float s_unkceae20 = -1.0f;
+}  // namespace

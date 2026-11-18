@@ -1,7 +1,5 @@
 #include "platform/cell/fs.h"
 
-#include <SDL3/SDL.h>
-
 #include <algorithm>
 #include <cstring>
 #include <mutex>
@@ -10,9 +8,12 @@
 
 #include "platform/cell/cell_errors.h"
 #include "platform/config.h"
+#include "platform/hostfs.h"
 #include "platform/log.h"
 
 namespace {
+
+namespace hostfs = dotd::platform::hostfs;
 
 struct DirItem {
     std::string name;
@@ -24,7 +25,7 @@ struct Handle {
     bool used = false;
     bool isDir = false;
     std::string host;
-    SDL_IOStream* io = nullptr;  // opened on first read/seek
+    hostfs::File* io = nullptr;  // opened on first read/seek
     uint64_t pos = 0;
     uint64_t size = 0;
     std::vector<DirItem> dir;
@@ -45,14 +46,14 @@ bool StartsWith(const std::string& s, const char* prefix, size_t* len) {
 }
 
 bool HostStat(const std::string& host, CellFsStat* sb, uint8_t* type) {
-    SDL_PathInfo info;
-    if (!SDL_GetPathInfo(host.c_str(), &info) || info.type == SDL_PATHTYPE_NONE) return false;
+    hostfs::Info info;
+    if (!hostfs::Stat(host, &info)) return false;
     std::memset(sb, 0, sizeof(*sb));
-    const bool dir = info.type == SDL_PATHTYPE_DIRECTORY;
+    const bool dir = info.isDir;
     sb->mode = dir ? (CELL_FS_S_IFDIR | 0555) : (CELL_FS_S_IFREG | 0444);
-    sb->atime = static_cast<int64_t>(info.access_time / SDL_NS_PER_SECOND);
-    sb->mtime = static_cast<int64_t>(info.modify_time / SDL_NS_PER_SECOND);
-    sb->ctime = static_cast<int64_t>(info.create_time / SDL_NS_PER_SECOND);
+    sb->atime = info.atime;
+    sb->mtime = info.mtime;
+    sb->ctime = info.ctime;
     sb->size = dir ? 0 : info.size;
     sb->blksize = 0x10000;
     if (type) *type = dir ? CELL_FS_TYPE_DIRECTORY : CELL_FS_TYPE_REGULAR;
@@ -78,18 +79,10 @@ Handle* GetHandle(int32_t fd, bool wantDir) {
 
 bool EnsureOpen(Handle& h) {
     if (h.io) return true;
-    h.io = SDL_IOFromFile(h.host.c_str(), "rb");
-    if (!h.io) {
-        DOTD_LOG("fs: cannot open %s: %s", h.host.c_str(), SDL_GetError());
-        return false;
-    }
-    if (h.pos) SDL_SeekIO(h.io, static_cast<Sint64>(h.pos), SDL_IO_SEEK_SET);
+    h.io = hostfs::Open(h.host);
+    if (!h.io) return false;
+    if (h.pos) hostfs::Seek(h.io, h.pos);
     return true;
-}
-
-SDL_EnumerationResult CollectName(void* userdata, const char*, const char* fname) {
-    static_cast<std::vector<std::string>*>(userdata)->push_back(fname);
-    return SDL_ENUM_CONTINUE;
 }
 
 }  // namespace
@@ -143,7 +136,7 @@ CellFsErrno cellFsRead(int32_t fd, void* buf, uint64_t nbytes, uint64_t* nread) 
     if (!h) return CellError(CELL_EBADF);
     if (!buf && nbytes) return CellError(CELL_EFAULT);
     if (!EnsureOpen(*h)) return CellError(CELL_EIO);
-    const size_t got = nbytes ? SDL_ReadIO(h->io, buf, static_cast<size_t>(nbytes)) : 0;
+    const size_t got = nbytes ? hostfs::Read(h->io, buf, static_cast<size_t>(nbytes)) : 0;
     h->pos += got;
     if (nread) *nread = got;
     return CELL_OK;
@@ -169,7 +162,7 @@ CellFsErrno cellFsLseek(int32_t fd, int64_t offset, int32_t whence, uint64_t* po
     const int64_t target = base + offset;
     if (target < 0) return CellError(CELL_EINVAL);
     h->pos = static_cast<uint64_t>(target);
-    if (h->io) SDL_SeekIO(h->io, target, SDL_IO_SEEK_SET);
+    if (h->io) hostfs::Seek(h->io, h->pos);
     if (pos) *pos = h->pos;
     return CELL_OK;
 }
@@ -178,7 +171,7 @@ CellFsErrno cellFsClose(int32_t fd) {
     std::lock_guard<std::mutex> lock(g_mutex);
     Handle* h = GetHandle(fd, false);
     if (!h) return CellError(CELL_EBADF);
-    if (h->io) SDL_CloseIO(h->io);
+    if (h->io) hostfs::Close(h->io);
     *h = Handle();
     return CELL_OK;
 }
@@ -201,7 +194,7 @@ CellFsErrno cellFsOpendir(const char* path, int32_t* fd) {
     if (!HostStat(host, &sb, &type)) return CellError(CELL_ENOENT);
     if (type != CELL_FS_TYPE_DIRECTORY) return CellError(CELL_ENOTDIR);
     std::vector<std::string> names;
-    SDL_EnumerateDirectory(host.c_str(), CollectName, &names);
+    hostfs::List(host, &names);
     // Entry order: "." and ".." first, then sorted by name. ASSUMPTION: the order the PS3 returns for
     // the disc is not verified; check it if the game ever depends on it (KHostFS_PreopenFilesRecursive
     // 0x4f678 builds its file index from this listing).

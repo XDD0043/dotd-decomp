@@ -9,8 +9,8 @@
 //   [x] 0x556970  CKS08MenuLanguage_OnMenuState_maybe
 //   [x] 0x556a58  CKS08MenuLanguage_Load
 //   [ ] 0x556a80  CKS08MenuLanguage_Save
-//   [ ] 0x556aa8  CKS08MenuLanguage_RecursiveRegistration
-//   [ ] 0x556ad0  CKS08MenuLanguage_Destroy
+//   [x] 0x556aa8  CKS08MenuLanguage_RecursiveRegistration  (inherited: CKMenuBase114c::RecursiveRegistration)
+//   [x] 0x556ad0  CKS08MenuLanguage_Destroy  (inherited: CKMenuBase114c::Destroy)
 //   [x] 0x556af8  CKS08MenuLanguage_DeleteArray
 //   [ ] 0x556b98  RegisterCKS08MenuLanguageClass
 //   [ ] 0x556c20  _GLOBAL__D_556c20
@@ -18,9 +18,9 @@
 //   [ ] 0x556c40  CKS08MenuLanguage_Construct_2  [dead]
 //   [x] 0x556ce8  CKS08MenuLanguage_CreateArray
 //   [x] 0x556e28  CKS08MenuLanguage_Create
-//   [ ] 0x556f10  CKS08MenuLanguage_Destructor_2
-//   [ ] 0x557048  CKS08MenuLanguage_DeletingDestructor
-//   [ ] 0x557180  CKS08MenuLanguage_Destructor
+//   [x] 0x556f10  CKS08MenuLanguage_Destructor_2  (implicit destructor: CKMenuBase114c's inlined)
+//   [x] 0x557048  CKS08MenuLanguage_DeletingDestructor  (implicit destructor: CKMenuBase114c's inlined)
+//   [x] 0x557180  CKS08MenuLanguage_Destructor  (implicit destructor: CKMenuBase114c's inlined)
 //
 //   [x] 0x9c9b98  CKS08MenuLanguage_IsKindOfClass  [inline]
 //   [x] 0x9c9bd8  CKS08MenuLanguage_GetClassType  [inline]

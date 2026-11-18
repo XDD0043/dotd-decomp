@@ -26,6 +26,11 @@ public:
     // vt+0x24 0x00066e30 IKBillboard2d_CreateBillboard (BillboardBrush_RebuildPath_maybe): Rt2dBrushSetUV
     // with m_pvUVs, then a new Rt2dPath (m_pBillboard) holding the rect (-0.5, -0.5, 1, 1); 1 when made.
     virtual int32_t CreateBillboard();
+    // vt+0x40 0x00067028 BillboardBrush_RecreateBrush_maybe (CBillboard2d_2.cpp; also the billboard buttons' slot): the
+    // brush destroyed (Rt2dBrushDestroy) and a new empty one made (Rt2dBrushCreate: no texture, the default UVs); with
+    // it the colour word set again (vt+0x28 SetColor with a copy of m_Color) and the billboard rebuilt (vt+0x24
+    // CreateBillboard), whose result it returns; 0 when no brush could be made. CKFlashNode2dFx_Stop 0x1bc638 calls it.
+    virtual uint8_t RecreateBrush();
     // vt+0x34 0x00066c70 BillboardBrush_ApplyUV: Rt2dBrushSetUV with m_pvUVs. Called directly (no
     // front-end class overrides it).
     void ApplyUV();
@@ -41,6 +46,24 @@ public:
     // vt+0x28 0x00066d68 IKBillboard2d_SetColor (XXL2 slot 10 SetColor; CText2d.cpp): the colour word, then
     // the brush's four corners. Called directly (the slot is not declared yet; no front-end override).
     void SetColor(const uint8_t* color);
+    // vt+0x00 0x00066db0 IKBillboard2d_FreeMemoryBillboard2D_maybe (XXL2 slot 0 FreeMemoryBillboard2D; Ghidra
+    // Rt2dShape_Release_maybe, graphical/ui/CText2d.cpp's checklist line and body): the path and the
+    // brush destroyed and cleared, then the stretch byte, the size and the colour word 0. Called directly (the slot
+    // is not declared: no front-end override).
+    void FreeMemoryBillboard2D();
+    // vt+0x44 0x00066ef8 BillboardBrush_ComputeAlignedRect_maybe (XXL2 IKBillboard2d::GetBoundingBox(CBox2D&, const
+    // CVector2&, UInt8, UInt8)): the box of the quad at `position`, sized m_vBillboardSize (the width divided by the
+    // aspect unless m_bStretchToAspectRatio), aligned by hAlign / vAlign (0, 1 centred, 2). Called directly.
+    void GetBoundingBox(CBox2D* box, const CVector2* position, uint8_t hAlign, uint8_t vAlign) const;
+    // vt+0x0c 0x00066c18 BillboardBrush_ClearReferences_maybe (XXL2 IKBillboard2d::Destroy; CBillboard2d_Destroy
+    // 0x5b3a8 and CBillboardButton2d_Destroy call it): FreeMemoryBillboard2D through vt+0x00. Name ours (Destroy is
+    // IKNode2d's in the derived classes).
+    void DestroyBillboard() { FreeMemoryBillboard2D(); }
+    // 0x00066c60 BillboardBrush_GetTexture: the brush's texture (Rt2dBrush +0x68; no null test).
+    RwTexture* GetTexture() const;
+    // vt+0x2c 0x00066d20 BillboardBrush_SetAlpha_maybe (DotD's slot): the colour's alpha byte (+0x0f), then the brush's
+    // four corners.
+    void SetAlpha(uint8_t alpha);
 
     void* m_pBillboard;           // +0x04 Rt2dPath* (CreateBillboard)
     Rt2dBrush* m_pBrush;          // +0x08 Rt2dBrushStreamRead

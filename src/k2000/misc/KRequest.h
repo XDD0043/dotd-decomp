@@ -54,6 +54,17 @@ public:
 
     void Enqueue(KRequest* request);  // 0x00057cb0 keCThreadPool_Enqueue
     void RequestAbort();              // 0x00057fa0 keCThreadPool_RequestAbort_maybe (cancels what is queued)
+    // 0x00057af0 keCThreadPoolBase_CancelRequest_maybe: `request`, when it is queued, unlinked (its link cleared) and
+    // cancelled (vt+0x24). Callers: the queues' CancelRequest (CKShaderRequestQueue, KFileReadRequest's thunk; the
+    // load / memcard queues' are dead).
+    void CancelRequest(KRequest* request);
+    // 0x00057e90 keCThreadPoolBase_IsIdle_maybe: no worker active and nothing queued; *notAborted = !abort. No caller.
+    bool IsIdle(uint8_t* notAborted);
+    // 0x00057f30 keCThreadPool_RequestStopWhenIdle_maybe: the workers stop once the queue is empty. No caller.
+    void RequestStopWhenIdle();
+    // 0x00058250 keCThreadPool_WaitUntilIdle_maybe: waits for no active worker and an empty queue; *notAborted = !abort.
+    // No caller.
+    void WaitUntilIdle(uint8_t* notAborted);
     void JoinThreads();               // joins the workers (KThreadSet)
     // Platform, not in the original: this pool's requests are waited for by KRequest::IsFinished in reproducible runs
     // (sys_thread.h SetDeterministicRequests). Only the load queue: a memcard request's work waits on the main thread.

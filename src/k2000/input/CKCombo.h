@@ -12,12 +12,17 @@ class CKComboTransition;
 class CKCombo {
 public:
     CKCombo();  // 0x00101c88 InputSequence_Construct_maybe
-    virtual ~CKCombo() {}  // vt+0x00 / +0x04 0x101f20 / 0x101ef0 STUB(C1.6)
+    // vt+0x00 / +0x04 0x00101f20 InputSequence_Destructor_maybe / 0x00101ef0 InputSequence_DeletingDestructor_maybe:
+    // the vtable stored back (and operator delete); the transitions belong to CKInput.
+    virtual ~CKCombo() {}
 
     // 0x00101cc8 InputSequence_Setup_maybe; XXL2 InitializeData(UInt8, CKComboTransition*, Float32, Bool).
     int32_t InitializeData(uint8_t nbState, CKComboTransition* transitions, float comboTime, uint8_t active);
     // 0x00101d38 InputSequence_Reset_maybe (XXL2 CKCombo::Reset): back to state 0, every command cleared.
     void Reset();
+    // 0x00101e00 InputSequence_AdvanceStep_maybe (XXL2 CKCombo::NextState): the next state; returns the
+    // combo's progress (state x 255 / m_ui8NbState), the value CKComboManager::Update puts in its slot.
+    uint8_t NextState();
 
     uint8_t m_bActive;                    // +0x04 constructor 1
     uint8_t m_unk05;                      // +0x05 constructor 0 (DotD)

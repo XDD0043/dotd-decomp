@@ -9,17 +9,17 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [ ] 0xf3ce8  FUN_000f3ce8  [dead]
 //   [ ] 0xf3d28  FUN_000f3d28  [dead]
-//   [ ] 0xf3dc0  FillShaderProgramUniformFromPassState
-//   [ ] 0xf3df0  UpdateAndUploadShaderProgramUniforms
-//   [ ] 0xf3ec8  ShaderProgramBase_UnregisterFromManager_maybe
-//   [ ] 0xf3f38  ShaderProgramBase_DeletingDestructor_maybe
-//   [ ] 0xf3f88  ShaderProgramBase_Destruct_maybe
-//   [ ] 0xf3fc0  ShaderProgramBase_Destruct_2_maybe
-//   [ ] 0xf3ff8  ShaderProgramBase_Construct_2_maybe
-//   [ ] 0xf4040  ShaderProgramBase_Construct_maybe
-//   [ ] 0xf4088  CShaderManagerPSGL_CreateShaderObject_maybe
-//   [ ] 0xf41b0  ShaderGen_CollectPixelUniforms_maybe
-//   [ ] 0xf44c0  ShaderGen_CollectVertexUniforms_maybe
-//   [ ] 0xf48c0  ShaderGen_CollectExternFragments_maybe
+//   [ ] 0xf3dc0  FillShaderProgramUniformFromPassState  [dead: no pointer to its descriptor 0xb54e78, no call]
+//   [ ] 0xf3df0  UpdateAndUploadShaderProgramUniforms  [dead: no pointer to its descriptor 0xb54e80, no call]
+//   [ ] 0xf3ec8  ShaderProgramBase_UnregisterFromManager_maybe  [platform]  (the PSGL / Cg program objects: platform/gfx compiles the translated GLSL programs (cg_program.h, cg_to_glsl.cpp) and binds their uniforms per program (CShaderManagerPSGL_2.cpp))
+//   [ ] 0xf3f38  ShaderProgramBase_DeletingDestructor_maybe  [platform]  (the PSGL / Cg program objects: platform/gfx compiles the translated GLSL programs (cg_program.h, cg_to_glsl.cpp) and binds their uniforms per program (CShaderManagerPSGL_2.cpp))
+//   [ ] 0xf3f88  ShaderProgramBase_Destruct_maybe  [platform]  (the PSGL / Cg program objects: platform/gfx compiles the translated GLSL programs (cg_program.h, cg_to_glsl.cpp) and binds their uniforms per program (CShaderManagerPSGL_2.cpp))
+//   [ ] 0xf3fc0  ShaderProgramBase_Destruct_2_maybe  [platform]  (the PSGL / Cg program objects: platform/gfx compiles the translated GLSL programs (cg_program.h, cg_to_glsl.cpp) and binds their uniforms per program (CShaderManagerPSGL_2.cpp))
+//   [ ] 0xf3ff8  ShaderProgramBase_Construct_2_maybe  [dead: no pointer to its descriptor 0xb54ea8, no call]
+//   [ ] 0xf4040  ShaderProgramBase_Construct_maybe  [platform]  (the PSGL / Cg program objects: platform/gfx compiles the translated GLSL programs (cg_program.h, cg_to_glsl.cpp) and binds their uniforms per program (CShaderManagerPSGL_2.cpp))
+//   [ ] 0xf4088  CShaderManagerPSGL_CreateShaderObject_maybe  [platform]  (the PSGL / Cg program objects: platform/gfx compiles the translated GLSL programs (cg_program.h, cg_to_glsl.cpp) and binds their uniforms per program (CShaderManagerPSGL_2.cpp))
+//   [x] 0xf41b0  ShaderGen_CollectPixelUniforms_maybe  (ShaderGen_CollectPixelUniforms, ShaderVariantKey.cpp)
+//   [x] 0xf44c0  ShaderGen_CollectVertexUniforms_maybe  (ShaderGen_CollectVertexUniforms, ShaderVariantKey.cpp)
+//   [x] 0xf48c0  ShaderGen_CollectExternFragments_maybe  (ShaderGen_CollectExternFragments, ShaderVariantKey.cpp)
 //   [ ] 0xf4fb8  FUN_000f4fb8  [dead]
-//   [ ] 0xf5128  BindPSGLShaderProgramWithParameters
+//   [ ] 0xf5128  BindPSGLShaderProgramWithParameters  [platform]  (the PSGL / Cg program objects: platform/gfx compiles the translated GLSL programs (cg_program.h, cg_to_glsl.cpp) and binds their uniforms per program (CShaderManagerPSGL_2.cpp))

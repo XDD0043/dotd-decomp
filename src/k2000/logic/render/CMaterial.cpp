@@ -4,116 +4,116 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0xbb3c0  CMaterial_GetSpecular_maybe
-//   [ ] 0xbb3d0  CMaterial_GetAmbient_maybe
-//   [ ] 0xbb3e0  CMaterial_GetDiffuse_maybe
-//   [ ] 0xbb3f0  CMaterial_SetSpecularForShaderModes_maybe
-//   [ ] 0xbb438  CMaterial_SetAmbient_maybe
-//   [ ] 0xbb448  CMaterial_SetDiffuse_maybe
-//   [ ] 0xbb458  CMaterial_GetBlendModeName_maybe
-//   [ ] 0xbb4c0  CMaterial_GetBlendFactorName_maybe
+//   [x] 0xbb3c0  CMaterial_GetSpecular_maybe  (GetSpecular in the header; MeshShaderPassState.cpp reads the field inline)
+//   [x] 0xbb3d0  CMaterial_GetAmbient_maybe  (in the header)
+//   [x] 0xbb3e0  CMaterial_GetDiffuse_maybe  (in the header)
+//   [x] 0xbb3f0  CMaterial_SetSpecularForShaderModes_maybe
+//   [x] 0xbb438  CMaterial_SetAmbient_maybe  (in the header)
+//   [x] 0xbb448  CMaterial_SetDiffuse_maybe  (in the header)
+//   [x] 0xbb458  CMaterial_GetBlendModeName_maybe
+//   [x] 0xbb4c0  CMaterial_GetBlendFactorName_maybe
 //   [ ] 0xbb580  FUN_000bb580  [dead]
-//   [ ] 0xbb5c0  CMaterial_IsMode10To14_maybe
+//   [x] 0xbb5c0  CMaterial_IsMode10To14_maybe  (in the header; CCloneManager / CGeometry_PostLoad test the mode inline)
 //   [ ] 0xbb5e0  KStub_Return0_bb5e0  [dead]
-//   [ ] 0xbb5e8  MaterialExtPlugin_Destructor
+//   [ ] 0xbb5e8  MaterialExtPlugin_Destructor  [platform]  (replaced by design: RpMaterial::kMaterial is a struct member (RpGeometry.h), zeroed by RpMaterialCreate; no RW plugin registry)
 //   [ ] 0xbb610  CMaterial_Save
-//   [ ] 0xbb618  CMaterial_InheritTextureAddressing_maybe
+//   [x] 0xbb618  CMaterial_InheritTextureAddressing_maybe  (inlined in CMaterial_PostLoad: InheritAddressing)
 //   [ ] 0xbb690  FUN_000bb690  [dead]
 //   [ ] 0xbb698  FUN_000bb698  [dead]
 //   [x] 0xbb6a0  CMaterial_GetAuxLayerTexture_maybe
-//   [ ] 0xbb6b0  CMaterial_SetAuxLayerParam8_maybe
-//   [ ] 0xbb6c0  CMaterial_GetAuxLayerParam8_maybe
-//   [ ] 0xbb6d0  CMaterial_SetAuxLayerByte6_maybe
-//   [ ] 0xbb6e0  CMaterial_GetAuxLayerByte6_maybe
-//   [ ] 0xbb6f0  CMaterial_SetAuxLayerParamC_maybe
-//   [ ] 0xbb700  CMaterial_GetAuxLayerParamC_maybe
-//   [ ] 0xbb710  CMaterial_SetAuxFloat94_maybe
-//   [ ] 0xbb718  CMaterial_GetAuxFloat94_maybe
-//   [ ] 0xbb720  CMaterial_SetExtColor_maybe
-//   [ ] 0xbb730  CMaterial_SetAuxLayerByte5_maybe
-//   [ ] 0xbb740  CMaterial_SetAuxLayerByte4_maybe
-//   [ ] 0xbb750  CMaterial_GetAuxLayerByte4_maybe
-//   [ ] 0xbb760  CMaterial_GetAuxLayerByte5_maybe
-//   [ ] 0xbb770  CMaterial_GetAuxTexture88_maybe
-//   [ ] 0xbb778  CMaterial_GetAuxTexture8C_maybe
+//   [x] 0xbb6b0  CMaterial_SetAuxLayerParam8_maybe  (in the header)
+//   [x] 0xbb6c0  CMaterial_GetAuxLayerParam8_maybe  (in the header; MeshShaderPassState.cpp reads the field inline)
+//   [x] 0xbb6d0  CMaterial_SetAuxLayerByte6_maybe  (in the header)
+//   [x] 0xbb6e0  CMaterial_GetAuxLayerByte6_maybe  (in the header; MeshShaderPassState.cpp reads the field inline)
+//   [x] 0xbb6f0  CMaterial_SetAuxLayerParamC_maybe  (in the header)
+//   [x] 0xbb700  CMaterial_GetAuxLayerParamC_maybe  (in the header; MeshShaderPassState.cpp reads the field inline)
+//   [x] 0xbb710  CMaterial_SetAuxFloat94_maybe  (in the header)
+//   [x] 0xbb718  CMaterial_GetAuxFloat94_maybe  (in the header; MeshShaderPassState.cpp reads the field inline)
+//   [x] 0xbb720  CMaterial_SetExtColor_maybe  (in the header)
+//   [x] 0xbb730  CMaterial_SetAuxLayerByte5_maybe  (in the header)
+//   [x] 0xbb740  CMaterial_SetAuxLayerByte4_maybe  (in the header)
+//   [x] 0xbb750  CMaterial_GetAuxLayerByte4_maybe  (in the header; MeshShaderPassState.cpp reads the field inline)
+//   [x] 0xbb760  CMaterial_GetAuxLayerByte5_maybe  (in the header; MeshShaderPassState.cpp reads the field inline)
+//   [x] 0xbb770  CMaterial_GetAuxTexture88_maybe  (in the header; MeshShaderPassState.cpp reads the field inline)
+//   [x] 0xbb778  CMaterial_GetAuxTexture8C_maybe  (in the header; MeshShaderPassState.cpp reads the field inline)
 //   [x] 0xbb780  CMaterial_SetModeTransitionHandler_maybe
-//   [ ] 0xbb7b8  CMaterial_GetModeTransitionHandler_maybe
+//   [x] 0xbb7b8  CMaterial_GetModeTransitionHandler_maybe  (in the header)
 //   [x] 0xbb7f0  CMaterial_HasAuxLayerTexture_maybe
-//   [ ] 0xbb828  CGeometry_SetupMaterialShader_maybe
-//   [ ] 0xbb910  CMaterial_SetUVTransformMatrices
-//   [ ] 0xbb938  CMaterial_GetUVTransformMatrices
+//   [x] 0xbb828  CGeometry_SetupMaterialShader_maybe
+//   [x] 0xbb910  CMaterial_SetUVTransformMatrices
+//   [x] 0xbb938  CMaterial_GetUVTransformMatrices
 //   [x] 0xbb960  CMaterial_GetDualUVTransformMatrix_maybe
-//   [ ] 0xbb9a0  CMaterial_GetUVTransformMatrixByIndex_maybe
+//   [x] 0xbb9a0  CMaterial_GetUVTransformMatrixByIndex_maybe
 //   [x] 0xbb9f8  CMaterial_GetUVTransformMatrix_maybe
-//   [ ] 0xbba68  CMaterial_GetDualBlendMode_maybe
-//   [ ] 0xbbae0  CMaterial_SetDualBlendMode_maybe
-//   [ ] 0xbbb28  CMaterial_GetBumpMapCoefficient
-//   [ ] 0xbbb50  CMaterial_SetBumpMapCoefficient
-//   [ ] 0xbbb78  CMaterial_GetBumpMapFrame
-//   [ ] 0xbbba8  CMaterial_SetBumpMapFrame
-//   [ ] 0xbbbd0  CMaterial_GetBumpMapTexture
-//   [ ] 0xbbc30  CMaterial_SetEnvMapCoefficient
-//   [ ] 0xbbc88  CMaterial_SetEnvMapFBAlpha
+//   [x] 0xbba68  CMaterial_GetDualBlendMode_maybe  (MeshShaderPassState.cpp reads the field inline (RpMatFXMaterialGetDualBlendModes))
+//   [x] 0xbbae0  CMaterial_SetDualBlendMode_maybe  (C2.8 port-rest R07; RpMatFX side in Renderware/rpmatfx/RpMatFX.cpp)
+//   [x] 0xbbb28  CMaterial_GetBumpMapCoefficient  (C2.8 port-rest R07; RpMatFX side in Renderware/rpmatfx/RpMatFX.cpp)
+//   [x] 0xbbb50  CMaterial_SetBumpMapCoefficient  (C2.8 port-rest R07; RpMatFX side in Renderware/rpmatfx/RpMatFX.cpp)
+//   [x] 0xbbb78  CMaterial_GetBumpMapFrame  (C2.8 port-rest R07; RpMatFX side in Renderware/rpmatfx/RpMatFX.cpp)
+//   [x] 0xbbba8  CMaterial_SetBumpMapFrame  (C2.8 port-rest R07; RpMatFX side in Renderware/rpmatfx/RpMatFX.cpp)
+//   [x] 0xbbbd0  CMaterial_GetBumpMapTexture  (C2.8 port-rest R07; RpMatFX side in Renderware/rpmatfx/RpMatFX.cpp)
+//   [x] 0xbbc30  CMaterial_SetEnvMapCoefficient
+//   [x] 0xbbc88  CMaterial_SetEnvMapFBAlpha
 //   [x] 0xbbce0  CMaterial_GetEnvMapTexture
-//   [ ] 0xbbd38  CMaterial_ResetEffectData_maybe
-//   [ ] 0xbbda8  CMaterial_RecursiveRegistration
-//   [ ] 0xbbde8  Graphic_RegisterMaterialExtPlugin_maybe
+//   [x] 0xbbd38  CMaterial_ResetEffectData_maybe
+//   [x] 0xbbda8  CMaterial_RecursiveRegistration
+//   [ ] 0xbbde8  Graphic_RegisterMaterialExtPlugin_maybe  [platform]  (replaced by design: RpMaterial::kMaterial is a struct member (RpGeometry.h), zeroed by RpMaterialCreate; no RW plugin registry)
 //   [x] 0xbbe40  CMaterial_Construct
 //   [x] 0xbbed0  CMaterial_DeleteArray
 //   [x] 0xbbf70  CMaterial_GetEnvMapCoefficient
-//   [ ] 0xbbfc8  CMaterial_GetEnvMapFBAlpha
-//   [ ] 0xbc030  CMaterial_GetEnvMapFrame
-//   [ ] 0xbc090  CMaterial_SetEnvMapFrame
-//   [ ] 0xbc0e8  MaterialExtPlugin_Constructor
-//   [ ] 0xbc110  MaterialExtPlugin_Copy
-//   [ ] 0xbc140  CMaterial_GetExtColor_maybe
-//   [ ] 0xbc150  CMaterial_HasAuxTexture8C_maybe
-//   [ ] 0xbc170  CMaterial_Construct_2
-//   [ ] 0xbc200  CMaterial_HasBaseTexture_maybe
+//   [x] 0xbbfc8  CMaterial_GetEnvMapFBAlpha  (C2.8 port-rest R07; RpMatFX side in Renderware/rpmatfx/RpMatFX.cpp)
+//   [x] 0xbc030  CMaterial_GetEnvMapFrame  (C2.8 port-rest R07; RpMatFX side in Renderware/rpmatfx/RpMatFX.cpp)
+//   [x] 0xbc090  CMaterial_SetEnvMapFrame  (C2.8 port-rest R07; RpMatFX side in Renderware/rpmatfx/RpMatFX.cpp)
+//   [ ] 0xbc0e8  MaterialExtPlugin_Constructor  [platform]  (replaced by design: RpMaterial::kMaterial is a struct member (RpGeometry.h), zeroed by RpMaterialCreate; no RW plugin registry)
+//   [ ] 0xbc110  MaterialExtPlugin_Copy  [platform]  (replaced by design: RpMaterial::kMaterial is a struct member (RpGeometry.h), zeroed by RpMaterialCreate; no RW plugin registry)
+//   [x] 0xbc140  CMaterial_GetExtColor_maybe  (in the header; MeshShaderPassState.cpp reads the field inline)
+//   [x] 0xbc150  CMaterial_HasAuxTexture8C_maybe  (in the header; MeshShaderPassState.cpp reads the field inline)
+//   [x] 0xbc170  CMaterial_Construct_2  (the same stores as 0xbbe40 CMaterial_Construct)
+//   [x] 0xbc200  CMaterial_HasBaseTexture_maybe  (in the header)
 //   [x] 0xbc238  SetMaterialTexture_maybe
-//   [ ] 0xbc298  CMaterial_MessageProc
+//   [x] 0xbc298  CMaterial_MessageProc  (IKBaseClass's default (1))
 //   [x] 0xbc2a0  CMaterial_HasAuxTexture88OrLayerTexture_maybe
 //   [ ] 0xbc2f0  CMaterial_SetUVTransformMatrices_2  [dead]
 //   [ ] 0xbc318  RegisterCMaterialClass
 //   [ ] 0xbc3d0  _GLOBAL__D_bc3d0
 //   [ ] 0xbc3e0  _GLOBAL__I_bc3e0
-//   [ ] 0xbc3f0  CMaterial_SetAuxLayerTextureWithDefaults_maybe
-//   [ ] 0xbc4b0  MatFXUVAnim_SetBaseUVTransform_2_maybe
-//   [ ] 0xbc560  CMaterial_SetAuxTexture88_maybe
-//   [ ] 0xbc5c8  CMaterial_SetAuxLayerTexture_maybe
-//   [ ] 0xbc640  CMaterial_SetAuxTexture8C_maybe
-//   [ ] 0xbc6a8  CMaterial_SetupBumpMap_maybe
-//   [ ] 0xbc748  CMaterial_SetBumpMapTexture
-//   [ ] 0xbc7c8  CMaterial_ApplyAuxTextureAddressing_maybe
+//   [x] 0xbc3f0  CMaterial_SetAuxLayerTextureWithDefaults_maybe
+//   [x] 0xbc4b0  MatFXUVAnim_SetBaseUVTransform_2_maybe  (the same code as 0xbdec8: SetBaseUVTransform)
+//   [x] 0xbc560  CMaterial_SetAuxTexture88_maybe
+//   [x] 0xbc5c8  CMaterial_SetAuxLayerTexture_maybe
+//   [x] 0xbc640  CMaterial_SetAuxTexture8C_maybe
+//   [x] 0xbc6a8  CMaterial_SetupBumpMap_maybe  (C2.8 port-rest R07; RpMatFX side in Renderware/rpmatfx/RpMatFX.cpp)
+//   [x] 0xbc748  CMaterial_SetBumpMapTexture  (C2.8 port-rest R07; RpMatFX side in Renderware/rpmatfx/RpMatFX.cpp)
+//   [x] 0xbc7c8  CMaterial_ApplyAuxTextureAddressing_maybe
 //   [x] 0xbc920  CMaterial_HasSecondaryEffectTexture_maybe
-//   [ ] 0xbc998  CMaterial_GetSecondaryEffectTexture_maybe
-//   [ ] 0xbca40  CMaterial_SetEnvMapTexture
-//   [ ] 0xbcb18  CMaterial_SetupEnvMap_maybe
+//   [x] 0xbc998  CMaterial_GetSecondaryEffectTexture_maybe
+//   [x] 0xbca40  CMaterial_SetEnvMapTexture  (C2.8 port-rest R07; RpMatFX side in Renderware/rpmatfx/RpMatFX.cpp)
+//   [x] 0xbcb18  CMaterial_SetupEnvMap_maybe  (C2.8 port-rest R07; RpMatFX side in Renderware/rpmatfx/RpMatFX.cpp)
 //   [x] 0xbcc18  CMaterial_Create
 //   [x] 0xbccc8  CMaterial_CreateArray
-//   [ ] 0xbce38  CMaterial_ResetUVTransformMatrix_maybe
-//   [ ] 0xbcf78  MatFXUVAnim_SetDualUVTransform_2_maybe
-//   [ ] 0xbd038  CMaterial_SetSecondaryEffectTexture_maybe
-//   [ ] 0xbd168  MatFXUVAnim_SetDualUVTransform_maybe
+//   [x] 0xbce38  CMaterial_ResetUVTransformMatrix_maybe
+//   [x] 0xbcf78  MatFXUVAnim_SetDualUVTransform_2_maybe  (the same code as 0xbd168: SetDualUVTransform)
+//   [x] 0xbd038  CMaterial_SetSecondaryEffectTexture_maybe  (C2.8 port-rest R07; RpMatFX side in Renderware/rpmatfx/RpMatFX.cpp)
+//   [x] 0xbd168  MatFXUVAnim_SetDualUVTransform_maybe
 //   [x] 0xbd228  MatFXUVAnim_UpdateMaterial_maybe
-//   [ ] 0xbdec8  MatFXUVAnim_SetBaseUVTransform_maybe
-//   [ ] 0xbdf78  CMaterial_ReleaseEffectData_maybe
-//   [ ] 0xbe260  CMaterial_Destroy
+//   [x] 0xbdec8  MatFXUVAnim_SetBaseUVTransform_maybe
+//   [x] 0xbdf78  CMaterial_ReleaseEffectData_maybe
+//   [x] 0xbe260  CMaterial_Destroy
 //   [x] 0xbe348  CMaterial_PostLoad
 //   [x] 0xbe8a8  CMaterial_SetEffectType_maybe
 //   [x] 0xbec50  CMaterial_Load
-//   [ ] 0xbfd60  CMaterial_DeletingDestructor
-//   [ ] 0xbfda0  CMaterial_Destructor
+//   [x] 0xbfd60  CMaterial_DeletingDestructor
+//   [x] 0xbfda0  CMaterial_Destructor
 //   [ ] 0xbfdb8  CMaterial_Destructor_2  [dead]
 //   [ ] 0xbfdd0  KStub_Return1_bfdd0  [dead]
-//   [ ] 0xbfdd8  MaterialExt_GetShaderMode_maybe
+//   [x] 0xbfdd8  MaterialExt_GetShaderMode_maybe  (GetShaderMode in the header; MeshShaderPassState.cpp reads the field inline)
 //   [x] 0xbfde8  CMaterial_ConstructBase_maybe
-//   [ ] 0xbfef0  CMaterial_ModeTransition_ToMode12_maybe
-//   [ ] 0xbff20  CMaterial_RestoreEnvMapEffect_maybe
-//   [ ] 0xc0038  CMaterial_ClearAuxTexturesAndRestoreEnvMap_maybe
-//   [ ] 0xc0170  CMaterial_ModeTransition_ToMode0ClearEnvMap_maybe
-//   [ ] 0xc0210  CMaterial_ModeTransition_ToMode0_maybe
-//   [ ] 0xc0288  CMaterial_InvokeModeTransitionHandler_maybe
+//   [x] 0xbfef0  CMaterial_ModeTransition_ToMode12_maybe
+//   [x] 0xbff20  CMaterial_RestoreEnvMapEffect_maybe  (C2.8 port-rest R07; RpMatFX side in Renderware/rpmatfx/RpMatFX.cpp)
+//   [x] 0xc0038  CMaterial_ClearAuxTexturesAndRestoreEnvMap_maybe  (C2.8 port-rest R07; RpMatFX side in Renderware/rpmatfx/RpMatFX.cpp)
+//   [x] 0xc0170  CMaterial_ModeTransition_ToMode0ClearEnvMap_maybe  (C2.8 port-rest R07; RpMatFX side in Renderware/rpmatfx/RpMatFX.cpp)
+//   [x] 0xc0210  CMaterial_ModeTransition_ToMode0_maybe
+//   [x] 0xc0288  CMaterial_InvokeModeTransitionHandler_maybe
 //   [ ] 0xc0358  FUN_000c0358  [dead]
 //
 //   [x] 0x9a1160  CMaterial_GetClassType  [inline]
@@ -128,9 +128,12 @@
 #include <new>
 
 #include "Renderware/rpmatfx/RpMatFX.h"
+#include "Renderware/rpskin/RpSkin.h"
+#include "Renderware/rpworld/RpAtomic.h"
 #include "Renderware/rwcore/RwTexture.h"
 #include "Renderware/rpworld/RpGeometry.h"
 #include "k2000/core/Stub.h"
+#include "k2000/geometry/CGeometry.h"
 #include "k2000/graphical/CCloneManager.h"
 #include "k2000/io/IKFile.h"
 #include "k2000/managers/CKGraphic.h"
@@ -138,6 +141,7 @@
 #include "k2000/misc/Engine.h"
 #include "k2000/misc/Mat4.h"
 #include "k2000/render/CRenderer.h"
+#include "k2000/render/CShaderManagerPSGL.h"
 #include "k2000/system/IKTime.h"
 #include "crt/ppc_ops.h"
 #include "crt/xsinf.h"
@@ -191,6 +195,104 @@ CMaterial::CMaterial() {
     m_pAuxLayer = nullptr;
     m_unk90 = 0;
     m_pFirstPassTransformMatrix = nullptr;
+}
+
+// 0x000bdf78 CMaterial_ReleaseEffectData_maybe. The switch (jump table TOC -0x5980) covers modes 5..14; the others,
+// 7 and 9 go straight to the aux layer. RwTextureDestroy is TextureRef_Release (the texture shim's reference count).
+void CMaterial::ReleaseEffectData() {
+    const uint32_t properties = m_baProperties;
+    const uint32_t mode = (properties >> 3) & 0xf;
+    auto releaseTexture = [](RwTexture*& texture) {
+        if (texture == nullptr) return;
+        TextureRef_Release(texture);  // RwTextureDestroy
+        texture = nullptr;
+    };
+    auto release88 = [&]() { releaseTexture(m_pAuxTexture88); };
+    auto release20And88 = [&]() {
+        releaseTexture(m_FXParameters.m_pTexture);
+        release88();
+    };
+    switch (mode) {
+    case 5: {  // 0xbe100
+        if ((properties & 4) != 0) break;
+        RwMatrix* base = nullptr;
+        RwMatrix* dual = nullptr;
+        // mode - 1 <= 5 always holds here; the other branch takes the first-pass matrix.
+        if (mode - 1u <= 5u) RpMatFXMaterialGetUVTransformMatrices(m_pRpMaterial, &base, &dual);
+        else base = reinterpret_cast<RwMatrix*>(m_pFirstPassTransformMatrix);
+        RwMatrixDestroy_Thunk(reinterpret_cast<CMatrix34*>(base));
+        RwMatrix* keepDual = nullptr;
+        if (((m_baProperties >> 3) & 0xf) == 6) {
+            RpMatFXMaterialGetUVTransformMatrices(m_pRpMaterial, &base, &dual);
+            keepDual = dual;
+        }
+        RpMatFXMaterialSetUVTransformMatrices(m_pRpMaterial, nullptr, keepDual);
+        break;
+    }
+    case 6: {  // 0xbe0a8
+        if ((properties & 4) != 0) break;
+        RwMatrix* base = nullptr;
+        RwMatrix* dual = nullptr;
+        RpMatFXMaterialGetUVTransformMatrices(m_pRpMaterial, &base, &dual);
+        RpMatFXMaterialSetUVTransformMatrices(m_pRpMaterial, nullptr, nullptr);
+        RwMatrixDestroy_Thunk(reinterpret_cast<CMatrix34*>(base));
+        RwMatrixDestroy_Thunk(reinterpret_cast<CMatrix34*>(dual));
+        break;
+    }
+    case 8:  // 0xbe084
+        releaseTexture(m_FXParameters.m_pTexture);
+        break;
+    case 10:  // 0xbe010
+        release20And88();
+        break;
+    case 11: {  // 0xbe1f0: without a texture the aux layer is deleted at once (no null test of the layer)
+        if (m_pAuxLayer->m_pTexture == nullptr) {
+            ::operator delete(m_pAuxLayer);
+            m_pAuxLayer = nullptr;
+            return;
+        }
+        TextureRef_Release(m_pAuxLayer->m_pTexture);
+        m_pAuxLayer->m_pTexture = nullptr;
+        break;
+    }
+    case 12:  // 0xbe184
+        releaseTexture(m_pAuxLayer->m_pTexture);
+        releaseTexture(m_FXParameters.m_pTexture);
+        releaseTexture(m_pAuxTexture8C);
+        release88();
+        break;
+    case 13:  // 0xbe158
+        releaseTexture(m_pAuxLayer->m_pTexture);
+        release88();
+        break;
+    case 14:  // 0xbdfe4
+        releaseTexture(m_pAuxLayer->m_pTexture);
+        release20And88();
+        break;
+    default:  // 0..4, 7, 9, 15
+        break;
+    }
+    if (m_pAuxLayer != nullptr) {  // 0xbe050
+        ::operator delete(m_pAuxLayer);
+        m_pAuxLayer = nullptr;
+    }
+}
+
+// 0x000be260 CMaterial_Destroy. KStub_Nop_c3678 (the effect block's empty release) is called on the block first.
+void CMaterial::Destroy() {
+    ReleaseEffectData();
+    if (((m_baProperties >> 3) & 0xf) - 7u <= 1u) s_sharedState.Release();
+    if (m_pRpMaterial != nullptr) {
+        RpMaterialDestroy(m_pRpMaterial);
+        m_pRpMaterial = nullptr;
+    }
+    if (m_pFirstPassTransformMatrix != nullptr) {
+        RwMatrixDestroy_Thunk(m_pFirstPassTransformMatrix);
+        m_pFirstPassTransformMatrix = nullptr;
+    }
+    if ((m_baProperties & 0x200u) == 0) return;
+    if (m_pEffectData != nullptr) ::operator delete(m_pEffectData);
+    m_pEffectData = nullptr;
 }
 
 // 0x000bb780 CMaterial_SetModeTransitionHandler_maybe: the table at 0x00c5cb74, 15 x 15 entries of 8.
@@ -298,6 +400,13 @@ int32_t CMaterialSharedState::Load(IKFile* file, int32_t type) {
     return 1;
 }
 
+// 0x0009e100 CMaterialMode7or8SharedState_Release_maybe (unit CLightManager.cpp by address).
+void CMaterialSharedState::Release() {
+    if (--m_unk8 != 0) return;
+    if (m_pRef == nullptr) return;
+    m_pRef = nullptr;
+}
+
 // 0x000c3b28 CMaterialEffectData_Load_maybe (unit CKSurfaceParticlesRendable.cpp by address). Returns
 // nothing (r3 is not set).
 void CMaterialEffectData_Load(CMaterialEffectData* data, IKFile* file, int32_t type, CMaterial* owner) {
@@ -342,7 +451,8 @@ int32_t CMaterial::Load(IKFile* file, int32_t type) {
             // A geometry (CGeometry / CParticleGeometry): its RpGeometry's first material.
             IKSerializable* geometry = nullptr;
             IKFile_ReadRef(file, &geometry);
-            RpGeometry* rpGeometry = RwShim_FindRpGeometry(geometry);  // geometry->vt+0x84
+            // geometry->vt+0x84 (FindRpGeometry; no null check of the geometry: every material file names one)
+            RpGeometry* rpGeometry = static_cast<RpGeometry*>(static_cast<CGeometry*>(geometry)->FindRpGeometry());
             RpMaterial* material = nullptr;
             if (rpGeometry != nullptr) material = rpGeometry->matList.materials[0];
             m_pRpMaterial = material;
@@ -543,6 +653,38 @@ void RebuildUvMatrix(CMatrix34* matrix, uint32_t properties, uint32_t typeShift,
 }
 }  // namespace
 
+// 0x000bc7c8 CMaterial_ApplyAuxTextureAddressing_maybe
+void CMaterial::ApplyAuxTextureAddressing() {
+    if (m_pAuxTexture8C != nullptr) m_pAuxTexture8C->filterAddressing = (m_pAuxTexture8C->filterAddressing & 0xffff00ffu) | 0x1100u;
+    if (m_pAuxTexture88 != nullptr) InheritAddressing(m_pAuxTexture88, m_pRpMaterial, m_baProperties);
+    if (m_pAuxLayer == nullptr || m_pAuxLayer->m_pTexture == nullptr) return;
+    InheritAddressing(m_pAuxLayer->m_pTexture, m_pRpMaterial, m_baProperties);
+}
+
+// 0x000bce38 CMaterial_ResetUVTransformMatrix_maybe (TOC1 -0x59b8 1.0)
+void CMaterial::ResetUVTransformMatrix(int32_t slot) {
+    RwMatrix* base = nullptr;
+    RwMatrix* dual = nullptr;
+    CMatrix34* matrix;
+    if (slot == 0) {
+        if (((m_baProperties >> 3) & 0xf) - 1u < 6u) {
+            RpMatFXMaterialGetUVTransformMatrices(m_pRpMaterial, &base, &dual);
+            matrix = reinterpret_cast<CMatrix34*>(base);
+        } else {
+            matrix = m_pFirstPassTransformMatrix;
+        }
+    } else {
+        RpMatFXMaterialGetUVTransformMatrices(m_pRpMaterial, &base, &dual);
+        matrix = reinterpret_cast<CMatrix34*>(dual);
+    }
+    SetIdentity(matrix);  // no null test
+    if (((m_baProperties >> (slot * 7 + 0x10)) & 7u) != 0) return;
+    const CMaterialFXEffect& fx = m_FXParameters.m_aEffects[slot];
+    matrix->m_pos.y = WordAsFloat(fx.k01.m_aui32Words[3]);
+    matrix->m_ui32Flags = 3;
+    matrix->m_pos.x = WordAsFloat(fx.k01.m_aui32Words[2]);
+}
+
 // 0x000be348 CMaterial_PostLoad
 int32_t CMaterial::PostLoad(int32_t type) {
     if (type == K_LEVEL_PLATEFORMS) {
@@ -615,6 +757,34 @@ CMatrix34* CMaterial::GetUVTransformMatrix() {
     RwMatrix* dual = nullptr;
     RpMatFXMaterialGetUVTransformMatrices(m_pRpMaterial, &base, &dual);
     return reinterpret_cast<CMatrix34*>(base);
+}
+
+// 0x000bb828 CGeometry_SetupMaterialShader_maybe (from the assembly; the RW calls through their bridges 0x98e8f0..0x98e920).
+// With the shader manager's atomic pipeline (TryAssignOverride answers 1) nothing else; otherwise for shader modes 1-6 the
+// MatFX pipeline (RpMatFXAtomicEnableEffects, then _rpMatFXPipelineAtomicSetup_maybe again) and a skinned atomic the
+// MatFX skin type (2), for mode 9 the generic skin type (1) or, without a skin, the default pipeline (+0x6c null); in
+// both cases the render callback (+0x48) the default one (TOC -0x5a00: RW_RenderAtomicThroughPipeline 0x69d180). The
+// other modes keep the atomic as it is.
+void CGeometry_SetupMaterialShader(RpAtomic* atomic, int32_t mode) {
+    // Host guards: a geometry whose atomic stayed null (a cloned forward reference), a test without the graphics module
+    // (no shader manager), or an atomic without a geometry (RpSkinGeometryGetSkin would read through null).
+    if (atomic == nullptr || g_pShaderManager == nullptr) return;
+    if ((g_pShaderManager->TryAssignOverride(atomic) & 0xff) != 0) return;  // 0x000f8168
+    if (mode < 1) return;
+    const bool skinned = atomic->geometry != nullptr && RpSkinGeometryGetSkin(atomic->geometry) != nullptr;
+    if (mode <= 6) {
+        RpMatFXAtomicEnableEffects(atomic);   // 0x00698038
+        _rpMatFXPipelineAtomicSetup(atomic);  // 0x0069a9c8
+        if (skinned) RpSkinAtomicSetType(atomic, rpSKINTYPEMATFX);
+    } else {
+        if (mode != 9) return;
+        if (skinned) {
+            RpSkinAtomicSetType(atomic, rpSKINTYPEGENERIC);
+        } else {
+            atomic->pipeline = nullptr;  // stw r3 (the null skin) at +0x6c
+        }
+    }
+    atomic->renderCallBack = RpAtomicGetDefaultRenderCallBack();
 }
 
 // 0x000bb960 CMaterial_GetDualUVTransformMatrix_maybe
@@ -817,4 +987,356 @@ void CMaterial::UpdateUVAnimation(IKTime* frameClock) {
         }
         }
     }
+}
+
+// ==== C2.8 port-all P07: the accessors and setters ===============================================================
+
+// 0x000bbda8 CMaterial_RecursiveRegistration
+void CMaterial::RecursiveRegistration(int32_t type) {
+    if (m_pEffectData != nullptr) CMaterialEffectData_RecursiveRegistration(m_pEffectData, type);  // 0x000c3680
+}
+
+// 0x000bb3f0 CMaterial_SetSpecularForShaderModes_maybe
+void CMaterial::SetSpecularForShaderModes(float value) {
+    const uint32_t mode = (m_baProperties >> 3) & 0xf;
+    if (mode != 0xb && mode != 0xd && mode != 0xc && mode != 0xe) {
+        m_pRpMaterial->surfaceProps.specular = 0.0f;
+        return;
+    }
+    m_pRpMaterial->surfaceProps.specular = value;
+}
+
+// 0x000bb458 CMaterial_GetBlendModeName_maybe
+const char* CMaterial::GetBlendModeName(int32_t mode) {
+    if (mode == 1) return "Alpha Blending";
+    if (mode < 2) {
+        if (mode == 0) return "Opaque";
+    } else {
+        if (mode == 2) return "Additive Blending";
+        if (mode == 3) return "Substractive Blending (non PS2)";
+    }
+    return "Indisponible";
+}
+
+// 0x000bb4c0 CMaterial_GetBlendFactorName_maybe (the jump table 1..11)
+const char* CMaterial::GetBlendFactorName(int32_t factor) {
+    switch (factor) {
+    case 1: return "Zero";
+    case 2: return "One";
+    case 3: return "Couleur Source";
+    case 4: return "Couleur (1 - Source)";
+    case 5: return "Alpha Source";
+    case 6: return "Alpha (1 - Source)";
+    case 7: return "Alpha Destination";
+    case 8: return "Alpha (1 - Destination)";
+    case 9: return "Couleur Destination";
+    case 10: return "Couleur (1 - Destination)";
+    case 11: return "Alpha (Min (Source, Destination))";
+    default: return "Indisponible";
+    }
+}
+
+// 0x000bb910 CMaterial_SetUVTransformMatrices
+void CMaterial::SetUVTransformMatrices(RwMatrix* base, RwMatrix* dual) {
+    RpMatFXMaterialSetUVTransformMatrices(m_pRpMaterial, base, dual);
+}
+
+// 0x000bb938 CMaterial_GetUVTransformMatrices
+void CMaterial::GetUVTransformMatrices(RwMatrix** base, RwMatrix** dual) const {
+    RpMatFXMaterialGetUVTransformMatrices(m_pRpMaterial, base, dual);
+}
+
+// 0x000bb9a0 CMaterial_GetUVTransformMatrixByIndex_maybe (the two locals indexed; no range check)
+RwMatrix* CMaterial::GetUVTransformMatrixByIndex(int32_t index) const {
+    RwMatrix* matrices[2] = {nullptr, nullptr};
+    RpMatFXMaterialGetUVTransformMatrices(m_pRpMaterial, &matrices[0], &matrices[1]);
+    return matrices[index];
+}
+
+// 0x000bba68 CMaterial_GetDualBlendMode_maybe
+uint32_t CMaterial::GetDualBlendMode() const {
+    int32_t src = 0;
+    int32_t dst = 0;
+    RpMatFXMaterialGetDualBlendModes(m_pRpMaterial, &src, &dst);
+    if (src == 5) {
+        if (dst == 6) return 1;
+        if (dst == 2) return 2;
+    }
+    return 0;
+}
+
+// 0x000bbc30 CMaterial_SetEnvMapCoefficient
+void CMaterial::SetEnvMapCoefficient(float coefficient) {
+    if (((m_baProperties >> 3) & 0xf) - 2u > 1u) {
+        std::memcpy(&m_FXParameters.m_ui32Param8, &coefficient, 4);  // +0x1c
+        return;
+    }
+    RpMatFXMaterialSetEnvMapCoefficient(m_pRpMaterial, coefficient);
+}
+
+// 0x000bbc88 CMaterial_SetEnvMapFBAlpha
+void CMaterial::SetEnvMapFBAlpha(int32_t useFBAlpha) {
+    if (((m_baProperties >> 3) & 0xf) - 2u > 1u) return;
+    RpMatFXMaterialSetEnvMapFBAlpha(m_pRpMaterial, useFBAlpha);
+}
+
+// ---- C2.8 port-rest R07: the remaining MatFX accessors (no caller in the EBOOT, or only the mode transitions) -------
+
+// 0x000bbae0 CMaterial_SetDualBlendMode_maybe: r5 = ((mode ^ 2) != 0 ? 4 : 0) + 2 (the srawi / xor / subf sign trick).
+void CMaterial::SetDualBlendMode(int32_t mode) {
+    RpMatFXMaterialSetDualBlendModes(m_pRpMaterial, 5, (mode ^ 2) != 0 ? 6 : 2);
+}
+
+// 0x000bbb28 CMaterial_GetBumpMapCoefficient
+float CMaterial::GetBumpMapCoefficient() { return RpMatFXMaterialGetBumpMapCoefficient(m_pRpMaterial); }
+
+// 0x000bbb50 CMaterial_SetBumpMapCoefficient
+void CMaterial::SetBumpMapCoefficient(float coefficient) {
+    RpMatFXMaterialSetBumpMapCoefficient(m_pRpMaterial, coefficient);
+}
+
+// 0x000bbb78 CMaterial_GetBumpMapFrame
+void* CMaterial::GetBumpMapFrame() { return RpMatFXMaterialGetBumpMapFrame(m_pRpMaterial); }
+
+// 0x000bbba8 CMaterial_SetBumpMapFrame
+void CMaterial::SetBumpMapFrame(void* frame) { RpMatFXMaterialSetBumpMapFrame(m_pRpMaterial, frame); }
+
+// 0x000bbbd0 CMaterial_GetBumpMapTexture
+RwTexture* CMaterial::GetBumpMapTexture() {
+    const uint32_t mode = (m_baProperties >> 3) & 0xf;
+    if (mode != 1 && mode != 3) return nullptr;
+    return RpMatFXMaterialGetBumpMapTexture(m_pRpMaterial);
+}
+
+// 0x000bbfc8 CMaterial_GetEnvMapFBAlpha (the srawi / xor / subf / rlwinm: 1 for a non-zero flag)
+int32_t CMaterial::GetEnvMapFBAlpha() {
+    if (((m_baProperties >> 3) & 0xf) - 2u > 1u) return 0;
+    return RpMatFXMaterialGetEnvMapFBAlpha(m_pRpMaterial) != 0 ? 1 : 0;
+}
+
+// 0x000bc030 CMaterial_GetEnvMapFrame
+void* CMaterial::GetEnvMapFrame() {
+    if (((m_baProperties >> 3) & 0xf) - 2u > 1u) return nullptr;
+    return RpMatFXMaterialGetEnvMapFrame(m_pRpMaterial);
+}
+
+// 0x000bc090 CMaterial_SetEnvMapFrame
+void CMaterial::SetEnvMapFrame(void* frame) {
+    if (((m_baProperties >> 3) & 0xf) - 2u > 1u) return;
+    RpMatFXMaterialSetEnvMapFrame(m_pRpMaterial, frame);
+}
+
+// 0x000bc6a8 CMaterial_SetupBumpMap_maybe
+void CMaterial::SetupBumpMap(RwTexture* texture, void* frame, float coefficient) {
+    const uint32_t mode = (m_baProperties >> 3) & 0xf;
+    RwTexture* current = nullptr;
+    if (mode == 1 || mode == 3) current = RpMatFXMaterialGetBumpMapTexture(m_pRpMaterial);
+    if (current == texture) return;
+    RpMatFXMaterialSetupBumpMap(m_pRpMaterial, texture, frame, coefficient);
+}
+
+// 0x000bc748 CMaterial_SetBumpMapTexture
+void CMaterial::SetBumpMapTexture(RwTexture* texture) {
+    const uint32_t mode = (m_baProperties >> 3) & 0xf;
+    RwTexture* current = nullptr;
+    if (mode == 1 || mode == 3) current = RpMatFXMaterialGetBumpMapTexture(m_pRpMaterial);
+    if (current == texture) return;
+    RpMatFXMaterialSetBumpMapTexture(m_pRpMaterial, texture);
+}
+
+// 0x000bca40 CMaterial_SetEnvMapTexture. BUG(original): mode 3 compares with the MatFX env map texture but then
+// replaces the FX texture (+0x20); kept.
+void CMaterial::SetEnvMapTexture(RwTexture* texture) {
+    const uint32_t mode = (m_baProperties >> 3) & 0xf;
+    RwTexture* current =
+        mode - 2u <= 1u ? RpMatFXMaterialGetEnvMapTexture(m_pRpMaterial) : m_FXParameters.m_pTexture;
+    if (current == texture) return;
+    if (mode == 2) {
+        RpMatFXMaterialSetEnvMapTexture(m_pRpMaterial, texture);
+        return;
+    }
+    if (m_FXParameters.m_pTexture != nullptr) TextureRef_Release(m_FXParameters.m_pTexture);  // RwTextureDestroy
+    m_FXParameters.m_pTexture = texture;
+    if (texture != nullptr) ++texture->refCount;
+}
+
+// 0x000bcb18 CMaterial_SetupEnvMap_maybe (stfs f31 to +0x1c, the texture to +0x20 without releasing the old one)
+void CMaterial::SetupEnvMap(RwTexture* texture, void* frame, uint8_t useFBAlpha, float coefficient) {
+    const uint32_t mode = (m_baProperties >> 3) & 0xf;
+    RwTexture* current =
+        mode - 2u <= 1u ? RpMatFXMaterialGetEnvMapTexture(m_pRpMaterial) : m_FXParameters.m_pTexture;
+    if (current == texture) return;
+    if (mode == 2) {
+        RpMatFXMaterialSetupEnvMap(m_pRpMaterial, texture, frame, useFBAlpha, coefficient);
+        return;
+    }
+    std::memcpy(&m_FXParameters.m_ui32Param8, &coefficient, 4);
+    m_FXParameters.m_pTexture = texture;
+    if (texture != nullptr) ++texture->refCount;
+}
+
+// 0x000bd038 CMaterial_SetSecondaryEffectTexture_maybe
+void CMaterial::SetSecondaryEffectTexture(RwTexture* texture) {
+    const uint32_t mode = (m_baProperties >> 3) & 0xf;
+    if (mode == 4 || mode == 6) {
+        if (texture == RpMatFXMaterialGetDualTexture(m_pRpMaterial)) return;
+        RpMatFXMaterialSetDualTexture(m_pRpMaterial, texture);
+        return;
+    }
+    RwTexture* current;
+    if (mode - 2u <= 1u) {
+        current = RpMatFXMaterialGetEnvMapTexture(m_pRpMaterial);
+    } else if (mode == 8 || mode == 10 || mode == 12 || mode == 14) {
+        current = m_FXParameters.m_pTexture;
+    } else {
+        return;
+    }
+    if (current == texture) return;
+    if (mode == 2) {
+        RpMatFXMaterialSetEnvMapTexture(m_pRpMaterial, texture);
+        return;
+    }
+    if (m_FXParameters.m_pTexture != nullptr) TextureRef_Release(m_FXParameters.m_pTexture);  // RwTextureDestroy
+    m_FXParameters.m_pTexture = texture;
+    if (texture != nullptr) ++texture->refCount;
+}
+
+// 0x000bff20 CMaterial_RestoreEnvMapEffect_maybe (the CBitArray rlwinm pair clears bits 3..6; | 0x10 = mode 2)
+void CMaterial::RestoreEnvMapEffect() {
+    if ((m_baProperties & 0x2000u) == 0) return;
+    const float coefficient = GetEnvMapCoefficient();  // 0x000bbf70
+    RwTexture* texture = GetEnvMapTexture();            // 0x000bbce0
+    const uint8_t useFBAlpha = static_cast<uint8_t>(GetEnvMapFBAlpha());  // 0x000bbfc8 (rldicl 0x38: the byte)
+    void* frame = GetEnvMapFrame();                     // 0x000bc030
+    m_baProperties = (m_baProperties & 0xffffff87u) | 0x10u;
+    RpMatFXMaterialSetEffects(m_pRpMaterial, 2);
+    SetEnvMapCoefficient(coefficient);
+    SetEnvMapTexture(texture);
+    SetEnvMapFBAlpha(useFBAlpha);
+    SetEnvMapFrame(frame);
+}
+
+// 0x000c0038 CMaterial_ClearAuxTexturesAndRestoreEnvMap_maybe
+void CMaterial::ClearAuxTexturesAndRestoreEnvMap() {
+    if ((m_baProperties & 0x2000u) == 0) return;
+    SetAuxLayerTexture(nullptr);  // 0x000bc5c8
+    SetAuxTexture8C(nullptr);     // 0x000bc640
+    const float coefficient = GetEnvMapCoefficient();
+    RwTexture* texture = GetEnvMapTexture();
+    const uint8_t useFBAlpha = static_cast<uint8_t>(GetEnvMapFBAlpha());
+    void* frame = GetEnvMapFrame();
+    m_baProperties = (m_baProperties & 0xffffff87u) | 0x10u;
+    RpMatFXMaterialSetEffects(m_pRpMaterial, 2);
+    SetEnvMapCoefficient(coefficient);
+    SetEnvMapTexture(texture);
+    SetEnvMapFBAlpha(useFBAlpha);
+    SetEnvMapFrame(frame);
+}
+
+// 0x000c0170 CMaterial_ModeTransition_ToMode0ClearEnvMap_maybe (TOC1 -0x5930 0.0; the mask 0xffff7e87)
+void CMaterial::ModeTransitionToMode0ClearEnvMap() {
+    if ((m_baProperties & 0x2000u) == 0) return;
+    SetAuxLayerTexture(nullptr);       // 0x000bc5c8
+    SetEnvMapTexture(nullptr);         // 0x000bca40
+    SetAuxTexture8C(nullptr);          // 0x000bc640
+    SetSpecularForShaderModes(0.0f);   // 0x000bb3f0
+    m_baProperties &= 0xffff7e87u;
+}
+
+// 0x000bbd38 CMaterial_ResetEffectData_maybe (the original's store order)
+void CMaterial::ResetEffectData() {
+    m_FXParameters.m_ui32Param0 = 0;
+    std::memset(m_FXParameters.m_aui8Raw2c + 4, 0, 4);  // +0x30
+    m_FXParameters.m_unk18 = 0;
+    m_FXParameters.m_ui32Param8 = 0;
+    m_FXParameters.m_pTexture = nullptr;
+    m_FXParameters.m_unk24 = 0;
+    m_FXParameters.m_unk28 = 0;
+    std::memset(m_FXParameters.m_aui8Raw2c, 0, 4);  // +0x2c
+    if (m_pAuxLayer != nullptr) std::memset(m_pAuxLayer, 0, sizeof(CMaterialAuxLayer));  // eleven words
+    m_pAuxTexture8C = nullptr;
+    m_pAuxTexture88 = nullptr;
+}
+
+namespace {
+// The aux setters' replacement: the old texture released only when the new one is null.
+void ReplaceTexture(RwTexture*& slot, RwTexture* texture) {
+    if (slot == texture) return;
+    if (texture == nullptr && slot != nullptr) TextureRef_Release(slot);  // RwTextureDestroy
+    slot = texture;
+}
+}  // namespace
+
+// 0x000bc560 CMaterial_SetAuxTexture88_maybe
+void CMaterial::SetAuxTexture88(RwTexture* texture) { ReplaceTexture(m_pAuxTexture88, texture); }
+
+// 0x000bc640 CMaterial_SetAuxTexture8C_maybe
+void CMaterial::SetAuxTexture8C(RwTexture* texture) { ReplaceTexture(m_pAuxTexture8C, texture); }
+
+// 0x000bc5c8 CMaterial_SetAuxLayerTexture_maybe
+void CMaterial::SetAuxLayerTexture(RwTexture* texture) { ReplaceTexture(m_pAuxLayer->m_pTexture, texture); }
+
+// 0x000bc3f0 CMaterial_SetAuxLayerTextureWithDefaults_maybe (0x3dcccccd, 0x3e99999a, 0x41a00000, 0x00c50dfc)
+void CMaterial::SetAuxLayerTextureWithDefaults(RwTexture* texture) {
+    if (m_pAuxLayer->m_pTexture == texture) return;
+    ReplaceTexture(m_pAuxLayer->m_pTexture, texture);
+    m_pAuxLayer->m_ui8Byte6 = 8;
+    m_pAuxLayer->m_ui32Param8 = 0x3dcccccdu;  // 0.1
+    m_pAuxLayer->m_ui32ParamC = 0x3e99999au;  // 0.3
+    m_fAuxFloat94 = 20.0f;
+    std::memcpy(m_cExtColor, kColorWhite, 4);
+    m_pAuxLayer->m_ui8Byte5 = 100;
+    m_pAuxLayer->m_ui8Byte4 = 8;
+}
+
+// 0x000bc998 CMaterial_GetSecondaryEffectTexture_maybe
+RwTexture* CMaterial::GetSecondaryEffectTexture() {
+    const uint32_t mode = (m_baProperties >> 3) & 0xf;
+    if (mode == 4 || mode == 6) return RpMatFXMaterialGetDualTexture(m_pRpMaterial);
+    if (mode - 2u < 2u) return RpMatFXMaterialGetEnvMapTexture(m_pRpMaterial);
+    if (mode == 8 || mode == 10 || mode == 0xc || mode == 0xe) return m_FXParameters.m_pTexture;
+    return nullptr;
+}
+
+// 0x000bfef0 CMaterial_ModeTransition_ToMode12_maybe
+void CMaterial::ModeTransitionToMode12() {
+    if ((m_baProperties & 0x2000u) == 0) return;
+    m_baProperties = (m_baProperties & 0xffffff87u) | 0x60u;
+}
+
+// 0x000c0210 CMaterial_ModeTransition_ToMode0_maybe (TOC1 -0x5930 0.0)
+void CMaterial::ModeTransitionToMode0() {
+    if ((m_baProperties & 0x2000u) == 0) return;
+    SetAuxLayerTexture(nullptr);        // 0x000bc5c8
+    SetSpecularForShaderModes(0.0f);    // 0x000bb3f0
+    m_baProperties &= 0xffffff87u;
+}
+
+// 0x000c0288 CMaterial_InvokeModeTransitionHandler_maybe (the PS3 pointer to member: a descriptor, or a vtable entry
+// when bit 0 is set; the table holds plain member functions)
+int32_t CMaterial::InvokeModeTransitionHandler(int32_t to) {
+    const int32_t from = static_cast<int32_t>((m_baProperties >> 3) & 0xf);
+    KpFnModeTransition handler = GetModeTransitionHandler(from, to);  // 0x000bb7b8
+    if (handler != nullptr) (this->*handler)();
+    return to;
+}
+
+// 0x000bdec8 MatFXUVAnim_SetBaseUVTransform_maybe
+void CMaterial::SetBaseUVTransform(RwMatrix* matrix) {
+    RwMatrix* base = nullptr;
+    RwMatrix* dual = nullptr;
+    if (((m_baProperties >> 3) & 0xf) == 6) RpMatFXMaterialGetUVTransformMatrices(m_pRpMaterial, &base, &dual);
+    RpMatFXMaterialSetUVTransformMatrices(m_pRpMaterial, matrix, dual);
+}
+
+// 0x000bd168 MatFXUVAnim_SetDualUVTransform_maybe
+void CMaterial::SetDualUVTransform(RwMatrix* matrix) {
+    RwMatrix* base = nullptr;
+    RwMatrix* dual = nullptr;
+    if (((m_baProperties >> 3) & 0xf) - 1u <= 5u) {
+        RpMatFXMaterialGetUVTransformMatrices(m_pRpMaterial, &base, &dual);
+    } else {
+        base = reinterpret_cast<RwMatrix*>(m_pFirstPassTransformMatrix);
+    }
+    RpMatFXMaterialSetUVTransformMatrices(m_pRpMaterial, base, matrix);
 }

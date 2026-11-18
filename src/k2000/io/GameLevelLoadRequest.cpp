@@ -7,13 +7,13 @@
 //   [x] 0x33be0  GameLevelLoadRequest_Reset
 //   [x] 0x33c20  GameLevelLoadRequest_CheckDone
 //   [x] 0x33c88  GameLevelLoadRequest_Post
-//   [ ] 0x33d18  GameLevelLoadRequest_DeletingDestructor
-//   [ ] 0x33d60  GameLevelLoadRequest_Destructor
+//   [x] 0x33d18  GameLevelLoadRequest_DeletingDestructor  (the deleting form of the implicit destructor)
+//   [x] 0x33d60  GameLevelLoadRequest_Destructor
 //   [ ] 0x33d90  GameLevelLoadRequest_Destructor_2  [dead]
 //   [x] 0x33dc0  GameLevelLoadRequest_Construct
-//   [ ] 0x33e10  GameLevelLoadRequest_Construct_2
+//   [x] 0x33e10  GameLevelLoadRequest_Construct_2  (the same as 0x33dc0 GameLevelLoadRequest_Construct)
 //   [x] 0x33e60  GameLevelLoadRequest_Execute
-//   [ ] 0x33ee0  GameLevelLoadRequest_RunSync
+//   [x] 0x33ee0  GameLevelLoadRequest_RunSync  (no reference to its descriptor in the original either)
 #include "k2000/io/LoadRequests.h"
 
 #include "k2000/misc/CKGameLoop.h"
@@ -58,4 +58,12 @@ void GameLevelLoadRequest::Execute() {
     }
     if (m_kind != kLevel) return;
     g_pEngine->m_objectDatabase->LoadLevel(m_level);
+}
+
+// 0x00033ee0 GameLevelLoadRequest_RunSync: the request run on the calling thread (Reset, the kind, Execute, Reset).
+void GameLevelLoadRequest::RunSync(int32_t kind) {
+    Reset();
+    m_kind = kind;
+    Execute();
+    Reset();
 }

@@ -6,7 +6,7 @@
 //   [x] 0x23a9a8  CKSrvDynamic_Delete
 //   [ ] 0x23a9f8  CKSrvDynamic_Construct  [dead]
 //   [x] 0x23aa48  CKSrvDynamic_DestroyService
-//   [ ] 0x23aa50  CKSrvDynamic_RecursiveRegistration
+//   [x] 0x23aa50  CKSrvDynamic_RecursiveRegistration
 //   [x] 0x23aab0  CKSrvDynamic_Start
 //   [x] 0x23aac0  CKSrvDynamic_Stop
 //   [x] 0x23aac8  CKSrvDynamic_Pause
@@ -24,7 +24,7 @@
 //   [x] 0x23aec8  CKSrvDynamic_Destroy
 //   [x] 0x23af50  CKSrvDynamic_DeleteArray
 //   [x] 0x23aff8  CKSrvDynamic_SetEntryFlag
-//   [ ] 0x23b168  CKSrvDynamic_UnregisterHook
+//   [x] 0x23b168  CKSrvDynamic_UnregisterHook
 //   [ ] 0x23b350  CKSrvDynamic_Save
 //   [x] 0x23b3c0  CKSrvDynamic_Load
 //   [x] 0x23b480  CKSrvDynamic_RegisterHook
@@ -43,6 +43,7 @@
 
 #include "k2000/io/IKFile.h"
 #include "k2000/memory/Mem.h"
+#include "k2000/logic/CKSavingManager.h"
 #include "k2000/misc/Engine.h"
 #include "k2000/system/IKTime.h"
 #include "crt/ppc_ops.h"
@@ -286,4 +287,23 @@ void CKSrvDynamic::Update(IKTime* clock) {
             used = m_unk0c;
         }
     }
+}
+
+// 0x0023b168 CKSrvDynamic_UnregisterHook
+void CKSrvDynamic::UnregisterHook(IKSerializable* object) {
+    const uint32_t count = m_vEntries.m_ui32NbUsedElt;
+    if (count == 0) return;
+    uint32_t index = 0;
+    while (m_vEntries.m_pBlock[index].m_unk00 != object) {
+        if (++index == count) return;
+    }
+    const uint32_t last = count - 1;
+    m_vEntries.m_ui32NbUsedElt = last;
+    if (last != index) m_vEntries.m_pBlock[index] = m_vEntries.m_pBlock[last];
+    m_unk0c = m_vEntries.m_ui32NbUsedElt;
+}
+
+// 0x0023aa50 CKSrvDynamic_RecursiveRegistration: type 0: the service registered (CKSavingManager vt+0x24).
+void CKSrvDynamic::RecursiveRegistration(int32_t type) {
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);
 }

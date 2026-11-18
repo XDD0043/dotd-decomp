@@ -3,8 +3,10 @@
 // CKMemcardRequestQueue).
 //
 // Post resets the request, stores its arguments, enqueues it and sets m_posted; CheckDone returns 1 once
-// the worker has finished it and clears m_posted. STUB(C1.2): the Execute bodies only log what the
-// original loads, except that the GAME.KP3 stand-in creates the game manager.
+// the worker has finished it and clears m_posted. The Execute bodies are the original's, except BootLoadRequest's:
+// STUB(C1.2): 0x34388 BootLoadRequest_Execute_maybe is a stand-in (BootStubs.cpp); it runs KHostFS_PreopenRwsFiles
+// (vt+0x14, the RtFS host file system), BootLoad_InitSaveData_maybe 0x14698 (save data) and
+// CShaderManagerPSGL_LoadShaderCacheFile_maybe 0xfbad0 (the Cg shader cache).
 #pragma once
 #include <cstdint>
 
@@ -15,10 +17,20 @@
 class CKLoadRequestQueue : public keCThreadPool {
 public:
     CKLoadRequestQueue();                       // 0x00034770 CKLoadRequestQueue_Construct
+    ~CKLoadRequestQueue() override;             // 0x000348d0 CKLoadRequestQueue_Destructor_maybe
     void Enqueue(KRequest* request);            // 0x000346b0 CKLoadRequestQueue_Enqueue
-    void Abort() { RequestAbort(); }            // CKLoadRequestQueue_Abort
-    uint8_t m_unkD0;                            // +0xd0
-    uint8_t m_unkD1;                            // +0xd1
+    // 0x00034650 CKLoadRequestQueue_Abort: the pool's abort, then m_unkD1 set.
+    void Abort() {
+        RequestAbort();
+        m_unkD1 = 1;
+    }
+    // 0x00034610 CKLoadRequestQueue_JoinThreads: the workers joined (KThreadSet_JoinAll_maybe), then m_unkD0 set.
+    void JoinThreads() {
+        keCThreadPool::JoinThreads();
+        m_unkD0 = 1;
+    }
+    uint8_t m_unkD0;                            // +0xd0 the workers were joined (JoinThreads, the destructor)
+    uint8_t m_unkD1;                            // +0xd1 the abort was requested (Abort, the destructor)
     uint8_t m_padD2[6];
 };
 DOTD_ASSERT_SIZE(CKLoadRequestQueue, 0xd8);
@@ -27,9 +39,18 @@ DOTD_ASSERT_SIZE(CKLoadRequestQueue, 0xd8);
 class CKMemcardRequestQueue : public keCThreadPool {
 public:
     CKMemcardRequestQueue();                    // 0x0002b600 CKMemcardRequestQueue_Construct
-    void Abort() { RequestAbort(); }            // CKMemcardRequestQueue_Abort
-    uint8_t m_unkD0;                            // +0xd0
-    uint8_t m_unkD1;                            // +0xd1
+    ~CKMemcardRequestQueue() override;          // 0x0002b760 CKMemcardRequestQueue_Destructor_maybe
+    // CKMemcardRequestQueue_Abort / _JoinThreads: as CKLoadRequestQueue's (the flags +0xd1 / +0xd0).
+    void Abort() {
+        RequestAbort();
+        m_unkD1 = 1;
+    }
+    void JoinThreads() {
+        keCThreadPool::JoinThreads();
+        m_unkD0 = 1;
+    }
+    uint8_t m_unkD0;                            // +0xd0 the workers were joined
+    uint8_t m_unkD1;                            // +0xd1 the abort was requested
     uint8_t m_padD2[6];
 };
 DOTD_ASSERT_SIZE(CKMemcardRequestQueue, 0xd8);
@@ -44,6 +65,7 @@ public:
     void Execute() override;                    // vt+0x18 0x33e60
     void Post(int32_t kind, int32_t level);     // 0x00033c88 GameLevelLoadRequest_Post
     int32_t CheckDone();                        // 0x00033c20 GameLevelLoadRequest_CheckDone
+    void RunSync(int32_t kind);                 // 0x00033ee0 GameLevelLoadRequest_RunSync (no caller)
 
     uint8_t m_posted;     // +0x60
     uint8_t m_pad61[3];
@@ -94,6 +116,7 @@ public:
     void Execute() override;                    // 0x0002b2d0 SaveDataRequest_Execute (worker thread)
     void Post(int32_t kind);                    // 0x0002b3a8 SaveDataRequest_Post
     uint8_t CheckDone();                        // 0x0002b370 SaveDataRequest_CheckDone: finished successfully
+    void SettleForReplay();                     // platform (replays): past Execute, the done state waited for
     int32_t m_kind;                             // +0x60 Kind
     uint8_t m_pad64[4];
 };

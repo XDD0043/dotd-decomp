@@ -7,10 +7,10 @@
 //   [x] 0x102eb0  InputFilterButton_Init_maybe
 //   [x] 0x102ee0  InputFilterButton_FilterEdge_maybe
 //   [x] 0x102f50  InputFilterButton_Filter_maybe
-//   [ ] 0x102f78  InputFilterButton_Destructor_maybe
+//   [x] 0x102f78  InputFilterButton_Destructor_maybe  (the implicit destructor (~IKFilter: vtable store only))
 //   [ ] 0x102f88  InputFilterButton_Construct_2_maybe  [dead]
 //   [ ] 0x102fb8  InputFilterButton_Destructor_2_maybe  [dead]
-//   [ ] 0x102fc8  InputFilterButton_DeletingDestructor_maybe
+//   [x] 0x102fc8  InputFilterButton_DeletingDestructor_maybe  (the implicit destructor, delete)
 //
 //   [x] 0x9a6368  InputFilterButton_GetByte4_maybe  [inline]
 //   [x] 0x9a6370  KStub_Return0_9a6370  [inline]

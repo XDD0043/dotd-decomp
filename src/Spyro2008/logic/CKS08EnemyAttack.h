@@ -12,6 +12,7 @@
 class CKS08EnemyAttack : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x264)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x990c || key == 0xc; }  // vt+0x08 0x9bca78
     DOTD_DECLARE_FACTORIES(CKS08EnemyAttack)
 
     // A byte array as the Load fills it: data (Mem_AllocAligned16 / Mem_ReallocAligned16), capacity, count.
@@ -30,7 +31,9 @@ public:
         m_array54.m_count = 0;
         m_array54.m_data = nullptr;
     }
-    ~CKS08EnemyAttack() override {}
+    // 0x002ae0d8 CKS08EnemyAttack_Destructor: both arrays freed and emptied (+0x54 first).
+    CKS08EnemyAttack(const CKS08EnemyAttack& other);  // 0x002ace60 CKS08EnemyAttack_CopyConstruct_maybe
+    ~CKS08EnemyAttack() override;
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x002ad690 CKS08EnemyAttack_Load
 
     int32_t m_unk04;                    // +0x04 _maybe the attack type: indexes the size table

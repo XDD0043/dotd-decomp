@@ -24,10 +24,15 @@ public:
     };
 
     CLightComponent();                 // 0x000ba8b8 CLightComponent_Create (inlined)
-    ~CLightComponent() override {}     // STUB(C1.6): 0x9a1148 / 0x9a1108
+    ~CLightComponent() override {}     // 0x009a1148 / 0x009a1108 CLightComponent_Destructor / _DeletingDestructor: the vtables only
+    // vt+0x10 0x000bb278 CLightComponent_Destroy: the blink data's key block freed, the blink data deleted.
+    void Destroy() override;
     // vt+0x08 0x9a10e8
     int32_t IsKindOfClass(uint32_t key) override { return key == 0xa4c || key == 0xc; }
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x000bafe8 CLightComponent_Load
+    // vt+0x24 0x000ba5e8 CLightComponent_RecursiveRegistration: type 0 registers the light with the saving manager.
+    // vt+0x30 PostLoad 0xbaad0 returns 1 (IKSerializable's).
+    void RecursiveRegistration(int32_t type) override;
 
     // 0x000bacd8 LightData_UpdateColorAnimation_maybe: a blinking light (property bit 3) advances its blink time by the
     // frame's delta (back to 0 when it passes the blink length) and takes the colour of its colour line at that

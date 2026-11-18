@@ -9,5 +9,8 @@ namespace crt {
 // effect); otherwise +-0.5 as a float add (so 0.49999997f rounds to 1, as on the PS3), _FDint(x, 0) clears
 // the fraction bits, and fctiwz converts (out of [-2^31, 2^31] it raises FE_INVALID and saturates).
 int32_t lroundf(float x);
+// 0x0077f4c0 roundf (Dinkumware): zero, infinity and NaN as they are; otherwise +-0.5 as a float add and
+// _FDint(x, 0) (the fraction bits cleared), so 0.49999997f rounds to 1 as on the PS3.
+float roundf(float x);
 
 }  // namespace crt

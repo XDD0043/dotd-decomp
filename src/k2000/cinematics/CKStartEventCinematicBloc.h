@@ -19,6 +19,9 @@ public:
     ~CKStartEventCinematicBloc() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x0018a588 CKStartEventCinematicBloc_Load
+    // vt+0x24 0x0018a658 CKStartEventCinematicBloc_RecursiveRegistration: registered whatever the type (no 4..7 test), the
+    // base's, then the starter's (KStub_Return1_2361b0: nothing).
+    void RecursiveRegistration(int32_t type) override;
 
     void Start() override;                 // vt+0x5c 0x0018a8b0 CKStartEventCinematicBloc_Start
     void Complete() override;              // vt+0x64 0x0018ab90 CKStartEventCinematicBloc_Complete

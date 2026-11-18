@@ -11,15 +11,15 @@
 //   [x] 0x17f590  CKManageCameraCinematicBloc_Stop
 //   [x] 0x17f770  CKManageCameraCinematicBloc_Update
 //   [ ] 0x17f8b8  CKManageCameraCinematicBloc_Save
-//   [ ] 0x17f8e0  CKManageCameraCinematicBloc_RecursiveRegistration
+//   [x] 0x17f8e0  CKManageCameraCinematicBloc_RecursiveRegistration
 //   [x] 0x17fa18  CKManageCameraCinematicBloc_DeleteArray
 //   [x] 0x17fac0  CKManageCameraCinematicBloc_Create
-//   [ ] 0x17fb18  CKManageCameraCinematicBloc_Destroy
+//   [x] 0x17fb18  CKManageCameraCinematicBloc_Destroy  (empty: the default)
 //   [x] 0x17fb20  CKManageCameraCinematicBloc_CreateArray
 //   [x] 0x17fbd8  CKManageCameraCinematicBloc_Start
 //   [x] 0x17ffb8  CKManageCameraCinematicBloc_Load
 //   [x] 0x180188  CKManageCameraCinematicBloc_Complete
-//   [ ] 0x180360  CKParticleCinematicBloc_Delete
+//   [x] 0x180360  CKParticleCinematicBloc_Delete  (the Delete factory: DOTD_DECLARE_FACTORIES(CKParticleCinematicBloc), CKParticleCinematicBloc.h)
 //   [ ] 0x1803b0  FUN_001803b0  [dead]
 //
 //   [ ] 0x9a99d0  CKManageCameraCinematicBloc_IsKindOfClass  [inline]
@@ -29,6 +29,8 @@
 //   [ ] 0x9a9a20  CKManageCameraCinematicBloc_Destructor  [inline]
 //   [ ] 0x9a9a40  CKManageCameraCinematicBloc_DeletingDestructor  [inline]
 #include "k2000/cinematics/CKManageCameraCinematicBloc.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/scenegraph/CSGLeaf.h"
 
 #include "k2000/cameras/CKSrvCamera.h"
 #include "k2000/cameras/IKCamera.h"
@@ -111,4 +113,13 @@ void CKManageCameraCinematicBloc::Complete() { CompleteBloc(); }
 void CKManageCameraCinematicBloc::Abort() {
     m_DataFlags &= 0xfffffffeu;
     if (m_pCamera != nullptr) static_cast<IKCamera*>(m_pCamera)->ResetTrack();  // vt+0x6c
+}
+
+// 0x0017f8e0 CKManageCameraCinematicBloc_RecursiveRegistration
+void CKManageCameraCinematicBloc::RecursiveRegistration(int32_t type) {
+    if (static_cast<uint32_t>(type - 4) > 3u) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);
+    IKCinematicBloc::RecursiveRegistration(type);  // 0x0018e8d8
+    if (m_pCamera != nullptr) m_pCamera->RecursiveRegistration(type);  // vt+0x24
+    CSGLeaf* target = static_cast<CSGLeaf*>(m_pTarget);
+    if (target != nullptr && target->m_pParent == nullptr) target->RecursiveRegistration(type);
 }

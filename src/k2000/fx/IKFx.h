@@ -26,11 +26,30 @@ public:
         m_bUpdateWhenPaused = 0;
         return 1;
     }
-    virtual void Vf54() {}  // vt+0x54 0x009ab620 CKNodeFx3d_ReleaseReservation  STUB(C2.2)
-    virtual void Vf58() {}  // vt+0x58 0x009ab580 CKNodeFx3d_StopAndRelease  STUB(C2.2)
-    virtual void Vf5C() {}  // vt+0x5c 0x001d8918 CKNodeFx3d_ShowSceneNode  STUB(C2.2)
-    virtual void Vf60() {}  // vt+0x60 0x001d8b18 CKNodeFx3d_HideSceneNode  STUB(C2.2)
-    virtual void Vf64() {}  // vt+0x64 0x009ada60 CKNodeFx3d_Start  STUB(C2.2)
+    // vt+0x54 0x009ab620 CKNodeFx3d_ReleaseReservation: when reserved by `owner`, the reservation (bit 1) and the
+    // owner cleared.
+    virtual void ReleaseReservation(const IKSerializable* owner) {
+        if ((m_baFxData & 2u) == 0 || m_pOwner != owner) return;
+        m_baFxData = static_cast<uint8_t>(m_baFxData & 0xfdu);
+        m_pOwner = nullptr;
+    }
+    // vt+0x58 0x009ab580 CKNodeFx3d_StopAndRelease: when reserved by `owner`, the reservation cleared, the effect
+    // stopped (vt+0x6c) and the owner cleared.
+    virtual void StopAndRelease(const IKSerializable* owner) {
+        if ((m_baFxData & 2u) == 0 || m_pOwner != owner) return;
+        m_baFxData = static_cast<uint8_t>(m_baFxData & 0xfdu);
+        Stop();
+        m_pOwner = nullptr;
+    }
+    // vt+0x5c ShowSceneNode / vt+0x60 HideSceneNode: the effect's node shown or hidden. Both bases define them
+    // (IKNodeFx 0x1d8918 / 0x1d8b18: the 3D node's hidden flag; IKNode2dFx 0x1d8570 / 0x1d8808: the 2D node added
+    // to or taken off the manager's scene +0xa68); no effect class overrides them.
+    // DOTD: the names stay Vf5C / Vf60 / Vf64 until every caller is renamed (ShowSceneNode / HideSceneNode / Start).
+    virtual void Vf5C() = 0;
+    virtual void Vf60() = 0;
+    // vt+0x64 0x009ada60 CKNodeFx3d_Start [inline]: running (the stopped bit 0 cleared). IKNode2dFx's is 0x9ad9a0;
+    // most effect classes override it with their own start.
+    virtual void Vf64() { m_baFxData = static_cast<uint8_t>(m_baFxData & 0xfe); }
     virtual void Vf68() {}  // vt+0x68 0x009ab500 CKNodeFx3d_Interrupt_maybe (empty)
     // vt+0x6c 0x009ada78 CKNodeFx3d_Stop: stopped.
     virtual void Stop() { m_baFxData = static_cast<uint8_t>((m_baFxData & 0xfe) | 1); }
@@ -64,6 +83,12 @@ public:
     uint8_t m_pad0d[3];
 };
 static_assert(IKFx::kClassKey == 0x154c, "key");
+
+// 0x001cdde8 StopOwnedParticleEffect (CKParticlesEffectNodeFx.cpp): the effect stopped (vt+0x6c) when `owner` holds
+// its reservation.
+inline void StopOwnedParticleEffect(IKFx* effect, const IKSerializable* owner) {
+    if ((effect->m_baFxData & 2u) != 0 && effect->m_pOwner == owner) effect->Stop();
+}
 DOTD_ASSERT_SIZE(IKFx, 0x10);
 DOTD_ASSERT_OFFSET(IKFx, m_bUpdateWhenPaused, 0x04);
 DOTD_ASSERT_OFFSET(IKFx, m_pOwner, 0x08);

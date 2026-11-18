@@ -38,12 +38,14 @@ public:
     void Clear() { m_count = 0; }                                  // vt+0x04 0x99d2b8 / 0x99d268 / 0x99d258
     bool IsEmpty() const { return m_count == 0; }                 // vt+0x08 0x99d228 / 0x99d188 / 0x99d168
     void AllocBuffer();                                            // vt+0x0c 0x99e728 / 0x99e7a8 / 0x99d028
+    // vt+0x10 0x99e9b0 / 0x99ea08 / 0x99e8a8 (the same in every type): the item array freed, the queue empty.
+    void FreeBuffer();
     // vt+0x14 (0x99e1d8 / 0x99d548 / 0x99d2c8): the pass's render states.
     void BeginPass();
     // vt+0x18 (0x9a0068 / 0x99f510 / 0x99f130): BeginPass, the items sorted far to near (type 0: by
     // priority first), each item's rendering properties applied (types 0 and 6) and its vt+0x5c called;
     // then the queue is empty.
-    void Execute();
+    void Execute(IKTime* frameClock);
 
     Type m_type;
     IRendableObject** m_ppItems = nullptr;  // +0x04
@@ -61,6 +63,14 @@ public:
 
     static IKBaseClass* Create();
     static void Delete(IKBaseClass* object);
+    // 0x0009fe90 CRenderer_CreateArray / 0x0009f208 CRenderer_DeleteArray (the registry's array factories).
+    static IKBaseClass* CreateArray(uint32_t count, uint16_t* elementSize);
+    static void DeleteArray(IKBaseClass* first);
+
+    // vt+0x24 0x0009ec10 CRenderer_RecursiveRegistration: for type 0 the two scene roots (+0x2c / +0x30) and the flash
+    // manager (+0xb0) with type 0 (the camera context's KStub_Return1_a2e10 does nothing), then every renderable object
+    // of the list (+0xbc) with `type`.
+    void RecursiveRegistration(int32_t type) override;
 
     // 0x0009f620 InitializeRendererStages: camera context, world, 23 render queues, CManager2d,
     // CBackgroundManager, CLightManager, CKFlashManager, CVideoManager, CSpawnManager.
@@ -77,6 +87,9 @@ public:
     // 0x000a1408 ExecuteRenderStages38To48 (stages 0-4, the far group), 0x0009ff70 ExecuteRenderStages4CTo74 (stages 5-15),
     // 0x000a1a78 ExecuteRenderStage78 (stage 16).
     void SyncSceneCamerasAndClipPlanes();
+    // 0x000a0a00 SceneRoots_UpdateWorldMatrices_maybe: the cameras synchronised, then (under the render lock) every
+    // node of both roots made current (vt+0x68), and the main root frame's object sync mark (privateFlags bit 1) cleared.
+    void UpdateSceneWorldMatrices();
     // `fogColor` (red, green, blue): FogManager_GetMainColor for the main group, GetColorForFarPass for the far one.
     void ApplySceneRenderStatesAndFog(const uint8_t fogColor[4]);
     void ExecuteRenderStages38To48(IKTime* frameClock);
@@ -89,6 +102,11 @@ public:
     // CBackgroundManager::PreUpdate) and the video manager moved to the head of the renderable list.
     int32_t PostLoad(int32_t type) override;
     void Destroy() override;  // vt+0x10 0x0009eb70 CRenderer_Destroy (the level unload)
+    // vt+0x50 0x0009f320 CRenderer_Shutdown_maybe (CKGraphic_DestroyModule): the 23 stage queues freed and deleted, the 2D
+    // manager shut down and destroyed, the three cameras out of the world, the camera context's cameras and rasters
+    // destroyed and the context deleted, the clone, background, flash, light, video and spawn managers destroyed (each
+    // after its own shutdown), the world destroyed.
+    virtual void Shutdown();
 
     // A node of the renderable-object list (8 bytes, FreeListPool at TOC -0x6260 in the original).
     struct RendableNode {
@@ -106,6 +124,7 @@ public:
     CameraContext* m_cameraContext;               // +0x28 (engine +0x08 too)
     IKSerializable* m_pRootNode;                  // +0x2c XXL2 m_pRootNode (Engine_SetMainSceneRoot_maybe)
     IKSerializable* m_pSecondaryRootNode;         // +0x30 DotD (Engine_SetSecondarySceneRoot_maybe); name ours
+    struct RpWorld* m_pWorld;                     // +0x34 the empty RpWorld of the cameras and lights (InitializeStages)
     RenderQueue* m_aStages[23];                   // +0x38 the stage array (stages 17-22 at +0x7c..+0x90)
     IKSerializable* m_cloneManager;               // +0x94 CCloneManager (13:3)
     class CManager2d* m_manager2d;                // +0x98 (13:16; its +0xa78 = CMenuManager 13:17)
@@ -124,6 +143,9 @@ public:
     uint16_t m_renderStateCapacity;               // +0xc4 20
     uint8_t* m_pRenderStateStack;                 // +0xc8 20 entries of 0x38 bytes (Mem_AllocAligned16(0x460))
     float m_fInvFarSquared;                       // +0xcc
+    // +0xd0 the main camera's inverse world matrix (RwMatrixCreate in the constructor, identity with flags 0x20003;
+    // RenderFallbackFrame inverts the camera frame's LTM into it; the destructor's RwMatrixDestroy).
+    struct CMatrix34* m_pInvCameraMatrix;
     uint32_t m_unkD4;                             // +0xd4 CKLevel_Load sets 99 (every type)
 };
 

@@ -13,16 +13,16 @@
 //   [x] 0x450f90  CKLinkedBeaconSeq_CreateArray
 //   [x] 0x451028  CKLinkedBeaconSeq_Create
 //   [ ] 0x451060  CKLinkedBeaconSeq_Save
-//   [ ] 0x451068  CKLinkedBeaconSeq_PostLoad
-//   [ ] 0x451070  CKLinkedBeaconSeq_RecursiveRegistration
-//   [ ] 0x451110  CKLinkedBeaconSeq_Destroy
+//   [x] 0x451068  CKLinkedBeaconSeq_PostLoad  (returns 1: the default slot)
+//   [x] 0x451070  CKLinkedBeaconSeq_RecursiveRegistration
+//   [x] 0x451110  CKLinkedBeaconSeq_Destroy
 //   [x] 0x451188  CKLinkedBeaconSeq_Load
-//   [ ] 0x451498  CKLinkedBeaconSeq_Destructor
+//   [x] 0x451498  CKLinkedBeaconSeq_Destructor  (C++ destructor chain: vtable stores only)
 //   [ ] 0x4514b0  CKLinkedBeaconSeq_Destructor_2  [dead]
-//   [ ] 0x4514c8  CKLinkedBeaconSeq_DeletingDestructor
-//   [ ] 0x451508  KBase9F0C_vf28
+//   [x] 0x4514c8  CKLinkedBeaconSeq_DeletingDestructor  (the destructor; delete)
+//   [x] 0x451508  KBase9F0C_vf28  (Save: returns 1, the default slot)
 //   [x] 0x451510  CKKLBCharacterSparx_LoadBase_maybe
-//   [ ] 0x4515a0  CKHkTrackerManager_Delete
+//   [x] 0x4515a0  CKHkTrackerManager_Delete  (CKHkTrackerManager's factory Delete: DOTD_DECLARE_FACTORIES in CKHkTrackerManager.h)
 //   [ ] 0x4515f0  CKHkTrackerManager_SetTrackByte48_maybe  [dead]
 //   [ ] 0x451608  CKHkTrackerManager_GetTrackByte48_maybe  [dead]
 //   [ ] 0x451620  CKHkTrackerManager_SetTrackFloat4C_maybe  [dead]
@@ -47,14 +47,14 @@
 // K_LEVEL_PLATEFORMS.
 int32_t CKLinkedBeaconSeq::Load(IKFile* file, int32_t type) {
     ReadU8(file, &m_unk14);
-    ReadU32LE(file, &m_unk18);
+    ReadF32LE(file, &m_fTimeOut);
     ReadS32LE(file, &m_nbEntries);
     ReadU8(file, &m_unk15);
     ReadU8(file, &m_unk16);
     m_aEntries = new Entry[static_cast<uint32_t>(m_nbEntries)];  // OperatorNewArray(count * 8)
     for (int32_t i = 0; i < m_nbEntries; ++i) {
         ReadU8(file, &m_aEntries[i].m_unk0);
-        ReadU32LE(file, &m_aEntries[i].m_unk4);
+        ReadF32LE(file, &m_aEntries[i].m_fDuration);
     }
     if (type == K_LEVEL_PLATEFORMS) {
         IKFile_ReadRef(file, &m_pLauncherCpnt);
@@ -67,4 +67,16 @@ int32_t CKLinkedBeaconSeq::Load(IKFile* file, int32_t type) {
 int32_t CKKLBCharacterBase::Load(IKFile* file, int32_t type) {
     if (type == K_LEVEL_PLATEFORMS) IKFile_ReadRef(file, &m_pBeacon);
     return 1;
+}
+
+// 0x00451070 CKLinkedBeaconSeq_RecursiveRegistration
+void CKLinkedBeaconSeq::RecursiveRegistration(int32_t type) {
+    if (m_pAnimDictionary != nullptr) m_pAnimDictionary->RecursiveRegistration(type);  // vt+0x24
+    m_pLauncherCpnt->RecursiveRegistration(type);                                     // vt+0x24
+}
+
+// 0x00451110 CKLinkedBeaconSeq_Destroy
+void CKLinkedBeaconSeq::Destroy() {
+    if (m_pAnimDictionary != nullptr) m_pAnimDictionary->Destroy();  // vt+0x10
+    if (m_aEntries != nullptr) delete[] m_aEntries;                  // TocBridge_OperatorDeleteArray
 }

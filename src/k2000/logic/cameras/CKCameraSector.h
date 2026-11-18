@@ -14,12 +14,25 @@ class IKFile;
 class CKCameraSector : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x8)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x20c || key == 0xc; }  // vt+0x08 0x9917e0
     DOTD_DECLARE_FACTORIES(CKCameraSector)
 
     CKCameraSector();  // 0x00129308 CKCameraSector_Create (the constructor inlined)
-    ~CKCameraSector() override {}
+    ~CKCameraSector() override;  // 0x00992090 CKCameraSector_Destructor (0x992010 the deleting form)
 
+    // vt+0x38 0x00128e68 CKCameraSector_SetDefaultState: with flag 0, "switched on" (m_unk2d bit 1) takes the
+    // initial state (bit 0).
+    void SetDefaultState(int32_t flag) override;
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00129da8 CKCameraSector_Load
+    // vt+0x24 0x00129178 CKCameraSector_RecursiveRegistration: type 0 registers it with the saving manager and the
+    // reference +0x28 (when set) with type 0 (the starters' KStub_Return1_2361b0 register nothing).
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x3c 0x001293d8 CKCameraSector_SetGameState: game state 0 switches it on (m_unk2d bit 1), 1 off; returns 1.
+    int32_t SetGameState(const SApplyGameState* state) override;
+    // vt+0x1c 0x00129670 CKCameraSector_MessageProc: 0x700 switches it on (m_unk2d bit 1), 0x701 off (0 for both), else 1.
+    int32_t MessageProc(uint16_t message, void* data) override;
+    // vt+0x10 0x00129748 CKCameraSector_Destroy: the reference +0x28 destroyed (vt+0x10) and cleared, the camera list freed.
+    void Destroy() override;
 
     // 0x00129438 CKCameraSector_IsEnabledForFocusedHero_maybe: switched on (m_unk2d bit 1) and, when it names a
     // level sector (+0x40, loaded as a float: the bits are the sector number), that sector is the level's current one.

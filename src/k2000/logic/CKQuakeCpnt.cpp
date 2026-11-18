@@ -13,9 +13,9 @@
 //   [x] 0x24e180  CKQuakeCpnt_StartUpdater_maybe
 //   [x] 0x24e228  CKQuakeCpnt_CreateArray
 //   [ ] 0x24e2f0  CKQuakeCpnt_Save
-//   [ ] 0x24e2f8  CKQuakeCpnt_PostLoad
-//   [ ] 0x24e300  CKQuakeCpnt_RecursiveRegistration
-//   [ ] 0x24e308  CKQuakeCpnt_Destroy
+//   [x] 0x24e2f8  CKQuakeCpnt_PostLoad  (returns 1: IKSerializable default)
+//   [x] 0x24e300  CKQuakeCpnt_RecursiveRegistration  (returns 1, registers nothing: the default)
+//   [x] 0x24e308  CKQuakeCpnt_Destroy  (empty: the default)
 //   [x] 0x24e310  CKQuakeCpnt_Evaluate_maybe
 //   [x] 0x24e840  CKQuakeCpnt_Load
 //

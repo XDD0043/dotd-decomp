@@ -8,15 +8,15 @@
 //   [x] 0x1d72f0  CKTimeScalingFxData_EvaluateScaleCurve_maybe
 //   [ ] 0x1d7378  RegisterCKTimeScalingFxDataClass
 //   [ ] 0x1d73f0  _GLOBAL__I_1d73f0
-//   [ ] 0x1d7400  CKTimeScalingFxData_PostLoad
+//   [x] 0x1d7400  CKTimeScalingFxData_PostLoad  (= the inherited slot)
 //   [ ] 0x1d7428  CKTimeScalingFxData_Save
-//   [ ] 0x1d7450  CKTimeScalingFxData_RecursiveRegistration
+//   [x] 0x1d7450  CKTimeScalingFxData_RecursiveRegistration  (KStub_Return1_1d8340, nothing: the IKSerializable default slot)
 //   [x] 0x1d7478  CKTimeScalingFxData_DeleteArray
 //   [x] 0x1d7520  CKTimeScalingFxData_CreateArray
 //   [x] 0x1d75c8  CKTimeScalingFxData_Create
-//   [ ] 0x1d7610  CKTimeScalingFxData_GetInfo
+//   [x] 0x1d7610  CKTimeScalingFxData_GetInfo  (the default)
 //   [x] 0x1d7618  CKTimeScalingFxData_MessageProc
-//   [ ] 0x1d7af8  CKTimeScalingFxData_Destroy
+//   [x] 0x1d7af8  CKTimeScalingFxData_Destroy  (in the header)
 //   [x] 0x1d7b40  CKTimeScalingFxData_Load
 //
 //   [ ] 0x9ad650  CKTimeScalingFxData_IsKindOfClass  [inline]

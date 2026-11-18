@@ -4,27 +4,27 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x144108  IKCamera_LevelReset
-//   [ ] 0x1441e8  CKCamera_StartAttachedFx_maybe
-//   [ ] 0x144238  CKCamera_StopAttachedFx_maybe
+//   [x] 0x144108  IKCamera_LevelReset  (IKCamera::RecursiveRegistration)
+//   [x] 0x1441e8  CKCamera_StartAttachedFx_maybe
+//   [x] 0x144238  CKCamera_StopAttachedFx_maybe
 //   [x] 0x144278  IKCamera_GetHalfExtentsAtDistance_maybe
-//   [ ] 0x144300  IKCamera_IsCurrentCameraPredicate_maybe
+//   [x] 0x144300  IKCamera_IsCurrentCameraPredicate_maybe  (IsCurrentCamera, IKCamera::GetInfo's accessor)
 //   [x] 0x144330  IKCamera_GetEffectiveProfileIndex_maybe
 //   [x] 0x144378  IKCamera_GetFreezeYSpringStiffnessAndFriction_maybe
 //   [x] 0x144398  IKCamera_UpdateTrackBase_maybe
 //   [ ] 0x144460  IKCamera_ConstructBase_2  [dead]
 //   [x] 0x1444a8  IKCamera_ConstructBase
-//   [ ] 0x1444f0  IKCamera_GetInfo
-//   [ ] 0x144570  KStub_Return1_144570
-//   [ ] 0x144578  CKCameraTrack_ClearReferences_BaseNop_maybe
+//   [x] 0x1444f0  IKCamera_GetInfo  (IKCamera::GetInfo)
+//   [x] 0x144570  KStub_Return1_144570  (PostLoad: 1, IKSerializable's default)
+//   [x] 0x144578  CKCameraTrack_ClearReferences_BaseNop_maybe  (empty)
 //   [x] 0x144580  CKCameraBase_Load
 //   [ ] 0x144ab0  CKCameraBase_Save
 //   [x] 0x145088  IKCamera_FindAndRepairOcclusion_maybe
-//   [ ] 0x145ee0  CameraTrack_OrientMatrixToTarget_maybe
+//   [x] 0x145ee0  CameraTrack_OrientMatrixToTarget_maybe  (IKCamera::OrientMatrixToTarget (static))
 //   [x] 0x1461a0  IKCamera_FindGroundContact_maybe
-//   [ ] 0x146d78  IKCamera_DeletingDestructor
-//   [ ] 0x146db8  IKCamera_Destructor
-//   [ ] 0x146dd0  IKCamera_BaseDestructor
+//   [x] 0x146d78  IKCamera_DeletingDestructor  (~IKCamera (vtable stores only), delete)
+//   [x] 0x146db8  IKCamera_Destructor  (~IKCamera (vtable stores only))
+//   [x] 0x146dd0  IKCamera_BaseDestructor  (C++ destructor chain: vtable stores only)
 //
 //   [ ] 0x9a7178  IKCamera_vf68  [inline]
 //   [ ] 0x9a7180  KStub_Nop_9a7180  [inline]
@@ -56,9 +56,19 @@
 #include "k2000/cameras/CKSrvCamera.h"
 #include "k2000/cameras/CameraContext.h"
 #include "k2000/core/Stub.h"
+#include "k2000/graphical/CDOFData.h"
+#include "k2000/logic/fx/CKDOFFxData.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
+#include "k2000/services/CKSrvFx.h"
+#include "k2000/graphical/CDOFData.h"
+#include "k2000/logic/fx/CKDOFFxData.h"
+#include "k2000/services/CKSrvFx.h"
 #include "k2000/hooks/GroundContact.h"
 #include "k2000/hooks/CKCameraBeacon.h"
 #include "k2000/io/IKFile.h"
+#include "k2000/core/IKInfo.h"
+#include "k2000/logic/CKSavingManager.h"
 #include "k2000/logic/physics/CGround.h"
 #include "k2000/managers/CKGraphic.h"
 #include "k2000/misc/Engine.h"
@@ -179,6 +189,26 @@ void IKCamera::GetHalfExtentsAtDistance(float distance, float* halfWidth, float*
     *halfHeight = width * ScreenHeightOverWidth();
 }
 
+// 0x00144108 IKCamera_LevelReset (IKCamera's RecursiveRegistration; the tracks' call it first): type 0 registers
+// the camera; then the reference +0x38 (not tested for null: it is always set) and, when set, the attached fx +0x50.
+void IKCamera::RecursiveRegistration(int32_t type) {
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    m_unk38->RecursiveRegistration(type);
+    if (m_unk50 != nullptr) m_unk50->RecursiveRegistration(type);
+}
+
+// 0x00144300 IKCamera_IsCurrentCameraPredicate_maybe: 1 when the camera is the service's current one (+0x474):
+// ((|this ^ current| - 1) >> 31).
+static uint32_t IsCurrentCamera(IKSerializable* self, uint32_t /*arg*/) {
+    return self == SrvCamera()->m_pCurrentCamera ? 1u : 0u;
+}
+
+// 0x001444f0 IKCamera_GetInfo: request 0 with the value id 0: the current-camera predicate (a byte).
+int32_t IKCamera::GetInfo(IKInfo* info, int32_t request) {
+    if (request != kGetInfoValueAccessor || info->m_ui32Id != 0) return 1;
+    return AnswerInfo(info, IsCurrentCamera, 0);  // TriggerPropertyRequest_SetGetter_maybe 0x38cd8, descriptor TOC -0x3c3c
+}
+
 // 0x001444a8 IKCamera_ConstructBase
 IKCamera::IKCamera() {
     m_unk04 = nullptr;
@@ -200,12 +230,34 @@ void IKCamera::GetFrameMargins(float* a, float* b) const {
     *b = AsFloat(service->m_unk8e0);
 }
 
+// 0x001441e8 CKCamera_StartAttachedFx_maybe
+void IKCamera::StartAttachedFx() {
+    CKDOFFxData* fx = static_cast<CKDOFFxData*>(m_unk50);
+    if (fx == nullptr) return;
+    m_unk54 = static_cast<CDOFData*>(fx->m_pDOFData)->m_fFocusClamp;  // +0x08
+    CKSrvFx::StartCameraFx(-1.0f, fx);  // 0x001afaf8, TOC -0x3c4c
+}
+
+// 0x00144238 CKCamera_StopAttachedFx_maybe
+void IKCamera::StopAttachedFx() {
+    if (m_unk50 != nullptr) CKSrvFx::StopCameraFx(-1.0f, static_cast<IKFxData*>(m_unk50));  // 0x001affd8
+}
+
 // 0x00144398 IKCamera_UpdateTrackBase_maybe: the tracks' Updates call it first. Only with an attached fx (+0x50, a
 // depth-of-field effect): the position-target distance (fsubs, fmuls / fmadds / fmadds, Math_Sqrtf) goes to the fx
-// data's (+0x50 -> +0x08) +0x04 and, clamped to +0x54, +0x08; then CKSrvFx_StartCameraFx_maybe 0x1afaf8 (fx, -1.0).
-// STUB(C2.7, the FX service): none of LVL010's cameras has an attached fx (CKCamera::Start says the same).
+// data's CDOFData +0x04 and, clamped to +0x54 (`bge`: a NaN distance takes +0x54), +0x08; then
+// CKSrvFx_StartCameraFx_maybe 0x1afaf8 (time -1.0).
 void IKCamera::UpdateTrackBase() {
-    if (m_unk50 != nullptr) DOTD_STUB_ONCE("IKCamera_UpdateTrackBase_maybe: the attached fx's focus distance, CKSrvFx_StartCameraFx_maybe 0x1afaf8 (C2.7)");
+    if (m_unk50 == nullptr) return;
+    const float dx = m_WorldTarget.x - m_WorldPosition.x;
+    const float dy = m_WorldTarget.y - m_WorldPosition.y;
+    const float dz = m_WorldTarget.z - m_WorldPosition.z;
+    const float distance = std::sqrt(ppc::fmadds(dz, dz, ppc::fmadds(dx, dx, dy * dy)));  // 0x00010690 Math_Sqrtf
+    CKDOFFxData* fx = static_cast<CKDOFFxData*>(m_unk50);
+    CDOFData* dof = static_cast<CDOFData*>(fx->m_pDOFData);
+    dof->m_fFocusDistance = distance;
+    dof->m_fFocusClamp = !(distance < m_unk54) ? m_unk54 : distance;
+    CKSrvFx::StartCameraFx(-1.0f, fx);
 }
 
 // 0x00144580 CKCameraBase_Load
@@ -857,4 +909,86 @@ uint8_t IKCamera::GetEffectiveProfileIndex() const {
         return static_cast<const CKCameraBeacon*>(service->m_pUnk920)->m_unk23;
     }
     return m_TargetSafeMode;
+}
+
+// 0x00145ee0 CameraTrack_OrientMatrixToTarget_maybe (r3 is not read). TOC -0x3c68 (0), -0x3c30 (1), -0x3c10 (cos 1 deg
+// 0x3f7ff605). Only `up`'s y is read: the up candidate is (0, up.y, 0) normalised.
+void IKCamera::OrientMatrixToTarget(const CVector3* target, const CVector3* up, CMatrix34* m) {
+    const float dy = target->y - m->m_pos.y;
+    const float dx = target->x - m->m_pos.x;
+    const float dz = target->z - m->m_pos.z;
+    const float length = std::sqrt(ppc::fmadds(dz, dz, ppc::fmadds(dx, dx, dy * dy)));  // Math_Sqrtf 0x10690
+    if (length == 0.0f) return;
+    const float inverse = 1.0f / length;
+    m->m_ui32Flags &= 0xfffdfffcu;
+    const float ay = dy * inverse;
+    const float az = dz * inverse;
+    const float ax = dx * inverse;
+    m->m_at.y = ay;
+    const float upY = up->y;
+    float upLength = ppc::fmadds(upY, upY, 0.0f);
+    m->m_at.x = ax;
+    m->m_at.z = az;
+    upLength = std::sqrt(upLength + 0.0f);
+    if (!(upLength == 0.0f)) {
+        const float upInverse = 1.0f / upLength;
+        const float n0 = upInverse * 0.0f;  // the x and z of the normalised (0, up.y, 0)
+        const float n1 = upY * upInverse;
+        const float n0ax = n0 * ax;
+        const float n0az = n0 * az;
+        const float dot = ppc::fmadds(n1, ay, n0ax) + n0az;
+        if (std::fabs(dot) < 0.9998477101325989f) {
+            // The right axis n x at, the up axis at x right.
+            const float n0ay = n0 * ay;
+            float ry = n0ax - n0az;
+            const float n1ax = n1 * ax;
+            float rx = ppc::fmsubs(n1, az, n0ay);
+            float rz = n0ay - n1ax;
+            const float rightLength = std::sqrt(ppc::fmadds(rz, rz, ppc::fmadds(rx, rx, ry * ry)));
+            if (!(rightLength == 0.0f)) {
+                const float rightInverse = 1.0f / rightLength;
+                rz = rz * rightInverse;
+                rx = rx * rightInverse;
+                ry = ry * rightInverse;
+            }
+            const float rxay = rx * ay;
+            const float rzax = rz * ax;
+            const float ryaz = ry * az;
+            m->m_right.x = rx;
+            m->m_right.y = ry;
+            m->m_right.z = rz;
+            m->m_ui32Flags &= 0xfffdfffcu;
+            m->m_up.z = ppc::fmsubs(ry, ax, rxay);
+            m->m_up.y = ppc::fmsubs(rx, az, rzax);
+            m->m_up.x = ppc::fmsubs(rz, ay, ryaz);
+            return;
+        }
+    }
+    // Near the up axis (or no up): the up axis at x the matrix's current right, the right axis up x at.
+    const float rz = m->m_right.z;
+    const float rzax = rz * ax;
+    const float ry = m->m_right.y;
+    const float rx = m->m_right.x;
+    const float ryaz = ry * az;
+    const float rxay = rx * ay;
+    float uy = ppc::fmsubs(rx, az, rzax);
+    float ux = ppc::fmsubs(rz, ay, ryaz);
+    float uz = ppc::fmsubs(ry, ax, rxay);
+    const float upNewLength = std::sqrt(ppc::fmadds(uz, uz, ppc::fmadds(ux, ux, uy * uy)));
+    if (!(upNewLength == 0.0f)) {
+        const float upInverse = 1.0f / upNewLength;
+        uz = uz * upInverse;
+        ux = ux * upInverse;
+        uy = uy * upInverse;
+    }
+    const float uyax = uy * ax;
+    const float uxaz = ux * az;
+    const float uzay = uz * ay;
+    m->m_up.x = ux;
+    m->m_up.y = uy;
+    m->m_up.z = uz;
+    m->m_ui32Flags &= 0xfffdfffcu;
+    m->m_right.z = ppc::fmsubs(ux, ay, uyax);
+    m->m_right.y = ppc::fmsubs(uz, ax, uxaz);
+    m->m_right.x = ppc::fmsubs(uy, az, uzay);
 }

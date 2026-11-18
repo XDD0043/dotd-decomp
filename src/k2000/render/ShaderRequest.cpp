@@ -6,16 +6,16 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x100bf0  ShaderRequest_IsPendingFor_maybe
+//   [ ] 0x100bf0  ShaderRequest_IsPendingFor_maybe  [platform]  (the Cg compile requests (ShaderProgram_SubmitCompileRequest_maybe, CKShaderRequestQueue): platform/gfx compiles the translated programs on demand)
 //   [ ] 0x100c28  ShaderRequest_GetPendingTarget_maybe  [dead]
-//   [ ] 0x100c48  ShaderRequest_TakeResult_maybe
-//   [ ] 0x100ca8  ShaderRequest_Compile_maybe
-//   [ ] 0x100d10  ShaderRequest_Reset_maybe
-//   [ ] 0x100dc8  ShaderRequest_Cancel_maybe
-//   [ ] 0x100e28  ShaderRequest_Setup_maybe
+//   [ ] 0x100c48  ShaderRequest_TakeResult_maybe  [platform]  (the Cg compile requests (ShaderProgram_SubmitCompileRequest_maybe, CKShaderRequestQueue): platform/gfx compiles the translated programs on demand)
+//   [ ] 0x100ca8  ShaderRequest_Compile_maybe  [platform]  (the Cg compile requests (ShaderProgram_SubmitCompileRequest_maybe, CKShaderRequestQueue): platform/gfx compiles the translated programs on demand)
+//   [ ] 0x100d10  ShaderRequest_Reset_maybe  [platform]  (the Cg compile requests (ShaderProgram_SubmitCompileRequest_maybe, CKShaderRequestQueue): platform/gfx compiles the translated programs on demand)
+//   [ ] 0x100dc8  ShaderRequest_Cancel_maybe  [platform]  (the Cg compile requests (ShaderProgram_SubmitCompileRequest_maybe, CKShaderRequestQueue): platform/gfx compiles the translated programs on demand)
+//   [ ] 0x100e28  ShaderRequest_Setup_maybe  [platform]  (the Cg compile requests (ShaderProgram_SubmitCompileRequest_maybe, CKShaderRequestQueue): platform/gfx compiles the translated programs on demand)
 //   [ ] 0x100fb0  FUN_00100fb0  [dead]
-//   [ ] 0x101088  ShaderRequest_DeletingDestructor_maybe
-//   [ ] 0x1010d0  ShaderRequest_Destructor_maybe
+//   [ ] 0x101088  ShaderRequest_DeletingDestructor_maybe  [platform]  (the Cg compile requests (ShaderProgram_SubmitCompileRequest_maybe, CKShaderRequestQueue): platform/gfx compiles the translated programs on demand)
+//   [ ] 0x1010d0  ShaderRequest_Destructor_maybe  [platform]  (the Cg compile requests (ShaderProgram_SubmitCompileRequest_maybe, CKShaderRequestQueue): platform/gfx compiles the translated programs on demand)
 //   [ ] 0x101100  ShaderRequest_Destructor_2_maybe  [dead]
-//   [ ] 0x101130  ShaderRequest_Construct_maybe
-//   [ ] 0x101170  ShaderRequest_Construct_2_maybe
+//   [ ] 0x101130  ShaderRequest_Construct_maybe  [platform]  (the Cg compile requests (ShaderProgram_SubmitCompileRequest_maybe, CKShaderRequestQueue): platform/gfx compiles the translated programs on demand)
+//   [ ] 0x101170  ShaderRequest_Construct_2_maybe  [dead: no pointer to its descriptor 0xb57150, no call]

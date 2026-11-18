@@ -7,13 +7,8 @@
 #include "k2000/core/Layout.h"
 #include "k2000/graphical/ui/IKFlashMessage.h"
 
-// IKFlashGenericEvent (key 0x8cd; XXL2 K/KModules/KGL/2d/Maestro/FlashObject/IKFlashGenericEvent): the
-// events a message in starts. No front-end file holds one (0 references in LVL000); only the slot
-// CKFlashMessageIn_TriggerTargets_maybe calls is declared (vt+0x50, XXL2 slot 20, name unknown).
-class IKFlashGenericEvent : public IKSerializable {
-public:
-    virtual void Vf50() = 0;  // vt+0x50
-};
+// IKFlashGenericEvent (key 0x8cd): the events a message in starts (IKFlashGenericEvent.h).
+#include "k2000/graphical/ui/IKFlashGenericEvent.h"
 
 class CKFlashMessageIn : public IKFlashMessage {
 public:
@@ -27,7 +22,10 @@ public:
         return key == 0x84d || key == 0x80d || key == 0x74d || key == 0xc;
     }
     void Destroy() override;                                                // vt+0x10 0x000751b8 CKFlashMessageIn_Destroy
-    int32_t GetInfo() override { return 1; }                                // vt+0x40 0x75100
+    int32_t GetInfo(IKInfo* /*info*/, int32_t /*request*/) override { return 1; }  // vt+0x40 0x75100
+    // vt+0x24 0x00075200 CKFlashMessageIn_RecursiveRegistration: IKFlashObject's (empty), then (type 0) registered with the
+    // saving manager (vt+0x24).
+    void RecursiveRegistration(int32_t type) override;
     int32_t Load(IKFile* file, int32_t type) override;                      // vt+0x2c 0x000752b0 CKFlashMessageIn_Load
     // vt+0x54 0x74f50 CKFlashMessageIn_vf54 only calls IKFlashObject's (inherited).
     // 0x00075108 CKFlashMessageIn_TriggerTargets_maybe (XXL2 StartAllEvents): vt+0x50 of every event.

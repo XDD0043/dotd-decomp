@@ -6,7 +6,7 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x166328  CKSrvCinematic_Delete
 //   [ ] 0x166378  CKSrvCinematic_ReinitRuntime_2  [dead]
-//   [ ] 0x166390  CKSrvCinematic_RecursiveRegistration
+//   [x] 0x166390  CKSrvCinematic_RecursiveRegistration
 //   [x] 0x166570  CKSrvCinematic_IsSkippableScenePlaying_maybe
 //   [x] 0x1665e8  CKSrvCinematic_GetScenes_maybe
 //   [ ] 0x1665f8  RegisterCKSrvCinematicClass
@@ -38,12 +38,12 @@
 //   [x] 0x167498  CKSrvCinematic_NotifyListeners
 //   [x] 0x167548  CKSrvCinematic_Destroy
 //   [x] 0x1675b0  CKSrvCinematic_HideFadeQuad_maybe
-//   [ ] 0x1675e8  CKSrvCinematic_Construct_2
+//   [x] 0x1675e8  CKSrvCinematic_Construct_2  (the not-in-charge copy of the constructor 0x166be8: CKSrvCinematic())
 //   [x] 0x167698  CKSrvCinematic_ForceEndAllScenes_maybe
 //   [x] 0x167778  CKSrvCinematic_MessageProc
-//   [ ] 0x167780  CKSrvCinematic_PreSectorLoaded
-//   [ ] 0x167788  CKSrvCinematic_SectorLoaded
-//   [ ] 0x167790  CKSrvCinematic_PostSectorUnload
+//   [x] 0x167780  CKSrvCinematic_PreSectorLoaded  (PreSectorLoaded: empty, the IKUpdatable default)
+//   [x] 0x167788  CKSrvCinematic_SectorLoaded  (SectorLoaded: empty, the IKUpdatable default)
+//   [x] 0x167790  CKSrvCinematic_PostSectorUnload  (PostSectorUnload: empty, the IKUpdatable default)
 //   [x] 0x167798  CKSrvCamera_AddOrRemoveCameraOwner_maybe
 //   [x] 0x1678b0  CKSrvCinematic_DestroyService
 //   [x] 0x167940  CKSrvCinematic_ActivateNode
@@ -53,9 +53,9 @@
 //   [x] 0x1685e8  CKSrvCinematic_Load
 //   [x] 0x168968  CKSrvCinematic_CreateArray
 //   [x] 0x168ad0  CKSrvCinematic_Create
-//   [ ] 0x168b98  CKSrvCinematic_Destructor
-//   [ ] 0x168c78  CKSrvCinematic_DestructBody
-//   [ ] 0x168d58  CKSrvCinematic_DeletingDestructor
+//   [x] 0x168b98  CKSrvCinematic_Destructor  (~CKSrvCinematic)
+//   [x] 0x168c78  CKSrvCinematic_DestructBody  (~CKSrvCinematic)
+//   [x] 0x168d58  CKSrvCinematic_DeletingDestructor  (~CKSrvCinematic + delete)
 //
 //   [ ] 0x9a8c30  CKSrvCinematic_IsKindOfClass  [inline]
 //   [ ] 0x9a8c68  CKSrvCinematic_GetClassType  [inline]
@@ -72,6 +72,7 @@
 #include "k2000/logic/CKCinematicSceneData.h"
 #include "k2000/logic/CDefaultGameManager.h"
 #include "k2000/logic/CKCinematicScene.h"
+#include "k2000/logic/CKSavingManager.h"
 #include "k2000/memory/Mem.h"
 #include "k2000/misc/Engine.h"
 #include "k2000/misc/IKCinematicElement.h"
@@ -575,4 +576,31 @@ int32_t CKSrvCinematic::UpdateVideoSkipPrompt() {
         }
     }
     return result;
+}
+
+// C2.8 port-all P11.
+
+// 0x00168b98 CKSrvCinematic_Destructor (0x168c78 / 0x168d58 the same)
+CKSrvCinematic::~CKSrvCinematic() {
+    Engine_SetSrvCinematic(nullptr);
+    if (m_vpActivationGuard.m_pBlock != nullptr) Mem_FreeAligned16(m_vpActivationGuard.m_pBlock);
+    m_vpActivationGuard.m_ui32NbUsedElt = 0;
+    m_vpActivationGuard.m_pBlock = nullptr;
+    if (m_vpBlockingScenes.m_pBlock != nullptr) Mem_FreeAligned16(m_vpBlockingScenes.m_pBlock);
+    m_vpBlockingScenes.m_ui32NbUsedElt = 0;
+    m_vpBlockingScenes.m_pBlock = nullptr;
+    if (m_vpSerializableToWarn.m_pBlock != nullptr) Mem_FreeAligned16(m_vpSerializableToWarn.m_pBlock);
+    m_vpSerializableToWarn.m_ui32NbUsedElt = 0;
+    m_vpSerializableToWarn.m_pBlock = nullptr;
+}
+
+// 0x00166390 CKSrvCinematic_RecursiveRegistration
+void CKSrvCinematic::RecursiveRegistration(int32_t type) {
+    if (static_cast<uint32_t>(type) < 2) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);
+    if (type != 0 && type != 4) return;
+    for (uint16_t i = 0; i < m_ui32SceneNumber; ++i) m_pSceneList[i]->RecursiveRegistration(type);  // vt+0x24
+    if (type != 0) return;
+    for (IKSerializable* band : m_pBlackBandBillBoard) {
+        if (band != nullptr) band->RecursiveRegistration(0);
+    }
 }

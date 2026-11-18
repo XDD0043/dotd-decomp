@@ -6,7 +6,8 @@ used or run.
 | Folder | What | Licence | How it gets here |
 |---|---|---|---|
 | `SDL/` | SDL3 (window, input, audio device, threads) | zlib | git submodule. A git worktree has no submodule checkout: CMake's `DOTD_SDL_DIR` points at the main checkout's copy (`work/wt_build.cmd` does this). |
-| `ffmpeg/` | FFmpeg **n7.1.2** source (only the Bink video, Bink audio and ATRAC3 decoders are built) | LGPL-2.1-or-later | a shallow clone, **not committed** (`dotd/.gitignore`). |
+| `ffmpeg/` | FFmpeg **n7.1.2** source (only the Bink video, Bink audio, ATRAC3, VP9 and Vorbis decoders are built) | LGPL-2.1-or-later | a shallow clone, **not committed** (`.gitignore`). |
+| `zstd/` | zstd **v1.5.7** source (only the decoder, for the web build's download worker: `web/zstddec/`) | BSD-3-Clause | a shallow clone, **not committed** (`.gitignore`): `git clone --depth 1 --branch v1.5.7 -c core.autocrlf=false https://github.com/facebook/zstd.git zstd`. Without it the web build has no download mode. |
 | `ffmpeg-bink/` | ours: the CMake target `ffbink` and the handwritten configuration headers (`include/config.h`, `config_components.h`, `libavutil/avconfig.h`, `libavutil/ffversion.h`, `libavcodec/codec_list.c`, `libavcodec/bsf_list.c`) | — | committed |
 
 ## FFmpeg (Bink)
@@ -21,7 +22,7 @@ git clone --depth 1 --branch n7.1.2 -c core.autocrlf=false https://github.com/FF
 clone; without it the build still works and `platform/video/bink.cpp` reports that videos cannot be played.
 A git worktree can pass `-DDOTD_FFMPEG_DIR=<main checkout>/dotd/thirdparty/ffmpeg` instead of cloning again.
 
-What is built: `libavcodec` `bink.c`, `binkdsp.c`, `binkaudio.c` (DCT and RDFT), `atrac3.c` / `atrac.c` (the levels' speech, with `libavutil/float_dsp.c`) and the core they need
+What is built: `libavcodec` `bink.c`, `binkdsp.c`, `binkaudio.c` (DCT and RDFT), `atrac3.c` / `atrac.c` (the levels' speech, with `libavutil/float_dsp.c`), the VP9 decoder (`vp9*.c`, `videodsp.c`, the `vp9_superframe_split` bitstream filter: the web pack's re-encoded videos, `dotd/web/README.md`), the Vorbis decoder (`vorbisdec.c`, `vorbis.c`, `vorbisdsp.c`, `vorbis_data.c`, `xiph.c`: the web pack's re-encoded music) and the core they need
 (`avcodec`, `decode`, the null bitstream filter, options, packets, buffers, `vlc`, `blockdsp`, `hpeldsp`),
 and the part of `libavutil` that core uses (frames, buffers, options, pixel formats, `tx` for the audio
 transform, ...). No configure script, no assembly, no threads (`HAVE_THREADS 0`), C only; MSVC builds it

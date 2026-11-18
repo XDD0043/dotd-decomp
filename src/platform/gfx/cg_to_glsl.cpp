@@ -16,6 +16,8 @@
 #include <set>
 #include <sstream>
 
+#include "platform/hostfs.h"
+
 namespace dotd::gfx::cg {
 namespace {
 
@@ -219,6 +221,11 @@ public:
         while (Peek().kind != T::kEof) TopLevel();
         EmitWrapper(out);
         std::string src = "#version 330 core\n";
+        if (usesLodBias_) {
+            // PSGL's texture LOD bias (device.h kPsglLodBias). Desktop GL has it as a texture parameter (device.cpp); GLSL ES
+            // (the web build) has no such parameter, so there the pixel shader's implicit-LOD lookups carry it.
+            src += "#ifdef GL_ES\n#define DOTD_LOD_BIAS -0.2578125\n#else\n#define DOTD_LOD_BIAS 0.0\n#endif\n";
+        }
         if (usesFmod_) {
             src +=
                 "float cg_fmod(float x, float y) { return x - y * trunc(x / y); }\n"
@@ -236,6 +243,7 @@ private:
     std::vector<Token> tokens_;
     size_t pos_ = 0;
     Stage stage_;
+    bool usesLodBias_ = false;
     std::string entry_;
 
     std::string decls_;    // global declarations (structs, uniforms, constants, helpers)
@@ -1149,7 +1157,10 @@ private:
             r.ty = VectorOf(B::kFloat, 4);
             const bool cube = name == "texCUBE";
             const Val uv = Conv(args.at(1), cube ? VectorOf(B::kFloat, 3) : VectorOf(B::kFloat, name == "tex2Dproj" || name == "tex2Dlod" ? 4 : 2));
-            if (name == "tex2D" || cube) {
+            if ((name == "tex2D" || cube) && stage_ == Stage::kPixel) {  // (a bias argument is a fragment shader's only)
+                usesLodBias_ = true;
+                r.code = "texture(" + args[0].code + ", " + uv.code + ", DOTD_LOD_BIAS)";
+            } else if (name == "tex2D" || cube) {
                 r.code = "texture(" + args[0].code + ", " + uv.code + ")";
             } else if (name == "tex2Dproj") {
                 r.code = "textureProj(" + args[0].code + ", " + uv.code + ")";
@@ -1765,13 +1776,14 @@ private:
         }
         if (stage_ == Stage::kPixel && !out->colorOutputs.empty()) {
             // The PS3's fixed-function alpha test (RW alphaTestFunction 1..7 = never, less, equal, less-equal,
-            // greater, greater-equal, not-equal; 8 = always) on the first colour output's alpha. Platform addition:
+            // greater, not-equal, greater-equal; 8 = always: the driver's table 0xa72540 is GL_NEVER 0x200 .. GL_ALWAYS
+            // 0x207 in that order) on the first colour output's alpha. Platform addition:
             // the host sets dotd_alphaFunc / dotd_alphaRef (0..1) per draw (RwDevice's render states).
             decl += "uniform int dotd_alphaFunc;\nuniform float dotd_alphaRef;\n";
             main += "  if (dotd_alphaFunc >= 1 && dotd_alphaFunc <= 7) {\n    float a = " + out->colorOutputs[0] +
                     ".a;\n    bool keep = dotd_alphaFunc == 1 ? false : dotd_alphaFunc == 2 ? a < dotd_alphaRef : "
                     "dotd_alphaFunc == 3 ? a == dotd_alphaRef : dotd_alphaFunc == 4 ? a <= dotd_alphaRef : "
-                    "dotd_alphaFunc == 5 ? a > dotd_alphaRef : dotd_alphaFunc == 6 ? a >= dotd_alphaRef : a != dotd_alphaRef;\n"
+                    "dotd_alphaFunc == 5 ? a > dotd_alphaRef : dotd_alphaFunc == 6 ? a != dotd_alphaRef : a >= dotd_alphaRef;\n"
                     "    if (!keep) discard;\n  }\n";
         }
         main += "}\n";
@@ -1795,11 +1807,16 @@ bool Translate(const std::string& preprocessed, Stage stage, const char* entry, 
 }
 
 bool LoadGameSources(const char* ebootPath, Sources* out, std::string* error) {
-    std::ifstream file(ebootPath, std::ios::binary);
-    if (!file) {
+    // Through hostfs: on the web the EBOOT is read from the served USRDIR like every other game file.
+    std::FILE* file = dotd::platform::hostfs::OpenStdio(ebootPath);
+    if (file == nullptr) {
         *error = std::string("cannot open ") + ebootPath;
         return false;
     }
+    struct Closer {
+        std::FILE* f;
+        ~Closer() { std::fclose(f); }
+    } closer{file};
     struct Block {
         size_t offset;
         const char* firstLine;
@@ -1809,17 +1826,15 @@ bool LoadGameSources(const char* ebootPath, Sources* out, std::string* error) {
     const Block blocks[] = {{0xc26750, "#pragma pack_matrix (row_major)", "VertexShaderMain", &out->vertex},
                             {0xc19848, "#ifndef externBasicShader", "PixelShaderMain", &out->pixel}};
     for (const Block& b : blocks) {
-        file.clear();
-        file.seekg(static_cast<std::streamoff>(b.offset));
+        std::fseek(file, static_cast<long>(b.offset), SEEK_SET);
         std::string text;
         char chunk[4096];
         bool terminated = false;
         while (!terminated && text.size() < (1u << 20)) {
-            file.read(chunk, sizeof chunk);
-            const std::streamsize got = file.gcount();
-            if (got <= 0) break;
-            const char* nul = static_cast<const char*>(std::memchr(chunk, 0, static_cast<size_t>(got)));
-            text.append(chunk, nul != nullptr ? static_cast<size_t>(nul - chunk) : static_cast<size_t>(got));
+            const size_t got = std::fread(chunk, 1, sizeof chunk, file);
+            if (got == 0) break;
+            const char* nul = static_cast<const char*>(std::memchr(chunk, 0, got));
+            text.append(chunk, nul != nullptr ? static_cast<size_t>(nul - chunk) : got);
             terminated = nul != nullptr;
         }
         if (!terminated || text.compare(0, std::strlen(b.firstLine), b.firstLine) != 0 || text.find(b.entry) == std::string::npos) {

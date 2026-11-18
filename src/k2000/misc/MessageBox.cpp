@@ -11,7 +11,7 @@
 //   [ ] 0x68420  KStub_Return0_68420  [dead]
 //   [ ] 0x68428  KStub_Nop_68428  [dead]
 //   [ ] 0x68430  MessageBox_ResetAll_maybe  [dead]
-//   [ ] 0x68510  MessageBox_PushJobMessageEntry_maybe
+//   [x] 0x68510  MessageBox_PushJobMessageEntry_maybe
 //   [x] 0x68540  StaticInitAndDestruction_68540 (the state's zero initialisation)
 //   [ ] 0x685a8  _GLOBAL__I_685a8
 //   [ ] 0x685b8  _GLOBAL__D_685b8
@@ -19,8 +19,8 @@
 //   [ ] 0x68680  MessageBox_PushWideTextReturnEntry_maybe  [dead]
 //   [x] 0x687a8  Draw2d_FullScreenColorQuad_maybe
 //   [ ] 0x68808  CManager2d_UpdatePulseValue_maybe  [dead]
-//   [ ] 0x68920  LocText_GetOrDefault_maybe
-//   [ ] 0x689a8  MessageBox_ClearJobMessageEntries_maybe
+//   [x] 0x68920  LocText_GetOrDefault_maybe
+//   [x] 0x689a8  MessageBox_ClearJobMessageEntries_maybe
 //   [ ] 0x689b8  MessageBox_RefreshFirstEntryTimestamp_maybe  [dead]
 //   [ ] 0x689d8  KStub_Nop_689d8  [dead]
 //   [ ] 0x689e0  MessageBox_RemoveById_maybe  [dead]
@@ -28,7 +28,7 @@
 //   [ ] 0x68ba8  MessageBox_RemoveAnsweredById_maybe  [dead]
 //   [ ] 0x68c68  CManager2d_GetPulsingTextGray_maybe  [dead]
 //   [x] 0x68de0  CManager2d_GetPulsingTextColor_maybe
-//   [x] 0x68ef0  CManager2d_DrawSystemMessageOverlay_maybe (the loc lookup of a queued message: STUB(C2))
+//   [x] 0x68ef0  CManager2d_DrawSystemMessageOverlay_maybe
 //   [x] 0x69358  MessageBox_Push_maybe
 //   [ ] 0x694a0  MessageBox_ShowWideText_maybe  [dead]
 //   [x] 0x695d0  MessageBox_Show_maybe
@@ -53,16 +53,18 @@
 #include "k2000/misc/Wcs.h"
 #include "k2000/logic/ui/CKLocText.h"
 #include "k2000/misc/JobQueue.h"
+#include "k2000/logic/ui/CLocManager.h"
 
 namespace {
 
 // 0x00c5b918: the system message state (zeroed by the static initialiser 0x68540). +0x00..+0x08 the
 // pulse (FloatApproach {target, speed, current}), +0x0c the time held at 1, +0x10 the real time of the
-// last step; +0xd68 the queue's entries (0x10 bytes, the message id first), +0xda8 (0x00c5c6c0) their
-// count. The bytes between (+0x14..+0xd67: the job message entries) are not used by the overlay.
+// last step; +0xd68 the job message entries (0x10 bytes: the message id, the alpha; MessageBox_PushJobMessageEntry
+// 0x68510), +0xda8 (0x00c5c6c0) their count. The bytes between (+0x14..+0xd67) are not used by this unit's live code.
 struct SystemMessageEntry {
     uint32_t m_id;      // +0x00 the loc text id (or 200..203: CManager2d's cached strings)
-    uint32_t m_unk04[3];
+    float m_fAlpha;     // +0x04 MessageBox_PushJobMessageEntry's alpha (not read by the overlay)
+    uint32_t m_unk08[2];
 };
 struct SystemMessageState {
     float m_afPulse[3];             // +0x00 target, speed, current
@@ -85,13 +87,7 @@ const uint8_t kWhite[4] = {0xff, 0xff, 0xff, 0xff};
 const int32_t kBlendSrcAlpha = 5;     // 0x00c297f0
 const int32_t kBlendInvSrcAlpha = 6;  // 0x00c29800
 
-// Local copy of 0x00010a18 Wcs_Length (misc/Wcs.cpp, not ported yet; TextData.cpp and CLocManager.cpp
-// keep copies too).
-uint32_t Wcs_Length(const uint16_t* s) {
-    uint32_t n = 0;
-    while (s[n] != 0) ++n;
-    return n;
-}
+// Wcs_Length 0x10a18: misc/Wcs.cpp (C2.8 port-all P10).
 
 // The pulse restarts at 1 (target 1, speed 1.2 per second, TOC1 -0x6ebc / -0x6eb8), the store order of
 // both reset sites.
@@ -106,6 +102,30 @@ void ResetPulse() {
 }  // namespace
 
 uint32_t SystemMessage_GetCount() { return s_state.m_count; }
+
+// 0x00068510 MessageBox_PushJobMessageEntry_maybe: the job's message (its loc text id) appended with `alpha`.
+void MessageBox_PushJobMessageEntry(float alpha, uint32_t jobId) {
+    SystemMessageEntry* entry = &s_state.m_entries[s_state.m_count];
+    s_state.m_count = s_state.m_count + 1;
+    entry->m_fAlpha = alpha;
+    entry->m_id = jobId;
+}
+
+// 0x000689a8 MessageBox_ClearJobMessageEntries_maybe
+void MessageBox_ClearJobMessageEntries() { s_state.m_count = 0; }
+
+// 0x00c5c680 +0x40 (0x00c5c6c0): the job message entries' count (GameLoop's inhibit flag +0x1d).
+int32_t MessageBox_GetJobMessageCount() { return static_cast<int32_t>(s_state.m_count); }
+
+// 0x00068920 LocText_GetOrDefault_maybe: with the boot loc data loaded (0x00c50f00), the loc text `id`
+// (CLocManager_GetText 0x37028, then LocString_GetText 0x35d28); otherwise or without one " " (0x00c2966e).
+const uint16_t* LocText_GetOrDefault(uint32_t id) {
+    if (g_bootLocLoaded != 0) {
+        CKLocText* loc = g_pEngine->m_locManager->GetText(id);
+        if (loc != nullptr) return LocString_GetText(loc);
+    }
+    return kSpaceW;
+}
 
 // 0x000687a8 Draw2d_FullScreenColorQuad_maybe (centre 0, 0: TOC1 -0x6e98)
 void Draw2d_FullScreenColorQuad(const uint8_t* color) {
@@ -170,10 +190,11 @@ void CManager2d_DrawSystemMessageOverlay() {
         Draw2d_FullScreenColorQuad(kBlack);
         const SystemMessageEntry* entry = &s_state.m_entries[s_state.m_count - 1];
         if (gameManager->m_unk290 == -1) {
+            // LocText_GetOrDefault_maybe 0x68920 inlined (the boot loc data is loaded here): the loc text of the
+            // entry's id (CLocManager_GetText 0x37028, LocString_GetText 0x35d28), else " ".
             const uint16_t* text = kSpaceW;
-            // STUB(C2): with the loc data loaded, CLocManager_GetText(engine loc manager, id) (0x37028) and,
-            // when it has the text, LocString_GetText (0x35d28) give the message. The queue is empty until
-            // MessageBox_Push (0x69358) is ported, so this branch is not reached yet.
+            CKLocText* loc = g_pEngine->m_locManager->GetText(entry->m_id);
+            if (loc != nullptr) text = LocString_GetText(loc);
             manager->DrawSystemText(text, 1, 1);
         } else {
             manager->DrawSystemText(manager->GetSystemMessageString(entry->m_id), 1, 0);
@@ -229,8 +250,9 @@ void MessageBox_Push(float x, float y, IKSerializable* sender, const CKLocText* 
 }
 
 // 0x000695d0 MessageBox_Show_maybe
-void MessageBox_Show(float x, float y, IKSerializable* sender, const CKLocText* text, int32_t combineType, int32_t defaultButton) {
-    MessageBox_Push(x, y, sender, text, combineType, defaultButton, nullptr);
+void MessageBox_Show(float x, float y, IKSerializable* sender, const CKLocText* text, int32_t combineType, int32_t defaultButton,
+                     uint8_t (*interrupt)()) {
+    MessageBox_Push(x, y, sender, text, combineType, defaultButton, interrupt);
     s_requests[s_requestCount - 1].m_bNotifySender = 1;
 }
 

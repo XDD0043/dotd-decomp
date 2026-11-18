@@ -18,6 +18,10 @@ public:
 
     // 0x0018fc90 CKCinematicDoor_Load (XXL2 IKLogicalDoor::BasicLoadCinematicElement).
     int32_t BasicLoadCinematicElement(IKFile* file, int32_t type);
+    // vt+0x24 0x0018fc20 IKLogicalDoor_LevelReset (the recursive registration): registered with the saving manager
+    // (vt+0x24) unless the type is 4..7. The doors' own (CKEndDoor 0x16eb80, CKLogicalAnd 0x16f208, CKLogicalOr
+    // 0x16fa60, CKStartDoor 0x170080) register once more, then call this one.
+    void RecursiveRegistration(int32_t type) override;
 
     // The door's Complete body, inlined three times (0x16e8f0 CKEndDoor_Complete, 0x16ef40 CKLogicalAnd_Complete, 0x16f840
     // CKLogicalOr_Complete): incoming count cleared, the door out of the scene's running list, flags bit 0 cleared and

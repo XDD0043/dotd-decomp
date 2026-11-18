@@ -10,6 +10,9 @@
 class CKS08StunDamage : public CKS08Damage {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x26b)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9c06d8
+        return key == 0x9acc || key == 0xc || key == 0x970c || key == 0x96cc;
+    }
     DOTD_DECLARE_FACTORIES(CKS08StunDamage)
 
     // 0x003d18a0 CKS08StunDamage_Construct: CKS08Damage_Construct_2 (CKS08Damage's constructor), then the

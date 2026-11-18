@@ -11,8 +11,8 @@
 //   [x] 0x7b4f0  CKBlenderController_PostLoad
 //   [x] 0x7b518  CKBlenderController_Load
 //   [ ] 0x7b630  CKBlenderController_Save
-//   [ ] 0x7b658  CKBlenderController_RecursiveRegistration
-//   [ ] 0x7b6f0  CKBlenderController_Destroy
+//   [x] 0x7b658  CKBlenderController_RecursiveRegistration
+//   [x] 0x7b6f0  CKBlenderController_Destroy
 //   [x] 0x7b738  CKBlenderController_DeleteArray
 //   [x] 0x7b7d8  CKBlenderController_Create
 //   [x] 0x7b830  CKBlenderController_vf50
@@ -313,4 +313,20 @@ RtAnimInterpolator* CKBlenderController::Evaluate(uint32_t* mask, float* weight,
     }
     m_unk24 = g_ui16RenderFrameCounter;
     return m_unk0c;
+}
+
+// 0x0007b6f0 CKBlenderController_Destroy
+void CKBlenderController::Destroy() {
+    ClearReferencesBase();
+    m_apControllers[1] = nullptr;
+    m_unk58 = 0.0f;
+    m_apControllers[0] = nullptr;
+}
+
+// C2.8 port-all P08.
+// 0x0007b658 CKBlenderController_RecursiveRegistration
+void CKBlenderController::RecursiveRegistration(int32_t type) {
+    KBase98D::RecursiveRegistration(type);  // 0x0007cff8
+    m_apControllers[0]->RecursiveRegistration(type);  // vt+0x24
+    m_apControllers[1]->RecursiveRegistration(type);
 }

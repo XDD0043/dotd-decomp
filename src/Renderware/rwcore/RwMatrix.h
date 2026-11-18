@@ -82,6 +82,8 @@ RwBool RwMatrixOptimizations(RwInt32 optimizeFlags);
 
 // 0x0075e7f0 RwV3dTransformPoint (pointOut may alias pointIn)
 RwV3d* RwV3dTransformPoint(RwV3d* pointOut, const RwV3d* pointIn, const RwMatrix* matrix);
+// 0x00744b10 RwBBoxCalculate (rwcore babbox.c; the code is in rpworld/RpGeometry.cpp)
+RwBBox* RwBBoxCalculate(RwBBox* boundBox, const RwV3d* verts, RwInt32 numVerts);
 // 0x0075e850 RwV3dTransformPoints
 RwV3d* RwV3dTransformPoints(RwV3d* pointsOut, const RwV3d* pointsIn, RwInt32 numPoints, const RwMatrix* matrix);
 // 0x0075e8b0 RwV3dTransformVector

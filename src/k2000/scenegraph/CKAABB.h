@@ -9,6 +9,9 @@
 class CKAABB : public IKBoundingBox {
 public:
     DOTD_CLASS_KEY(kCategoryNode, 0x11)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a2e80
+        return key == 0x44b || key == 0x40b || key == 0x34b || key == 0x20b || key == 0x14b || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKAABB)
 
     CKAABB() {}  // 0x000d6528 CKAABB_Create: CSGLeaf's constructor, +0x28 and +0x1c cleared, the vtables

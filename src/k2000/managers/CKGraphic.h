@@ -11,6 +11,9 @@ class TextureBank;
 class CKGraphic : public IKModule {
 public:
     DOTD_CLASS_KEY(kCategoryManager, 2)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9969a8
+        return key == 0x80 || key == 0x33e || key == 0x3fe || key == 0xc;
+    }
 
     CKGraphic();  // 0x00059558 CKGraphic_Construct (inlined in CKGraphic_Create 0x5a780)
     ~CKGraphic() override;
@@ -22,12 +25,20 @@ public:
     int32_t PostLoad(int32_t type) override;
 
     static IKBaseClass* Create();                       // 0x0005a780 CKGraphic_Create
-    static void Delete(IKBaseClass* object);
+    static void Delete(IKBaseClass* object);            // 0x00059508 CKGraphic_Delete: the deleting destructor (vt+0x04)
+    // 0x0005a6a8 CKGraphic_CreateArray / 0x00059790 CKGraphic_DeleteArray: new[] / delete[] (P21).
+    static IKBaseClass* CreateArray(uint32_t count, uint16_t* elementSize) {
+        if (elementSize != nullptr) *elementSize = static_cast<uint16_t>(sizeof(CKGraphic));
+        return new CKGraphic[count];
+    }
+    static void DeleteArray(IKBaseClass* first) { delete[] static_cast<CKGraphic*>(first); }
 
     void Start() override;                    // vt+0x50 0x59c40
     void Stop() override;                         // vt+0x68 0x5a128 CKGraphic_Stop: the videos, the flash interfaces and the spawn shakes stopped
-    void Pause() override {}                         // vt+0x70 0x59e78
-    void Resume() override {}                        // vt+0x78 0x59e48
+    // vt+0x70 0x00059e78 CKGraphic_Pause / vt+0x78 0x00059e48 CKGraphic_Resume: every running video of the video
+    // manager (renderer +0xb4) paused / resumed (GraphicObjectList_PauseAll_maybe 0xa8820 / ResumeAll_maybe 0xa87b0).
+    void Pause() override;
+    void Resume() override;
     void Update(IKTime* frameClock) override;        // vt+0x7c 0x59c00 (shader manager clock hook)
     // vt+0x90 0x00059ea8 CKGraphic_PostSectorUnload: the spawn manager's 0xb8e20 (a bare return).
     void PostSectorUnload(int32_t sector) override;
@@ -48,6 +59,8 @@ public:
 
     // 0x000599c0 CKGraphic_CreateRenderer: CRenderer (key 0x4d) + InitializeRendererStages.
     CRenderer* CreateRenderer(void* startupContext);
+    // vt+0x1c 0x0005a208 CKGraphic_MessageProc (P21): the video manager's MessageProc, then 1.
+    int32_t MessageProc(uint16_t message, void* data) override;
     // CKGraphic_UpdateSceneWorldMatrices_maybe (UpdateGame's reset path)
     void UpdateSceneWorldMatrices();
 

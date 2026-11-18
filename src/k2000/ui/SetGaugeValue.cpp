@@ -22,17 +22,17 @@ void SetGaugeValue(CKGaugeCpntUpdater* gauge, float value, int32_t resetAux) {
         gauge->m_unk10 = maximum;
         gauge->m_unk0c = gauge->m_unk08;
     }
-    if (resetAux != 0) gauge->m_unk14 = 0;
+    if (resetAux != 0) gauge->m_unk14 = 0.0f;
 }
 
 // 0x0024b2a0 SuperGaugeRecord_SetFullFlag_maybe
 void SuperGaugeRecord_SetFullFlag(CKGaugeCpntUpdater* gauge, uint32_t value) {
     if (gauge->m_unk18 != value) {
         gauge->m_unk18 = static_cast<uint8_t>(value);
-        gauge->m_unk1c = 0;
+        gauge->m_fFlashTime = 0.0f;
         return;
     }
     if (gauge->m_pGauge->m_unk21 != 0) return;
     gauge->m_unk18 = static_cast<uint8_t>(value);
-    gauge->m_unk1c = 0;
+    gauge->m_fFlashTime = 0.0f;
 }

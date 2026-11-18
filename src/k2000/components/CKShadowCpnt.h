@@ -10,11 +10,16 @@
 class CKShadowCpnt : public IKComponent {
 public:
     DOTD_CLASS_KEY(kCategoryComponent, 0x12)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9b1180
+        return key == 0x486 || key == 0x6 || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKShadowCpnt)
 
     CKShadowCpnt() {}  // 0x001fe9b0 CKShadowCpnt_Create: the vtable only
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001fea88 CKShadowCpnt_Load
+    void SetShadowLong(float value) { m_fShadowLong = value; }    // 0x001fe7e0 CKShadowCpnt_SetFloat04_maybe
+    void SetShadowWidth(float value) { m_fShadowWidth = value; }  // 0x001fe7e8 CKShadowCpnt_SetFloat08_maybe
 
     float m_fShadowLong;               // +0x04
     float m_fShadowWidth;              // +0x08

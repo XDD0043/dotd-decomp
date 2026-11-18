@@ -7,43 +7,45 @@
 //   [ ] 0x344ef0  KStub_ReturnFloat0_344ef0  [dead]
 //   [ ] 0x344ef8  FUN_00344ef8  [dead]
 //   [x] 0x345080  CKHkS08Hero_vf144
-//   [ ] 0x3450f0  CKHkS08Hero_OnSectorActivate_Base_maybe
-//   [ ] 0x345118  CKHkS08Hero_OnSectorDeactivate_Base_maybe
-//   [ ] 0x345140  IKHkHero_FreeBuffers_maybe
-//   [ ] 0x3452c0  IKHkHero_FreeBuffers_maybe
+//   [x] 0x3450f0  CKHkS08Hero_OnSectorActivate_Base_maybe  (= the inherited slot)
+//   [x] 0x345118  CKHkS08Hero_OnSectorDeactivate_Base_maybe  (IKLife::SectorUnload inherited)
+//   [x] 0x345140  IKHkHero_FreeBuffers_maybe
+//   [x] 0x3452c0  IKHkHero_FreeBuffers_maybe  (IKHkHero::Destroy: FreeBuffers)
 //   [ ] 0x3452c8  IKHkHero_InitGroundProbe_maybe  [dead]
 //   [x] 0x345408  IKHkHero_InitRuntimeTables_maybe
-//   [ ] 0x345b60  CKHkS08HeroBase_LevelReset_maybe
-//   [ ] 0x345e20  IKHkHero_IsSelfControlledProperty_maybe
-//   [ ] 0x345e40  IKHkHero_GetNotFlag354Bit0Property_maybe
-//   [ ] 0x345e50  IKHkHero_AttachNodeToHotspot_maybe
+//   [x] 0x345b60  CKHkS08HeroBase_LevelReset_maybe  (IKHkHero::RecursiveRegistration)
+//   [x] 0x345e20  IKHkHero_IsSelfControlledProperty_maybe
+//   [x] 0x345e40  IKHkHero_GetNotFlag354Bit0Property_maybe
+//   [x] 0x345e50  IKHkHero_AttachNodeToHotspot_maybe
 //   [ ] 0x345f68  IKHkHero_UpdateTimerElapsed_maybe  [dead]
 //   [ ] 0x345ff8  IKHkHero_StampTimer_maybe  [dead]
-//   [ ] 0x346060  IKHkHero_vf170
-//   [ ] 0x3460e0  IKHkHero_vf16C
+//   [ ] 0x346060  IKHkHero_vf170  [dead: only in the abstract IKHkHero vtable 0xb22f10 (vt+0x170), which only IKHkHero's destructors 0x9be9a8 / 0x9bea98 install; CKHkS08Hero, the only hero, has 0x2dbc60 CKHkS08Hero_CanDragonSwitch_maybe in that slot of its vtable 0xb22c98 (C2.8 port-final F07)]
+//   [ ] 0x3460e0  IKHkHero_vf16C  [dead: only in the abstract IKHkHero vtable 0xb22f10 (vt+0x16c), which only IKHkHero's destructors 0x9be9a8 / 0x9bea98 install; CKHkS08Hero, the only hero, has 0x340f40 CKHkS08Hero_TryUseInteractable_maybe in that slot of its vtable 0xb22c98 (C2.8 port-final F07)]
 //   [x] 0x3462b0  IKHkHero_vf50
-//   [ ] 0x3462c0  IKHkHero_ResolveTriggerProperty_maybe
-//   [ ] 0x346388  IKHkHero_GetDistanceToPartnerProperty_maybe
+//   [x] 0x3462c0  IKHkHero_ResolveTriggerProperty_maybe
+//   [x] 0x346388  IKHkHero_GetDistanceToPartnerProperty_maybe
 //   [x] 0x346400  IKHkHero_PostLoad
 //   [x] 0x346480  IKHkHero_ResetRuntimeState_maybe
-//   [ ] 0x347528  IKHkHero_OnDisable_maybe
+//   [x] 0x347528  IKHkHero_OnDisable_maybe  (IKHkHero::OnUnlock, IKHkHero.h)
 //   [x] 0x347530  UpdateHeroMovementAndContacts_maybe
 //   [x] 0x348010  CKHkS08Hero_ApplyControlAssignment_maybe
-//   [ ] 0x348220  CKHkS08HeroBase_HandleMessage_maybe
+//   [x] 0x348220  CKHkS08HeroBase_HandleMessage_maybe
 //   [x] 0x348ac0  CKHkS08Hero_ResetToDefaultState_maybe
-//   [ ] 0x348f00  CKHkS08Hero_ExitAllStateMachines_maybe
+//   [x] 0x348f00  CKHkS08Hero_ExitAllStateMachines_maybe
 //   [ ] 0x3492e0  CKHkS08HeroBase_LoadArrayU32U8_maybe  [dead]
 //   [x] 0x3493c0  CKHkS08HeroBase_LoadArray2xVec3_2xU32_5xU8_maybe
 //   [ ] 0x349608  CKHkS08HeroBase_LoadArray3xU32_maybe  [dead]
 //   [x] 0x349730  CKHkS08HeroBase_LoadArray2xVec3_4xU8_maybe
 //   [x] 0x349930  CKHkS08HeroBase_Load_maybe
 //   [ ] 0x34c788  IKHkHero_SaveArrayU32U8_maybe  [dead]
-//   [ ] 0x34c880  IKHkHero_SaveArray2xVec3_2xU32_5xU8_maybe
+//   [ ] 0x34c880  IKHkHero_SaveArray2xVec3_2xU32_5xU8_maybe  [left: save-only: called from IKHkHero_Save 0x34d020 (the Save path) and from 0x2ec710, which nothing reaches (no pointer to its descriptor 0xb98f00)]
 //   [ ] 0x34cbf0  IKHkHero_SaveArray3xU32_maybe  [dead]
-//   [ ] 0x34cd38  IKHkHero_SaveArray2xVec3_4xU8_maybe
+//   [ ] 0x34cd38  IKHkHero_SaveArray2xVec3_4xU8_maybe  [left: save-only: called from IKHkHero_Save 0x34d020 (the Save path) and from 0x2ec710, which nothing reaches (no pointer to its descriptor 0xb98f00)]
 //   [ ] 0x34d020  IKHkHero_Save
 //   [x] 0x34f970  CKHkS08HeroBase_AdvanceAnimTime
 #include "Spyro2008/hooks/IKHkHero.h"
+#include "k2000/hooks/CKHkPressionStone.h"
+#include "k2000/misc/CKGrpMeca.h"
 #include "k2000/services/CKSrvCollision.h"
 #include "Spyro2008/logic/CKS08GameManager.h"
 #include "k2000/services/ICollisionMesh.h"
@@ -53,6 +55,7 @@
 #include <cstring>
 
 #include "Spyro2008/groups/IKGrpHero.h"
+#include "k2000/core/IKInfo.h"
 #include "Spyro2008/groups/CKGrpS08Hero.h"
 #include "Spyro2008/hooks/CKHkS08Hero.h"
 #include "k2000/system/IKTime.h"
@@ -64,6 +67,7 @@
 #include "k2000/logic/CDefaultGameManager.h"
 #include "k2000/logic/CSGHotSpot.h"
 #include "k2000/misc/Engine.h"
+#include "k2000/logic/CKSavingManager.h"
 #include "k2000/misc/IKGameStructure.h"
 #include "Renderware/rwcore/RwCamera.h"
 #include "k2000/scenegraph/CSGMovable.h"
@@ -72,6 +76,9 @@
 #include "k2000/graphical/animation/CKBlenderController.h"
 #include "k2000/io/IKFile.h"
 #include "k2000/memory/Mem.h"
+#include "k2000/math/Quat.h"
+#include "k2000/logic/ai/CKMarkerBeacon.h"
+#include <cmath>
 #include "k2000/scenegraph/CAnimatedNode.h"
 
 namespace {
@@ -983,6 +990,187 @@ void CKHkS08Hero::ApplyControlAssignment(uint32_t isNew, uint32_t flag) {
     ResetControlState();  // vt+0xdc
 }
 
+namespace {
+// The data of message 0x93e (no sender in the EBOOT's code: trigger data): the object and the count CanAttachTo
+// takes.
+struct SHeroAttachRequest {
+    IKSerializable* m_pObject;  // +0x00
+    uint8_t m_ui8Count;         // +0x04
+};
+
+// The scripted move target of the messages 0xc43 / 0xc3a / 0xc49 / 0xc4a: the position (+0x398..+0x3a0) and the flat
+// direction (+0x3a4, +0x3a8 = 0, +0x3ac) normalised (TOC +0x2acc 0.0, +0x2ac8 1.0).
+void SetHeroMoveTarget(CKHkS08Hero* hero, const float* position, const float* direction) {
+    hero->m_unk398 = position[0];
+    hero->m_unk39c = position[1];
+    hero->m_unk3a4 = direction[0];
+    hero->m_unk3a8 = direction[1];
+    hero->m_unk3a8 = 0.0f;
+    hero->m_unk3a0 = position[2];
+    hero->m_unk3ac = direction[2];
+    const float length = std::sqrt(ppc::fmadds(hero->m_unk3ac, hero->m_unk3ac,
+                                               ppc::fmadds(hero->m_unk3a4, hero->m_unk3a4,
+                                                           hero->m_unk3a8 * hero->m_unk3a8)));  // 0x00010690
+    if (length != 0.0f) {
+        const float inverse = 1.0f / length;
+        hero->m_unk3ac = inverse * hero->m_unk3ac;
+        hero->m_unk3a4 = inverse * hero->m_unk3a4;
+        hero->m_unk3a8 = inverse * hero->m_unk3a8;
+    }
+}
+
+// The placement the teleport / track messages carry (`data` points at the reference): a marker beacon (its position
+// +0x04, its orientation quaternion +0x10; CKHkTrackerManager_AssignHeroToTrack_maybe 0x4544b8 sends its track
+// points), as a matrix (Quat_ToMatrixNormalizing_maybe 0x00241d78; flags bit 17 cleared).
+void PlacementMatrix(const CKMarkerBeacon* placement, CMatrix34* m) {
+    Quat_ToMatrixNormalizing(placement->m_qOrientation, m);
+    m->m_pos = placement->m_v3Position;
+    m->m_ui32Flags &= 0xfffdffffu;
+}
+}  // namespace
+
+// 0x00348220 CKHkS08HeroBase_HandleMessage_maybe (CKHkS08Hero_MessageProc's first step): 1 when the message is not
+// handled, 0 when it is, 2 for a bad argument. Category 9: 0x93e (`data`: {object, count byte}) attaches the hero to
+// the object (+0x98 / +0x9c, +0x358 bit 14) when it may (vt+0xe0) and nothing is attached. Category 4: 0x400 the aim
+// query (vt+0x154, empty for the hero), 0x402 handled. Category 0xc (the jump table 0x00348318, TOC +0x2b44): the
+// partner flags (+0x364 bit 14, bit 1; +0x360 bits 12 and 30; +0x35c bits 5, 6, 17, 29), the dragon switches through
+// the group (CKGrpS08Hero_RequestDragonSelection_maybe 0x2cbb08, CKGrpS08Hero_FindNextSelectableHero_maybe 0x2cb0a8),
+// the teleports (CKHkS08Hero_TeleportTo_maybe 0x36a578) and the scripted move targets of the hero the player does not
+// control (+0x24 != +0x25).
+int32_t CKHkS08Hero::HeroBaseMessageProc(uint16_t message, void* data) {
+    const uint32_t category = (message >> 8) & 0xffu;
+    const uint32_t id = message & 0xffu;
+    const bool controlled = m_ui8Hero == m_ui8TrackedLeader;
+    CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_pGrpHero);
+    if (category == 9) {
+        if (id != 0x3e) return 1;
+        if (data == nullptr) return 2;
+        if ((m_unk358 & 0x4000u) != 0) return 0;
+        const SHeroAttachRequest* request = static_cast<const SHeroAttachRequest*>(data);
+        IKSerializable* target = request->m_pObject;
+        const uint8_t count = request->m_ui8Count;
+        if (CanAttachTo(target, count) == 0 || m_unk98 != 0) return 0;  // vt+0xe0
+        m_unk98 = target;
+        m_unk9c = count;
+        m_unk358 = (m_unk358 & ~0x4000u) | 0x4000u;
+        return 0;
+    }
+    if (category == 4) {
+        if (id == 0) {
+            // vt+0x154 0x002d8c80 CKHkS08Hero_vf154: empty.
+            return 0;
+        }
+        return id == 2 ? 0 : 1;
+    }
+    if (category != 0xc) return 1;
+    switch (id) {
+    case 0x0b:
+        if (!controlled) m_unk364 = (m_unk364 & ~0x4000u) | 0x4000u;
+        return 0;
+    case 0x0c:
+        m_unk364 &= ~0x4000u;
+        return 0;
+    case 0x33:
+    case 0x34:
+    case 0x35: {
+        const intptr_t requested = reinterpret_cast<intptr_t>(data);
+        if (static_cast<int32_t>(requested) == -1) return 2;
+        const uint8_t count = group->GetHeroCount();  // vt+0xf4
+        if (!(static_cast<int32_t>(count) > static_cast<int32_t>(requested))) return 2;
+        group->RequestDragonSelection(static_cast<uint8_t>(requested), m_ui8Hero, id == 0x35 ? 1 : 0, id == 0x34 ? 1 : 0, 0,
+                                      0, 0);  // 0x002cbb08
+        return 0;
+    }
+    case 0x36:
+    case 0x37:
+    case 0x38:
+    case 0x45:
+    case 0x4e:
+        group->RequestDragonSelection(group->m_unk66, m_ui8Hero, id == 0x38 ? 1 : 0, id == 0x37 ? 1 : 0,
+                                      id == 0x45 ? 1 : 0, 0, id == 0x4e ? 1 : 0);
+        return 0;
+    case 0x39:
+    case 0x3c:
+    case 0x3d: {
+        if (id != 0x39) {
+            if (!controlled) {
+                if (id != 0x3d) return 0;
+            } else if (id != 0x3c) {
+                return 0;
+            }
+        }
+        const CKMarkerBeacon* placement = *static_cast<CKMarkerBeacon* const*>(data);
+        alignas(16) CMatrix34 m{};
+        PlacementMatrix(placement, &m);
+        TeleportTo(&m.m_pos, &m.m_at, 1, 0, 0xffff, 0);  // 0x0036a578
+        return 0;
+    }
+    case 0x3a:
+    case 0x49:
+    case 0x4a: {
+        if (controlled) return 0;
+        const CKMarkerBeacon* placement = *static_cast<CKMarkerBeacon* const*>(data);
+        if (placement == nullptr) return 0;
+        alignas(16) CMatrix34 m{};
+        PlacementMatrix(placement, &m);
+        const float position[3] = {m.m_pos.x, m.m_pos.y, m.m_pos.z};
+        const float direction[3] = {m.m_at.x, m.m_at.y, m.m_at.z};
+        SetHeroMoveTarget(this, position, direction);
+        if (id == 0x49) {
+            m_unk35c &= ~0x40u;
+            m_unk360 = (m_unk360 & ~0x40000000u) | 0x40000000u;
+        } else if (id == 0x4a) {
+            m_unk35c = (m_unk35c & 0xdfffffbfu) | 0x20000000u;
+        } else {
+            m_unk35c = (m_unk35c & ~0x60u) | 0x20u;
+        }
+        return 0;
+    }
+    case 0x3b:
+        if (controlled) return 0;
+        m_unk360 &= ~0x40000000u;
+        m_unk35c &= 0xdfffff9fu;
+        return 0;
+    case 0x41:
+        if (controlled) return 0;
+        m_unk360 &= ~0x40000000u;
+        m_unk35c = (m_unk35c & 0xdfffff9fu) | 0x40u;
+        return 0;
+    case 0x42: {
+        if (!controlled) return 0;
+        const int8_t next = group->FindNextSelectableHero(static_cast<int8_t>(m_ui8Hero));  // 0x002cb0a8, no filter
+        if (next == -1) return 0;
+        group->RequestDragonSelection(m_ui8Hero, static_cast<uint8_t>(next), 0, 0, 0, 0, 0);
+        return 0;
+    }
+    case 0x43: {
+        if (controlled) return 0;
+        const float* d = static_cast<const float*>(data);
+        SetHeroMoveTarget(this, d, d + 3);
+        m_unk35c = (m_unk35c & ~0x60u) | 0x20u;
+        return 0;
+    }
+    case 0x44:
+        if (controlled) return 0;
+        m_unk35c = (m_unk35c & ~0x20000u) | 0x20000u;
+        return 0;
+    case 0x47:
+        m_unk360 = (m_unk360 & ~0x1000u) | 0x1000u;
+        return 0;
+    case 0x48:
+        m_unk360 &= ~0x1000u;
+        return 0;
+    case 0x4b:
+        m_unk364 = (m_unk364 & ~2u) | 2u;
+        return 0;
+    case 0x4c:
+        m_unk364 &= ~2u;
+        return 0;
+    default:
+        return 1;
+    }
+}
+
 // 0x0034f970 CKHkS08HeroBase_AdvanceAnimTime: the active slot's active controller runs on by `dt` (+0x154 keeps it).
 void CKHkS08Hero::AdvanceAnimTimeBase(float dt) {
     AnimBlendSlot* slot = GetAnimBlendSlot();  // vt+0x194
@@ -1093,10 +1281,24 @@ void CKHkS08Hero::UpdateMovementAndContacts(IKTime* clock) {
         if ((m_unk358 & 8u) != 0 || (m_unk358 & 4u) != 0) {
             m_unk368 = (m_unk368 & 0xfffffffbu) | 4u;
         } else if ((m_unk354 & 1u) == 0 && m_unk530 == 0.0f && m_gcCurDatasInOut.m_pGround != nullptr) {
-            // STUB(C2.8: mechanisms): a standing hero without the ground flag on a ground that belongs to one of the
-            // game manager's objects (+0xc, its list +0x2c) of class 0x542 (CKHkPressionStone: its vt+0xe4 / +0xe8 ground
-            // list) gets +0x368 bit 2. The pression stone's ground accessors come with the mechanisms.
-            DOTD_STUB_ONCE("UpdateHeroMovementAndContacts_maybe: the pression stone ground test (C2.8)");
+            // A standing hero on the ground of a pression stone (an active actor of the meca group, game manager +0xc,
+            // list +0x2c, of class 0x542: its vt+0xe4 grounds, vt+0xe8 each) gets +0x368 bit 2.
+            CKGrpMeca* meca = static_cast<CKGrpMeca*>(g_pEngine->m_gameManager->m_unk04[2]);
+            IKSerializable* ground = m_gcCurDatasInOut.m_pGround;  // +0x4b8
+            if (meca != nullptr) {
+                bool found = false;
+                for (IKHook** actor = meca->m_pUnk2c; !found && *actor != nullptr; ++actor) {
+                    if ((*actor)->IsKindOfClass(0x542) == 0) continue;  // vt+0x08
+                    const CKHkPressionStone* stone = static_cast<const CKHkPressionStone*>(*actor);
+                    for (uint32_t k = stone->GetGroundCount(); k != 0; --k) {  // vt+0xe4
+                        if (ground == stone->GetGround(k - 1)) {         // vt+0xe8
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                if (found) m_unk368 = (m_unk368 & 0xfffffffbu) | 4u;
+            }
         }
     }
     ResolveHeroContactMovement(clock);            // 0x00353528
@@ -1160,4 +1362,73 @@ void CKHkS08Hero::UpdateMovementAndContacts(IKTime* clock) {
 uint8_t CKHkS08Hero::Vf144() {
     const uint8_t action = static_cast<IKGrpHero*>(m_pGrpHero)->GetInputAction(6);
     return m_unk36c[action] != 0 ? 1 : 0;  // neg / rldicl 1,63: the sign of -byte
+}
+
+// 0x00345b60 CKHkS08HeroBase_LevelReset_maybe (RecursiveRegistration)
+void IKHkHero::RecursiveRegistration(int32_t type) {
+    IKHook::RecursiveRegistration(type);  // 0x00019ab8
+    if (static_cast<uint32_t>(type - 4) <= 3u) return;
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // engine +0x50, vt+0x24
+    CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_pGrpHero);
+    const uint8_t hotSpots = group->GetNbHotSpots(m_ui8Hero);  // vt+0xf8
+    for (uint32_t i = 0; i != hotSpots; ++i) m_apHotSpots[i]->RecursiveRegistration(type);
+    const uint8_t objects = group->GetNbObjects(m_ui8Hero);  // vt+0x104
+    for (uint32_t i = 0; i != objects; ++i) m_apObjects[i]->RecursiveRegistration(type);
+    m_pAnimDico->RecursiveRegistration(type);           // +0x13c
+    m_pSoundDico->RecursiveRegistration(type);          // +0x168
+    m_pShadowCpnt->RecursiveRegistration(type);         // +0x60
+    m_pWaterWaveFxData->RecursiveRegistration(type);    // +0x84
+    m_pWaterSplashFxData->RecursiveRegistration(type);  // +0x8c
+}
+
+// 0x003462c0 IKHkHero_GetInfo, with its accessors 0x345e40 IKHkHero_GetNotFlag354Bit0Property_maybe, 0x346388
+// IKHkHero_GetDistanceToPartnerProperty_maybe and 0x345e20 IKHkHero_IsSelfControlledProperty_maybe.
+int32_t IKHkHero::GetInfo(IKInfo* info, int32_t request) {
+    if (request != kGetInfoValueAccessor) return 1;
+    switch (info->m_ui32Id) {
+    case 0:
+        return AnswerInfo(info, [](IKSerializable* o, uint32_t) { return ~static_cast<IKHkHero*>(o)->m_unk354 & 1u; }, 0);
+    case 1:
+        // The controlling dragon (the group's hero +0x25) less this one (+0x54c), its length (Math_Sqrtf 0x10690).
+        return AnswerInfo(info, [](IKSerializable* o, uint32_t) {
+            IKHkHero* self = static_cast<IKHkHero*>(o);
+            const IKHkHero* partner =
+                static_cast<const IKHkHero*>(static_cast<IKGrpHero*>(self->m_pGrpHero)->m_apHeros[self->m_ui8TrackedLeader]);
+            const float dy = partner->m_unk550 - self->m_unk550;
+            const float dx = partner->m_unk54c - self->m_unk54c;
+            const float dz = partner->m_unk554 - self->m_unk554;
+            const float squared = ppc::fmadds(dz, dz, ppc::fmadds(dx, dx, dy * dy));
+            return FloatBits(static_cast<float>(std::sqrt(static_cast<double>(squared))));
+        }, 2);
+    case 2:
+        return AnswerInfo(info, [](IKSerializable* o, uint32_t) {
+            const IKHkHero* self = static_cast<const IKHkHero*>(o);
+            return self->m_ui8Hero == self->m_ui8TrackedLeader ? 1u : 0u;
+        }, 0);
+    default:
+        return 1;
+    }
+}
+
+// 0x00345140 IKHkHero_FreeBuffers_maybe
+void IKHkHero::FreeBuffers() {
+    Mem_FreeAligned16(m_apHotSpots);
+    Mem_FreeAligned16(m_apParticles);
+    Mem_FreeAligned16(m_apBoundings);
+    Mem_FreeAligned16(m_apObjects);
+    Mem_FreeAligned16(m_apTrails);
+    Mem_FreeAligned16(m_unka0);
+    Mem_FreeAligned16(m_unka4);
+    Mem_FreeAligned16(m_unkc0);
+    Mem_FreeAligned16(m_unkc4);
+    Mem_FreeAligned16(m_apUnk134);
+    if (m_unk138 != nullptr) delete[] m_unk138;  // the elements' destructors (vt+0x0), OperatorDeleteArray
+    Mem_FreeAligned16(m_unk140);
+    Mem_FreeAligned16(m_unk144);
+    Mem_FreeAligned16(m_asSpeedModes);
+    Mem_FreeAligned16(m_asJumps);
+    Mem_FreeAligned16(m_afBoundingsRadius);
+    Mem_FreeAligned16(m_unk36c);
+    Mem_FreeAligned16(m_unk520);
+    Mem_FreeAligned16(m_unk524);
 }

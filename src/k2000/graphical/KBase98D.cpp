@@ -9,7 +9,7 @@
 //   [ ] 0x7c8e8  KBase98D_ConstructBase_2  [dead]
 //   [x] 0x7c938  KBase98D_ConstructBase
 //   [x] 0x7c988  KBase98D_vf50
-//   [ ] 0x7cec8  KBase98D_vf28
+//   [x] 0x7cec8  KBase98D_vf28  (KBase98D::Save, KBase98D.h)
 //
 //   [ ] 0x999720  KBase98D_GetSerializationFlags  [inline]
 //   [x] 0x999728  KBase98D_vf58  [inline]
@@ -25,6 +25,8 @@
 #include "Renderware/rphanim/RpHAnim.h"
 #include "Renderware/rtanim/RtAnim.h"
 #include "k2000/render/CRenderer.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 
 // 0x0007c8a8 KBase98D_vf6C
 KBase98D* KBase98D::GetIfEvaluatedThisFrame() { return m_unk24 == g_ui16RenderFrameCounter ? this : nullptr; }
@@ -86,4 +88,10 @@ uint8_t KBase98D::Vf50Base(KBase98D* chain, uint32_t* mask) {
     m_unk24 = g_ui16RenderFrameCounter;
     m_unk08 = (m_unk08 & 0xfffffffdu) | 2u;
     return 1;
+}
+
+// C2.8 port-all P08: 0x0007cff8 (Ghidra KBase98D_LevelReset; the checklist line is animation/CKAnimController.cpp's):
+// the saving manager's vt+0x24 on the controller, no type test; 1.
+void KBase98D::RecursiveRegistration(int32_t /*type*/) {
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);
 }

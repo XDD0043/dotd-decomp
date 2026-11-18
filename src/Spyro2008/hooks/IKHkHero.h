@@ -84,6 +84,12 @@ public:
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00349930 CKHkS08HeroBase_Load_maybe
 
     int32_t PostLoad(int32_t type) override;        // vt+0x30 0x00346400 IKHkHero_PostLoad
+    // vt+0xbc 0x00344d48 IKHkHero_GetCinematicAnimSlots (k2000/logic/CKControlableHero.cpp): the group's blend slot count
+    // for this hero (vt+0x134, a byte) and that many slots of the +0x138 array, from the last. CKHkS08Hero overrides it.
+    void GetBlendSlot(AnimBlendSlot** slots, int32_t* count) override;
+    // vt+0x40 0x003462c0 IKHkHero_GetInfo (Ghidra IKHkHero_ResolveTriggerProperty_maybe): the trigger values 0 (not
+    // +0x354 bit 0, a byte), 1 (the distance to the controlling dragon, a float) and 2 (controlled by itself, a byte).
+    int32_t GetInfo(struct IKInfo* info, int32_t request) override;
 
     // C2.2 spyro: the level start.
     void Start() override;                          // vt+0x50 0x003462b0 IKHkHero_vf50
@@ -98,6 +104,39 @@ public:
     virtual float Vf160() = 0;
     void InitRuntimeTables();                       // 0x00345408 IKHkHero_InitRuntimeTables_maybe
     void ResetRuntimeState(int32_t flag);           // 0x00346480 IKHkHero_ResetRuntimeState_maybe
+    // vt+0xac 0x00347528 IKHkHero_OnDisable_maybe (OnUnlock): ResetRuntimeState(0). CKHkS08Hero_OnUnlock 0x2dafa8 calls it.
+    void OnUnlock() override { ResetRuntimeState(0); }
+    // vt+0x24 0x00345b60 CKHkS08HeroBase_LevelReset_maybe (RecursiveRegistration; CKHkS08Hero_RecursiveRegistration
+    // 0x2d98f8 calls it first): IKHook's, then outside the memory-card types 4..7 the hero registered with the saving
+    // manager (no owner), its hot spots and objects (the group's per-hero counts, vt+0xf8 / vt+0x104), the animation and
+    // sound dictionaries, the shadow component and the water wave / splash FX data registered with the same type.
+    void RecursiveRegistration(int32_t type) override;
+
+    // C2.8 port-all P16: the hero accessors of IKHkHero_2.cpp the meca / platform / bridge / squad code calls (several
+    // callers inline them); the bodies are in IKHkHero_2.cpp.
+    CPFCharacter* GetPFCharacter();                 // 0x00361a30 IKHkHero_GetPtr3E0_maybe: +0x3e0
+    void* GetPFDestination();                       // 0x00361a40 IKHkHero_GetVec3Ptr430_maybe: +0x430 (the path cpnt's)
+    float* GetUnk3B8Ptr();                          // 0x00361a60 IKHkHero_GetVec3Ptr3B8_maybe: +0x3b8
+    uint32_t GetFlag354Bit0() const;                // 0x00361a90 IKHkHero_GetFlag354Bit0_Word_maybe
+    uint32_t GetFlag35CBit8() const;                // 0x00361ab0 IKHkHero_GetFlag35CBit8_maybe
+    uint32_t IsInvulnerable() const;                // 0x00361b10 IKHkHero_IsInvulnerable_maybe: +0x35c bit 2
+    uint32_t GetFlag358Bit8() const;                // 0x00361b50 IKHkHero_GetFlag358Bit8_maybe
+    float GetUnk26C() const;                        // 0x00361b60 IKHkHero_GetFloat26C_maybe
+    float GetUnk510() const;                        // 0x00361c00 CKHkS08Hero_GetFloat510_maybe
+    float GetUnk530() const;                        // 0x00361c10 IKHkHero_GetFloat530_maybe
+    CGroundContactDatasIn* GetGroundContactIn();    // 0x00361ca0 IKHkHero_GetVec3Ptr4A8_maybe: +0x4a8
+    void SetFlag354Bit9(uint8_t on);                // 0x00361cc0 IKHkHero_SetFlag354Bit9_maybe
+    void SetFlag364Bit5();                          // 0x00361d98 IKHkHero_SetFlag364Bit5_maybe
+    uint32_t IsObjectControllingAnim() const;       // 0x00362000 IKHkHero_IsObjectControllingAnim_maybe: +0x358 bit 1
+    uint32_t GetFlag35CBit0IfAttached() const;      // 0x00362878 IKHkHero_GetFlag35CBit0_IfAttached_maybe
+    void ClearFlag358Bit21IfAttached();             // 0x003628e0 IKHkHero_ClearFlag358Bit21_IfAttached_maybe
+    // 0x00362fd0 IKHkHero_SetPendingSourceAndVec3_Flag35CBit4_maybe: with a source, +0xd4 = it, +0xd8 = `point` (null: the
+    // zero vector 0x00c50d64) and +0x35c bit 4 set.
+    void SetPendingSource(IKSerializable* source, const float* point);
+    IKSerializable* GetLedgeGroundContact() const;  // 0x00363770 IKHkHero_GetLedgeGroundContact_maybe: +0x35c bit 22: +0x81c
+    // 0x00363c78 IKHkHero_GetTargetingPositionPtr_maybe: the node's world position (frame LTM) with life bit 1, else +0x570.
+    const float* GetTargetingPositionPtr();
+    uint32_t GetFlag360Bit12() const;               // 0x00363ca0 IKHkHero_GetFlag360Bit12_maybe
     void ApplyPositionToFrame();                    // 0x00355c00 IKHkHero_ApplyPositionToFrame_maybe
     // 0x00359988 IKHkHero_SetPositionAndDirection_maybe: either argument null takes the scene node's current one.
     void SetPositionAndDirection(const CVector3* position, const CVector3* direction);
@@ -106,6 +145,11 @@ public:
     void ReadHeroInitialState(IKFile* file, int32_t type, SHeroInitialState* states, uint32_t count);
     // 0x003493c0 CKHkS08HeroBase_LoadArray2xVec3_2xU32_5xU8_maybe (XXL2 IKHkHero::ReadHeroSpeedMode)
     void ReadHeroSpeedMode(IKFile* file, int32_t type, SHeroSpeedMode* modes, uint32_t count);
+
+    // 0x00345140 IKHkHero_FreeBuffers_maybe (CKHkS08Hero_Destroy; 0x3452c0, the IKHkHero vtable's Destroy, branches to it):
+    // the hero's buffers freed (the pointers are kept), the blend slots deleted.
+    void FreeBuffers();
+    void Destroy() override { FreeBuffers(); }  // vt+0x10 0x003452c0
 
     IKSerializable* m_pGrpHero;                  // +0x20 XXL2 IKGrpHero* m_pGrpHero; a CKGrpS08Hero (the only IKGrpHero in DotD)
     uint8_t m_ui8Hero;                           // +0x24 XXL2 m_ui8Hero (the hero index; 0 and 1 in LVL010)
@@ -130,11 +174,11 @@ public:
     uint8_t m_unk81;  // +0x81  (C2.2 strict3)
     uint8_t m_pad82[2];
     IKSerializable* m_pWaterWaveFxData;          // +0x84 CKWaterWaveFxData (embedded in XXL2, a reference in DotD)
-    uint32_t m_unk88;  // +0x88  (C2.2 strict3)
+    class IKFx* m_unk88;  // +0x88 the water wave effect (a CKWaterWaveNodeFx, reserved: UpdateMainShadowAndSurfaceFx)
     IKSerializable* m_pWaterSplashFxData;        // +0x8c CKWaterSplashFxData (embedded in XXL2, a reference in DotD)
     IKSerializable* m_unk90;  // +0x90  (C2.2 strict3) receives the hero message 0xc4d
     uint32_t m_unk94;  // +0x94  (C2.2 strict3)
-    uint32_t m_unk98;  // +0x98  (C2.2 strict3)
+    IKSerializable* m_unk98;  // +0x98 the object a message 0x93e asks the hero to attach to (HeroBaseMessageProc)
     uint32_t m_unk9c;  // +0x9c  (C2.2 strict3)
     SHeroStateRow* m_unka0;  // +0xa0  (C2.2 strict3)
     SHeroStateHandler* m_unka4;  // +0xa4  (C2.2 strict3)
@@ -155,7 +199,7 @@ public:
     uint8_t m_padce[2];
     uint8_t m_unkd0;  // +0xd0  (C2.2 strict3)
     uint8_t m_padd1[3];
-    uint32_t m_unkd4;  // +0xd4  (C2.2 strict3)
+    IKSerializable* m_unkd4;  // +0xd4 the pending hit's source (+0x35c bit 4; ResolveHeroContactMovement)
     float m_unkd8;  // +0xd8  (C2.2 strict3)
     float m_unkdc;  // +0xdc  (C2.2 strict3)
     float m_unke0;  // +0xe0  (C2.2 strict3)
@@ -175,10 +219,10 @@ public:
     uint8_t m_unk118;  // +0x118  (C2.2 strict3)
     uint8_t m_pad119[3];
     float m_unk11c;  // +0x11c  (C2.2 strict3)
-    uint32_t m_unk120;  // +0x120  (C2.2 strict3)
-    uint32_t m_unk124;  // +0x124  (C2.2 strict3)
-    uint32_t m_unk128;  // +0x128  (C2.2 strict3)
-    uint32_t m_unk12c;  // +0x12c  (C2.2 strict3)
+    IKSerializable* m_unk120;  // +0x120 a target (GetAITarget(0) first)
+    IKSerializable* m_unk124;  // +0x124 the grabbed enemy _maybe (ApplyGrabbedEnemyMarkDamage: a CKHkS08Enemy)
+    IKSerializable* m_unk128;  // +0x128 a target (GetAITarget(0) second)
+    IKSerializable* m_unk12c;  // +0x12c the targeted hook (a crumbly zone; GetAITarget(1) second)
     uint8_t m_unk130;  // +0x130  (C2.2 strict3)
     uint8_t m_pad131[3];
     IKSerializable** m_apUnk134;                 // +0x134 count byte + references (allocated even for 0)
@@ -375,7 +419,7 @@ public:
     float m_unk474;  // +0x474  (C2.2 strict3)
     float m_unk478;  // +0x478  (C2.2 strict3)
     float m_unk47c;  // +0x47c  (C2.2 strict3)
-    uint32_t m_unk480;  // +0x480  (C2.2 strict3)
+    float m_unk480;  // +0x480 the move-to timeout (SetMoveDestination; ResetRuntimeState: stw 0)
     float m_unk484;  // +0x484  (C2.2 strict3)
     float m_unk488;  // +0x488  (C2.2 strict3)
     float m_unk48c;  // +0x48c  (C2.2 strict3)
@@ -468,8 +512,8 @@ public:
     float m_unk66c;  // +0x66c  (C2.2 strict3)
     float m_unk670;  // +0x670  (C2.2 strict3)
     float m_unk674;  // +0x674  (C2.2 strict3)
-    uint32_t m_unk678;  // +0x678  (C2.2 strict3)
-    uint32_t m_unk67c;  // +0x67c  (C2.2 strict3)
+    float m_unk678;  // +0x678 the push duration (InitMoveRequestFromSourcePoint: factor x +0x318)
+    float m_unk67c;  // +0x67c the word +0x33c as a float (InitMoveRequestFromSourcePoint)
     uint8_t m_unk680;  // +0x680  (C2.2 strict3)
     uint8_t m_pad681[3];
     float m_unk684;  // +0x684  (C2.2 strict3)

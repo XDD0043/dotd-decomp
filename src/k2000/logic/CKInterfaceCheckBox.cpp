@@ -14,10 +14,10 @@
 //   [x] 0x52fcd0  CKInterfaceCheckBox_LoadOptionValue
 //   [x] 0x530080  CKInterfaceCheckBox_AnimatePart
 //   [ ] 0x530258  CKInterfaceCheckBox_Save
-//   [ ] 0x530280  CKInterfaceCheckBox_RecursiveRegistration
-//   [ ] 0x530628  CKInterfaceCheckBox_Construct_2
+//   [x] 0x530280  CKInterfaceCheckBox_RecursiveRegistration
+//   [x] 0x530628  CKInterfaceCheckBox_Construct_2  (the same code as 0x531238 CKInterfaceCheckBox_Construct)
 //   [x] 0x530aa8  CKInterfaceCheckBox_DeleteArray
-//   [ ] 0x530b48  CKInterfaceCheckBox_BaseDestructor
+//   [x] 0x530b48  CKInterfaceCheckBox_BaseDestructor  (the same code as 0x5326d8 CKInterfaceCheckBox_Destructor)
 //   [ ] 0x530c48  CKInterfaceCheckBox_ComputeAnimRate_maybe  [dead]
 //   [x] 0x530ca0  CKInterfaceCheckBox_SetDisabled
 //   [x] 0x530dc8  CKInterfaceCheckBox_SetPosition
@@ -30,8 +30,8 @@
 //   [x] 0x531f20  CKInterfaceCheckBox_PostLoad
 //   [x] 0x531f28  CKInterfaceCheckBox_Destroy
 //   [x] 0x5320f0  CKInterfaceCheckBox_Open
-//   [ ] 0x5325c8  CKInterfaceCheckBox_DeletingDestructor
-//   [ ] 0x5326d8  CKInterfaceCheckBox_Destructor
+//   [x] 0x5325c8  CKInterfaceCheckBox_DeletingDestructor  (0x5326d8 CKInterfaceCheckBox_Destructor, then the delete)
+//   [x] 0x5326d8  CKInterfaceCheckBox_Destructor
 //   [x] 0x5327d8  CKInterfaceCheckBox_CreateArray
 //   [x] 0x532d88  CKInterfaceCheckBox_Create
 //   [x] 0x533280  CKInterfaceCheckBox_Load
@@ -138,14 +138,14 @@ CKSound* CKSoundDictionaryID_GetSound(IKSerializable* dictionary, uint32_t index
     return static_cast<CKSoundDictionaryID*>(dictionary)->GetSound(index);  // the audio port
 }
 
-// 0x00111818 CKSound_UpdatePan_maybe (CKSound.cpp). STUB(C1.6)
+// 0x00111818 CKSound_UpdatePan_maybe (CKSound::UpdatePan, k2000/logic/sound/CKSound.cpp).
 void CKSound_UpdatePan(CKSound* sound) { sound->UpdatePan(); }  // the audio port
 
 // 0x00111b70 CKSound_ResetPan_maybe: flag 4 (the position from the pan) set to `usePan`, the pan centred.
 void CKSound_ResetPan(CKSound* sound, uint32_t usePan) { sound->ResetPan(static_cast<int32_t>(usePan)); }  // the audio port
 
 // 0x00111230 CKSound_Play: SoundBackend_PlaySound_maybe 0x119e50 (engine +0x1c, its +0x08); returns 1.
-// The callers here pass f1 = 0.0, which reaches 0x119e50 unchanged. STUB(C1.6)
+// The callers here pass f1 = 0.0, which reaches 0x119e50 unchanged (CKSound::Play).
 void CKSound_Play(CKSound* sound, float delay) { sound->Play(delay); }  // the audio port
 
 // ---- the class's inlined helpers ----
@@ -763,4 +763,49 @@ int32_t CKInterfaceCheckBox::Load(IKFile* file, int32_t type) {
     ReadF32LE(file, &m_vUnk64[0]);
     ReadF32LE(file, &m_vUnk64[1]);
     return 1;
+}
+
+namespace {
+template <class T>
+void FreeCheckBoxTable(TVector<T, 1>& v) {
+    if (v.m_pBlock != nullptr) Mem_FreeAligned16(v.m_pBlock);
+    v.m_ui32NbUsedElt = 0;
+    v.m_pBlock = nullptr;
+}
+
+void RegisterIfCheckBox(IKSerializable* object, int32_t type) {
+    if (object != nullptr) object->RecursiveRegistration(type);  // vt+0x24
+}
+}  // namespace
+
+// 0x005326d8 CKInterfaceCheckBox_Destructor
+CKInterfaceCheckBox::~CKInterfaceCheckBox() {
+    for (int k = 9; k >= 0; --k) {
+        StateVisual& s = m_aStates[k];
+        FreeCheckBoxTable(s.m_aBillboards);
+        FreeCheckBoxTable(s.m_aTexts);
+        FreeCheckBoxTable(s.m_aVideos);
+    }
+}
+
+// 0x00530280 CKInterfaceCheckBox_RecursiveRegistration (each table from its last element down)
+void CKInterfaceCheckBox::RecursiveRegistration(int32_t type) {
+    CKInterfaceButtonBase::RecursiveRegistration(type);  // 0x00067fe8
+    for (int k = 9; k >= 0; --k) {
+        StateVisual& s = m_aStates[k];
+        s.m_pTexts->RecursiveRegistration(type);
+        RegisterIfCheckBox(s.m_pParticles, type);
+        for (uint32_t i = s.m_aTexts.m_ui32NbUsedElt; i != 0; --i) {
+            s.m_aTexts.m_pBlock[i - 1].m_second->RecursiveRegistration(type);
+            RegisterIfCheckBox(s.m_aTexts.m_pBlock[i - 1].m_first, type);
+        }
+        for (uint32_t i = s.m_aBillboards.m_ui32NbUsedElt; i != 0; --i) RegisterIfCheckBox(s.m_aBillboards.m_pBlock[i - 1].m_pText, type);
+    }
+    RegisterIfCheckBox(m_unk34, type);
+    RegisterIfCheckBox(m_unk38, type);
+    RegisterIfCheckBox(m_apUnk3c[3], type);
+    RegisterIfCheckBox(m_apUnk3c[2], type);
+    RegisterIfCheckBox(m_apUnk3c[1], type);
+    RegisterIfCheckBox(m_apUnk3c[0], type);
+    m_pSounds->RecursiveRegistration(type);
 }

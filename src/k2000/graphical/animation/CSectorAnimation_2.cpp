@@ -4,31 +4,43 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0xa54c0  CSectorAnimation_Delete
+//   [x] 0xa54c0  CSectorAnimation_Delete  (DOTD_DECLARE_FACTORIES)
 //   [ ] 0xa5510  RegisterCSectorAnimationClass
 //   [ ] 0xa5588  _GLOBAL__I_a5588
 //   [ ] 0xa5598  CSectorAnimation_WriteAnimationStream_maybe  [dead]
-//   [ ] 0xa55c8  CSectorAnimation_DeleteArray
+//   [x] 0xa55c8  CSectorAnimation_DeleteArray  (DOTD_DECLARE_FACTORIES)
 //   [x] 0xa5670  CSectorAnimation_Create
 //   [x] 0xa56a8  CSectorAnimation_CreateArray
 //   [ ] 0xa5740  CSectorAnimation_Save
 //   [x] 0xa5748  CSectorAnimation_Load
 //   [x] 0xa58c0  CSectorAnimation_PostLoad
-//   [ ] 0xa58c8  CSectorAnimation_RecursiveRegistration
-//   [ ] 0xa5928  CSectorAnimation_Destroy
+//   [x] 0xa58c8  CSectorAnimation_RecursiveRegistration
+//   [x] 0xa5928  CSectorAnimation_Destroy
 //
 //   [x] 0x9a0480  CSectorAnimation_GetClassType  [inline]
 //   [x] 0x9a0488  CSectorAnimation_GetClassID  [inline]
 //   [x] 0x9a0490  CSectorAnimation_GetSerializationFlags  [inline]
-//   [ ] 0x9a0498  CSectorAnimation_Destructor  [inline]
+//   [x] 0x9a0498  CSectorAnimation_Destructor  [inline]
 //   [x] 0x9a04b0  CSectorAnimation_IsKindOfClass  [inline]
-//   [ ] 0x9a04d0  CSectorAnimation_DeletingDestructor  [inline]
+//   [x] 0x9a04d0  CSectorAnimation_DeletingDestructor  [inline]
 #include "k2000/graphical/animation/CSectorAnimation.h"
 
 #include "Renderware/rtanim/RtAnim.h"
 #include "Renderware/rwcore/RwStream.h"
 #include "k2000/io/IKFile.h"
 #include "k2000/memory/Mem.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
+
+// 0x000a5928 CSectorAnimation_Destroy. The count is decremented before each animation and once more at the end:
+// BUG(original): it is left at 0xffffffff (the next Load sets it again).
+void CSectorAnimation::Destroy() {
+    RtAnimAnimation** animation = m_apAnimations;
+    if (animation == nullptr) return;
+    while (--m_ui32NbAnimations != 0xffffffffu) RtAnimAnimationDestroy(*animation++);  // TocBridge, inlined
+    Mem_FreeAligned16(m_apAnimations);
+    m_apAnimations = nullptr;
+}
 
 // 0x000a5748 CSectorAnimation_Load (level type only). 0xa58c0 CSectorAnimation_PostLoad returns 1 (the
 // IKSerializable default).
@@ -52,4 +64,10 @@ int32_t CSectorAnimation::Load(IKFile* file, int32_t type) {
         ++animations;
     }
     return 1;
+}
+
+// C2.8 port-all P08.
+// 0x000a58c8 CSectorAnimation_RecursiveRegistration
+void CSectorAnimation::RecursiveRegistration(int32_t type) {
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
 }

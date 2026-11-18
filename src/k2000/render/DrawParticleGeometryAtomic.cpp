@@ -9,10 +9,11 @@
 
 // 0x00089908 DrawParticleGeometryAtomic (CParticleGeometry_Render, vt+0x5c): the shader's particle flags
 // (ParticleDraw_SetShaderParticleFlags_maybe 0x88190 on CShaderManagerPSGL +0x8c: render flags 0x2000000 /
-// 0x100000 and the byte +0x28; STUB: the GL backend has no shader flags), fog (state 14) kept only with
+// 0x100000 and the byte +0x28; the PTank's shader hook builds its key with them), fog (state 14) kept only with
 // render flag 0x400000 and fog on, no culling (state 20 = 1) around the atomic's render callback, then
 // culling back (2) and the fog restored.
-void CParticleGeometry::Render() {
+void CParticleGeometry::Render(IKTime* /*frameClock*/) {
+    ParticleDraw_SetShaderParticleFlags(this);
     RwInt32 fog = 0;
     RwRenderStateGet(rwRENDERSTATEFOGENABLE, &fog);
     RwInt32 fogOn = 0;

@@ -8,10 +8,10 @@
 //   [ ] 0x233e78  _GLOBAL__I_233e78
 //   [x] 0x233e88  CKCombiner_Load
 //   [ ] 0x234010  CKCombiner_Save
-//   [ ] 0x234038  CKCombiner_Destroy
+//   [x] 0x234038  CKCombiner_Destroy  (KStub_Nop_235180: IKEvaluator's empty Destroy)
 //   [x] 0x234060  CKCombiner_DeleteArray
 //   [x] 0x234100  CKCombiner_Create
-//   [ ] 0x234150  CKCombiner_RecursiveRegistration
+//   [x] 0x234150  CKCombiner_RecursiveRegistration
 //   [x] 0x2341f0  CKCombiner_vf50
 //   [x] 0x234258  CKCombiner_vf68
 //   [x] 0x2342c0  CKCombiner_vf64
@@ -29,6 +29,15 @@
 #include "k2000/logic/CKCombiner.h"
 
 #include "k2000/io/IKFile.h"
+
+// 0x00234150 CKCombiner_RecursiveRegistration
+void CKCombiner::RecursiveRegistration(int32_t type) {
+    IKEvaluator::RecursiveRegistration(type);  // 0x00235030
+    if (type != 0) return;
+    for (IKEvaluator* evaluator = m_lEvaluators; evaluator != nullptr; evaluator = evaluator->m_pNext) {
+        evaluator->RecursiveRegistration(0);  // vt+0x24
+    }
+}
 
 // 0x00233e88 CKCombiner_Load: each referenced evaluator is pushed at the head of the list (the
 // referenced objects are already created, so their m_pNext is written here).

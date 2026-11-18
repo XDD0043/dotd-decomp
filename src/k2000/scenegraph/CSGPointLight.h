@@ -10,10 +10,15 @@
 class CSGPointLight : public CSGLeaf {
 public:
     DOTD_CLASS_KEY(kCategoryNode, 0x25)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a2950
+        return key == 0x94b || key == 0x20b || key == 0x14b || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CSGPointLight)
 
     CSGPointLight() {}  // 0x000d2970 CSGPointLight_Create: CSGLeaf's constructor, then the vtable
     ~CSGPointLight() override {}
+    // vt+0x10 0x000d26c8 CSGPointLight_Destroy: CSGLeaf's, then the light component reference cleared.
+    void Destroy() override;
 
     // vt+0x2c 0x000d2418 CSGPointLight_Load: CSGLeaf's, then (type 0) the light, a float and a byte.
     int32_t Load(IKFile* file, int32_t type) override;

@@ -2,6 +2,8 @@
 #include "Renderware/rwcore/RwSList.h"
 
 #include <cstdlib>
+
+#include "platform/heap_fill.h"
 #if defined(_MSC_VER)
 #include <malloc.h>
 #endif
@@ -9,7 +11,11 @@
 // The PS3's RW heap returns 16-byte aligned blocks (RwMatrix and the Rt2d objects holding one rely on
 // it); the host heap is made to do the same.
 #if defined(_MSC_VER)
-void* RwMalloc(RwUInt32 size, RwUInt32 /*hint*/) { return _aligned_malloc(size == 0 ? 1 : size, 16); }
+void* RwMalloc(RwUInt32 size, RwUInt32 /*hint*/) {
+    void* memory = _aligned_malloc(size == 0 ? 1 : size, 16);
+    dotd::HeapFill(memory, size);  // zeroed by default (platform/heap_fill.h)
+    return memory;
+}
 
 void RwFree(void* memory) { _aligned_free(memory); }
 
@@ -17,7 +23,11 @@ void* RwRealloc(void* memory, RwUInt32 size, RwUInt32 /*hint*/) {
     return _aligned_realloc(memory, size == 0 ? 1 : size, 16);
 }
 #else
-void* RwMalloc(RwUInt32 size, RwUInt32 /*hint*/) { return std::malloc(size == 0 ? 1 : size); }  // 16-aligned (glibc x64, emscripten)
+void* RwMalloc(RwUInt32 size, RwUInt32 /*hint*/) {  // 16-aligned (glibc x64, emscripten)
+    void* memory = std::malloc(size == 0 ? 1 : size);
+    dotd::HeapFill(memory, size);  // zeroed by default (platform/heap_fill.h)
+    return memory;
+}
 
 void RwFree(void* memory) { std::free(memory); }
 

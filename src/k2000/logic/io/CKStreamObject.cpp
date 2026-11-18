@@ -5,27 +5,27 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x11a0c8  CKStreamObject_Delete
-//   [ ] 0x11a118  CKStreamObject_RecursiveRegistration
+//   [x] 0x11a118  CKStreamObject_RecursiveRegistration
 //   [ ] 0x11a178  CKStreamObject_ResetPlaybackFields_maybe  [dead]
 //   [x] 0x11a1b8  CKStreamObject_SetFloat20AndInt1C_maybe
 //   [x] 0x11a1c8  CKStreamObject_SetVolumeWithFade_maybe
 //   [ ] 0x11a220  RegisterCKStreamObjectClass
 //   [ ] 0x11a298  _GLOBAL__I_11a298
-//   [ ] 0x11a2a8  CKStreamObject_GetStreamState_maybe
+//   [x] 0x11a2a8  CKStreamObject_GetStreamState_maybe
 //   [x] 0x11a2e8  CKStreamObject_GetPlaybackPosition_maybe
-//   [ ] 0x11a350  CKStreamObject_Unpause_maybe
-//   [ ] 0x11a380  SoundInstance_Resume_maybe
-//   [ ] 0x11a3c0  SoundInstance_Pause_maybe
+//   [x] 0x11a350  CKStreamObject_Unpause_maybe
+//   [x] 0x11a380  SoundInstance_Resume_maybe
+//   [x] 0x11a3c0  SoundInstance_Pause_maybe
 //   [x] 0x11a400  CKStreamObject_DeleteArray
 //   [x] 0x11a4a8  CKStreamObject_Create
-//   [ ] 0x11a4f8  SoundStreamTrack_UpdateFader_maybe
+//   [x] 0x11a4f8  SoundStreamTrack_UpdateFader_maybe
 //   [x] 0x11a538  FUN_0011a538
 //   [ ] 0x11a5a8  CKStreamObject_IsStreamState6_maybe  [dead]
-//   [ ] 0x11a5d8  CKStreamObject_GetLength_maybe
+//   [x] 0x11a5d8  CKStreamObject_GetLength_maybe
 //   [x] 0x11a5f8  CKStreamObject_CreateArray
-//   [ ] 0x11a6b0  CKStreamObject_PostLoad
+//   [x] 0x11a6b0  CKStreamObject_PostLoad  (IKSerializable's: returns 1)
 //   [x] 0x11a6b8  CKStreamObject_ResetRuntime_maybe
-//   [ ] 0x11a720  CKStreamObject_Destroy
+//   [x] 0x11a720  CKStreamObject_Destroy  (empty: IKSerializable's)
 //   [x] 0x11a728  CKStreamObject_Play_maybe
 //   [x] 0x11a870  CKStreamObject_Stop_maybe
 //   [x] 0x11a958  CKStreamObject_Load
@@ -45,14 +45,31 @@
 
 #include "k2000/core/Stub.h"
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/CKSavingManager.h"
 #include "k2000/logic/sound/CKStreamWave.h"
 #include "k2000/managers/CKSoundManager.h"
 #include "k2000/misc/Engine.h"
 #include "k2000/sound/CKSoundStreamManager.h"
 #include "k2000/sound/SoundStreamType.h"
-#include "k2000/sound/SpeechStreamModel.h"
+#include "k2000/misc/FloatApproach.h"
+#include "k2000/sound/SoundStream.h"
+#include "k2000/system/IKTime.h"
 #include <cmath>
 #include <cstring>
+
+namespace {
+
+// 0x00cea860: Str_HashXor4("Speech"), set by the static initialiser 0x115c38 (local copy of 0x000107d8 Str_HashXor4,
+// misc/Wcs.cpp, not ported yet: the bytes XORed into four accumulators in turn, read as a little-endian word).
+uint32_t SpeechHash() {
+    static const char kSpeech[] = "Speech";
+    uint8_t acc[4] = {0, 0, 0, 0};
+    for (uint32_t i = 0; kSpeech[i] != 0; ++i) acc[i & 3] ^= static_cast<uint8_t>(kSpeech[i]);
+    return static_cast<uint32_t>(acc[0]) | (static_cast<uint32_t>(acc[1]) << 8) | (static_cast<uint32_t>(acc[2]) << 16) |
+           (static_cast<uint32_t>(acc[3]) << 24);
+}
+
+}  // namespace
 
 // Inlined in 0x0011a4a8 CKStreamObject_Create.
 CKStreamObject::CKStreamObject() {
@@ -71,8 +88,8 @@ int32_t CKStreamObject::Load(IKFile* file, int32_t type) {
         ReadU8(file, &m_unk24);
         ReadF32LE(file, &m_unk28);
     }
-    m_unk08 = nullptr;
-    m_unk0c = nullptr;
+    m_pType = nullptr;
+    m_pStream = nullptr;
     m_unk30 = 0.0f;
     m_unk34 = m_unk28;
     m_unk2c = m_unk28;
@@ -126,9 +143,9 @@ void CKStreamObject::ResetRuntime() {
     m_unk38 = 0;
     m_unk24 = 0;
     m_pStreamWave = nullptr;
-    m_pad3a[0] = 0;
-    m_unk08 = nullptr;
-    m_unk0c = nullptr;
+    m_unk3a = 0;
+    m_pType = nullptr;
+    m_pStream = nullptr;
     m_unk30 = 0.0f;
     m_unk34 = m_unk28;
     m_unk2c = m_unk28;
@@ -138,12 +155,12 @@ void CKStreamObject::ResetRuntime() {
 }
 
 // 0x0011a870 CKStreamObject_Stop_maybe. Only a stream that is playing (+0x08, the stream type Play sets) does anything:
-// a paused one is resumed (STUB(C2.3 audio): never paused here), the target volume goes to 0 and the current one
-// follows at once or by a ramp of the fade time (+0x14), then the stream type drops the stream.
+// a paused one is resumed, the target volume goes to 0 and the current one follows at once or by a ramp of the fade time
+// (+0x14), then the stream type stops it (its player fades it out, or a waiting object leaves at once).
 void CKStreamObject::Stop(int32_t immediate) {
-    if (m_unk08 == nullptr) return;
+    if (m_pType == nullptr) return;
     if (m_unk38 != 0) {
-        DOTD_STUB_ONCE("CKStreamObject_Stop_maybe 0x11a870: SoundEmitterGroup_ResumeVoiceOf_maybe of a paused stream (C2.3 audio)");
+        m_pType->ResumeVoiceOf(this);  // 0x0011dc20 SoundEmitterGroup_ResumeVoiceOf_maybe
         m_unk38 = 0;
     }
     m_unk2c = 0.0f;
@@ -152,20 +169,17 @@ void CKStreamObject::Stop(int32_t immediate) {
     } else {
         m_unk30 = std::fabs(m_unk34 / m_unk14);
     }
-    speech_model::Stop(this);  // SoundStreamType_StopObject_maybe 0x11e1b0
+    m_pType->StopObject(this);  // 0x0011e1b0 SoundStreamType_StopObject_maybe
 }
 
-// 0x0011a728 CKStreamObject_Play_maybe
+// 0x0011a728 CKStreamObject_Play_maybe. The wave records whether the type is "Speech" (its name hash against the one the
+// static initialiser 0x115c38 keeps at 0x00cea860); a music wave without a length (+0x04) does not play.
 void CKStreamObject::Play(SoundStreamType* type, int32_t fade) {
     if (m_pStreamWave == nullptr) return;
     CKStreamWave* wave = static_cast<CKStreamWave*>(m_pStreamWave);
-    // The wave records whether the stream type is the "Musics" one.
-    wave->m_unk218 = type == g_pEngine->m_soundManager->m_pSoundStreamManager->FindTypeByName("Musics") ? 1 : 0;
-    if (wave->m_unk218 == 0) {
-        // BUG(original): a stream of another type needs the wave's length (+0x04) to be non-zero, and the speech wave the
-        // sekensor shares is never given one (heap residue on the PS3: non-zero in the capture). The test is not made.
-    }
-    m_unk08 = type;
+    wave->m_unk218 = type->m_ui32NameHash == SpeechHash() ? 1 : 0;
+    if (wave->m_unk218 == 0 && wave->m_fStreamLength == 0.0f) return;
+    m_pType = type;
     m_unk38 = 0;
     m_unk34 = 0.0f;
     if (m_unk10 == 0.0f || fade == 0) m_unk34 = m_unk28;
@@ -175,7 +189,7 @@ void CKStreamObject::Play(SoundStreamType* type, int32_t fade) {
     } else {
         m_unk30 = std::fabs((m_unk34 - m_unk28) / m_unk10);
     }
-    speech_model::Play(this);  // SoundStreamType_PlayObject_maybe 0x11e818
+    m_pType->PlayObject(this);  // 0x0011e818 SoundStreamType_PlayObject_maybe
 }
 
 // 0x0011a1b8 CKStreamObject_SetFloat20AndInt1C_maybe
@@ -194,10 +208,54 @@ void CKStreamObject::SetVolumeWithFade(float volume, float fadeTime, int32_t ins
     m_unk34 = volume;
 }
 
+// 0x0011a2a8 CKStreamObject_GetStreamState_maybe
+uint32_t CKStreamObject::GetStreamState() const { return m_pStream != nullptr ? m_pStream->GetPlayerState() : 0; }
+
 // 0x0011a2e8 CKStreamObject_GetPlaybackPosition_maybe
-void CKStreamObject::GetPlaybackPosition(int32_t* item, float* position) const { speech_model::GetPlayback(this, item, position); }
+void CKStreamObject::GetPlaybackPosition(int32_t* item, float* position) const {
+    if (m_pStream == nullptr) {
+        *item = -1;
+        *position = 0.0f;
+        return;
+    }
+    m_pStream->GetPlaybackItemAndPosition(item, position);
+}
 
-// FUN_0011a538
-uint8_t CKStreamObject::IsFinished() const { return speech_model::IsFinished(this) ? 1 : 0; }
+// 0x0011a350 CKStreamObject_Unpause_maybe: the start-paused request dropped.
+void CKStreamObject::Unpause() { m_pType->UnpauseObject(this); }
 
-bool CKStreamObject::HasPlayer() const { return speech_model::HasPlayer(this); }
+// 0x0011a380 SoundInstance_Resume_maybe
+void CKStreamObject::Resume() {
+    m_pType->ResumeVoiceOf(this);
+    m_unk38 = 0;
+}
+
+// 0x0011a3c0 SoundInstance_Pause_maybe
+void CKStreamObject::Pause() {
+    m_pType->PauseVoiceOf(this);
+    m_unk38 = 1;
+}
+
+// 0x0011a4f8 SoundStreamTrack_UpdateFader_maybe: the volume ramp moves while the object has a player.
+void CKStreamObject::UpdateFader(IKTime* clock) {
+    if (m_pStream != nullptr) FloatApproach_Step(clock->m_afDeltaTime[IKTime::FIXED_GAME_TIME], &m_unk2c);
+}
+
+// 0x0011a538 FUN_0011a538: with a player, 1 only in MediaStopped with a request other than play, pause and start paused.
+uint8_t CKStreamObject::IsFinished() const {
+    if (m_pStream == nullptr) return 1;
+    const int32_t request = m_pStream->m_i32Request;
+    const uint8_t stopRequested = request != 0 && request != 3 && request != 5 ? 1 : 0;
+    return m_pStream->m_ui8State == SoundStream::kMediaStopped ? stopRequested : 0;
+}
+
+// 0x0011a5d8 CKStreamObject_GetLength_maybe
+float CKStreamObject::GetLength() const {
+    if (m_pStreamWave == nullptr) return 0.0f;
+    return static_cast<const CKStreamWave*>(m_pStreamWave)->m_fStreamLength;
+}
+
+// 0x0011a118 CKStreamObject_RecursiveRegistration
+void CKStreamObject::RecursiveRegistration(int32_t type) {
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+}

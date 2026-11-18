@@ -11,6 +11,9 @@
 class CKCurve2DCpnt : public IKComponent {
 public:
     DOTD_CLASS_KEY(kCategoryComponent, 0x16b)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9b9da0
+        return key == 0x5ac6 || key == 0x6 || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKCurve2DCpnt)
 
     // One point (XXL2 CVector2: m_fX, m_fY; there is no shared CVector2 yet), both words byte-swapped.
@@ -20,6 +23,12 @@ public:
     };
 
     CKCurve2DCpnt();  // 0x002499e8 CKCurve2DCpnt_Create (the constructor is inlined there)
+    // 0x00249820 CKCurve2DCpnt_Destructor (0x249cd0 deleting, 0x249c78 the same code): the point block freed, then the
+    // component base (vtable only).
+    ~CKCurve2DCpnt() override;
+    // vt+0x10 0x00249a48 CKCurve2DCpnt_Destroy: the point block freed, its length and block cleared. (vt+0x24 0x249a40
+    // RecursiveRegistration: 1, the default.)
+    void Destroy() override;
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00249a98 CKCurve2DCpnt_Load
 

@@ -28,6 +28,12 @@ public:
     void SelectMappingSet(int32_t set);
     // 0x001018d0 InputAction_ResetState_maybe (XXL2 CKAction::Reset)
     void Reset();
+    // 0x00101538 InputAction_ClearBinding_maybe (CKInput's teardown): no mapping, no filter; 1.
+    int32_t ClearBinding() {
+        m_pMapping = nullptr;
+        m_pFilter = nullptr;
+        return 1;
+    }
     // 0x001018f8 InputAction_UpdateState_maybe (XXL2 CKAction::Update(UInt8&, IKTime*)): the mapped value
     // (the largest of slots 2, 0 and 3) through the filter into *filtered (CKInput::m_aFiltredActions).
     int32_t Update(uint8_t* filtered, IKTime* frameClock);

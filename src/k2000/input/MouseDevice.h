@@ -1,7 +1,8 @@
 // MouseDevice.h - the mouse devices CKInput's Load creates (CKInput::m_aMouses, m_ui8NbMouses of them;
 // GAME has none). The members are XXL2's IKMouse (K/KModules/KIL/KMouse/IKMouse.h) and the slots match
 // O_CKMouse's; the PS3 class (vtable 0xb19788, size 0x64) has no separate base vtable. Code in
-// input/MouseDevice.cpp (0x110038-0x110108). STUB(C1.6): vt+0x14 ReadMouse.
+// input/MouseDevice.cpp (0x110038-0x110108). The PS3 build reads no mouse: ReadMouse returns 1 and leaves the
+// values as they are (no cell call).
 #pragma once
 #include <cstdint>
 
@@ -14,6 +15,7 @@ public:
     virtual int32_t InitializeData(void* params);     // vt+0x08 0x00110048 MouseDevice_Init_maybe
     virtual int32_t Destroy() { return 1; }           // vt+0x0c 0x110090
     virtual int32_t InitMouse() { return 1; }         // vt+0x10 0x110098
+    virtual int32_t ReadMouse() { return 1; }         // vt+0x14 0x1100a0 KStub_Return1_1100a0
 
     uint8_t m_bActive;                        // +0x04
     uint8_t m_ui8VirtualMouseValue[14];       // +0x05

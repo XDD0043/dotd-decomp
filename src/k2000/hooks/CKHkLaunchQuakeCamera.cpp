@@ -10,17 +10,17 @@
 //   [ ] 0x152a50  RegisterCKHkLaunchQuakeCameraClass
 //   [ ] 0x152ac8  _GLOBAL__I_152ac8
 //   [x] 0x152ad8  CKHkLaunchQuakeCamera_Update
-//   [ ] 0x152b50  CKHkLaunchQuakeCamera_RecursiveRegistration
+//   [x] 0x152b50  CKHkLaunchQuakeCamera_RecursiveRegistration
 //   [x] 0x152c38  CKHkLaunchQuakeCamera_DeleteArray
 //   [x] 0x152cd8  CKHkLaunchQuakeCamera_Start
-//   [ ] 0x152ce8  CKHkLaunchQuakeCamera_GetInfo
+//   [x] 0x152ce8  CKHkLaunchQuakeCamera_GetInfo  (in the header)
 //   [x] 0x152cf0  CKHkLaunchQuakeCamera_MessageProc
 //   [x] 0x152d60  CKHkLaunchQuakeCamera_CreateArray
 //   [x] 0x152e28  CKHkLaunchQuakeCamera_Create
 //   [x] 0x152e90  CKHkLaunchQuakeCamera_Load
 //   [ ] 0x152fe0  CKHkLaunchQuakeCamera_Save
-//   [ ] 0x153140  CKHkLaunchQuakeCamera_Destructor
-//   [ ] 0x153160  CKHkLaunchQuakeCamera_DeletingDestructor
+//   [x] 0x153140  CKHkLaunchQuakeCamera_Destructor  (C++ destructor chain: vtable stores only)
+//   [x] 0x153160  CKHkLaunchQuakeCamera_DeletingDestructor  (the deleting form of the implicit destructor)
 //   [ ] 0x1531a8  CKHkLaunchQuakeCamera_Destructor_2  [dead]
 //
 //   [ ] 0x992688  CKHkLaunchQuakeCamera_Destroy  [inline]
@@ -35,6 +35,7 @@
 #include "k2000/cameras/CKSrvCamera.h"
 #include "k2000/components/CKQuakeCameraLauncher.h"
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/CKSavingManager.h"
 #include "k2000/misc/Engine.h"
 #include "k2000/scenegraph/CSGMovable.h"
 
@@ -47,6 +48,15 @@ int32_t CKHkLaunchQuakeCamera::Load(IKFile* file, int32_t type) {
         IKFile_ReadRef(file, &m_unk20);
     }
     return 1;
+}
+
+// 0x00152b50 CKHkLaunchQuakeCamera_RecursiveRegistration (returns 1)
+void CKHkLaunchQuakeCamera::RecursiveRegistration(int32_t type) {
+    IKHook::RecursiveRegistration(type);  // 0x00019ab8
+    if (type != 0) return;
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    m_unk24->RecursiveRegistration(0);  // vt+0x24
+    m_unk20->RecursiveRegistration(0);
 }
 
 // 0x00152cf0 CKHkLaunchQuakeCamera_MessageProc

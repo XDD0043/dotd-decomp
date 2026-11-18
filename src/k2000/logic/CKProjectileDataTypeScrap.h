@@ -11,12 +11,18 @@
 class CKProjectileDataTypeScrap : public IKComponent {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x29b)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9cb568
+        return key == 0xa6cc || key == 0x6 || key == 0xc || key == 0xa58c;
+    }
     DOTD_DECLARE_FACTORIES(CKProjectileDataTypeScrap)
 
     // The constructor inlined in 0x005920e0 CKProjectileDataTypeScrap_Create: the vtable only.
     CKProjectileDataTypeScrap() {}
     ~CKProjectileDataTypeScrap() override {}
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00592328 CKProjectileDataTypeScrap_Load
+    // vt+0x24 0x005921e0 CKProjectileDataTypeScrap_RecursiveRegistration: type 0 registers the object with the saving
+    // manager; types 4..7 stop there; then the references +0x3c, +0x40, +0x44 recurse.
+    void RecursiveRegistration(int32_t type) override;
 
     float m_unk04;            // +0x04 (samples: 15.0)
     float m_unk08;            // +0x08

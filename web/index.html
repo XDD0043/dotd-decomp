@@ -1,0 +1,285 @@
+<!doctype html>
+<!-- The page of the web build of dotd (wasm32 + WebGL2). Serve it with serve.py (same folder): the build needs a
+     cross-origin isolated page for its threads, and the game's files come from /usrdir (your own USRDIR, read
+     from disk as it is). URL parameters become command-line options: ?fps=0&lang=3 is "--fps 0 --lang 3". -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Legend of Spyro: Dawn of the Dragon (dotd, web)</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow-x: hidden; background: #0b0b10; color: #c8c8d0; font: 13px/1.4 system-ui, sans-serif; }
+  #stage { display: flex; flex-direction: column; align-items: center; padding: 12px 0; }
+  #canvas { background: #000; outline: none; max-width: 100%; }
+  #status { margin: 8px 0 4px; min-height: 1.4em; }
+  #status.error { color: #ff8a80; }
+  #sound { display: none; margin: 0 0 6px; color: #ffe680; }
+  #bar { display: flex; gap: 12px; align-items: center; }
+  button { background: #1c1c26; color: inherit; border: 1px solid #34344a; border-radius: 4px; padding: 3px 10px; cursor: pointer; }
+  #log { display: none; width: min(1280px, 96vw); height: 220px; overflow: auto; margin: 6px 0 0; padding: 6px 8px;
+         box-sizing: border-box; background: #111118; border: 1px solid #262636; font: 11px/1.35 ui-monospace, Consolas, monospace;
+         white-space: pre-wrap; }
+  #download { display: none; width: min(1280px, 96vw); margin: 2px 0 6px; }
+  #downloadTrack { height: 4px; background: #1c1c26; border-radius: 2px; overflow: hidden; }
+  #downloadBar { height: 100%; width: 0; background: #e6b422; }
+  #downloadText { margin-top: 3px; color: #8a8a98; font-size: 12px; }
+  #download.waiting #downloadText { color: #ffe680; }
+  #keys { color: #8a8a98; max-width: min(1280px, 96vw); text-align: center; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="canvas" width="1280" height="720" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
+  <div id="status">Loading…</div>
+  <div id="sound">The browser keeps the sound off until you click the page or press a key (a gamepad button does not count).</div>
+  <div id="download"><div id="downloadTrack"><div id="downloadBar"></div></div><div id="downloadText"></div></div>
+  <div id="bar">
+    <button id="logToggle" type="button">Show log</button>
+    <button id="clearData" type="button" style="display: none">Delete downloaded data</button>
+    <span id="keys">Enter START · X cross · C circle · Z square · V triangle · WASD move · arrows d-pad · Q/E L1/R1 · R/T L2/R2 · Space select (a gamepad works too)</span>
+  </div>
+  <pre id="log"></pre>
+</div>
+<script>
+'use strict';
+const statusEl = document.getElementById('status');
+const logEl = document.getElementById('log');
+const logLines = [];
+let logDirty = false;
+// The browser's autoplay rule: a page that has had no click or key press yet may not make a sound (a gamepad
+// button does not count as one). The game runs on meanwhile, silent. Say so while it lasts, and start the sound
+// with the first click or key (SDL also does, at its next audio tick).
+function soundContext() {
+  const sdl = typeof Module !== 'undefined' && Module.SDL3;
+  return sdl && sdl.audioContext ? sdl.audioContext : null;
+}
+function resumeSound() {
+  const context = soundContext();
+  if (context && context.state === 'suspended') context.resume();
+}
+for (const type of ['pointerdown', 'keydown', 'touchend']) window.addEventListener(type, resumeSound, true);
+setInterval(() => {
+  const context = soundContext();
+  document.getElementById('sound').style.display = context && context.state === 'suspended' ? 'block' : 'none';
+}, 500);
+
+function setStatus(text, isError) {
+  statusEl.textContent = text;
+  statusEl.className = isError ? 'error' : '';
+}
+function addLog(text) {
+  logLines.push(text);
+  if (logLines.length > 2000) logLines.splice(0, logLines.length - 2000);
+  logDirty = true;
+}
+setInterval(() => {  // the log panel is refreshed a few times a second, not once per line
+  if (!logDirty || logEl.style.display !== 'block') return;
+  logDirty = false;
+  const atEnd = logEl.scrollTop + logEl.clientHeight >= logEl.scrollHeight - 8;
+  logEl.textContent = logLines.join('\n');
+  if (atEnd) logEl.scrollTop = logEl.scrollHeight;
+}, 250);
+document.getElementById('logToggle').onclick = (e) => {
+  const show = logEl.style.display !== 'block';
+  logEl.style.display = show ? 'block' : 'none';
+  e.target.textContent = show ? 'Hide log' : 'Show log';
+  logDirty = true;
+};
+
+// URL parameters -> argv: ?fps=0&lang=3&headless -> ["--fps", "0", "--lang", "3", "--headless"].
+// A DOTD_... parameter is an environment variable instead (the native build's debug aids): ?DOTD_GFX_STATS=600.
+const gameArgs = [];
+const gameEnv = {};
+for (const [key, value] of new URLSearchParams(location.search)) {
+  if (key.startsWith('DOTD_')) {
+    gameEnv[key] = value;
+    continue;
+  }
+  gameArgs.push('--' + key);
+  if (value !== '') gameArgs.push(value);
+}
+
+const HOME_DIR = '/home/web_user';
+let homeReady = false, homeSaving = false;
+function saveHome() {
+  if (!homeReady || homeSaving) return;
+  homeSaving = true;
+  Module.FS.syncfs(false, (err) => {
+    homeSaving = false;
+    if (err) addLog('page: the home folder was not saved: ' + err);
+  });
+}
+// The shader variant list (which shader programs each level uses, so they are built on its loading screen): the
+// lines of the native build's list, when serve.py has one, are added to the web build's own before main() runs.
+async function seedVariantList() {
+  try {
+    const response = await fetch('shader-variants.txt', {cache: 'no-store'});
+    if (!response.ok) return;
+    const seed = (await response.text()).split(/\r?\n/).filter((line) => line !== '');
+    if (seed.length < 2) return;
+    const folder = HOME_DIR + '/.cache/dotd', path = folder + '/shader-variants.txt';
+    let own = [];
+    try { own = Module.FS.readFile(path, {encoding: 'utf8'}).split(/\r?\n/).filter((line) => line !== ''); } catch (e) {}
+    if (own.length !== 0 && own[0] !== seed[0]) return;  // another version of the list: left alone
+    const have = new Set(own);
+    const added = seed.slice(1).filter((line) => !have.has(line));
+    if (added.length === 0) return;
+    Module.FS.mkdirTree(folder);
+    Module.FS.writeFile(path, [seed[0]].concat(own.slice(1), added).join('\n') + '\n');
+    addLog('page: ' + added.length + ' shader variant(s) taken from the native build\'s list');
+  } catch (e) {
+    addLog('page: the native shader variant list was not read: ' + e);
+  }
+}
+setInterval(saveHome, 5000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveHome(); });
+window.addEventListener('pagehide', saveHome);
+
+// DEV (?DOTD_WEB_TICKER=1): the browser runs requestAnimationFrame and a page's timers once a second at most
+// while the page is not on screen. For automated runs in a hidden window the animation frames then come from
+// a worker's 4 ms timer instead (workers are not slowed); the game's own 60 fps grid still paces the frames.
+if (gameEnv.DOTD_WEB_TICKER) {
+  const ticker = new Worker(URL.createObjectURL(new Blob(['setInterval(() => postMessage(0), 4);'], {type: 'text/javascript'})));
+  let callbacks = [];
+  ticker.onmessage = () => {
+    const due = callbacks;
+    callbacks = [];
+    const now = performance.now();
+    for (const callback of due) callback(now);
+  };
+  window.requestAnimationFrame = (callback) => { callbacks.push(callback); return 0; };
+}
+
+// ---- download mode (README.md): the game's files come as a pack (pack/manifest.json, made by pack.py) ----------
+// A download worker fetches and stores them (pack-worker.js), a service worker answers the game's reads from the
+// store (sw.js). The page waits for the boot set, then starts the game; what is downloading is shown under the
+// picture (yellow when the game is waiting for it, grey when it is fetched ahead).
+let packWorker = null;
+function showDownload(message) {
+  const el = document.getElementById('download');
+  const items = message.items || [];
+  if (items.length === 0) {
+    el.style.display = 'none';
+    document.getElementById('downloadText').textContent = '';
+    return;
+  }
+  let got = 0, total = 0, waiting = false;
+  const names = [];
+  for (const item of items) {
+    got += item.got;
+    total += item.total;
+    waiting = waiting || item.priority <= 1;
+    names.push(item.path.split('/').pop());
+  }
+  el.style.display = 'block';
+  el.className = waiting ? 'waiting' : '';
+  document.getElementById('downloadBar').style.width = (total ? 100 * got / total : 0).toFixed(1) + '%';
+  document.getElementById('downloadText').textContent =
+      (waiting ? 'Downloading ' : 'Getting the next part ready: ') + names.join(', ') + '  ' +
+      (got / 1048576).toFixed(1) + ' / ' + (total / 1048576).toFixed(1) + ' MB' +
+      (message.queued ? '  (+' + message.queued + ' more, ' + (message.queuedBytes / 1048576).toFixed(0) + ' MB)' : '');
+}
+// Resolves with the game's file listing when the boot set is stored; with null when there is no pack (the
+// files are then read from the server's /usrdir as they are).
+async function startDownloadMode() {
+  const head = await fetch('pack/manifest.json', {method: 'HEAD', cache: 'no-store'}).catch(() => null);
+  if (!head || !head.ok) {
+    if (navigator.serviceWorker) {
+      for (const registration of await navigator.serviceWorker.getRegistrations()) await registration.unregister();
+    }
+    return null;
+  }
+  await navigator.serviceWorker.register('sw.js');
+  await navigator.serviceWorker.ready;
+  if (!navigator.serviceWorker.controller) {
+    await new Promise((resolve) => navigator.serviceWorker.addEventListener('controllerchange', resolve, {once: true}));
+  }
+  new BroadcastChannel('dotd-pack').postMessage({type: 'reset'});
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  packWorker = new Worker('pack-worker.js');
+  const clear = document.getElementById('clearData');
+  clear.style.display = '';
+  clear.onclick = () => {  // the store emptied, then the page again from nothing
+    if (!confirm('Delete the game data this browser has downloaded? It is downloaded again when needed.')) return;
+    new BroadcastChannel('dotd-pack').onmessage = (event) => { if (event.data.type === 'cleared') location.reload(); };
+    packWorker.postMessage({type: 'clear'});
+  };
+  const booted = new Promise((resolve, reject) => {
+    packWorker.onmessage = (event) => {
+      const message = event.data;
+      if (message.type === 'log') { console.log(message.text); addLog(message.text); }
+      else if (message.type === 'progress') showDownload(message);
+      else if (message.type === 'boot-done') resolve();
+      else if (message.type === 'fatal') { addLog('pack: ' + message.text); reject(new Error(message.text)); }
+    };
+  });
+  packWorker.postMessage({type: 'init', base: new URL('pack/', location.href).href});
+  setStatus('Downloading the game…');
+  await booted;
+  const response = await fetch('pack/usrdir.manifest', {cache: 'no-store'});
+  if (!response.ok) throw new Error('pack/usrdir.manifest: HTTP ' + response.status);
+  return await response.text();
+}
+
+var Module = {
+  canvas: document.getElementById('canvas'),
+  dotdUsrdirUrl: 'usrdir/',   // where serve.py serves the game's USRDIR (platform/web/hostfs_web.cpp)
+  dotdManifest: '',           // its listing, fetched below before main() runs
+  print: (text) => { console.log(text); addLog(text); },
+  printErr: (text) => { console.log(text); addLog(text); },
+  onAbort: (what) => setStatus('The game stopped: ' + what, true),
+  // The home folder (saves in .local/share/dotd/savedata, the shader variant list in .cache/dotd) is kept in
+  // the browser's IndexedDB: restored here before main() runs, written back by saveHome() below.
+  preRun: [() => {
+    Object.assign(Module.ENV, gameEnv);
+    try {
+      Module.FS.mount(Module.IDBFS, {}, HOME_DIR);
+      Module.addRunDependency('dotd-home');
+      Module.FS.syncfs(true, (err) => {
+        if (err) addLog('page: the home folder was not restored: ' + err);
+        homeReady = !err;
+        seedVariantList().finally(() => Module.removeRunDependency('dotd-home'));
+      });
+    } catch (e) {
+      addLog('page: no persistent home folder: ' + e);
+    }
+  }],
+  onRuntimeInitialized: () => {
+    setStatus('');
+    try {
+      Module.callMain(gameArgs);
+    } catch (e) {
+      if (e !== 'unwind' && !(e && e.name === 'ExitStatus')) throw e;
+    }
+  },
+};
+window.addEventListener('error', (e) => { addLog('page error: ' + e.message); });
+
+(async () => {
+  if (!self.crossOriginIsolated) {
+    setStatus('This page must be opened through serve.py (it needs a cross-origin isolated page for the game\'s threads).', true);
+    return;
+  }
+  try {
+    const packed = await startDownloadMode();
+    if (packed !== null) {
+      Module.dotdManifest = packed;
+    } else {
+      const response = await fetch('usrdir.manifest', {cache: 'no-store'});
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      Module.dotdManifest = await response.text();
+    }
+  } catch (e) {
+    setStatus('No game files: start serve.py with --usrdir PATH (your PS3_GAME/USRDIR). ' + e, true);
+    return;
+  }
+  setStatus('Starting…');
+  const script = document.createElement('script');
+  script.src = 'dotd.js';
+  script.onerror = () => setStatus('dotd.js is missing: build the wasm preset first (work\\build_wasm.cmd).', true);
+  document.body.appendChild(script);
+  Module.canvas.focus();
+})();
+</script>
+</body>
+</html>

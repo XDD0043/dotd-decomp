@@ -11,6 +11,7 @@
 class CKCameraFogDatas : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0xe9)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x3a4c || key == 0xc; }  // vt+0x08 0x9a78b0
     DOTD_DECLARE_FACTORIES(CKCameraFogDatas)
 
     CKCameraFogDatas() {}  // 0x00143cf8 CKCameraFogDatas_Create: stores the vtable only

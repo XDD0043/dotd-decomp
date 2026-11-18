@@ -14,7 +14,10 @@ class CKTriggerSynchro;
 class CKTriggerDomain : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0xa3)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x28cc || key == 0xc; }  // vt+0x08 0x9b89c0
     DOTD_DECLARE_FACTORIES(CKTriggerDomain)
+    // vt+0x40 0x002369b8 CKTriggerDomain_GetInfo: the trigger values 1 (the domain enabled).
+    int32_t GetInfo(IKInfo* info, int32_t request) override;
 
     CKTriggerDomain();  // inlined in 0x00236890 CKTriggerDomain_Create
     ~CKTriggerDomain() override {}
@@ -44,6 +47,9 @@ public:
     // (+0x18) or was signalled (+0x19): when its evaluator holds, its starters are queued, its actions sent and
     // the evaluator told (vt+0x50); a domain with flags bit 2 stops after the first trigger that fired.
     void EvaluateTriggers();
+    // 0x00236db0 CKTriggerDomain_ClearConditionEventsRecursive_maybe: every sub-domain (first to last) the same way,
+    // then this domain's triggers' evaluators told (vt+0x5c, first to last).
+    void ClearConditionEventsRecursive();
 
     TVector<IKSerializable*, 8> m_vTriggers;       // +0x04 CKTrigger*; the file's second count
     TVector<CKTriggerDomain*, 8> m_vSubDomains;    // +0x10 the file's first count

@@ -21,6 +21,12 @@ public:
     ~IKBoundingVolume() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00991ca0 (Ghidra CKBoundingShape_Load)
+    // vt+0x30 0x009916a8 IKBoundingVolume_PostLoad (every derived volume's slot): no damage (+0x1c), then
+    // CSGLeaf_PostLoad 0xcf0f8.
+    int32_t PostLoad(int32_t type) override {
+        m_unk1c = nullptr;
+        return CSGLeaf::PostLoad(type);
+    }
 
     // The shape numbers CKSrvCollision's test matrix (m_IntersectionMatrix[shape1][shape2]) is indexed by: 0 sphere,
     // 1 oriented box, 2 moving sphere, 3 axis-aligned box, 4 moving axis-aligned box, 5 vertical cylinder.

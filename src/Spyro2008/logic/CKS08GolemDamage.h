@@ -9,6 +9,9 @@
 class CKS08GolemDamage : public CKS08Damage {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x2b5)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9c57c0
+        return key == 0xad4c || key == 0xc || key == 0x970c || key == 0x96cc;
+    }
     DOTD_DECLARE_FACTORIES(CKS08GolemDamage)
 
     // 0x004c4d30 CKS08GolemDamage_Construct: CKS08Damage_Construct_2 (CKS08Damage's constructor), the vtable.

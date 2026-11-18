@@ -5,16 +5,16 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x4c7410  CKGolemAttackCommon_ConstructBase_maybe
-//   [ ] 0x4c7420  KBaseC_vf68_3
-//   [ ] 0x4c7478  KBaseC_vf6C_4
+//   [x] 0x4c7420  KBaseC_vf68_3
+//   [x] 0x4c7478  KBaseC_vf6C_4
 //   [ ] 0x4c74d0  CKGolemAttackCommon_ConstructBase_2_maybe  [dead]
-//   [ ] 0x4c74e0  KBase984C_vf28
+//   [x] 0x4c74e0  KBase984C_vf28  (Save: returns 1, the default slot)
 //   [x] 0x4c74e8  CKGolemAttackBase_maybe_Load
-//   [ ] 0x4c7578  KBase984C_vf24
-//   [ ] 0x4c7580  KStub_Nop_4c7580
-//   [ ] 0x4c7588  KBase984C_DeletingDestructor
-//   [ ] 0x4c75c8  KBase984C_vf0
-//   [ ] 0x4c75e0  CKGolemAttackBase_maybe_BaseDestructor
+//   [x] 0x4c7578  KBase984C_vf24  (RecursiveRegistration: returns 1, the default slot)
+//   [x] 0x4c7580  KStub_Nop_4c7580
+//   [x] 0x4c7588  KBase984C_DeletingDestructor  (the destructor; delete)
+//   [x] 0x4c75c8  KBase984C_vf0  (C++ destructor chain: vtable stores only)
+//   [x] 0x4c75e0  CKGolemAttackBase_maybe_BaseDestructor
 //
 //   [ ] 0x9c5988  KBase984C_vf14  [inline]
 //   [ ] 0x9c5990  KBase984C_vf18  [inline]

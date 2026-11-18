@@ -6,9 +6,9 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0xf3a00  ShaderParamList_AddUniform_maybe
+//   [ ] 0xf3a00  ShaderParamList_AddUniform_maybe  [platform]  (a Cg program's parameter list: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
 //   [ ] 0xf3ab8  ShaderParamList_Construct_2_maybe  [dead]
-//   [ ] 0xf3b10  ShaderParamList_Construct_maybe
-//   [ ] 0xf3b68  ShaderParamList_Destructor_2_maybe
-//   [ ] 0xf3be0  ShaderParamList_DeletingDestructor_maybe
-//   [ ] 0xf3c70  ShaderParamList_Destructor_maybe
+//   [ ] 0xf3b10  ShaderParamList_Construct_maybe  [platform]  (a Cg program's parameter list: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
+//   [ ] 0xf3b68  ShaderParamList_Destructor_2_maybe  [dead: no pointer to its descriptor 0xb54b88, no call]
+//   [ ] 0xf3be0  ShaderParamList_DeletingDestructor_maybe  [platform]  (a Cg program's parameter list: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
+//   [ ] 0xf3c70  ShaderParamList_Destructor_maybe  [platform]  (a Cg program's parameter list: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)

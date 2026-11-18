@@ -12,7 +12,7 @@
 //   [x] 0x51bde0  CKInterfaceButton_ApplyStateActions
 //   [x] 0x51c1c0  CKInterfaceButton_SetVisualState
 //   [ ] 0x51cd98  CKInterfaceButton_Save
-//   [ ] 0x51cdc0  CKInterfaceButton_RecursiveRegistration
+//   [x] 0x51cdc0  CKInterfaceButton_RecursiveRegistration
 //   [x] 0x51d230  CKInterfaceButton_DeleteArray
 //   [x] 0x51d2d8  CKInterfaceButton_BaseDestructor  (the same code as 0x51f4e8)
 //   [x] 0x51d428  CKInterfaceButton_SetDisabled
@@ -21,7 +21,7 @@
 //   [x] 0x51d610  CKInterfaceButton_Open
 //   [x] 0x51d7a0  CKInterfaceButton_UpdateVisibility
 //   [x] 0x51daf0  CKInterfaceButton_Close
-//   [ ] 0x51dcc0  CKInterfaceButton_Construct_2
+//   [x] 0x51dcc0  CKInterfaceButton_Construct_2  (the same code as 0x51e3b8 CKInterfaceButton_Construct)
 //   [x] 0x51e008  CKInterfaceButton_SetPosition
 //   [x] 0x51e1b0  CKInterfaceButton_PostLoad  (in the header)
 //   [x] 0x51e1b8  CKInterfaceButton_Destroy
@@ -29,7 +29,7 @@
 //   [x] 0x51e700  CKInterfaceButton_Update
 //   [x] 0x51eba8  CKInterfaceButton_CreateArray
 //   [x] 0x51eff0  CKInterfaceButton_Create
-//   [ ] 0x51f388  CKInterfaceButton_DeletingDestructor
+//   [x] 0x51f388  CKInterfaceButton_DeletingDestructor  (0x51f4e8 CKInterfaceButton_Destructor, then the delete)
 //   [x] 0x51f4e8  CKInterfaceButton_Destructor
 //   [x] 0x51f638  CKInterfaceButton_Load
 //
@@ -181,11 +181,11 @@ CKSound* CKSoundDictionaryID_GetSound(IKSerializable* dictionary, uint32_t index
 }
 
 // 0x00111b70 CKSound_ResetPan_maybe: flag 4 (position from the pan) set to `fromPan`, the pan centred, then
-// CKSound_UpdatePan_maybe 0x111818. STUB(C1.6): UpdatePan belongs to the audio family (not ported).
+// CKSound_UpdatePan_maybe 0x111818 (CKSound::ResetPan / UpdatePan, k2000/logic/sound/CKSound.cpp).
 void CKSound_ResetPan(CKSound* sound, uint32_t fromPan) { sound->ResetPan(static_cast<int32_t>(fromPan)); }  // the audio port
 
 // 0x00111230 CKSound_Play: the sound manager's backend plays it (engine sound manager +8,
-// SoundBackend_PlaySound_maybe) with `delay`; returns 1. STUB(C1.6): the audio family.
+// SoundBackend_PlaySound_maybe) with `delay`; returns 1 (CKSound::Play).
 void CKSound_Play(CKSound* sound, float delay) { sound->Play(delay); }  // the audio port
 
 // The CParticlesNodeFx start SetVisualState inlines (XXL2 CParticlesNodeFx::AddPointToList(origin) and the
@@ -728,4 +728,35 @@ int32_t CKInterfaceButton::Load(IKFile* file, int32_t type) {
     IKFile_ReadObjectRefArray(file, m_apUnk38, 3);
     IKFile_ReadRef(file, &m_pSounds);
     return 1;
+}
+
+namespace {
+void RegisterIf(IKSerializable* object, int32_t type) {
+    if (object != nullptr) object->RecursiveRegistration(type);  // vt+0x24
+}
+}  // namespace
+
+// 0x0051cdc0 CKInterfaceButton_RecursiveRegistration (each table from its last element down)
+void CKInterfaceButton::RecursiveRegistration(int32_t type) {
+    CKInterfaceButtonBase::RecursiveRegistration(type);  // 0x00067fe8
+    for (int k = 4; k >= 0; --k) {
+        StateVisual& s = m_aStates[k];
+        s.m_pTextAccessor->RecursiveRegistration(type);
+        for (uint32_t i = s.m_vpUnk64.m_ui32NbUsedElt; i != 0; --i) RegisterIf(s.m_vpUnk64.m_pBlock[i - 1], type);
+        for (uint32_t i = s.m_vVideos.m_ui32NbUsedElt; i != 0; --i) {
+            RegisterIf(s.m_vVideos.m_pBlock[i - 1].m_first, type);
+            RegisterIf(s.m_vVideos.m_pBlock[i - 1].m_second, type);
+        }
+        for (uint32_t i = s.m_vTexts.m_ui32NbUsedElt; i != 0; --i) {
+            s.m_vTexts.m_pBlock[i - 1].m_second->RecursiveRegistration(type);
+            RegisterIf(s.m_vTexts.m_pBlock[i - 1].m_first, type);
+        }
+        for (uint32_t i = s.m_vBillboards.m_ui32NbUsedElt; i != 0; --i) RegisterIf(s.m_vBillboards.m_pBlock[i - 1].m_pText, type);
+        RegisterIf(s.m_pFx, type);
+    }
+    RegisterIf(m_unk34, type);
+    RegisterIf(m_apUnk38[2], type);
+    RegisterIf(m_apUnk38[1], type);
+    RegisterIf(m_apUnk38[0], type);
+    m_pSounds->RecursiveRegistration(type);
 }

@@ -9,13 +9,13 @@
 //   [ ] 0xcf7d8  CSGLight_FreeLightDataArray_maybe  [dead]
 //   [ ] 0xcf868  RegisterCSGLightClass
 //   [ ] 0xcf8e0  _GLOBAL__I_cf8e0
-//   [ ] 0xcf8f0  CSGLight_PostLoad
-//   [ ] 0xcf978  CSGLight_RecursiveRegistration
-//   [ ] 0xcfa20  CSGLight_Destroy
+//   [x] 0xcf8f0  CSGLight_PostLoad
+//   [x] 0xcf978  CSGLight_RecursiveRegistration
+//   [x] 0xcfa20  CSGLight_Destroy
 //   [x] 0xcfab0  CSGLight_DeleteArray
 //   [x] 0xcfb50  CSGLight_Create
 //   [x] 0xcfbc0  CSGLight_Enqueue
-//   [ ] 0xcfd88  CSGLight_MessageProc
+//   [x] 0xcfd88  CSGLight_MessageProc  (returns 1: the default)
 //   [x] 0xcfd90  CSGLight_CreateArray
 //   [ ] 0xcfe70  CSGLight_AddToRefList_maybe  [dead]
 //   [ ] 0xcff68  CSGLight_SetBoundsFlag_maybe  [dead]
@@ -84,6 +84,17 @@ int32_t CSGLight::Load(IKFile* file, int32_t type) {
     return 1;
 }
 
+// 0x000cf8f0 CSGLight_PostLoad
+int32_t CSGLight::PostLoad(int32_t type) {
+    CSGLeaf::PostLoad(type);  // 0xcf0f8
+    if (type == K_LEVEL_PLATEFORMS) {
+        for (uint32_t i = 0; i < m_ui32NbActiveLights; ++i) {
+            static_cast<CLightComponent*>(m_aplightParameters[i])->m_pLightFrame = m_pRwFrame;
+        }
+    }
+    return 1;
+}
+
 // 0x000cfbc0 CSGLight_Enqueue. The first line clears bit 3 of the frame's private flags. A dynamic light (flag 0x10) takes its local
 // box again as the box around the origin with the same half extents (BBox_SetFromCenterExtents_maybe 0x23d550 with the centre
 // 0x00c50d64 and half the size), and every non-hidden light whose stamp is 0 (not stamped yet) or that is dynamic puts its world
@@ -97,21 +108,12 @@ void CSGLight::UpdateAndExtract(float /*maxDistanceSquared*/, RenderQueue** /*st
     if ((m_sgProperties & 0x10) == 0) {
         makeWorldBox = m_ui16LastRenderedFrame == 0;
     } else {
-        const float half[3] = {(m_xLocalInfluenceBBox.m_sup.x - m_xLocalInfluenceBBox.m_inf.x) * 0.5f, (m_xLocalInfluenceBBox.m_sup.y - m_xLocalInfluenceBBox.m_inf.y) * 0.5f,
+        // Half the size (fsubs, fmuls by TOC -0x543c 0.5f) around the null vector (TOC -0x5438: 0x00c50d64).
+        static const CVector3 kNullVector = {0.0f, 0.0f, 0.0f};
+        const CVector3 half = {(m_xLocalInfluenceBBox.m_sup.x - m_xLocalInfluenceBBox.m_inf.x) * 0.5f,
+                               (m_xLocalInfluenceBBox.m_sup.y - m_xLocalInfluenceBBox.m_inf.y) * 0.5f,
                                (m_xLocalInfluenceBBox.m_sup.z - m_xLocalInfluenceBBox.m_inf.z) * 0.5f};
-        // The two corners (centre +- half, the centre being the null vector) folded into a maximum and a minimum.
-        const float corners[2][3] = {{0.0f + half[0], 0.0f + half[1], 0.0f + half[2]}, {0.0f - half[0], 0.0f - half[1], 0.0f - half[2]}};
-        float* box = &m_xLocalInfluenceBBox.m_sup.x;
-        for (int axis = 0; axis < 3; ++axis) {
-            box[axis] = -FLT_MAX;
-            box[3 + axis] = FLT_MAX;
-        }
-        for (const auto& corner : corners) {
-            for (int axis = 0; axis < 3; ++axis) {
-                if (corner[axis] < box[3 + axis]) box[3 + axis] = corner[axis];
-                if (box[axis] < corner[axis]) box[axis] = corner[axis];
-            }
-        }
+        BBox_SetFromCenterExtents(&m_xLocalInfluenceBBox, &kNullVector, &half);  // 0x0023d550
     }
     if (makeWorldBox) {
         const RwV3d& position = RwFrameGetLTM(m_pRwFrame)->pos;
@@ -120,4 +122,25 @@ void CSGLight::UpdateAndExtract(float /*maxDistanceSquared*/, RenderQueue** /*st
     }
     m_ui16LastRenderedFrame = g_ui16RenderFrameCounter;
     ComputeZoneOverlapWeights();
+}
+
+// 0x000cfa20 CSGLight_Destroy
+void CSGLight::Destroy() {
+    CSGLeaf::Destroy();
+    if (m_apLightSets != nullptr) {
+        Mem_FreeAligned16(m_apLightSets);
+        m_apLightSets = nullptr;
+    }
+    m_ui32NbLightSets = 0;
+    m_apLightSets = nullptr;
+    if (m_aplightParameters != nullptr) {
+        Mem_FreeAligned16(m_aplightParameters);
+        m_aplightParameters = nullptr;
+    }
+}
+
+// 0x000cf978 CSGLight_RecursiveRegistration (C2.8 save-menu). CSGLeaf_RecursiveRegistration 0xceb78 returns 1.
+void CSGLight::RecursiveRegistration(int32_t type) {
+    if (type != 0 || m_ui32NbActiveLights == 0) return;
+    for (uint32_t i = 0; i < m_ui32NbActiveLights; ++i) m_aplightParameters[i]->RecursiveRegistration(0);
 }

@@ -4,26 +4,26 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x33fa78  CKHkS08Hero_GrantPartnerAttackCredits_maybe
-//   [ ] 0x33fae0  CKHkS08Hero_AIAcquireTargetIfCredits
-//   [ ] 0x33fb80  CKHkS08Hero_AIUpdateCombatMovement_maybe
-//   [ ] 0x33fdb8  CKHkS08Hero_AIClearAttackButtons
-//   [ ] 0x33fdc8  CKHkS08Hero_AIQueueAttack
+//   [x] 0x33fa78  CKHkS08Hero_GrantPartnerAttackCredits_maybe
+//   [x] 0x33fae0  CKHkS08Hero_AIAcquireTargetIfCredits
+//   [x] 0x33fb80  CKHkS08Hero_AIUpdateCombatMovement_maybe
+//   [x] 0x33fdb8  CKHkS08Hero_AIClearAttackButtons
+//   [x] 0x33fdc8  CKHkS08Hero_AIQueueAttack
 //   [ ] 0x340050  FUN_00340050  [dead]
 //   [x] 0x340178  CKHkS08Hero_IsMovementMode0
 //   [x] 0x340188  CKHkS08Hero_IsFlying_MovementMode1
 //   [x] 0x3401a0  CKHkS08Hero_IsClimbing_MovementMode2
 //   [x] 0x3401b8  CKHkS08Hero_GetMovementMode
 //   [ ] 0x3401c8  CKHkS08Hero_OnMovementModeChanged_maybe  [dead]
-//   [ ] 0x3401f0  CKHkS08Hero_GetCarriedPowerBucket_maybe
+//   [x] 0x3401f0  CKHkS08Hero_GetCarriedPowerBucket_maybe
 //   [x] 0x3402a0  CKHkS08Hero_UpdateFlightFlapImpulse_maybe
-//   [~] 0x3403f8  TransferHeroManaToOtherDragon
-//   [~] 0x3405f0  TransferHeroHealthToOtherDragon
-//   [ ] 0x3407e8  CKHkS08Hero_UpdateDragonSwitchInput_maybe
+//   [x] 0x3403f8  TransferHeroManaToOtherDragon
+//   [x] 0x3405f0  TransferHeroHealthToOtherDragon
+//   [ ] 0x3407e8  CKHkS08Hero_UpdateDragonSwitchInput_maybe  [dead: no pointer to its descriptor 0xb9faf8, no call]
 //   [x] 0x3408f8  UpdateHeroHealthAndManaSharing
 //   [x] 0x340a20  CKHkS08Hero_UpdateCarriedPowerBucketGroundTrigger_maybe
 //   [x] 0x340c18  CKHkS08Hero_SetMovementMode
-//   [ ] 0x340cd8  StaticInitAndDestruction_340cd8
+//   [x] 0x340cd8  StaticInitAndDestruction_340cd8  (the two file statics at the end)
 //   [ ] 0x340d08  _GLOBAL__D_340d08
 //   [ ] 0x340d18  _GLOBAL__I_340d18
 //   [x] 0x340d28  CKHkS08Hero_InitInputActionTable_maybe
@@ -32,20 +32,25 @@
 //   [ ] 0x340eb0  FUN_00340eb0  [dead]
 //   [ ] 0x340ee0  FUN_00340ee0  [dead]
 //   [ ] 0x340f10  FUN_00340f10  [dead]
-//   [ ] 0x340f40  CKHkS08Hero_TryUseInteractable_maybe
+//   [x] 0x340f40  CKHkS08Hero_TryUseInteractable_maybe
 //   [x] 0x3411d8  CKHkS08Hero_UpdateButtonRecords
 //   [x] 0x341fa0  CKHkS08Hero_ShouldJoinPartnerFlight_maybe
 //   [x] 0x342808  CKHkS08Hero_UpdateGuardAndDodgeInput
 //   [x] 0x342ef8  CKHkS08Hero_SetMovementModeUnlessLocked
-//   [ ] 0x342fa8  CKHkS08Hero_ShouldStayClimbing
+//   [x] 0x342fa8  CKHkS08Hero_ShouldStayClimbing  (CKHkS08HeroCameraTarget.cpp)
 //   [x] 0x3430a8  CKHkS08Hero_UpdateAirWallAction_maybe
 //   [x] 0x3438b0  CKHkS08Hero_UpdateMovementModeFromInput
 //   [x] 0x3445d8  CKHkS08Hero_UpdateActionInput
 #include "Spyro2008/hooks/CKHkS08Hero.h"
+#include "k2000/services/CTriggerStarter.h"
+#include "Spyro2008/hooks/CKHkS08PowerBucket.h"
 #include "k2000/hooks/CKHkClimbZone.h"
 #include "Spyro2008/logic/CKS08GameManager.h"
+#include "Spyro2008/logic/CKS08GameStructure.h"
 #include "k2000/core/Stub.h"
 #include "k2000/misc/Engine.h"
+#include "Spyro2008/hooks/CKHkS08CrumblyZoneMultiState.h"
+#include "Spyro2008/hooks/CKHkS08Enemy.h"
 #include "Spyro2008/groups/CKGrpS08Hero.h"
 #include "Spyro2008/logic/CKS08CarrierHero.h"
 #include "k2000/components/CKImpulsionCpnt.h"
@@ -260,12 +265,10 @@ uint8_t CKHkS08Hero::ShouldJoinPartnerFlight() {
         return 0;
     }
     bool join = false;
-    if (IsAbilityActive() != 0) {
-        // STUB(C2.7: abilities): the ability +0x1cc0's IsKindOfClass(0x95cc) (vt+0x08) joins at once. No ability runs
-        // before the first fight: it counts as another kind here.
-        DOTD_STUB_ONCE("CKHkS08Hero_ShouldJoinPartnerFlight_maybe 0x341fa0: the ability's kind (C2.7)");
-    }
-    if ((m_unked0 & 0x10000000u) != 0 && far != 0) {
+    // A running earth boulder (the ability +0x1cc0 of class 0x95cc, vt+0x08) joins at once (0x3426c4 -> 0x3424ec).
+    if (IsAbilityActive() != 0 && m_unk1cc0->IsKindOfClass(0x95cc) != 0) {  // 0x002fc228
+        join = true;
+    } else if ((m_unked0 & 0x10000000u) != 0 && far != 0) {
         if (m_unk1808 != 0) SetMovementMode(0);  // inlined (1808, 180a, the game manager's notification)
         join = true;
     } else {
@@ -319,10 +322,47 @@ uint8_t CKHkS08Hero::ShouldJoinPartnerFlight() {
     return m_unk1615;
 }
 
-// 0x00340f40 CKHkS08Hero_TryUseInteractable_maybe (vt+0x16c). STUB(C2.8: interactions): the player's hero takes the
-// interactable the game manager found near it (+0x2c8 table, not a 0x1544 object) into +0x98 / +0x9c and uses it
-// (vt+0x15c, message 0x93f) on the action button (+0xef4) or +0x358 bit 21. No interactable is near the start.
-void CKHkS08Hero::TryUseInteractable() { DOTD_STUB_ONCE("CKHkS08Hero_TryUseInteractable_maybe 0x340f40 (C2.8)"); }
+// 0x00340f40 CKHkS08Hero_TryUseInteractable_maybe (vt+0x16c). A player's hero, not attached (+0x358 bit 0), takes its
+// player's interaction target (the game manager's +0x2c8 slot, SetHeroInteractionTarget; a 0x1544 target stops it) into
+// +0x98 / +0x9c unless +0x358 bit 14 holds the one it has, and uses it (vt+0xe0 CanAttachTo, then message 0x93f with the
+// hero) on the action button (+0xef4 == 1), or a 0x2e02 target with +0x358 bit 21, or always with bit 14: +0x35c bit 30
+// set and +0x364 bit 20 cleared / +0xf00 = 1 (the button) or +0x358 bit 21 cleared / +0xf28 = 1.
+void CKHkS08Hero::TryUseInteractable() {
+    if ((m_unk358 & 1u) != 0) return;
+    if (m_ui8Hero != m_ui8TrackedLeader) return;
+    CKS08GameManager::PlayerHudSlot& slot =
+        static_cast<CKS08GameManager*>(g_pEngine->m_gameManager)->PlayerHudSlots()[m_ui8Leader];
+    if (slot.m_pHero != nullptr) {
+        if (slot.m_pHero->IsKindOfClass(0x1544) != 0) return;
+        if (slot.m_pHero != nullptr && (m_unk358 & 0x4000u) == 0) {
+            m_unk98 = slot.m_pHero;
+            m_unk9c = slot.m_ui8Flag;
+        }
+    }
+    uint8_t button = 0;  // r8
+    uint32_t auto21 = 0;  // r10
+    if (m_unk98 != nullptr && m_unk98->IsKindOfClass(0x2e02) != 0) {
+        auto21 = 1;
+    } else if (m_unkef4 == 1 && m_unk98 != nullptr) {
+        button = 1;
+    }
+    auto21 &= (m_unk358 >> 21) & 1u;
+    if ((m_unk358 & 0x4000u) == 0) {
+        if (m_ui8TrackedLeader != m_ui8Hero) return;
+        if (button == 0 && auto21 == 0) return;
+    }
+    if (CanAttachTo(m_unk98, static_cast<int32_t>(m_unk9c)) == 0) return;  // vt+0xe0
+    m_unk98->MessageProc(0x93f, this);  // vt+0x1c
+    if (auto21 != 0) {
+        m_unk358 &= 0xffdfffffu;
+        m_unk35c = (m_unk35c & 0xbfffffffu) | 0x40000000u;
+        m_unkf28 = 1;
+    } else {
+        m_unk364 &= 0xffefffffu;
+        m_unk35c = (m_unk35c & 0xbfffffffu) | 0x40000000u;
+        m_unkf00 = 1;
+    }
+}
 
 // 0x00342ef8 CKHkS08Hero_SetMovementModeUnlessLocked: SetMovementMode (0x340c18, inlined: the same stores and game
 // manager notifications) unless the mode is locked (+0xec4 bit 8).
@@ -378,11 +418,6 @@ uint8_t IsInSpecialAnim(const CKHkS08Hero* hero) {
     }
 }
 
-// 0x002fe5b8 CKHkS08Hero_FindBestEnemyInAimCone_maybe. STUB(C2.7: targets): no enemy is found.
-IKSerializable* FindBestEnemyInAimCone(CKHkS08Hero*, IKSerializable*, const CVector3*) {
-    DOTD_STUB_ONCE("CKHkS08Hero_FindBestEnemyInAimCone_maybe 0x2fe5b8 (C2.7)");
-    return nullptr;
-}
 }  // namespace
 
 // 0x003445d8 CKHkS08Hero_UpdateActionInput (vt+0xe4): the button records, the movement mode, guard / dodge, the health and
@@ -830,7 +865,7 @@ void CKHkS08Hero::HandleAirborneActionCInput() {
             std::sqrt(ppc::fmadds(m_unk1364, m_unk1364, ppc::fmadds(m_unk135c, m_unk135c, m_unk1360 * m_unk1360)));
         if (!(length <= 0.1f)) {  // TOC +0x2a6c; ble
             const CVector3 facing{m_unk135c, m_unk1360, m_unk1364};
-            aimed = FindBestEnemyInAimCone(this, m_unk1d38, &facing) != nullptr;  // 0x002fe5b8
+            aimed = FindBestEnemyInAimCone(m_unk1d38, &facing) != nullptr;  // 0x002fe5b8
         }
     }
     if (m_unk143c > 0.0f) m_unk143c = m_unk143c - m_unk88c;  // TOC +0x29f4; ble
@@ -966,19 +1001,27 @@ void CKHkS08Hero::HandleAirborneActionCInput() {
     SetMovementMode(1);  // inlined (+0x1809 from the ground)
 }
 
-// 0x00340a20 CKHkS08Hero_UpdateCarriedPowerBucketGroundTrigger_maybe: +0xecc bit 21 cleared (set while flying over a
-// ground of property 0x200 with engine flag 2 carrying a power bucket: C2.8); +0xec8 bit 16 is set while +0x1258 (the
-// carried object's weight) is not 0.
+// 0x00340a20 CKHkS08Hero_UpdateCarriedPowerBucketGroundTrigger_maybe: +0xecc bit 21 cleared, set while flying over a
+// ground of property 0x200 with engine flag 2 carrying an empty power bucket (its vt+0x190, 0x004d33a8: the byte +0x1f0);
+// the action button (record 2, +0xf1c) then fires the group's +0xab0 signals and puts the hero's index into +0xab8.
+// +0xec8 bit 16 is set while +0x1258 (the carried object's weight) is not 0.
 void CKHkS08Hero::UpdateCarriedPowerBucketGroundTrigger() {
     m_unkecc &= 0xffdfffffu;
     CKS08CarrierHero* carrier = static_cast<CKS08CarrierHero*>(m_unkfb8);
     if (carrier != nullptr) {
         IKSerializable* carried = carrier->GetCarriedObject();  // vt+0x80
         if (carried != nullptr && carried->IsKindOfClass(0x30c2) != 0) {  // vt+0x8
-            // STUB(C2.8: power buckets): unless the bucket's vt+0x190, on a ground of property 0x200 with engine flag 2
-            // while flying: +0xecc bit 21, and on record 2 pressed QueueTriggerSignals 0x236338 of the group's +0xab0
-            // and the group's +0xab8 = the hero. No power bucket is carried before the first fight.
-            DOTD_STUB_ONCE("CKHkS08Hero_UpdateCarriedPowerBucketGroundTrigger_maybe 0x340a20: power bucket (C2.8)");
+            const ICollisionMesh* ground = static_cast<const ICollisionMesh*>(GetGroundInfo());  // 0x00361b68
+            if ((static_cast<CKHkS08PowerBucket*>(carried)->m_unk1f0 >> 24) == 0 && ground != nullptr &&  // vt+0x190
+                (ground->m_ui16PropertiesFlags & 0x200u) != 0 && (ground->m_ba16EngineFlags & 2u) != 0 &&
+                m_unk1808 == 1) {
+                m_unkecc = (m_unkecc & 0xffdfffffu) | 0x200000u;
+                if (m_unkf1c == 1) {
+                    CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_pGrpHero);
+                    QueueTriggerSignals(&group->m_tsUnkab0);  // 0x00236338
+                    group->m_unkab8 = m_ui8Hero;
+                }
+            }
         }
     }
     if (m_unk1258 == 0.0f) {  // TOC +0x29f4
@@ -1045,22 +1088,167 @@ void CKHkS08Hero::UpdateHeroHealthAndManaSharing(float dt) {
         }
     }
     if (m_unkf94 == 1) {
-        // STUB(C2.7: HUD): ShowDragonStatChangeFeedback_maybe 0x501fb8 of the game manager for this hero.
-        DOTD_STUB_ONCE("ShowDragonStatChangeFeedback_maybe 0x501fb8 (C2.7)");
+        static_cast<CKS08GameManager*>(g_pEngine->m_gameManager)->ShowDragonStatChangeFeedback(m_ui8Hero);  // 0x501fb8
     }
 }
 
-// 0x003403f8 TransferHeroManaToOtherDragon. STUB(C2.7, moved from C2.6: co-op dragon stats): mana above the
-// donor's share (the group's +0x274 % of its capacity) flows to the other dragon at the group's +0x26c per second, up to
-// its capacity (ComputeSpyro/CynderManaCapacity 0x511710 / 0x5115d0, GetDragonMana 0x4fd7c8, RestoreDragonMana 0x4fdca8,
-// ConsumeDragonMana 0x4fd808), the time kept as the remainder. Only reached with two controlled heroes (co-op).
-void CKHkS08Hero::TransferHeroManaToOtherDragon(float*) {
-    DOTD_STUB_ONCE("TransferHeroManaToOtherDragon 0x3403f8 (co-op; dragon stats)");
+namespace {
+// The body TransferHeroManaToOtherDragon and TransferHeroHealthToOtherDragon share (the stat's capacity, value, restore
+// and take-away functions and the group's two fields differ): above the donor's share (`ratio` % of its capacity: the
+// fctidz of the float product, compared as a word) the stat flows to the other dragon at `rate` per second of `elapsed`
+// (fctidz of the float product), at most up to the other's capacity (words); the time it took (the amount over the rate,
+// single) comes off `elapsed`; restored to the other dragon (quiet 0), then taken from the donor.
+template <typename Capacity, typename Get, typename Restore, typename Take>
+void TransferStatToOtherDragon(uint8_t hero, float* elapsed, float ratio, uint32_t rate, Capacity capacity, Get get,
+                               Restore restore, Take take) {
+    CKS08GameManager* manager = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager);  // TOC +0x29ec -> +0x8c
+    const int32_t donor = hero != 0 ? 1 : 0;
+    const int32_t other = donor ^ 1;
+    const uint32_t donorCapacity = static_cast<uint32_t>(capacity(manager, donor));
+    const uint32_t otherCapacity = static_cast<uint32_t>(capacity(manager, other));
+    const uint32_t donorValue = get(manager, donor);
+    const uint32_t otherValue = get(manager, other);
+    const float share = (ratio / 100.0f) * static_cast<float>(static_cast<double>(donorCapacity));  // TOC +0x29f0
+    if (!(static_cast<uint32_t>(ppc::fctidz(share)) < donorValue)) return;  // cmplw; bge
+    const float perSecond = static_cast<float>(static_cast<double>(rate));
+    const float time = *elapsed;
+    uint32_t amount = static_cast<uint32_t>(ppc::fctidz(time * perSecond));
+    if (otherValue + amount > otherCapacity) amount = otherCapacity - otherValue;
+    *elapsed = time - static_cast<float>(static_cast<double>(amount)) / perSecond;
+    restore(manager, other, amount);
+    take(manager, donor, amount);
+}
+}  // namespace
+
+// 0x003401f0 CKHkS08Hero_GetCarriedPowerBucket_maybe: the carrier's (+0xfb8) carried object (vt+0x80) when it is a power
+// bucket (0x30c2), else null.
+IKSerializable* CKHkS08Hero::GetCarriedPowerBucket() {
+    if (m_unkfb8 == nullptr) return nullptr;
+    IKSerializable* carried = static_cast<CKS08CarrierHero*>(m_unkfb8)->GetCarriedObject();  // vt+0x80 0x9c54c8
+    if (carried == nullptr) return nullptr;
+    return carried->IsKindOfClass(0x30c2) != 0 ? carried : nullptr;  // vt+0x08
 }
 
-// 0x003405f0 TransferHeroHealthToOtherDragon. STUB(C2.7, moved from C2.6: co-op dragon stats): the same with
-// health (ComputeSpyro/CynderHealthCapacity 0x5111a0 / 0x511060, GetDragonHealth 0x4fd9c8, RestoreDragonHealth
-// 0x4fdef8, DamageDragon 0x4fda08). Only reached in co-op.
-void CKHkS08Hero::TransferHeroHealthToOtherDragon(float*) {
-    DOTD_STUB_ONCE("TransferHeroHealthToOtherDragon 0x3405f0 (co-op; dragon stats)");
+// 0x003403f8 TransferHeroManaToOtherDragon: the co-op mana sharing (the group's +0x274 % share, +0x26c per second;
+// ComputeSpyro/CynderManaCapacity 0x511710 / 0x5115d0 with include 0, GetDragonMana 0x4fd7c8, RestoreDragonMana 0x4fdca8,
+// ConsumeDragonMana 0x4fd808).
+void CKHkS08Hero::TransferHeroManaToOtherDragon(float* elapsed) {
+    const CKGrpS08Hero* group = static_cast<const CKGrpS08Hero*>(m_pGrpHero);
+    TransferStatToOtherDragon(
+        m_ui8Hero, elapsed, group->m_unk274, static_cast<uint32_t>(group->m_unk26c),
+        [](CKS08GameManager* m, int32_t d) {
+            CKS08GameStructure* s = static_cast<CKS08GameStructure*>(m->m_gameStructure);  // +0x6c
+            return d == 0 ? ComputeSpyroManaCapacity(s, 0) : ComputeCynderManaCapacity(s, 0);
+        },
+        [](CKS08GameManager* m, int32_t d) { return m->GetDragonMana(d); },
+        [](CKS08GameManager* m, int32_t d, uint32_t a) { m->RestoreDragonMana(d, static_cast<int32_t>(a), 0); },
+        [](CKS08GameManager* m, int32_t d, uint32_t a) { m->ConsumeDragonMana(d, a); });
 }
+
+// 0x003405f0 TransferHeroHealthToOtherDragon: the same with health (the group's +0x270 % share, +0x268 per second;
+// ComputeSpyro/CynderHealthCapacity 0x5111a0 / 0x511060, GetDragonHealth 0x4fd9c8, RestoreDragonHealth 0x4fdef8,
+// DamageDragon 0x4fda08).
+void CKHkS08Hero::TransferHeroHealthToOtherDragon(float* elapsed) {
+    const CKGrpS08Hero* group = static_cast<const CKGrpS08Hero*>(m_pGrpHero);
+    TransferStatToOtherDragon(
+        m_ui8Hero, elapsed, group->m_unk270, static_cast<uint32_t>(group->m_unk268),
+        [](CKS08GameManager* m, int32_t d) {
+            CKS08GameStructure* s = static_cast<CKS08GameStructure*>(m->m_gameStructure);  // +0x6c
+            return d == 0 ? ComputeSpyroHealthCapacity(s, 0) : ComputeCynderHealthCapacity(s, 0);
+        },
+        [](CKS08GameManager* m, int32_t d) { return m->GetDragonHealth(d); },
+        [](CKS08GameManager* m, int32_t d, uint32_t a) { m->RestoreDragonHealth(d, static_cast<int32_t>(a), 0); },
+        [](CKS08GameManager* m, int32_t d, uint32_t a) { m->DamageDragon(d, a); });
+}
+
+// 0x0033fae0 CKHkS08Hero_AIAcquireTargetIfCredits: with attack credits (+0x1a20 > 0) a target in the aim sector of the
+// movement (+0x1a7c flying, else +0x1a78) along the aim direction (+0x135c).
+void CKHkS08Hero::AIAcquireTargetIfCredits() {
+    if (!(static_cast<int32_t>(m_unk1a20) > 0)) return;
+    IKSerializable* aim = static_cast<int8_t>(GetMovementMode()) == 1 ? m_unk1a7c : m_unk1a78;  // 0x003401b8
+    const CVector3 direction = GetAimDirection();
+    TryAcquireTarget(aim, &direction);  // 0x002fea88
+}
+
+// 0x0033fb80 CKHkS08Hero_AIUpdateCombatMovement_maybe: with credits, to the partner's attack target when it is a crumbly
+// zone that wants hitting (+0x9c): it becomes +0x12c (no enemy), the partner's position and aim; else to a living
+// targeted enemy (+0x124, health +0x258 above 0): no hook, the enemy's position, facing it (its frame's at, negated);
+// else the ground follow (CtlState7).
+void CKHkS08Hero::AIUpdateCombatMovement(IKTime* clock) {
+    CKHkS08Hero* partner = GetPartnerHero();  // 0x002f85f8
+    IKSerializable* target = partner->GetAITarget(1);  // 0x00364ab0
+    const bool credits = static_cast<int32_t>(m_unk1a20) > 0;
+    if (credits && target != nullptr && target->IsKindOfClass(CKHkS08CrumblyZoneMultiState::kClassKey) != 0 &&  // 0x3582
+        static_cast<CKHkS08CrumblyZoneMultiState*>(target)->m_unk9C != 0) {
+        m_unk12c = target;
+        m_unk124 = nullptr;
+        CVector3 position = GetPartnerHero()->GetAdjustedPosition();  // 0x0032a758
+        const CVector3 facing = GetPartnerHero()->GetAimDirection();  // 0x0032a708
+        AIMoveToTarget(clock, &position, &facing, 0, 0, 1);  // 0x0036dd08
+        AIWriteStickFromDesiredMove();                        // 0x0033cb50
+        return;
+    }
+    CKHkS08Enemy* enemy = static_cast<CKHkS08Enemy*>(m_unk124);
+    if (enemy != nullptr && enemy->m_unk258 > 0.0f && static_cast<int32_t>(m_unk1a20) > 0) {  // TOC +0x298c
+        m_unk12c = nullptr;
+        CVector3 position = enemy->m_v3Position;  // +0x134
+        const RwV3d& at = static_cast<CSGMovable*>(enemy->m_pKGLObject)->m_pRwFrame->modelling.at;  // +0x1c, +4, +0x30
+        const CVector3 facing{-at.x, -at.y, -at.z};
+        AIMoveToTarget(clock, &position, &facing, 0, 0, 1);
+        AIWriteStickFromDesiredMove();
+        return;
+    }
+    CtlAIFollowGround(clock, 0, 0);  // 0x0033e600
+}
+
+// 0x0033fdc8 CKHkS08Hero_AIQueueAttack: close enough to strike (the partner's crumbly zone in a combo within 3, or a living
+// enemy within 2 of the position +0x54c): the move direction +0x37c points at it (normalised when farther than 0.1, else
+// +0x3a4), +0x1378 and +0x394 cleared, and with credits the combo step 1 with the second button pressed (+0xf1c).
+void CKHkS08Hero::AIQueueAttack() {
+    float dx = 0.0f, dy = 0.0f, dz = 0.0f, distance = 0.0f;
+    bool strike = false;
+    bool decided = false;
+    if (m_unk12c != nullptr && static_cast<int32_t>(m_unk1a20) > 0 && GetPartnerHero()->IsInCombo() != 0 &&  // 0x0032a698
+        m_unk12c == GetPartnerHero()->GetAITarget(1)) {
+        const RwV3d& at = FrameLtm(static_cast<CSGMovable*>(static_cast<IKHook*>(m_unk12c)->m_pKGLObject)->m_pRwFrame)->pos;
+        dy = m_unk550 - at.y;
+        dx = m_unk54c - at.x;
+        dz = m_unk554 - at.z;
+        distance = std::sqrt(ppc::fmadds(dz, dz, ppc::fmadds(dx, dx, dy * dy)));  // Math_Sqrtf
+        if (distance < 3.0f) strike = true;  // TOC +0x2990 (bge: unordered leaves too)
+        decided = true;
+    }
+    if (!decided) {
+        CKHkS08Enemy* enemy = static_cast<CKHkS08Enemy*>(m_unk124);
+        if (enemy == nullptr || !(enemy->m_unk258 > 0.0f) || !(static_cast<int32_t>(m_unk1a20) > 0)) return;
+        dy = m_unk550 - enemy->m_v3Position.y;
+        dx = m_unk54c - enemy->m_v3Position.x;
+        dz = m_unk554 - enemy->m_v3Position.z;
+        distance = std::sqrt(ppc::fmadds(dz, dz, ppc::fmadds(dx, dx, dy * dy)));
+        if (distance < 2.0f) strike = true;  // TOC +0x299c
+    }
+    if (!strike) return;
+    const float length = std::sqrt(ppc::fmadds(dz, dz, ppc::fmadds(dx, dx, dy * dy)));  // computed again
+    if (length != 0.0f && length > 0.1f) {  // TOC +0x298c / +0x2994
+        const float inverse = 1.0f / length;  // TOC +0x2998
+        m_unk37c = dx * inverse;
+        m_unk384 = dz * inverse;
+        m_unk380 = dy * inverse;
+    } else {
+        m_unk37c = m_unk3a4;
+        m_unk384 = m_unk3ac;
+        m_unk380 = m_unk3a8;
+    }
+    m_unk1378 = 0.0f;
+    m_unk394 = 0;
+    if (!(static_cast<int32_t>(m_unk1a20) > 0)) return;
+    m_unk1a84 = 1;
+    m_unkf1c = 1;
+}
+
+// 0x00340cd8 StaticInitAndDestruction_340cd8: two file statics (0x00ceae7c, 0x00ceae80) set to -1.0f. Nothing in the game
+// reads them (their only references are the initialiser's TOC entries).
+namespace {
+[[maybe_unused]] float s_unkceae7c = -1.0f;
+[[maybe_unused]] float s_unkceae80 = -1.0f;
+}  // namespace

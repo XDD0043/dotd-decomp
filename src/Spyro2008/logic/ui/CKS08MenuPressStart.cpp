@@ -6,8 +6,8 @@
 //   [x] 0x560f38  CKS08MenuPressStart_Delete
 //   [ ] 0x560f88  CKS08MenuPressStart_Construct  [dead]
 //   [ ] 0x561030  CKS08MenuPressStart_Save
-//   [ ] 0x561058  CKS08MenuPressStart_RecursiveRegistration
-//   [ ] 0x561198  CKS08MenuPressStart_Destroy
+//   [x] 0x561058  CKS08MenuPressStart_RecursiveRegistration
+//   [x] 0x561198  CKS08MenuPressStart_Destroy  (inherited: CKMenuBase114c::Destroy)
 //   [x] 0x5611c0  CKS08MenuPressStart_DeleteArray
 //   [ ] 0x561268  RegisterCKS08MenuPressStartClass
 //   [ ] 0x5612f0  _GLOBAL__D_5612f0
@@ -17,9 +17,9 @@
 //   [x] 0x561cc8  CKS08MenuPressStart_CreateArray
 //   [x] 0x561e10  CKS08MenuPressStart_Create
 //   [x] 0x561ef8  CKS08MenuPressStart_Load
-//   [ ] 0x5621f8  CKS08MenuPressStart_Destructor
-//   [ ] 0x562330  CKS08MenuPressStart_Destructor_2
-//   [ ] 0x562468  CKS08MenuPressStart_DeletingDestructor
+//   [x] 0x5621f8  CKS08MenuPressStart_Destructor  (implicit destructor: CKMenuBase114c's inlined)
+//   [x] 0x562330  CKS08MenuPressStart_Destructor_2  (implicit destructor: CKMenuBase114c's inlined)
+//   [x] 0x562468  CKS08MenuPressStart_DeletingDestructor  (implicit destructor: CKMenuBase114c's inlined)
 //
 //   [x] 0x9ca220  CKS08MenuPressStart_IsKindOfClass  [inline]
 //   [x] 0x9ca260  CKS08MenuPressStart_GetClassType  [inline]
@@ -44,6 +44,7 @@
 #include "k2000/graphical/system/CVideoManager.h"
 #include "k2000/graphical/system/PS3_CKVideo.h"
 #include "k2000/graphical/ui/CKFlashText.h"
+#include "k2000/graphical/ui/CText2d.h"
 #include "k2000/dictionaries/CKSoundDictionaryID.h"
 #include "k2000/logic/sound/CKSound.h"
 #include "k2000/managers/CKInput.h"
@@ -176,12 +177,25 @@ uint8_t CKS08MenuPressStart::OnMenuState(int32_t phase, uint8_t /*other*/) {
                 const float left = m_fTextTimer - frameClock->m_afDeltaTime[IKTime::SCALABLE_GAME_TIME];
                 m_fTextTimer = left;
                 if (left <= zero && m_aWidgetSlots[0].m_pElement != nullptr) {
-                    // The text slot's vt+0x88 with the game manager's vt+0x214 text: STUB(C1.6), the CText2d
-                    // slot is not declared.
-                    DOTD_STUB_ONCE("CKS08MenuPressStart: text slot vt+0x88 after the demo (C1.6)");
+                    // The text slot (a CText2d) takes the game manager's press-start text (vt+0x214) through its
+                    // vt+0x88 (0x00066440 CText2d_SetTextById).
+                    CText2d* text = static_cast<CText2d*>(m_aWidgetSlots[0].m_pElement);
+                    text->SetTextById(manager->Vf214());
                 }
             }
         }
     }
     return static_cast<uint8_t>(GetMenuId());
+}
+
+// 0x00561058 CKS08MenuPressStart_RecursiveRegistration: the referenced objects' registration (the colorized screen data and FX only with the flash UI loaded), then the base.
+void CKS08MenuPressStart::RecursiveRegistration(int32_t type) {
+    if (m_pFlashUI != nullptr) {
+        m_pColorizedData0->RecursiveRegistration(type);
+        m_pColorizedData1->RecursiveRegistration(type);
+        m_pColorizedFx->RecursiveRegistration(type);
+    }
+    m_pText->RecursiveRegistration(type);
+    m_pSound->RecursiveRegistration(type);
+    CKMenuBase114c::RecursiveRegistration(type);
 }

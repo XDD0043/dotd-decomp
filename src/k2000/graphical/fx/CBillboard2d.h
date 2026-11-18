@@ -20,7 +20,19 @@ public:
     int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9973a8
         return key == 0x3cd || key == 0x24d || key == 0xc;
     }
+    // vt+0x10 0x0005b3a8 CBillboard2d_Destroy: the billboard part's FreeMemoryBillboard2D (through
+    // BillboardBrush_ClearReferences_maybe 0x66c18, its vt+0x00), then IKNode2d's Destroy (0x69d68: vt+0x54 FreeMemory).
+    void Destroy() override;
+    // vt+0x24 0x0005b318 CBillboard2d_RecursiveRegistration: outside the save types 4..7 the node registered, then the
+    // billboard part's (KStub_Return1_66c58: nothing).
+    void RecursiveRegistration(int32_t type) override;
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x0005b768 CBillboard2d_Load (+ thunk 0x9973d0)
+    // vt+0x58 0x0005b288 CBillboard2d_vf58: event 7 with the brush's texture: the brush's texture cleared (vt+0x3c
+    // BillboardBrush_SetTexture(null)).
+    void RecursiveNodeReach(uint8_t what, void* data) override;
+    // vt+0x78 0x0005b198 CBillboard2d_GetBoundingRect: the billboard part's box at the node position with its
+    // alignment (0x66ef8), then IKNode2d's (0x698a8, empty).
+    void GetBoundingBox(CBox2D* box) const override;
     // vt+0x80 0x0005afc0 CBillboard2d_vf80 (XXL2 slot 31 Scale): the billboard size times the scale.
     void Scale(const CVector2& scale) override;
     // vt+0x84 0x0005b508 DrawAnimatedUIBillboardWidget: follows +0x6c's visibility, advances the

@@ -18,6 +18,9 @@ struct RwCamera;
 class CSGLeaf : public CSGMovable {
 public:
     DOTD_CLASS_KEY(kCategoryNode, 0x8)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a27a0
+        return key == 0x20b || key == 0x14b || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CSGLeaf)
 
     CSGLeaf();  // 0x000cefe0 CSGLeaf_Construct
@@ -25,6 +28,11 @@ public:
 
     // vt+0x10 0x000ceda8 CSGLeaf_Destroy: no parent, no parent bone (0xff), then CSGMovable's.
     void Destroy() override;
+    // vt+0x24 0x000ceb78 CSGLeaf_RecursiveRegistration: returns 1, registers nothing (CSGMovable's registration not
+    // inherited). The shapes' (CKAABB 0xd6598, CKAACylinder 0xd68c0, CKBoundingSphere 0xd7138, CKOBB 0xd8050,
+    // CKDynamicBoundingSphere 0xd74e8) and the branches' (CSGBranch 0xcd578, CNode 0xcbaa8 and the nodes on top)
+    // call this one down the chain: nothing either.
+    void RecursiveRegistration(int32_t /*type*/) override {}
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x000cf550 CSGLeaf_Load
     // vt+0x30 0x000cf0f8 CSGLeaf_PostLoad: a node with a parent and no parent bone (0xff) puts its frame
     // under the parent's (RwFrameAddChild inlined, under the render lock).
@@ -43,12 +51,28 @@ public:
     // hidden (flag 4).
     virtual void UpdateAndExtract(float maxDistanceSquared, RenderQueue** stages, IKTime* frameClock, RwCamera* camera,
                                   int32_t distanceCull);
-    // Slots +0x5c..+0x68 (0xceba0, 0x991568, 0xcd580 (CSGBranch's), 0xcdd60) are not ported yet; they are
-    // declared so that the slot after them is in place.
-    virtual void Vf5C() {}  // vt+0x5c 0x000ceba0  STUB(C2.2)
-    virtual void Vf60() {}  // vt+0x60 0x00991568  STUB(C2.2)
-    virtual void Vf64() {}  // vt+0x64 0x000cd580  STUB(C2.2)
-    virtual void Vf68() {}  // vt+0x68 0x000cdd60  STUB(C2.2)
+    // vt+0x5c 0x000ceba0 KStub_Return0_ceba0 (XXL2 CSGLeaf::GetKlusterListHead, one slot later there: XXL2 has
+    // GetModelName at +0x54): no kluster list. Every scene-graph vtable of the PS3 build keeps this stub.
+    virtual void* GetKlusterListHead() { return nullptr; }
+    // vt+0x60 0x00991568 CSGLeaf_vf60 [inline] (XXL2 CSGLeaf::SetAutoUpdatable(bool)): bit 0 of the properties
+    // replaced by the argument, ORed in as the whole register (the callers pass 0 or 1). CAnimatedNode's
+    // (0xc8bd0) is empty.
+    virtual void SetAutoUpdatable(uint32_t autoUpdatable) {
+        m_sgProperties = (m_sgProperties & 0xfffffffeu) | autoUpdatable;
+    }
+    // vt+0x64 0x00991580 KStub_Return0_991580 [inline] (XXL2 CSGLeaf::GetHotSpots(CSGLeaf**, unsigned)): a leaf has
+    // no hot spots. The branches (CSGBranch 0xcd580, CAnimatedNode 0xc9e90) store their children with the hot-spot
+    // flag (bit 3) into `out`, at most `max`, and return how many.
+    virtual uint32_t GetHotSpots(CSGLeaf** /*out*/, uint32_t /*max*/) { return 0; }
+    // vt+0x68 0x000cef68 CSGLeaf_UpdateWorldMatrices (the same code as SceneNode_UpdateWorldMatrix 0xcede0): this
+    // node's LTM recomputed when `force`, its frame's root carries the hierarchy sync mark (privateFlags bit 0) or the
+    // frame its own (bit 2): from its modelling matrix alone without a parent; times the parent's LTM when it hangs
+    // under no bone or the parent was never drawn (+0x16 0); else times the bone's matrix and the parent's LTM. Both
+    // marks are cleared. 1 when the LTM was recomputed. (CSGBranch 0xcdd60 and CAnimatedNode 0xc9ab0 then update
+    // their children with that answer, the animated node's bone attachments always.)
+    virtual uint8_t UpdateWorldMatrices(int32_t force) { return UpdateWorldMatrix(force); }
+    // 0x000cede0 SceneNode_UpdateWorldMatrix
+    uint8_t UpdateWorldMatrix(int32_t force);
     // vt+0x6c 0x000ceba8 CSGLeaf_GetSectorIndex_maybe (XXL2 CSGRootNode::GetSectorNumber): the parent's, or
     // 0xfffffffe without one. The roots answer for themselves (CSGRootNode 0, CSGSectorRoot its index).
     virtual uint32_t GetSectorIndex();

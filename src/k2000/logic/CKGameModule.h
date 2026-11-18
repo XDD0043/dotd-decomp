@@ -26,19 +26,32 @@ class CKTriggerSynchro;
 class CKGameModule : public IKGameObject {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0xcd)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x994cf0
+        return key == 0x334c || key == 0x330c || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKGameModule)
 
     CKGameModule();             // inlined in CKGameModule_Create 0x3b9e8 / CreateArray 0x3bd08
-    ~CKGameModule() override {} // vt+0x00 / +0x04  0x994e38 / 0x994db0
+    ~CKGameModule() override;   // vt+0x00 / +0x04  0x994e38 / 0x994db0 (CKGameModule.cpp)
 
     // vt+0x60 0x0003b790 CKGameModule_ClearLevelData (XXL2 DestroyLevelData): the level part (+0x2c, the
     // object list) dropped at the level unload.
     void DestroyLevelData() override;
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x0003bf18 CKGameModule_Load
+    // vt+0x30 0x0003bbc0 CKGameModule_PostLoad (CKS08GameModule's slot too): for the level type (0) a module without
+    // flag bit 0 (KUGetSerializationConsistency) is deactivated (vt+0x70) and loses flag 2 (vt+0x80), then
+    // IKGameObject_PostLoad 0x42e40 (returns 1).
+    int32_t PostLoad(int32_t type) override;
     void InitializeGameData() override;                 // vt+0x58 0x0003b868 CKGameModule_InitGameData
     void InitializeLevelData() override;                // vt+0x5c 0x0003b808 CKGameModule_InitLevelData
-    // Not ported: vt+0x1c 0x3be88 MessageProc, +0x40 0x3bcb0 GetInfo, +0x54 0x3b460, +0x60 0x3b790
-    // ClearLevelData (STUB(C1.6)).
+    // vt+0x1c 0x0003be88 CKGameModule_MessageProc: 0x200 (the data a byte) activates or deactivates the module
+    // (vt+0x70) and updates its trigger domains, answering 0; any other message 1.
+    int32_t MessageProc(uint16_t message, void* data) override;
+    // vt+0x54 0x0003b460 CKGameModule_IsCurrentLevel (in CKGameLevel.cpp): its stage is the loaded level (vt+0x54).
+    uint8_t GetMatchesThisLevel() override;
+    // vt+0x40 0x0003bcb0 CKGameModule_GetInfo: the trigger value 2, the activated flag (vt+0x74, 0x994d38
+    // CKGameModule_GetTriggerProp2), a byte.
+    int32_t GetInfo(struct IKInfo* info, int32_t request) override;
     // vt+0x68 0x0003b658 CKGameModule_vf68 (XXL2 ApplyGameStateToLevel): ApplyDone when activated, else
     // ApplyLeft.
     void ApplyGameStateToLevel() override;

@@ -13,6 +13,9 @@
 class CKS08GameSpawnPoint : public CKGameSpawnPoint {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x1e4)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9c7100
+        return key == 0x790c || key == 0x318c || key == 0x330c || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKS08GameSpawnPoint)
 
     // 0x24 bytes. Names ours.
@@ -36,8 +39,14 @@ public:
     // the slot's accessor is all 0xffff).
     Slot* ResolveSlotPosition(int32_t slot);
     uint16_t Activate() override;  // vt+0x7c 0x00508778 CKS08GameSpawnPoint_Activate_maybe: the base's (0x3cd88)
-    // vt+0x58 0x508828 InitGameData only calls the base's. Not ported: vt+0x1c 0x5088a0 MessageProc,
-    // +0x60 0x5087c8, +0x64 0x5087a0, +0x78 0x508770, +0x7c 0x508778 (STUB(C1.6)).
+    // vt+0x58 0x508828 InitGameData only calls the base's.
+    // vt+0x1c 0x005088a0 CKS08GameSpawnPoint_MessageProc: 0x203 in chapter mode (game manager vt+0xc4) only sets the
+    // manager's +0xafc bit 9; else the base's 0x203 (made current, the requested level and sector) and, with the
+    // manager's +0x64 bit 16, +0xafc bit 10. Other messages: the base's, its answer kept when 2 or 3, else 0 / 1.
+    int32_t MessageProc(uint16_t message, void* data) override;
+    void DestroyLevelData() override;   // vt+0x60 0x005087c8 CKS08GameSpawnPoint_ClearLevelData: the base's
+    void DestroyGameData() override;    // vt+0x64 0x005087a0 CKS08GameSpawnPoint_ClearGameData_maybe: the base's
+    IKSerializable* Vf78() override { return m_pUnk38; }  // vt+0x78 0x00508770 CKS08GameSpawnPoint_vf78
 
     IKSerializable* m_pUnk38;     // +0x38 level part, after the base's; InitializeLevelData: 0
     uint32_t m_unk3c;             // +0x3c not set by the Load or the constructor

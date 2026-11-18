@@ -18,12 +18,15 @@ public:
     // size of RtAnim interpolator types 1 and 2 (RtAnimGetInterpolatorInfo): the room for the sector entry
     // (RtAnimSectorEntryData) behind each animation's key frames. Needs both schemes registered (CKGraphic::InitializeModule).
     CAnimationManager();
-    ~CAnimationManager() override {}  // STUB(C1.6): 0x9972b8 / 0x997278
+    ~CAnimationManager() override {}  // 0x009972b8 / 0x00997278 CAnimationManager_Destructor / _DeletingDestructor: the vtables only
     // vt+0x08 0x996988
     int32_t IsKindOfClass(uint32_t key) override { return key == 0x20d || key == 0xc; }
     void Destroy() override;  // vt+0x10 0x00092b00 CAnimationManager_Destroy
     int32_t Load(IKFile* file, int32_t type) override;      // vt+0x2c 0x00092970 CAnimationManager_Load
     int32_t GetSerializationFlags() override { return 0; }  // vt+0x34 0x996780
+    // vt+0x24 0x00092880 CAnimationManager_RecursiveRegistration: registers the manager (any type).
+    void RecursiveRegistration(int32_t type) override;
+    int32_t PostLoad(int32_t /*type*/) override { return 1; }  // vt+0x30 0x000928e0 CAnimationManager_PostLoad
 
     IKSerializable** m_apAnimations;  // +0x04 CSectorAnimation references (Mem_AllocAligned16)
     uint32_t m_ui32NbAnimations;      // +0x08

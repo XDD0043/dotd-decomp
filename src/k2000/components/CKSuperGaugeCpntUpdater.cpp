@@ -7,7 +7,7 @@
 //   [ ] 0x250b38  CKSuperGaugeCpntUpdater_GetCpnt_maybe  [dead]
 //   [ ] 0x250b40  RegisterCKSuperGaugeCpntUpdaterClass
 //   [ ] 0x250bb8  _GLOBAL__I_250bb8
-//   [ ] 0x250bc8  GaugeSamples_ApplyToElements2d_maybe
+//   [x] 0x250bc8  GaugeSamples_ApplyToElements2d_maybe
 //   [ ] 0x250c88  GaugeSamples_ApplyToElements2dPtr_maybe  [dead]
 //   [ ] 0x250d30  CKSuperGaugeCpntUpdater_ResetRecords_maybe  [dead]
 //   [x] 0x250d80  CKSuperGaugeCpnt_SetFullFlag_maybe
@@ -15,15 +15,15 @@
 //   [x] 0x250dd8  CKSuperGaugeCpnt_SetValue
 //   [x] 0x250e38  CKSuperGaugeCpntUpdater_DeleteArray
 //   [x] 0x250ee0  CKSuperGaugeCpntUpdater_Create
-//   [ ] 0x250f18  CKSuperGaugeCpnt_GetMarkerValue_maybe
+//   [x] 0x250f18  CKSuperGaugeCpnt_GetMarkerValue_maybe  (GetMarkerValue (hudgauge::SuperGaugeGetMarker calls it))
 //   [x] 0x250f28  CKSuperGaugeCpntUpdater_CreateArray
 //   [ ] 0x250fc0  CKSuperGaugeCpntUpdater_Save
-//   [ ] 0x250fc8  CKSuperGaugeCpntUpdater_RecursiveRegistration
-//   [ ] 0x250fd0  CKSuperGaugeCpntUpdater_Destroy
-//   [ ] 0x250fd8  CKSuperGaugeCpntUpdater_Tick
+//   [x] 0x250fc8  CKSuperGaugeCpntUpdater_RecursiveRegistration  (returns 1, registers nothing: the default)
+//   [x] 0x250fd0  CKSuperGaugeCpntUpdater_Destroy  (empty: the default)
+//   [x] 0x250fd8  CKSuperGaugeCpntUpdater_Tick
 //   [ ] 0x251198  CKSuperGaugeCpntUpdater_Evaluate_maybe  [dead]
 //   [x] 0x251358  CKSuperGaugeCpntUpdater_Load
-//   [ ] 0x251580  CKSuperGaugeCpntUpdater_PostLoad
+//   [x] 0x251580  CKSuperGaugeCpntUpdater_PostLoad
 //   [ ] 0x2515d8  CKSuperGaugeCpntUpdater_SetCpntAndReset_maybe  [dead]
 //
 //   [ ] 0x9ba478  CKSuperGaugeCpntUpdater_IsKindOfClass  [inline]
@@ -52,8 +52,41 @@ void CKSuperGaugeCpntUpdater::SetFullFlag(uint32_t value) { SuperGaugeRecord_Set
 // 0x00250da8 CKSuperGaugeCpnt_SetMarkerValue_maybe
 void CKSuperGaugeCpntUpdater::SetMarkerValue(float value) { SetGaugeValue(m_apUpdaters[2], value, 1); }
 
+// 0x00250f18 CKSuperGaugeCpnt_GetMarkerValue_maybe (C2.8 port-rest R02)
+float CKSuperGaugeCpntUpdater::GetMarkerValue() const { return m_apUpdaters[2]->m_unk10; }
+
 // 0x00250dd8 CKSuperGaugeCpnt_SetValue
 void CKSuperGaugeCpntUpdater::SetValue(float value, int32_t resetAux) {
     SetGaugeValue(m_apUpdaters[0], value, resetAux);
     SetGaugeValue(m_apUpdaters[1], value, resetAux);
+}
+
+// 0x00251580 CKSuperGaugeCpntUpdater_PostLoad: the three records reset for the level load (type 0).
+int32_t CKSuperGaugeCpntUpdater::PostLoad(int32_t type) {
+    if (type == 0) {
+        m_apUpdaters[0]->Reset();
+        m_apUpdaters[1]->Reset();
+        m_apUpdaters[2]->Reset();
+    }
+    return 1;
+}
+
+// 0x00250fd8 CKSuperGaugeCpntUpdater_Tick
+int32_t CKSuperGaugeCpntUpdater::Tick(float dt, GaugeSample samples[3]) {
+    if (m_pSuperGauge != nullptr) {
+        m_pSuperGauge->TickChannels(dt, samples, this);
+        return 1;
+    }
+    GaugeSample_Clear(&samples[0]);
+    GaugeSample_Clear(&samples[1]);
+    GaugeSample_Clear(&samples[2]);
+    return 0;
+}
+
+// 0x00250bc8 GaugeSamples_ApplyToElements2d_maybe (the updater argument is not used)
+void GaugeSamples_ApplyToElements2d(CKSuperGaugeCpntUpdater* /*updater*/, const GaugeSample samples[3], KBase730C* menu,
+                                    int32_t slot0, int32_t slot1, int32_t slot2) {
+    if (slot0 >= 0) GaugeSample_ApplyToElement2d(&samples[0], menu, static_cast<uint32_t>(slot0));
+    if (slot1 >= 0) GaugeSample_ApplyToElement2d(&samples[1], menu, static_cast<uint32_t>(slot1));
+    if (slot2 >= 0) GaugeSample_ApplyToElement2d(&samples[2], menu, static_cast<uint32_t>(slot2));
 }

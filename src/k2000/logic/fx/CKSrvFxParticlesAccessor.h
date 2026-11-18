@@ -11,11 +11,20 @@
 class CKSrvFxParticlesAccessor : public KBase1DCC {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0xb0)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9adaf8
+        return key == 0x2c0c || key == 0x1dcc || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKSrvFxParticlesAccessor)
 
     CKSrvFxParticlesAccessor() : m_pParticles(nullptr) {}  // 0x001d8e40 CKSrvFxParticlesAccessor_Construct
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001d8c78 CKSrvFxParticlesAccessor_Load
+    // vt+0x10 0x001d8d60 CKSrvFxParticlesAccessor_Destroy: the base's (KStub_Nop_1a5a8), then no object.
+    void Destroy() override {
+        KBase1DCC::Destroy();
+        m_pParticles = nullptr;
+    }
+    // 0x001d8e80 Construct_2: the constructor. 0x001d8e10 BaseDestructor / 0x001d8d98 DeletingDestructor: the C++ chain.
     IKSerializable* Vf50() override { return m_pParticles; }   // vt+0x50 0x1d8ba0
     void Vf54(IKSerializable* object) override { m_pParticles = object; }  // vt+0x54 0x1d8ba8
 

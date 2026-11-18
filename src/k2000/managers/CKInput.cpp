@@ -10,7 +10,7 @@
 //   [ ] 0x1039c8  CKInput_RefreshAllPadInfo_maybe  [dead]
 //   [x] 0x103a60  CKInput_Update
 //   [x] 0x103a68  CKInput_PostUpdate
-//   [ ] 0x103a70  CKInput_RecursiveRegistration
+//   [x] 0x103a70  CKInput_RecursiveRegistration
 //   [ ] 0x103ae8  KStub_Return1_103ae8  [dead]
 //   [ ] 0x103af0  KStub_Return1_103af0  [dead]
 //   [ ] 0x103af8  FUN_00103af8  [dead]
@@ -33,7 +33,7 @@
 //   [x] 0x105240  CKInput_GetActionEntry_maybe
 //   [ ] 0x105268  CKInput_CountConnectedPads_maybe  [dead]
 //   [x] 0x1052d8  CKInput_GetPadRecord_maybe
-//   [ ] 0x105300  KStub_Return44_105300
+//   [x] 0x105300  KStub_Return44_105300  (CKInput::GetPadGlyphBase, CKInput.h)
 //   [ ] 0x105308  CKInput_GetKeyboardRecord_maybe  [dead]
 //   [ ] 0x105328  CKInput_GetMouseRecord_maybe  [dead]
 //   [x] 0x105340  CKInput_SetMotionSensorEnabled
@@ -43,14 +43,14 @@
 //   [ ] 0x105790  KStub_Nop_105790  [dead]
 //   [ ] 0x105798  CKInput_ResetButtonIconAnims_maybe  [dead]
 //   [ ] 0x1057f0  CKInput_AdvanceButtonIconAnims_maybe  [dead]
-//   [ ] 0x1058b8  KStub_Nop_1058b8
-//   [ ] 0x1058c0  CKInput_vfB0
+//   [x] 0x1058b8  KStub_Nop_1058b8  (empty: ExecuteRenderStages7CTo90's call (0xa0dac) does nothing)
+//   [x] 0x1058c0  CKInput_vfB0  (CKInput::VfB0, CKInput.h)
 //   [x] 0x105960  CKInput_FindButtonIconGlyph_maybe
 //   [ ] 0x1059d0  CKInput_DestroyKeyboardDevices_maybe  [dead]
 //   [ ] 0x105b00  CKInput_DestroyMouseDevices_maybe  [dead]
-//   [ ] 0x105c20  CKInput_DestroyPadDevices_maybe
+//   [x] 0x105c20  CKInput_DestroyPadDevices_maybe  (CKInput::DestroyPadDevices)
 //   [x] 0x105d90  CKVibrationData_DeleteArray
-//   [ ] 0x105e38  CKInput_DeleteArray
+//   [x] 0x105e38  CKInput_DeleteArray  (CKInput::DeleteArray, CKInput.h)
 //   [x] 0x105ed8  CKVibrationData_CreateArray
 //   [ ] 0x105f70  CKInput_ResolveButtonPointer_maybe  [dead]
 //   [ ] 0x106310  RegisterCKInputAndCKVibrationDataClasses
@@ -76,16 +76,16 @@
 //   [x] 0x107940  CKVibrationData_Create
 //   [ ] 0x107978  CKInput_GetMappingButtonState_maybe  [dead]
 //   [ ] 0x107a58  CKInput_Save
-//   [ ] 0x107a60  CKVibrationData_RecursiveRegistration
-//   [ ] 0x107ac0  CKInput_PostLoad
+//   [x] 0x107a60  CKVibrationData_RecursiveRegistration  (CKVibrationData::RecursiveRegistration)
+//   [x] 0x107ac0  CKInput_PostLoad
 //   [ ] 0x107b70  CKVibrationData_Save
-//   [ ] 0x107c98  CKInput_Destroy
+//   [x] 0x107c98  CKInput_Destroy  (CKInput::Destroy (empty), CKInput.h)
 //   [x] 0x107ca0  CKInput_IsPadConnected_maybe
 //   [ ] 0x107cc8  CKInput_CountConnectedPads_2_maybe  [dead]
 //   [x] 0x107d38  CKInput_StartPadVibration
 //   [x] 0x107f50  CKInput_Resume
 //   [x] 0x108340  CKInput_Create
-//   [ ] 0x108420  CKInput_CreateArray
+//   [x] 0x108420  CKInput_CreateArray  (CKInput::CreateArray, CKInput.h)
 //   [x] 0x108568  CKInput_Start
 //   [x] 0x108768  CKVibrationData_Load
 //   [ ] 0x1088c0  CKInput_FreeButtonIconAnims_maybe  [dead]
@@ -99,14 +99,14 @@
 //   [x] 0x10a0d0  CKInput_LoadMappings_maybe
 //   [x] 0x10a590  CKInput_LoadInputConfig_maybe
 //   [x] 0x10c398  CKInput_Load
-//   [ ] 0x10c450  CKInput_DestroyModule
+//   [x] 0x10c450  CKInput_DestroyModule
 //   [ ] 0x10c9c0  CKInput_DestroyAllDevices_maybe  [dead]
 //   [ ] 0x10cbf0  CKInput_StopAllPadVibration_maybe  [dead]
 //   [x] 0x10cc90  CKInput_SetVibrationEnabled
-//   [ ] 0x10cdc0  CKInput_DestroyGame
+//   [x] 0x10cdc0  CKInput_DestroyGame  (CKInput::DestroyGame)
 //   [ ] 0x10d340  CKInput_StopAllPadVibration_2_maybe  [dead]
 //   [x] 0x10d3e0  CKInput_Stop
-//   [ ] 0x10d4c8  CKInput_Restart
+//   [x] 0x10d4c8  CKInput_Restart
 //   [ ] 0x10d630  FUN_0010d630  [dead]
 //   [ ] 0x10d670  FUN_0010d670  [dead]
 //   [ ] 0x10d690  InputSequenceData_Save_maybe  [dead]
@@ -121,8 +121,8 @@
 //   [ ] 0x9a6450  CKVibrationData_DeletingDestructor  [inline]
 //   [ ] 0x9a6498  CKVibrationData_Destructor  [inline]
 //   [ ] 0x9a64c8  CKInput_IsKindOfClass  [inline]
-//   [ ] 0x9a6500  CKInput_DeletingDestructor  [inline]
-//   [ ] 0x9a6600  CKInput_Destructor  [inline]
+//   [x] 0x9a6500  CKInput_DeletingDestructor  [inline]
+//   [x] 0x9a6600  CKInput_Destructor  [inline]
 //   [ ] 0x9a66f0  KStub_Return9_9a66f0  [inline]
 //   [ ] 0x9a66f8  KStub_Return5_9a66f8  [inline]
 //   [ ] 0x9a6700  KStub_Return1_9a6700  [inline]
@@ -189,9 +189,182 @@ CKInput::CKInput() {
     m_unk38 = 0;
     m_unk71 = 0;
 }
-// STUB(C1.6): 0x9a6600 CKInput_Destructor (frees the devices and tables) is not ported.
-CKInput::~CKInput() {}
+// 0x009a6600 CKInput_Destructor (0x9a6500 the deleting one): the sequence vector's entries' blocks freed (each
+// entry's length and block cleared), then its block (its fields are left). The devices and tables are
+// DestroyModule's.
+CKInput::~CKInput() {
+    if (m_vSequenceData.m_pBlock == nullptr) return;
+    for (uint32_t i = 0; i < m_vSequenceData.m_ui32NbUsedElt; ++i) {
+        TVector<InputSequenceEntry, 8>& entries = m_vSequenceData.m_pBlock[i].m_vEntries;
+        if (entries.m_pBlock != nullptr) {
+            Mem_FreeAligned16(entries.m_pBlock);
+            entries.m_pBlock = nullptr;
+        }
+        entries.m_ui32NbUsedElt = 0;
+        entries.m_pBlock = nullptr;
+    }
+    Mem_FreeAligned16(m_vSequenceData.m_pBlock);
+}
 IKBaseClass* CKInput::Create() { return new CKInput(); }
+
+// 0x001058c0 CKInput_vfB0
+void CKInput::VfB0() {
+    for (uint32_t pad = 0; pad < m_ui8NbPads; ++pad) m_aPads[pad].Vf64();  // vt+0x64
+}
+
+// 0x00105c20 CKInput_DestroyPadDevices_maybe
+int32_t CKInput::DestroyPadDevices() {
+    if (m_aPads == nullptr) return 1;
+    for (uint32_t pad = 0; pad < m_ui8NbPads; pad = (pad + 1) & 0xffu) {
+        m_aPads[pad].Destroy();  // vt+0x0c
+        if (m_ppPadVibrationMotor[pad] != nullptr) delete[] m_ppPadVibrationMotor[pad];  // (the slot is left)
+    }
+    if (m_aPads != nullptr) delete[] m_aPads;  // each pad's vt+0x00, last first
+    m_aPads = nullptr;
+    if (m_ppPadVibrationMotor != nullptr) delete[] m_ppPadVibrationMotor;
+    m_ui8NbPads = 0;
+    m_ppPadVibrationMotor = nullptr;
+    return 1;
+}
+
+// 0x0010cdc0 CKInput_DestroyGame
+void CKInput::DestroyGame() {
+    if (m_aaMappings != nullptr) {
+        delete[] m_aaMappings;
+        m_aaMappings = nullptr;
+    }
+    if (m_aaFiltersAnalog != nullptr) {
+        delete[] m_aaFiltersAnalog;
+        m_aaFiltersAnalog = nullptr;
+    }
+    if (m_aaFiltersBinary != nullptr) {
+        delete[] m_aaFiltersBinary;
+        m_aaFiltersBinary = nullptr;
+    }
+    if (m_aaFiltersThreshold != nullptr) {
+        delete[] m_aaFiltersThreshold;
+        m_aaFiltersThreshold = nullptr;
+    }
+    if (m_ui8NbPads != 0) DestroyPadDevices();
+    if (m_ui8NbMouses != 0 && m_aMouses != nullptr) {
+        for (uint32_t i = 0; i < m_ui8NbMouses; i = (i + 1) & 0xffu) m_aMouses[i].Destroy();  // vt+0x0c
+        if (m_aMouses != nullptr) delete[] m_aMouses;
+        m_ui8NbMouses = 0;
+        m_aMouses = nullptr;
+    }
+    if (m_ui8NbKeyboards != 0 && m_aKeyboards != nullptr) {
+        for (uint32_t i = 0; i < m_ui8NbKeyboards; i = (i + 1) & 0xffu) m_aKeyboards[i].Destroy();  // vt+0x0c
+        if (m_aKeyboards != nullptr) delete[] m_aKeyboards;
+        m_ui8NbKeyboards = 0;
+        m_aKeyboards = nullptr;
+    }
+    // The running vibrations back to the waiting list. BUG(original): the loop takes its next node from the node it
+    // has just moved (now linked into the waiting list): from the second node on it reads the waiting list, and with
+    // two or more running and the waiting list not empty it pops the emptied running list and writes through null.
+    // Here the loop also stops when the running list is empty.
+    CKVibration* previous = m_lpPadVibrationsActiveList;
+    while (m_lpPadVibrationsActiveList != nullptr) {
+        CKVibration* next = previous->m_pNext;  // read before this turn's move (the stale link)
+        CKVibration* node = m_lpPadVibrationsActiveList;
+        m_lpPadVibrationsActiveList = node->m_pNext;
+        node->m_pNext = m_lpPadVibrationsWaitingList;
+        m_lpPadVibrationsWaitingList = node;
+        previous = node;
+        if (next == nullptr) break;
+    }
+    if (m_ui8NbAction != 0) {
+        for (uint32_t i = 0; i < m_ui8NbAction; ++i) m_aActions[i].ClearBinding();  // 0x00101538
+    }
+    if (m_vSequenceData.m_pBlock != nullptr) {
+        for (uint32_t i = 0; i < m_vSequenceData.m_ui32NbUsedElt; ++i) {
+            TVector<InputSequenceEntry, 8>& entries = m_vSequenceData.m_pBlock[i].m_vEntries;
+            if (entries.m_pBlock != nullptr) {
+                Mem_FreeAligned16(entries.m_pBlock);
+                entries.m_pBlock = nullptr;
+            }
+            entries.m_ui32NbUsedElt = 0;
+            entries.m_pBlock = nullptr;
+        }
+        Mem_FreeAligned16(m_vSequenceData.m_pBlock);
+    }
+    m_vSequenceData.m_ui32NbUsedElt = 0;
+    m_vSequenceData.m_pBlock = nullptr;
+}
+
+// 0x0010c450 CKInput_DestroyModule. The arrays were made with new[]: their element destructors run last to first, as
+// the original's loops over the array cookie.
+void CKInput::DestroyModule() {
+    m_pKParams = nullptr;
+    if (m_ui8NbPads != 0) cellPadEnd();  // the byte at +0x10
+    if (m_pComboManager != nullptr) {
+        // KStub_Return1_102068 (the combo manager's release: returns 1, nothing else), then the deleting destructor.
+        m_pComboManager->Shutdown();  // 0x00102068
+        delete m_pComboManager;  // vt+0x04
+        m_pComboManager = nullptr;
+    }
+    if (m_aActions != nullptr) delete[] m_aActions;  // each action's vt+0x00, then OperatorDeleteArray
+    m_aActions = nullptr;
+    if (m_aFiltredActions != nullptr) delete[] m_aFiltredActions;
+    m_ui8NbAction = 0;
+    m_aFiltredActions = nullptr;
+    if (m_aNbActionByConfig != nullptr) delete[] m_aNbActionByConfig;  // (the field is left)
+    if (m_aNbComboByConfig != nullptr) delete[] m_aNbComboByConfig;    // (the field is left)
+    if (m_aaInputDico != nullptr) {
+        // Every project's dictionaries (their vt+0x00, last first) and the slot cleared, then the project table.
+        for (uint32_t project = 0; project < m_ui8NbInputProjet; ++project) {
+            if (m_aaInputDico[project] != nullptr) delete[] m_aaInputDico[project];
+            m_aaInputDico[project] = nullptr;
+        }
+        if (m_aaInputDico != nullptr) delete[] m_aaInputDico;
+        m_aaInputDico = nullptr;
+    }
+    if (m_aaIndexConfigDico != nullptr) {
+        for (uint32_t config = 0; config < m_ui8NbInputConfig; ++config) {
+            if (m_aaIndexConfigDico[config] != nullptr) {
+                delete[] m_aaIndexConfigDico[config];  // OperatorDelete_Bridge
+                m_aaIndexConfigDico[config] = nullptr;
+            }
+        }
+        if (m_aaIndexConfigDico != nullptr) delete[] m_aaIndexConfigDico;
+        m_aaIndexConfigDico = nullptr;
+    }
+    if (m_aaComboIndexConfigDico != nullptr) {
+        // The same, but the slots are not cleared.
+        for (uint32_t config = 0; config < m_ui8NbInputConfig; ++config) {
+            if (m_aaComboIndexConfigDico[config] != nullptr) delete[] m_aaComboIndexConfigDico[config];
+        }
+        if (m_aaComboIndexConfigDico != nullptr) delete[] m_aaComboIndexConfigDico;
+    }
+    m_aaComboIndexConfigDico = nullptr;
+    if (m_aCombo != nullptr) {
+        delete[] m_aCombo;  // each combo's vt+0x00
+        m_aCombo = nullptr;
+    }
+    if (m_aComboTransition != nullptr) {
+        delete[] m_aComboTransition;
+        m_aComboTransition = nullptr;
+    }
+    if (m_aComboCommand != nullptr) {
+        delete[] m_aComboCommand;  // OperatorDeleteArray(block - 4): the array cookie
+        m_aComboCommand = nullptr;
+    }
+    if (m_aProjectName != nullptr) delete[] m_aProjectName;  // (the field is left)
+    // The sequence data: every entry's block freed (its block and length cleared), then the vector's block.
+    if (m_vSequenceData.m_pBlock != nullptr) {
+        for (uint32_t i = 0; i < m_vSequenceData.m_ui32NbUsedElt; ++i) {
+            TVector<InputSequenceEntry, 8>& entries = m_vSequenceData.m_pBlock[i].m_vEntries;
+            if (entries.m_pBlock != nullptr) {
+                Mem_FreeAligned16(entries.m_pBlock);
+                entries.m_pBlock = nullptr;
+            }
+            entries.m_ui32NbUsedElt = 0;
+            entries.m_pBlock = nullptr;
+        }
+        Mem_FreeAligned16(m_vSequenceData.m_pBlock);
+    }
+    m_vSequenceData.m_ui32NbUsedElt = 0;
+    m_vSequenceData.m_pBlock = nullptr;
+}
 void CKInput::Delete(IKBaseClass* object) { delete object; }
 // 0x00103a60 CKInput_Update (empty)
 void CKInput::Update(IKTime*) {}
@@ -657,14 +830,24 @@ void CKInput::PreUpdate(IKTime* frameClock) {
         for (uint32_t i = 0; i < m_ui8NbPads; i = (i + 1) & 0xff) m_aPads[i].Update();  // vt+0x2c
     }
     UpdateVibrations();  // 0x00103c50
-    // The mice (vt+0x14 of each active one) and keyboards: none on the PS3 (GAME: 0 of each).
-    if (m_aMouses != nullptr && m_ui8NbMouses != 0) DOTD_STUB_ONCE("CKInput_PreUpdate: mouse devices");
-    if (m_aKeyboards != nullptr && m_ui8NbKeyboards != 0) DOTD_STUB_ONCE("CKInput_PreUpdate: keyboard devices");
+    // The mice and keyboards (GAME has none on the PS3): each active one read.
+    if (m_aMouses != nullptr) {
+        for (uint32_t i = 0; i < m_ui8NbMouses; i = (i + 1) & 0xff) {
+            MouseDevice* mouse = &m_aMouses[i];
+            if (mouse->m_bActive != 0) mouse->ReadMouse();  // vt+0x14
+        }
+    }
+    if (m_aKeyboards != nullptr) {
+        for (uint32_t i = 0; i < m_ui8NbKeyboards; i = (i + 1) & 0xff) {
+            KeyboardDevice* keyboard = &m_aKeyboards[i];
+            if (keyboard->m_bActive != 0) keyboard->ReadKeyboard();  // vt+0x14
+        }
+    }
     for (uint32_t i = 0; i < m_ui8NbAction; i = (i + 1) & 0xff) {
         CKAction* action = &m_aActions[i];
         if (action->m_bActive != 0) action->Update(&m_aFiltredActions[i], frameClock);
     }
-    // STUB(C1.6): 0x00102220 InputSequenceTracker_Update_maybe (the combo manager +0x34 over the filtered actions).
+    m_pComboManager->Update(m_aFiltredActions, m_aActions);  // 0x00102220
     DetectButtonActivity();  // 0x001053f8
     // The sequence data, last first: each runs through its entries, m_unk04 counting up to the entry's
     // duration (+0x10, a float; 0 = stays) on the engine clock's FIXED_GAME_TIME delta.
@@ -804,9 +987,8 @@ uint16_t CKInput::GetActionButtonGlyph(uint32_t projectHash, uint32_t config, ui
     int32_t base;
     if (type == kMappingKeyboard) {
         base = -0x1200;
-        // The keyboard's vt+0x1c with the key code: 0x9a6758 KStub_ReturnM1_9a6758 in DotD (KeyboardDevice.h
-        // declares the slots up to +0x10).
-        if (m_aKeyboards != nullptr) base = -1 * 2 - 0x1200;
+        // The first keyboard's vt+0x1c with the key code (0x9a6758 KStub_ReturnM1_9a6758 in DotD: -1).
+        if (m_aKeyboards != nullptr) base = m_aKeyboards->Vf1c(static_cast<uint8_t>(command)) * 2 - 0x1200;
     } else if (static_cast<uint32_t>(type) < 1) {
         base = static_cast<int32_t>(command * 2) - 0x1800;
     } else if (type == kMappingMouse) {
@@ -872,6 +1054,32 @@ void CKInput::Start() {
     m_unk60 &= 0x00ffffffu;  // the byte at +0x60
     m_unk64 = 0;
     ClearFilteredActions(this);
+    for (uint32_t i = m_vSequenceData.m_ui32NbUsedElt; i != 0; --i) {
+        m_vSequenceData.m_pBlock[i - 1].m_unk08 = 0;
+        m_vSequenceData.m_pBlock[i - 1].m_unk04 = 0;
+    }
+}
+
+// 0x0010d4c8 CKInput_Restart (vt+0x54): every pad's Restart (vt+0x18: its vibration stopped), every pad's vibration
+// stopped again (vt+0x48) with a pad type set, and every sequence's two run-time words (+0x04, +0x08) cleared, last
+// to first.
+void CKInput::Restart() {
+    uint32_t pads = m_ui8NbPads;
+    if (pads != 0) {
+        uint32_t i = 0;
+        do {
+            m_aPads[i].Restart();
+            i = (i + 1) & 0xffu;
+            pads = m_ui8NbPads;
+        } while (i < pads);
+    }
+    if (m_unk71 != 0 && pads != 0) {
+        uint32_t i = 0;
+        do {
+            m_aPads[i].StopAllVibration();
+            ++i;
+        } while (i < m_ui8NbPads);
+    }
     for (uint32_t i = m_vSequenceData.m_ui32NbUsedElt; i != 0; --i) {
         m_vSequenceData.m_pBlock[i - 1].m_unk08 = 0;
         m_vSequenceData.m_pBlock[i - 1].m_unk04 = 0;
@@ -1225,8 +1433,36 @@ void CKInput::DetectButtonActivity() {
             break;
         }
     }
-    // STUB(C1.6: no such devices): the keyboards (keys 0x8f..0 above 100: the game manager's vt+0x21c with device 2,
-    // +0x148 bits 0..2 = 4) and the mice (buttons 0xd..0 above 10, the same). The PS3 data has none (GAME: 0 of each).
-    if (m_ui8NbKeyboards != 0) DOTD_STUB_ONCE("CKInput_DetectButtonActivity_maybe: keyboard devices");
-    if (m_ui8NbMouses != 0) DOTD_STUB_ONCE("CKInput_DetectButtonActivity_maybe: mouse devices");
+    // The keyboards: the last key (0x8f..0) above 100, as device 2; +0x148 bits 0..2 = 4. (GAME has none.)
+    for (uint32_t k = 0; k < m_ui8NbKeyboards; ++k) {
+        const KeyboardDevice* keyboard = &m_aKeyboards[k];
+        for (int32_t key = 0x8f; key >= 0; --key) {
+            if (keyboard->m_ui8VirtualKeyboardValue[key] <= 0x64) continue;
+            static_cast<CDefaultGameManager*>(g_pEngine->m_gameManager)->NotifyInputActivity(2, key);  // vt+0x21c
+            m_unk148 = static_cast<uint8_t>((m_unk148 & 0xf8u) | 4u);
+            break;
+        }
+    }
+    // The mice: the last button (0xd..0) above 10, also as device 2 (the original passes 2, not 1); the same bits.
+    for (uint32_t m = 0; m < m_ui8NbMouses; ++m) {
+        const MouseDevice* mouse = &m_aMouses[m];
+        for (int32_t button = 0xd; button >= 0; --button) {
+            if (mouse->m_ui8VirtualMouseValue[button] <= 0xa) continue;
+            static_cast<CDefaultGameManager*>(g_pEngine->m_gameManager)->NotifyInputActivity(2, button & 0xf);  // vt+0x21c
+            m_unk148 = static_cast<uint8_t>((m_unk148 & 0xf8u) | 4u);
+            break;
+        }
+    }
+}
+
+// 0x00103a70 CKInput_RecursiveRegistration (C2.8 save-menu)
+#include "k2000/logic/CKSavingManager.h"
+void CKInput::RecursiveRegistration(int32_t type) {
+    if (static_cast<uint32_t>(type) > 1u) return;
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+}
+
+// 0x00107a60 CKVibrationData_RecursiveRegistration (P21)
+void CKVibrationData::RecursiveRegistration(int32_t type) {
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
 }

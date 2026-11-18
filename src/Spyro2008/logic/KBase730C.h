@@ -34,6 +34,9 @@ public:
     int32_t GetClassID() override { return 0x1cc; }            // vt+0x18 0x998400
     // vt+0x24 0x67eb0 and vt+0x28 0x67ea8 return 1; the IKSerializable defaults do the same.
     int32_t Load(IKFile* /*file*/, int32_t /*type*/) override { return 1; }  // vt+0x2c 0x67ea0 KBase730C_Load
+    // vt+0x24 0x67eb0 (Ghidra KBase730C_LevelReset): 1, registers nothing (CKMenuBase_114c's RecursiveRegistration
+    // calls it).
+    void RecursiveRegistration(int32_t /*type*/) override {}
 
     // Slots +0x50..+0x80 (CKMenuBase114c overrides most of them). Names ours, from the 0x114c bodies.
     virtual void Open() {}                         // vt+0x50 0x998408 (0x114c: 0x514a00 KBase730C_Open)
@@ -46,11 +49,16 @@ public:
     // both with a count and a fixed array; Ghidra: <Leaf>_GetWidgetSlotCount / _GetWidgetSlots).
     virtual uint32_t GetWidgetSlotCount() { return 0; }
     virtual WidgetSlot* GetWidgetSlots() { return nullptr; }
-    virtual float Vf70() { return 0.0f; }          // vt+0x70 0x998438 (lfs TOC1-0x6eec = 0.0)
-    virtual float Vf74() { return 0.0f; }          // vt+0x74 0x998440 (the same constant)
-    virtual void Vf78() {}                         // vt+0x78 0x998448
-    virtual void Vf7C() {}                         // vt+0x7c 0x998450
-    virtual void Vf80() {}                         // vt+0x80 0x998458
+    // vt+0x70 / +0x74: a widget slot's element offset from its hot spot (0x114c: 0x512830 KBase730C_GetElementX_maybe /
+    // 0x514e10 KBase730C_GetElementY_maybe); here 0.0 (lfs TOC1-0x6eec).
+    virtual float GetElementX(uint32_t /*slot*/) { return 0.0f; }  // vt+0x70 0x998438
+    virtual float GetElementY(uint32_t /*slot*/) { return 0.0f; }  // vt+0x74 0x998440
+    // vt+0x78 0x998448 (empty; 0x114c: 0x512370 KBase730C_SetElementPosition_maybe): a widget slot's element offset
+    // from its hot spot set to position[0..1].
+    virtual void Vf78(uint32_t /*slot*/, const float* /*position*/) {}
+    // vt+0x7c / +0x80: set it (0x114c: 0x512510 KBase730C_SetElementX_maybe / 0x5126a0 KBase730C_SetElementY_maybe).
+    virtual void SetElementX(float /*x*/, uint32_t /*slot*/) {}   // vt+0x7c 0x998450
+    virtual void SetElementY(float /*y*/, uint32_t /*slot*/) {}   // vt+0x80 0x998458
 };
 DOTD_ASSERT_SIZE(KBase730C, 0x4);
 DOTD_ASSERT_SIZE(KBase730C::WidgetSlot, 0x8);

@@ -1,22 +1,79 @@
 // CKGrabElement.h - the grab-attack element base (key 0x9fcc, vtable 0xb23ae0, size 0x140). Original unit:
 // CKGrabElement.cpp (0x3a5e60-0x3a9c50). No XXL2 class of this name: the members keep placeholder names.
-// Base of CKElectricalGrapple and CKWindBeam (their Loads call this one first).
+// Base of CKElectricalGrapple and CKWindBeam (their Loads call this one first). The family drives its user only through
+// the ability host (CKS08AbilityHostBase), so the heroes' grab abilities and the enemies' (CKS08EnemyAbilityHost) share
+// it. Phases: the start animation (+0x126, phase 0), the loop (+0x125, phase 1, or the alternative 2 while the host
+// allows it, +0x134), the end animation (+0x127, phase 4); the mana is spent by the second (+0x2c per second), the grab
+// (vt+0x7c) goes through the host's GrabEnemy (vt+0xec) on its locked target.
 #pragma once
+#include "k2000/logic/CKAbilityElement.h"
 #include <cstdint>
+
+#include "k2000/math/Vec3.h"
 
 #include "k2000/core/IKSerializable.h"
 #include "k2000/core/Layout.h"
 
-class CKGrabElement : public IKSerializable {
+class CKGrabElement : public CKAbilityElement {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x27f)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9bfef8
+        return key == 0x9fcc || key == 0xc || key == 0x90cc;
+    }
     DOTD_DECLARE_FACTORIES(CKGrabElement)
 
     CKGrabElement() {}  // 0x003a5eb0 CKGrabElement_Construct: stores the vtable only
     ~CKGrabElement() override {}
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x003a83c0 CKGrabElement_Load
+    // vt+0x30 0x003a8370 CKGrabElement_PostLoad: ResetRuntime (vt+0x6c).
+    int32_t PostLoad(int32_t /*type*/) override {
+        ResetRuntime();
+        return 1;
+    }
 
-    uint32_t m_unk04;          // +0x04 (not loaded)
+    // The ability protocol (CKAbilityElement.h).
+    uint8_t GetAbilityId() override { return 0x18; }  // vt+0x50 0x003a5ed0
+    uint8_t GetFamilyId() override { return 0x18; }   // vt+0x54 0x003a5ed8
+    // vt+0x58 0x003a7c80 CKGrabElement_Start: when not running and with a host: the host kept, the phases and the
+    // target cleared, running; the level index (host vt+0xf4), the hero control on, the mana accumulator cleared, the
+    // alternative loop allowed (host vt+0x38); the start animation (phase 0), else the loop (phase 2 when allowed,
+    // else 1); the start time (the game clock).
+    void Start(CKS08AbilityHostBase* host) override;
+    // vt+0x5c 0x003a5ee0 CKGrabElement_Stop: while running, the grab let go (vt+0x88) and End(forced).
+    void Stop(int32_t forced) override;
+    // vt+0x60 0x003a7070 CKGrabElement_Update: the phases, the mana, the grab and its hold; 0 once over (End called).
+    uint8_t Update(float dt) override;
+    // vt+0x64 0x003a5f70 CKGrabElement_End: the hero control off, not running, the level's cooldown (+0x20 forced,
+    // else +0x14) set through the host (per slot unless forced), the host dropped.
+    void End(int32_t forced) override;
+    // vt+0x68 0x003a6058 CKGrabElement_ApplyHeroControl: the user's permissions, turn, 11f8 and move speed from the
+    // data's air / flying / ground settings (on), or all of them off; +0x12e = standing (host vt+0x30 inverted).
+    void ApplyHeroControl(uint8_t on) override;
+    // The grab family's slots.
+    // vt+0x6c 0x003a6650 CKGrabElement_ResetRuntime: the runtime state cleared (start time -1, hot spot 0xff, button 1).
+    virtual void ResetRuntime();
+    virtual void SetFxActive(int32_t /*on*/) {}  // vt+0x70 0x009bfed0 (empty)
+    virtual void UpdateGrab() {}                // vt+0x74 0x009bfed8 KBaseC_vf74_2 (empty)
+    // vt+0x78 0x003a6c48 CKGrabElement_StartEmitterFx: a pooled effect of the explosion data (+0x11c) for this element
+    // (CKSrvFx::AcquireFx), put at the hot spot +0x12c, triggered and released.
+    virtual void StartEmitterFx();
+    // vt+0x7c 0x003a7eb8 CKGrabElement_GrabTarget_maybe: `grab` 1: a held target let go (host vt+0xec with grab 0), then
+    // the host's target point grabbed (vt+0x98, then vt+0xec with grab 1: +0x12f = held; held: +0xd4 = the locked
+    // target, vt+0xd4); `grab` 0: the held target let go (+0x12f = not let go), +0xd4 cleared. A null `direction`
+    // becomes the target's position minus the user's.
+    virtual void GrabTarget(uint8_t grab, uint8_t mode, CVector3* direction);
+    virtual uint8_t Vf80(float /*dt*/) { return 1; }  // vt+0x80 0x009bfee0: the hold goes on
+    virtual void Vf84(float /*dt*/) {}                // vt+0x84 0x009bfee8 (empty)
+    // vt+0x88 0x003a6fb8 CKGrabElement_ReleaseAndStopFx_maybe: a held target let go (vt+0x7c with grab 0), the
+    // effects off (vt+0x70), the loop phase over.
+    virtual void ReleaseAndStopFx();
+    // vt+0x8c 0x003a66a0 CKGrabElement_ApplyDamageParams: the damage object (+0x138, a CKS08ElementDamage) set up from
+    // the level's values, scaled by the host's damage / effect scales.
+    virtual void ApplyDamageParams(uint8_t continuous);
+    virtual uint8_t Vf90() { return 0; }  // vt+0x90 0x009bfc00 KBaseC_vf90_2
+    virtual uint8_t Vf94() { return 0; }  // vt+0x94 0x009bfef0 KBaseC_vf94_2
+
+    uint32_t m_unk04;          // +0x04 runtime: the level index (0..2, host vt+0xf4) at Start
     int32_t m_unk08[3];        // +0x08 (file: 40/60/120)
     float m_unk14[3];          // +0x14
     float m_unk20;             // +0x20
@@ -26,20 +83,21 @@ public:
     float m_unk38[3];          // +0x38
     float m_unk44[3];          // +0x44
     float m_unk50[3];          // +0x50
-    uint32_t m_unk5c[3];       // +0x5c (file and live: 0; type unknown)
-    uint32_t m_unk68[3];       // +0x68 (idem)
-    uint32_t m_unk74[3];       // +0x74 (idem)
-    uint32_t m_unk80[3];       // +0x80 (idem)
-    uint32_t m_unk8c[3];       // +0x8c (idem)
-    uint32_t m_unk98[3];       // +0x98 (idem)
-    uint32_t m_unkA4[3];       // +0xa4 (idem)
-    float m_unkB0[3];          // +0xb0
-    uint32_t m_unkBc[3];       // +0xbc (file and live: 0; type unknown)
-    uint8_t m_unkC8[3];        // +0xc8
-    uint8_t m_unkCb[3];        // +0xcb
+    // The damage per level (ApplyDamageParams reads them with lfs: floats; LVL010's are 0).
+    float m_unk5c[3];          // +0x5c the stun (damage vt+0x5c)
+    float m_unk68[3];          // +0x68 element value 0
+    float m_unk74[3];          // +0x74 element value 1
+    float m_unk80[3];          // +0x80 element value 2
+    float m_unk8c[3];          // +0x8c element value 4
+    float m_unk98[3];          // +0x98 element value 6
+    float m_unkA4[3];          // +0xa4 element value 5
+    float m_unkB0[3];          // +0xb0 element value 7
+    float m_unkBc[3];          // +0xbc element value 3
+    uint8_t m_unkC8[3];        // +0xc8 the damage's +0x34
+    uint8_t m_unkCb[3];        // +0xcb the damage's +0x35
     uint8_t m_padCe[2];        // +0xce
-    IKSerializable* m_unkD0;   // +0xd0 reference (live: CKAimCamembert)
-    uint32_t m_unkD4;          // +0xd4 (not loaded)
+    IKSerializable* m_unkD0;   // +0xd0 reference (live: CKAimCamembert): passed to the host's aim (vt+0x58)
+    IKSerializable* m_pTarget;  // +0xd4 runtime: the grabbed target (the host's locked target, vt+0xd4)
     uint8_t m_unkD8;           // +0xd8
     uint8_t m_unkD9;           // +0xd9
     uint8_t m_unkDa;           // +0xda
@@ -69,10 +127,24 @@ public:
     uint8_t m_unk114;          // +0x114
     uint8_t m_pad115[3];       // +0x115 (not loaded)
     float m_unk118;            // +0x118
-    IKSerializable* m_unk11c;  // +0x11c reference (live: CKExplosionFxData)
-    uint8_t m_pad120[0x18];    // +0x120 runtime state (not loaded)
+    IKSerializable* m_unk11c;  // +0x11c reference (live: CKExplosionFxData): StartEmitterFx's effect
+    // The runtime (not loaded; ResetRuntime / Start).
+    CKS08AbilityHostBase* m_pHost;  // +0x120 the host while running
+    uint8_t m_bRunning;        // +0x124
+    uint8_t m_unk125;          // +0x125 in the loop phase
+    uint8_t m_unk126;          // +0x126 in the start animation (phase 0)
+    uint8_t m_unk127;          // +0x127 in the end animation (phase 4)
+    float m_fMana;             // +0x128 the mana spent and not yet taken (whole points go to the host, vt+0xb8)
+    uint8_t m_unk12c;          // +0x12c the hot spot index (host vt+0xcc / +0xd0; ResetRuntime 0xff)
+    uint8_t m_unk12d;          // +0x12d the button (host vt+0x8c / +0x94; ResetRuntime 1)
+    uint8_t m_unk12e;          // +0x12e standing (host vt+0x30 inverted; ApplyHeroControl, Update)
+    uint8_t m_unk12f;          // +0x12f a target is held (GrabTarget)
+    float m_fStartTime;        // +0x130 the game clock at Start (ResetRuntime -1)
+    uint8_t m_unk134;          // +0x134 the alternative loop (phase 2) plays
+    uint8_t m_pad135[3];       // +0x135
     IKSerializable* m_unk138;  // +0x138 reference (live: CKS08ElementDamage)
-    uint32_t m_unk13c;         // +0x13c (not loaded)
+    uint8_t m_unk13c;          // +0x13c the end is forced (out of mana): End's argument
+    uint8_t m_pad13d[3];       // +0x13d
 };
 DOTD_ASSERT_SIZE(CKGrabElement, 0x140);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unk08, 0x08);
@@ -121,4 +193,13 @@ DOTD_ASSERT_OFFSET(CKGrabElement, m_unk110, 0x110);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unk114, 0x114);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unk118, 0x118);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unk11c, 0x11c);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_pTarget, 0xd4);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_pHost, 0x120);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_bRunning, 0x124);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_fMana, 0x128);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_unk12c, 0x12c);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_unk12f, 0x12f);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_fStartTime, 0x130);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_unk134, 0x134);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unk138, 0x138);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_unk13c, 0x13c);

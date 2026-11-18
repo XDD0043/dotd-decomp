@@ -13,18 +13,18 @@
 //   [x] 0x7d568  CKAnimationMarkContainer_DeleteArray
 //   [x] 0x7d608  CKAnimationMarkContainer_CreateArray
 //   [x] 0x7d6b8  CKAnimationMarkContainer_Create
-//   [ ] 0x7d708  CKAnimationMarkContainer_Save
-//   [ ] 0x7d710  CKAnimationMarkContainer_RecursiveRegistration
-//   [ ] 0x7d718  CKAnimationMarkContainer_DeletingDestructor
-//   [ ] 0x7d798  CKAnimationMarkContainer_Destructor
+//   [x] 0x7d708  CKAnimationMarkContainer_Save
+//   [x] 0x7d710  CKAnimationMarkContainer_RecursiveRegistration  (returns 1: the default slot)
+//   [x] 0x7d718  CKAnimationMarkContainer_DeletingDestructor  (the destructor 0x7d798; delete)
+//   [x] 0x7d798  CKAnimationMarkContainer_Destructor
 //   [ ] 0x7d800  CKAnimationMarkContainer_Destructor_2  [dead]
 //   [x] 0x7d868  CKAnimationMarkContainer_Load
-//   [ ] 0x7db98  CKAnimationMarkContainer_Destroy
-//   [ ] 0x7dc98  AnimMark_SaveChannel
+//   [x] 0x7db98  CKAnimationMarkContainer_Destroy
+//   [x] 0x7dc98  AnimMark_SaveChannel
 //   [x] 0x7dcf8  AnimMark_LoadChannel
-//   [ ] 0x7dd60  KStub_Nop_7dd60
+//   [x] 0x7dd60  KStub_Nop_7dd60  (AnimMark::ClearKeys: empty)
 //   [ ] 0x7dd68  CinematicStreamChunk_Construct_2_maybe  [dead]
-//   [ ] 0x7dd88  CinematicStreamChunk_Construct_maybe
+//   [x] 0x7dd88  CinematicStreamChunk_Construct_maybe  (CKCinematicStreamCpnt::SChunk::Construct)
 //   [x] 0x7dda8  CinematicStreamEvent_Construct_maybe
 //   [ ] 0x7ddb8  CinematicStreamKey_Construct_2_maybe  [dead]
 //   [x] 0x7ddd8  CinematicStreamKey_Construct_maybe
@@ -38,12 +38,12 @@
 //   [ ] 0x7dfd8  FUN_0007dfd8  [dead]
 //   [x] 0x7dff8  CinematicStreamEvent_Load_maybe
 //   [x] 0x7e0a0  CKCinematicStreamCpnt_AllocStreamBuffer_maybe
-//   [ ] 0x7e1d8  CinematicStream_ResolveCamera_maybe
+//   [x] 0x7e1d8  CinematicStream_ResolveCamera_maybe
 //   [x] 0x7e258  KStub_Return1_7e258
-//   [ ] 0x7e260  KStub_Return1_7e260
-//   [ ] 0x7e268  CinematicStream_ResetTrackBufferPtr_maybe
+//   [x] 0x7e260  KStub_Return1_7e260
+//   [x] 0x7e268  CinematicStream_ResetTrackBufferPtr_maybe
 //   [x] 0x7e290  KStub_Return0_7e290
-//   [ ] 0x7e298  CinematicStream_FreeTrackBuffer_maybe
+//   [x] 0x7e298  CinematicStream_FreeTrackBuffer_maybe
 //
 //   [ ] 0x999910  CKAnimationMarkContainer_GetClassType  [inline]
 //   [ ] 0x999918  CKAnimationMarkContainer_GetClassID  [inline]
@@ -62,30 +62,30 @@
 //   [ ] 0x999980  AnimMarkConst0_CrossedValue  [inline]
 //   [ ] 0x999988  AnimMarkConst0_GetKeyValue  [inline]
 //   [ ] 0x999990  KStub_Return2_999990  [inline]
-//   [ ] 0x999998  AnimMarkKeys2_ClearKeys  [inline]
-//   [ ] 0x9999f8  AnimMarkKeys4_ClearKeys  [inline]
+//   [x] 0x999998  AnimMarkKeys2_ClearKeys  [inline]
+//   [x] 0x9999f8  AnimMarkKeys4_ClearKeys  [inline]
 //   [ ] 0x999a58  AnimMarkKeys3_GetKeyValue  [inline]
 //   [ ] 0x999a70  AnimMarkKeys4_GetKeyValue  [inline]
-//   [ ] 0x999aa0  AnimMarkKeys2_ValueAt  [inline]
+//   [x] 0x999aa0  AnimMarkKeys2_ValueAt  [inline]  (inline in the header)
 //   [ ] 0x999b70  AnimMarkKeys3_ValueAt  [inline]
-//   [ ] 0x999c40  AnimMarkKeys4_ValueAt  [inline]
+//   [x] 0x999c40  AnimMarkKeys4_ValueAt  [inline]  (inline in the header)
 //   [ ] 0x999d38  AnimMarkKeys4_CrossedValue  [inline]
 //   [ ] 0x999e10  AnimMarkKeys3_CrossedValue  [inline]
 //   [ ] 0x999f58  AnimMarkKeys3_MinInRange  [inline]
 //   [ ] 0x99a088  AnimMarkKeys3_MaxInRange  [inline]
-//   [ ] 0x99a1b8  AnimMarkKeys2_CrossedValue  [inline]
+//   [x] 0x99a1b8  AnimMarkKeys2_CrossedValue  [inline]  (inline in the header)
 //   [ ] 0x99a300  AnimMarkKeys2_MinInRange  [inline]
-//   [ ] 0x99a430  AnimMarkKeys2_MaxInRange  [inline]
+//   [x] 0x99a430  AnimMarkKeys2_MaxInRange  [inline]  (inline in the header)
 //   [ ] 0x99a560  AnimMarkKeys4_MinInRange  [inline]
 //   [ ] 0x99a6b8  AnimMarkKeys4_MaxInRange  [inline]
 //   [ ] 0x99a810  CKAnimationMarkContainer_IsKindOfClass  [inline]
 //   [ ] 0x99a838  AnimMarkKeys3_ClearKeys  [inline]
-//   [ ] 0x99a898  AnimMarkConst1_Save  [inline]
-//   [ ] 0x99a910  AnimMarkKeys2_Save  [inline]
-//   [ ] 0x99aa78  AnimMarkKeys3_Save  [inline]
-//   [ ] 0x99abe0  AnimMarkKeys4_Save  [inline]
+//   [x] 0x99a898  AnimMarkConst1_Save  [inline]
+//   [x] 0x99a910  AnimMarkKeys2_Save  [inline]
+//   [x] 0x99aa78  AnimMarkKeys3_Save  [inline]
+//   [x] 0x99abe0  AnimMarkKeys4_Save  [inline]
 //   [x] 0x99ad48  AnimMarkConst0_Load  [inline]
-//   [ ] 0x99add0  AnimMarkConst0_Save  [inline]
+//   [x] 0x99add0  AnimMarkConst0_Save  [inline]
 //   [x] 0x99ae50  AnimMarkConst1_Load  [inline]
 //   [x] 0x99aed8  AnimMarkKeys2_Load  [inline]
 //   [x] 0x99b0a8  AnimMarkKeys3_Load  [inline]
@@ -146,7 +146,7 @@ int32_t CKAnimationMarkContainer::Load(IKFile* file, int32_t type) {
 // 0x0007de18 CinematicStreamKey_Load_maybe
 int32_t CKCinematicStreamCpnt::SKey::Load(IKFile* file, int32_t type) {
     if (type == K_LEVEL_PLATEFORMS) {
-        ReadU32LE(file, &m_unk4);
+        ReadF32LE(file, &m_fTime);  // one byte-swapped word
         ReadS32LE(file, &m_id);
     }
     return 1;
@@ -193,3 +193,48 @@ int32_t CinematicStream_LoadNothing(void* /*buffer*/, IKFile* /*file*/, int32_t 
 
 // 0x0007e290 KStub_Return0_7e290
 uint32_t CinematicStream_GetNoBufferSize() { return 0; }
+
+// 0x0007e260 KStub_Return1_7e260: channel type 1's save slot (+0x30, not called).
+int32_t CinematicStream_SaveNothing(void* /*buffer*/, IKFile* /*file*/) { return 1; }
+
+// 0x0007e1d8 CinematicStream_ResolveCamera_maybe (type 1's slot +0x34, not called): a camera (0x47) or null.
+IKSerializable* CinematicStream_ResolveCamera(IKSerializable* object) {
+    if (object == nullptr) return nullptr;
+    return object->IsKindOfClass(0x47) != 0 ? object : nullptr;
+}
+
+// 0x0007e268 CinematicStream_ResetTrackBufferPtr_maybe (type 1's slot +0x00): the track's keys right behind its header. 1.
+uint8_t CinematicStream_ResetTrackBufferPtr(SCinematicStreamTrackType* type, void* /*data*/) {
+    SCinematicCameraTrack* track = static_cast<SCinematicCameraTrack*>(type->m_pChunk->m_pData);
+    track->m_pKeys = reinterpret_cast<SCinematicCameraKey*>(track + 1);
+    type->m_pChunk->m_pData = track;
+    return 1;
+}
+
+// 0x0007e298 CinematicStream_FreeTrackBuffer_maybe (type 1's slot +0x04: no code calls it): the keys freed as an array
+// (OperatorDeleteArray on their cookie, 4 bytes before them), the track deleted.
+void CinematicStream_FreeTrackBuffer(SCinematicStreamTrackType* type) {
+    SCinematicCameraTrack* track = static_cast<SCinematicCameraTrack*>(type->m_pChunk->m_pData);
+    if (track == nullptr) return;
+    if (track->m_pKeys != nullptr) {
+        ::operator delete[](reinterpret_cast<uint8_t*>(track->m_pKeys) - 4);
+        track->m_pKeys = nullptr;
+    }
+    ::operator delete(track);  // OperatorDelete_Bridge
+    type->m_pChunk->m_pData = nullptr;
+}
+
+// 0x0007db98 CKAnimationMarkContainer_Destroy
+void CKAnimationMarkContainer::Destroy() {
+    for (uint32_t i = 0; i < m_count; ++i) {
+        m_ppMarks[i]->ClearKeys();
+        AnimMark* mark = m_ppMarks[i];
+        if (mark != nullptr) delete mark;  // the base vtable stored, then OperatorDelete
+    }
+    if (m_ppMarks != nullptr) {
+        Mem_FreeAligned16(m_ppMarks);
+        m_ppMarks = nullptr;
+    }
+    m_count = 0;
+    m_ppMarks = nullptr;
+}

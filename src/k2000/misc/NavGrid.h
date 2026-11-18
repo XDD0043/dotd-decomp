@@ -4,6 +4,8 @@
 #pragma once
 #include <cstdint>
 
+#include "k2000/memory/Mem.h"
+
 #include "k2000/core/Layout.h"
 
 class IKFile;
@@ -24,6 +26,18 @@ public:
     // (masked with m_ui8DynamicMask, as GetCellFlags reads them) get bit 3 (the dynamic obstacle) set when `blocked`
     // is not 0, else only their low three bits are kept; the other nibble of the byte is kept.
     void SetCellBlocked(const uint8_t* cell, int32_t blocked);
+    // 0x001f1050 NavGrid_AllocCells_maybe: the size set and a block of (width * height) / 2 + 1 bytes (reallocated when
+    // there was one) filled with 0x77. No caller.
+    void AllocCells(uint32_t width, uint32_t height);
+    // 0x001f0fd8 KStub_Return1_1f0fd8: the grid's save (CKPFGraphNode_SaveBoundsAndCells_maybe calls it): 1.
+    int32_t Save(IKFile* /*file*/) { return 1; }
+    // 0x001f1110 NavGrid_FreeCells_maybe: the cell block freed and forgotten.
+    void FreeCells() {
+        if (m_grid != nullptr) {
+            Mem_FreeAligned16(m_grid);
+            m_grid = nullptr;
+        }
+    }
     uint8_t* m_grid;          // +0x04 XXL2 m_grid (Mem_AllocAligned16)
     uint8_t m_width;           // +0x08 XXL2 m_width
     uint8_t m_height;          // +0x09 XXL2 m_height

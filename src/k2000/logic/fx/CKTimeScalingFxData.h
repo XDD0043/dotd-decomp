@@ -6,10 +6,14 @@
 
 #include "k2000/core/Layout.h"
 #include "k2000/logic/IKFxData.h"
+#include "k2000/memory/Mem.h"
 
 class CKTimeScalingFxData : public IKFxData {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x99)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9ad650
+        return key == 0x264c || key == 0x304c || key == 0x6 || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKTimeScalingFxData)
 
     // Two byte-swapped words (LVL000: 1.0, 0.075 / 0.21, 0.5, ...: a time and a scale, _maybe).
@@ -21,6 +25,13 @@ public:
     CKTimeScalingFxData() {}  // 0x001d75c8 CKTimeScalingFxData_Create: IKFxData, then the vtable
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001d7b40 CKTimeScalingFxData_Load
+    // vt+0x10 0x001d7af8 CKTimeScalingFxData_Destroy: the key block freed (the count kept). vt+0x40 0x001d7610 GetInfo: 1.
+    void Destroy() override {
+        if (m_pKeys != nullptr) {
+            Mem_FreeAligned16(m_pKeys);
+            m_pKeys = nullptr;
+        }
+    }
     // vt+0x30 PostLoad 0x1d7400 calls IKFxData's (returns 1).
     int32_t Vf50() override { return 1; }                                  // vt+0x50 0x9ad698
     uint32_t GetAssociatedFxClassIdentifier() override { return 0x27cc; }  // vt+0x54 0x1d72e8

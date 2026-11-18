@@ -20,6 +20,9 @@ class CKCameraConstraint;
 class CKCameraClassicTrack3 : public IKCamera {
 public:
     DOTD_CLASS_KEY(kCategoryCamera, 0xe)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a7cb0
+        return key == 0x387 || key == 0x347 || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKCameraClassicTrack3)
 
     // The state of Math_ApproachWithAccelDecel / Math_ApproachAngleWithAccelDecel (k2000/misc/FloatApproach.h; 7 floats):

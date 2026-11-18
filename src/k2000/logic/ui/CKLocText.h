@@ -11,11 +11,17 @@
 class CKLocText : public KBase700C {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x1a0)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9944d0
+        return key == 0x680c || key == 0x700c || key == 0x330c || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKLocText)
 
     CKLocText() {}            // 0x00035be0 CKLocText_Construct: KBase700C's, then the vtable
     ~CKLocText() override {}  // vt+0x00 / +0x04  0x35b48 / 0x35b00
 
+    // vt+0x24 0x00035998 CKLocText_RecursiveRegistration: returns 1, nothing registered (IKGameObject's not called).
+    void RecursiveRegistration(int32_t /*type*/) override {}
+    // vt+0x30 0x35a28 CKLocText_PostLoad: KBase700C's 0x2cc40 (IKGameObject's 0x42e40), then 1: inherited.
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00035a50 CKLocText_Load
     void InitializeGameData() override;                 // vt+0x58 0x00035ac8 CKLocText_InitGameData
     // vt+0x64 0x35aa0 CKLocText_ClearGameData_maybe only calls IKGameObject's.

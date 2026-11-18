@@ -10,10 +10,10 @@
 //   [x] 0x18a560  CKStartEventCinematicBloc_Update
 //   [x] 0x18a588  CKStartEventCinematicBloc_Load
 //   [ ] 0x18a5f0  CKStartEventCinematicBloc_Save
-//   [ ] 0x18a658  CKStartEventCinematicBloc_RecursiveRegistration
+//   [x] 0x18a658  CKStartEventCinematicBloc_RecursiveRegistration
 //   [x] 0x18a700  CKStartEventCinematicBloc_DeleteArray
 //   [x] 0x18a7a0  CKStartEventCinematicBloc_Create
-//   [ ] 0x18a7f8  CKStartEventCinematicBloc_Destroy
+//   [x] 0x18a7f8  CKStartEventCinematicBloc_Destroy  (empty: the default)
 //   [x] 0x18a800  CKStartEventCinematicBloc_CreateArray
 //   [x] 0x18a8b0  CKStartEventCinematicBloc_Start
 //   [x] 0x18ab90  CKStartEventCinematicBloc_Complete
@@ -26,6 +26,8 @@
 //   [ ] 0x9aa1d8  CKStartEventCinematicBloc_Destructor  [inline]
 //   [ ] 0x9aa1f8  CKStartEventCinematicBloc_DeletingDestructor  [inline]
 #include "k2000/cinematics/CKStartEventCinematicBloc.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 
 #include "k2000/services/CTriggerStarter.h"
 
@@ -57,3 +59,10 @@ void CKStartEventCinematicBloc::Stop() {
 
 // 0x009aa1c8 CKStartEventCinematicBloc_Abort
 void CKStartEventCinematicBloc::Abort() { m_DataFlags &= 0xfffffffeu; }
+
+// 0x0018a658 CKStartEventCinematicBloc_RecursiveRegistration
+void CKStartEventCinematicBloc::RecursiveRegistration(int32_t type) {
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // no type test here
+    IKCinematicBloc::RecursiveRegistration(type);  // 0x0018e8d8
+    // KStub_Return1_2361b0(&m_Starter, type): the trigger starter registers nothing.
+}

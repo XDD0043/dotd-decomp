@@ -15,9 +15,9 @@
 //   [x] 0x18f900  CKCinematicBloc_CrossfadeActorAnim
 //   [ ] 0x18fa08  FUN_0018fa08  [dead]
 //   [ ] 0x18fad8  IKCinematicElement_Construct_2  [dead]
-//   [ ] 0x18faf0  KStub_Return1_18faf0
-//   [ ] 0x18faf8  IKCinematicElement_MessageProc
-//   [ ] 0x18fc18  KStub_Return1_18fc18
+//   [x] 0x18faf0  KStub_Return1_18faf0  (IKCinematicElement GetInfo vt+0x40: returns 1, the default slot)
+//   [x] 0x18faf8  IKCinematicElement_MessageProc
+//   [x] 0x18fc18  KStub_Return1_18fc18  (IKCinematicElement PostLoad vt+0x30: returns 1, the default slot)
 //
 //   [ ] 0x9aa5f8  IKCinematicElement_DeletingDestructor  [inline]
 //   [ ] 0x9aa638  IKCinematicElement_vf0  [inline]
@@ -33,6 +33,8 @@
 #include "k2000/logic/CKCinematicSceneData.h"
 #include "k2000/scenegraph/CAnimatedNode.h"
 #include "k2000/logic/CKCinematicScene.h"
+#include "k2000/misc/Engine.h"
+#include "k2000/services/CKSrvCinematic.h"
 
 // 0x0018edd8 CKCinematicBloc_Load (XXL2 IKCinematicBloc::BasicLoadCinematicElement)
 int32_t IKCinematicBloc::BasicLoadCinematicElement(IKFile* file, int32_t type) {
@@ -70,10 +72,12 @@ ActorAnim ActorOf(const CKCinematicSceneData* data, int32_t index) {
     IKHook* hook = static_cast<IKHook*>(data->m_pHook);
     ActorAnim actor;
     actor.m_pNode = static_cast<CAnimatedNode*>(hook->m_pKGLObject);
-    actor.m_pSlot = nullptr;
+    // The original's buffer has room for 25 slots; the hero (CKHkS08Hero_GetCinematicAnimSlots) writes two, the first is
+    // the one played. The original leaves the count unset for a node whose blend mode is 0 or 3; 0 here (the node's path).
+    AnimBlendSlot* slots[2] = {nullptr, nullptr};
     int32_t count = 0;
-    hook->GetBlendSlot(&actor.m_pSlot, &count);  // vt+0xbc
-    if (count == 0) actor.m_pSlot = nullptr;
+    hook->GetBlendSlot(slots, &count);  // vt+0xbc
+    actor.m_pSlot = count == 0 ? nullptr : slots[0];
     actor.m_ui32Handle = index >= 0 ? static_cast<uint32_t>(static_cast<const CAnimationDictionary*>(data->m_pAnimDico)->m_apAnimations[index]) : 0u;
     return actor;
 }
@@ -83,6 +87,22 @@ CKAnmKeyFrameController* SlotController(AnimBlendSlot* slot) {
 }
 
 }  // namespace
+
+// 0x0018faf8 IKCinematicElement_MessageProc
+int32_t IKCinematicElement::ElementMessageProc(uint16_t message, void* /*data*/) {
+    if (message == 0x500) {
+        if ((m_DataFlags & 1) != 0) return 0;
+        if ((m_pRelatedScene->m_baData & 1) == 0) return 0;
+        PreActivate();  // vt+0x58
+        static_cast<CKSrvCinematic*>(g_pEngine->m_srvCinematic)->ActivateNode(nullptr, this);  // 0x00167940
+        return 0;
+    }
+    if (message == 0x501) {
+        if ((m_DataFlags & 1) != 0) Stop();  // vt+0x6c
+        return 0;
+    }
+    return 1;
+}
 
 // 0x0018f450 CKCinematicBloc_AdvanceActorAnim
 void IKCinematicBloc::AdvanceActorAnim(double dt) {

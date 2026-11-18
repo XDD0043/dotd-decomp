@@ -10,6 +10,9 @@
 class CKBoundingSphere : public IKBoundingVolume {
 public:
     DOTD_CLASS_KEY(kCategoryNode, 0xe)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9918d0
+        return key == 0x38b || key == 0x34b || key == 0x20b || key == 0x14b || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKBoundingSphere)
 
     CKBoundingSphere() {}  // inlined in 0x000d70c8 CKBoundingSphere_Create (no stores of its own)

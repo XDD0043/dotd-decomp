@@ -45,11 +45,14 @@ compile_commands.json
 *.7z
 *.gz
 
-# Explicitly included README demo recording.
-!/docs/media/demo.mp4
+# Explicitly included README screenshot.
+!/docs/media/web-build.webp
 
-# FFmpeg is fetched separately; SDL is a Git submodule.
+# FFmpeg and zstd are fetched separately; SDL is a Git submodule.
 /thirdparty/ffmpeg/
+/thirdparty/zstd/
+# Local Emscripten SDK for the web build (tools/build_wasm.bat).
+/toolchain/
 
 # Local settings, caches and editor files
 dotd.ini

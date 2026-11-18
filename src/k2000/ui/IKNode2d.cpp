@@ -6,9 +6,9 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x69848  CColorTextButton2d_RecursiveRegistration
 //   [x] 0x698a8  KStub_Nop_698a8
-//   [ ] 0x698b0  IKNode2d_GetScreenRect_maybe
+//   [x] 0x698b0  IKNode2d_GetScreenRect_maybe
 //   [ ] 0x69950  IKNode2d_RemoveFromParent_maybe  [dead]
-//   [ ] 0x699a0  IKNode2d_BringToFront_maybe
+//   [ ] 0x699a0  IKNode2d_BringToFront_maybe  [dead: no pointer to its descriptor 0xb41e80, no call]
 //   [x] 0x69a00  IKNode2d_ConstructBase
 //   [ ] 0x69a50  IKNode2d_IsOnScreen_maybe  [dead]
 //   [ ] 0x69b68  IKNode2d_MoveByPixels_maybe  [dead]
@@ -19,16 +19,16 @@
 //   [x] 0x69d60  IKNode2d_Save
 //   [x] 0x69d68  IKNode2d_ClearReferences
 //   [x] 0x69da8  IKNode2d_Load
-//   [ ] 0x6a0b0  KStub_Nop_6a0b0
-//   [ ] 0x6a0b8  KStub_Return1_6a0b8
-//   [ ] 0x6a0c0  Text2dBlock_ClearReferences_maybe
-//   [ ] 0x6a100  Text2dBlock_ClearTextState_maybe
+//   [x] 0x6a0b0  KStub_Nop_6a0b0  (empty: the text part's post-layout hook, nothing at its callers (CText2d::Scale, FitSizeToText, the interface buttons))
+//   [x] 0x6a0b8  KStub_Return1_6a0b8  (the text part's MessageProc, returns 1: in CText2d::MessageProc)
+//   [x] 0x6a0c0  Text2dBlock_ClearReferences_maybe  (inline in CText2d::Destroy: FreeMemoryText2D through vt+0x14)
+//   [x] 0x6a100  Text2dBlock_ClearTextState_maybe  (ClearTextState, local in CKS08MenuPauseInfo.cpp, its only caller (through TocBridge 0x98f96c))
 //   [ ] 0x6a118  FUN_0006a118  [dead]
 //   [ ] 0x6a128  FUN_0006a128  [dead]
-//   [ ] 0x6a148  CText2d_RetokenizeText_maybe
-//   [ ] 0x6a190  KStub_Return1_6a190
+//   [x] 0x6a148  CText2d_RetokenizeText_maybe  (inline in CText2d::RecursiveRegistration: the accessor's vt+0x24)
+//   [x] 0x6a190  KStub_Return1_6a190  (the text part's Save, returns 1 (CText2d_Save / CColorTextButton2d_Save, its callers, are out of scope like every Save))
 //   [x] 0x6a198  Text2dBlock_GetTextId_maybe  (IKText2d::GetTextId, TextData.cpp)
-//   [ ] 0x6a1a8  CText2d_SetAlpha_maybe
+//   [x] 0x6a1a8  CText2d_SetAlpha_maybe  (IKText2d::SetAlpha, TextData.cpp)
 //
 //   [ ] 0x994260  IKNode2d_GetClassGroup  [inline]
 //   [ ] 0x994268  IKNode2d_GetClassId  [inline]
@@ -47,12 +47,13 @@
 //   [x] 0x9944b8  IKNode2d_Destructor  [inline]
 //
 // Ported: the constructor, RecursiveRegistration, FreeMemory and Load; the one-line slots are inline in
-// IKNode2d.h. Not yet: the screen-rectangle helpers (0x698b0 is the stubbed slot +0x7c) and the
-// Text2dBlock/CText2d functions of this unit (CText2d's port).
+// IKNode2d.h; the screen rectangle (vt+0x7c). Not here: the Text2dBlock/CText2d functions of this unit
+// (CText2d's port).
 #include "k2000/ui/IKNode2d.h"
 
 #include <cstring>
 
+#include "k2000/graphical/ui/CManager2d.h"
 #include "k2000/io/IKFile.h"
 #include "k2000/logic/CKSavingManager.h"
 #include "k2000/misc/Engine.h"
@@ -116,4 +117,14 @@ int32_t IKNode2d::Load(IKFile* file, int32_t /*type*/) {
     ReadWordsLE(file, &m_vPosition, 2);  // one 8-byte read, both words swapped
     ReadF32LE(file, &m_f32RotateAngle);
     return 1;
+}
+
+// 0x000698b0 IKNode2d_GetScreenRect_maybe (vt+0x7c, DotD): the bounding box (vt+0x78), then both corners
+// from the normalised 2D space to raster pixels (UI2d_NormalizedToRasterPixels_maybe 0x62e98 with the engine's
+// CManager2d, engine +0x38).
+void IKNode2d::GetScreenRect(CBox2D* box) {
+    CManager2d* manager = g_pEngine->m_manager2d;
+    GetBoundingBox(box);  // vt+0x78
+    UI2d_NormalizedToRasterPixels(manager, &box->m_inf, &box->m_inf);
+    UI2d_NormalizedToRasterPixels(manager, &box->m_sup, &box->m_sup);
 }

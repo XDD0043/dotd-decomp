@@ -178,6 +178,11 @@ void TestQuake141() {
     effect.Stop();
     CHECK(effect.m_bRunning == 0 && effect.m_fElapsed == 0.0f);
     CHECK(states[0].m_bActive == 0 && states[0].m_fValue == 0.0f && states[1].m_fPhase == 0.0f);
+    // The curves point at the stack arrays: the destructor (0x24fde0) frees heap blocks only.
+    c181.m_vFrequencyCurve.m_pBlock = nullptr;
+    c181.m_vAmplitudeCurve.m_pBlock = nullptr;
+    c182.m_vFrequencyCurve.m_pBlock = nullptr;
+    c182.m_vAmplitudeCurve.m_pBlock = nullptr;
 }
 
 }  // namespace

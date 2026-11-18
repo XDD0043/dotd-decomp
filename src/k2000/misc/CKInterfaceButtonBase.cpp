@@ -10,11 +10,11 @@
 //   [ ] 0x67fc0  CKInterfaceButtonBase_63cc_maybe_ConstructBase_2  [dead]
 //   [x] 0x67fe0  CKInterfaceButtonBase_63cc_maybe_vf28
 //   [x] 0x67fe8  CKInterfaceButtonBase_63cc_maybe_vf24
-//   [ ] 0x67ff0  CKInterfaceObject_ClearReferences_BaseNop_maybe
+//   [x] 0x67ff0  CKInterfaceObject_ClearReferences_BaseNop_maybe  (Destroy: empty; the derived Destroy calls it, nothing to port)
 //   [x] 0x67ff8  CKInterfaceButtonBase_63cc_maybe_Close
 //   [x] 0x68010  CKInterfaceButtonBase_63cc_maybe_Load
-//   [ ] 0x68288  CKInterfaceButtonBase_63cc_maybe_BaseDestructor
-//   [ ] 0x682a0  CKInterfaceButtonBase_63cc_maybe_DeletingDestructor
+//   [x] 0x68288  CKInterfaceButtonBase_63cc_maybe_BaseDestructor  (C++ destructor chain: vtable stores only)
+//   [x] 0x682a0  CKInterfaceButtonBase_63cc_maybe_DeletingDestructor  (the destructor; delete)
 //   [x] 0x682e0  CKInterfaceButtonBase_63cc_maybe_Open
 //
 //   [x] 0x9984d8  CKInterfaceButtonBase_63cc_maybe_vf14  [inline]

@@ -9,41 +9,41 @@
 //   [ ] 0x5bc480  CKHkDetectorGroup_IsPointInDetectorVolume_maybe  [dead]
 //   [ ] 0x5bc5a0  RegisterCKHkDetectorGroupClass
 //   [ ] 0x5bc618  _GLOBAL__I_5bc618
-//   [ ] 0x5bc628  CKHkDetectorGroup_PostLoad
+//   [x] 0x5bc628  CKHkDetectorGroup_PostLoad
 //   [x] 0x5bc6c0  CKHkDetectorGroup_DestroyArray
 //   [ ] 0x5bc760  CKHkDetectorGroup_Construct_2  [dead]
-//   [ ] 0x5bc7b0  CKHkDetectorGroup_vf40
-//   [ ] 0x5bc840  CKHkDetectorGroup_HandleMessage
+//   [x] 0x5bc7b0  CKHkDetectorGroup_vf40
+//   [x] 0x5bc840  CKHkDetectorGroup_HandleMessage
 //   [x] 0x5bca38  CKHkDetectorGroup_RestoreCheckpointState_maybe
 //   [x] 0x5bcb48  CKHkDetectorGroup_ResetToInitialState_maybe
-//   [ ] 0x5bcc30  CKHkDetectorGroup_vf78
-//   [ ] 0x5bcc38  CKHkDetectorGroup_vf68
-//   [ ] 0x5bcc40  CKHkDetectorGroup_vf70
-//   [ ] 0x5bcc48  CKHkDetectorGroup_ClearReferences
-//   [ ] 0x5bccd0  CKHkDetectorGroup_vf50
-//   [ ] 0x5bcce0  CKHkDetectorGroup_vf54
-//   [ ] 0x5bcd00  CKHkDetectorGroup_OnActivate
-//   [ ] 0x5bcd10  CKHkDetectorGroup_OnDeactivate
+//   [x] 0x5bcc30  CKHkDetectorGroup_vf78  (Resume, vt+0x78, empty)
+//   [x] 0x5bcc38  CKHkDetectorGroup_vf68  (Stop, vt+0x68, empty)
+//   [x] 0x5bcc40  CKHkDetectorGroup_vf70  (Pause, vt+0x70, empty)
+//   [x] 0x5bcc48  CKHkDetectorGroup_ClearReferences  (Destroy, vt+0x10)
+//   [x] 0x5bccd0  CKHkDetectorGroup_vf50
+//   [x] 0x5bcce0  CKHkDetectorGroup_vf54
+//   [x] 0x5bcd00  CKHkDetectorGroup_OnActivate
+//   [x] 0x5bcd10  CKHkDetectorGroup_OnDeactivate (empty: IKLife's)
 //   [x] 0x5bcd18  CKHkDetectorGroup_LoadDetector_maybe
 //   [x] 0x5bcf88  CKHkDetectorGroup_CreateArray
 //   [x] 0x5bd050  CKHkDetectorGroup_Create
 //   [x] 0x5bd0b8  CKHkDetectorGroup_Load
-//   [ ] 0x5bd430  CKHkDetectorGroup_LevelReset
+//   [x] 0x5bd430  CKHkDetectorGroup_LevelReset  (RecursiveRegistration, vt+0x24)
 //   [ ] 0x5bd458  CKHkDetectorGroup_Save
-//   [ ] 0x5bd480  CKHkDetectorGroup_Destructor
+//   [x] 0x5bd480  CKHkDetectorGroup_Destructor  (the implicit destructor)
 //   [x] 0x5bd4a0  CKHkDetectorGroup_TestDetector_maybe
 //   [x] 0x5bda08  CKHkDetectorGroup_EvaluateConditions_maybe
 //   [x] 0x5bdc38  CKHkDetectorGroup_IsTriggered_maybe
-//   [ ] 0x5bdc60  CKHkDetectorGroup_Update
-//   [ ] 0x5bdf68  CKHkDetectorGroup_DeletingDestructor
+//   [x] 0x5bdc60  CKHkDetectorGroup_Update
+//   [x] 0x5bdf68  CKHkDetectorGroup_DeletingDestructor  (the implicit destructor)
 //   [ ] 0x5bdfb8  CKHkDetectorGroup_Destructor_2  [dead]
 //
 //   [ ] 0x9ccfe0  CKHkDetectorGroup_GetClassGroup  [inline]
 //   [ ] 0x9ccfe8  CKHkDetectorGroup_GetClassId  [inline]
 //   [ ] 0x9ccff0  CKHkDetectorGroup_vfC0  [inline]
 //   [ ] 0x9cd000  CKHkDetectorGroup_vfC8  [inline]
-//   [ ] 0x9cd008  CKHkDetectorGroup_GetTriggerProp4  [inline]
-//   [ ] 0x9cd050  CKHkDetectorGroup_GetTriggerProp5  [inline]
+//   [x] 0x9cd008  CKHkDetectorGroup_GetTriggerProp4  [inline]
+//   [x] 0x9cd050  CKHkDetectorGroup_GetTriggerProp5  [inline]
 //   [ ] 0x9cd060  CKHkDetectorGroup_IsKindOf  [inline]
 //   [ ] 0x9cd0a8  KBase2D82_Destructor  [inline]
 //   [ ] 0x9cd0c8  KBase2D82_DeletingDestructor  [inline]
@@ -51,6 +51,8 @@
 //   [ ] 0x9cd138  KBase9B0C_vf14  [inline]
 //   [ ] 0x9cd140  KBase9B0C_vf18  [inline]
 #include "k2000/ai/CKHkDetectorGroup.h"
+
+#include "k2000/core/IKInfo.h"
 
 #include "Renderware/rwcore/RwCamera.h"
 #include "Spyro2008/groups/IKGrpHero.h"
@@ -61,6 +63,7 @@
 #include "k2000/memory/Mem.h"
 #include "k2000/misc/Engine.h"
 #include "k2000/scenegraph/CSGMovable.h"
+#include "k2000/system/IKTime.h"
 
 // 0x005bcd18 CKHkDetectorGroup_LoadDetector_maybe
 int32_t CKHkDetectorGroup::LoadDetector(IKFile* file, int32_t /*type*/, Detector* detector) {
@@ -88,7 +91,7 @@ int32_t CKHkDetectorGroup::Load(IKFile* file, int32_t type) {
     ReadU8(file, &m_unk30);
     ReadU8(file, &m_unk31);
     ReadU8(file, &m_unk44);
-    ReadU32LE(file, &m_unk48);
+    ReadF32LE(file, &m_unk48);
     m_tsUnk34.Load(file, 0);
     m_tsUnk3C.Load(file, 0);
     for (int32_t list = 0; list < 3; ++list) {
@@ -109,6 +112,16 @@ void ArmDetectors(CKHkDetectorGroup* group) {
     }
 }
 }  // namespace
+
+// 0x005bcc48 CKHkDetectorGroup_Destroy (vt+0x10)
+void CKHkDetectorGroup::Destroy() {
+    for (Detector*& list : m_apDetectors) {
+        if (list != nullptr) {
+            Mem_FreeAligned16(list);
+            list = nullptr;
+        }
+    }
+}
 
 // 0x005bcb48 CKHkDetectorGroup_SetDefaultState: only state 0: bit 1 of +0x4c = the byte m_unk30 shifted (a byte,
 // not normalised), every detector armed.
@@ -185,11 +198,10 @@ IKSerializable* FocusedHeroOf(const IKGrpHero* group) {
 
 // 0x00361968 CKHkS08Hero_GetPositionPtr (local copy; IKHkHero_2.cpp, not ported there yet): the hero's position
 // (+0x54c) unless m_bitArray bit 1 is set and the hero's vt+0x164 (CKHkS08Hero_vf164 0x009bd700: +0xed4 bit 4) is
-// clear; then the LTM position (+0x80) of its scene node's frame (m_pKGLObject +4). The original reads the frame's
-// stored LTM; natively RwFrameGetLTM makes it current.
+// clear; then the LTM position (+0x80) of its scene node's frame (m_pKGLObject +4), as stored (FrameLtm).
 const float* HeroPositionOf(CKHkS08Hero* hero) {
     if ((hero->m_bitArray & 2u) == 0 || ((hero->m_unked4 >> 4) & 1u) != 0) return &hero->m_unk54c;
-    return &RwFrameGetLTM(static_cast<CSGMovable*>(hero->m_pKGLObject)->m_pRwFrame)->pos.x;
+    return &FrameLtm(static_cast<CSGMovable*>(hero->m_pKGLObject)->m_pRwFrame)->pos.x;
 }
 
 }  // namespace
@@ -200,7 +212,7 @@ int32_t CKHkDetectorGroup::TestDetector(const Detector* detector, const float* p
     if (point != nullptr) return DetectorContains(detector, point[0], point[1], point[2]) ? 1 : 0;
     if (detector->m_pUnk20 != nullptr) {
         // The object's +4 frame's LTM position (+0x80; the original reads the stored LTM).
-        const RwMatrix* ltm = RwFrameGetLTM(static_cast<CSGMovable*>(detector->m_pUnk20)->m_pRwFrame);
+        const RwMatrix* ltm = FrameLtm(static_cast<CSGMovable*>(detector->m_pUnk20)->m_pRwFrame);
         return DetectorContains(detector, ltm->pos.x, ltm->pos.y, ltm->pos.z) ? 1 : 0;
     }
     // The heroes: the hero group is the game manager's +0x08 (the engine through the library TOC, -0x6244).
@@ -284,4 +296,119 @@ int32_t CKHkDetectorGroup::EvaluateConditions(const float* point, int32_t requir
 // 0x005bdc38 CKHkDetectorGroup_IsTriggered_maybe (vt+0xc4)
 uint8_t CKHkDetectorGroup::IsTriggered(const float* point) const {
     return static_cast<uint8_t>(EvaluateConditions(point, 1));
+}
+
+// 0x005bc840 CKHkDetectorGroup_MessageProc
+int32_t CKHkDetectorGroup::MessageProc(uint16_t message, void* data) {
+    if (message == 0x497) {
+        m_unk4C[0] &= 0xfffffffcu;
+        return 0;
+    }
+    if (message == 0x496) {
+        m_unk4C[0] = (m_unk4C[0] & 0xfffffffdu) | 2u;
+        return 0;
+    }
+    if (message != 0x498 && message != 0x499) return 1;
+    const uint8_t armed = message == 0x498 ? 1 : 0;
+    const uint64_t index = *static_cast<const uint32_t*>(data);
+    const uint64_t first = m_ui8NbDetectors[0];
+    const uint64_t second = first + m_ui8NbDetectors[1];
+    if (index < second + m_ui8NbDetectors[2]) {
+        if (index < first) {
+            m_apDetectors[0][index].m_unk24 = armed;
+        } else if (index < second) {
+            m_apDetectors[1][index - first].m_unk24 = armed;
+        } else {
+            m_apDetectors[2][index - second].m_unk24 = armed;
+        }
+    }
+    return 0;  // an index outside the lists answers 0 as well
+}
+
+// 0x005bc7b0 CKHkDetectorGroup_vf40 (GetInfo)
+int32_t CKHkDetectorGroup::GetInfo(IKInfo* info, int32_t request) {
+    if (request != kGetInfoValueAccessor) return 1;
+    if (info->m_ui32Id == 4) {
+        // vt+0xc0 0x9ccff0 (+0x4c bit 0; IKHook declares no slot past vt+0xbc yet).
+        return AnswerInfo(info, [](IKSerializable* o, uint32_t) { return static_cast<CKHkDetectorGroup*>(o)->m_unk4C[0] & 1u; }, 0);
+    }
+    if (info->m_ui32Id == 5) {
+        return AnswerInfo(info, [](IKSerializable* o, uint32_t) { return (static_cast<CKHkDetectorGroup*>(o)->m_unk4C[0] >> 1) & 1u; }, 0);
+    }
+    return 1;
+}
+
+// 0x005bc628 CKHkDetectorGroup_PostLoad
+int32_t CKHkDetectorGroup::PostLoad(int32_t type) {
+    PostLoadLife(type);         // TocBridge_IKLife_PostLoad
+    m_tsUnk34.PostLoad(type);   // TocBridge_TriggerEventList_PostLoad_maybe
+    m_tsUnk3C.PostLoad(type);
+    if (type == 0) m_unk4C[0] = 0;
+    return 1;
+}
+
+// 0x005bccd0 CKHkDetectorGroup_vf50
+void CKHkDetectorGroup::Start() { m_fHoldTime = 0.0f; }
+
+// 0x005bcce0 CKHkDetectorGroup_vf54
+void CKHkDetectorGroup::Restart() {
+    m_unk4C[0] &= 0xfffffffeu;
+    m_fHoldTime = 0.0f;
+}
+
+// 0x005bcd00 CKHkDetectorGroup_OnActivate
+void CKHkDetectorGroup::VfA0() { m_unk4C[0] &= 0xfffffffeu; }
+
+// 0x005bdc60 CKHkDetectorGroup_Update
+void CKHkDetectorGroup::Update(IKTime* clock) {
+    if ((m_unk4C[0] & 2u) == 0 || m_unk44 != 0) return;
+    bool holds = false;
+    bool excluded = false;
+    for (uint32_t i = 0; i < m_ui8NbDetectors[2]; ++i) {  // any detector of list 2 holding excludes
+        if (static_cast<uint8_t>(TestDetector(&m_apDetectors[2][i], nullptr)) != 0) {
+            excluded = true;
+            break;
+        }
+    }
+    if (!excluded && (m_ui8NbDetectors[0] != 0 || m_ui8NbDetectors[1] != 0)) {
+        bool all = true;
+        for (uint32_t i = 0; i < m_ui8NbDetectors[0]; ++i) {
+            if (static_cast<uint8_t>(TestDetector(&m_apDetectors[0][i], nullptr)) == 0) {
+                all = false;
+                break;
+            }
+        }
+        if (all) {
+            holds = true;
+            if (m_ui8NbDetectors[1] != 0) {
+                holds = false;
+                for (uint32_t i = 0; i < m_ui8NbDetectors[1]; ++i) {
+                    if (static_cast<uint8_t>(TestDetector(&m_apDetectors[1][i], nullptr)) != 0) {
+                        holds = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    const float delay = m_unk48;
+    bool enter;
+    if (!(delay > 0.0f)) {  // ble: not greater (a NaN delay is no delay)
+        enter = holds;
+    } else if (holds) {
+        m_fHoldTime = m_fHoldTime + clock->m_afDeltaTime[0];  // the clock's +0x1c
+        enter = !(delay > m_fHoldTime);  // bgt
+    } else {
+        m_fHoldTime = 0.0f;  // the float at library TOC -0x6240
+        enter = false;
+    }
+    if (enter) {
+        if ((m_unk4C[0] & 1u) != 0) return;  // vt+0xc0 0x9ccff0
+        QueueTriggerSignals(&m_tsUnk34);     // TocBridge_QueueTriggerSignals
+        m_unk4C[0] = (m_unk4C[0] & 0xfffffffeu) | 1u;
+        return;
+    }
+    if ((m_unk4C[0] & 1u) == 0) return;
+    QueueTriggerSignals(&m_tsUnk3C);
+    m_unk4C[0] &= 0xfffffffeu;
 }

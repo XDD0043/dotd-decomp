@@ -61,7 +61,14 @@ public:
     };
 
     CKInterfaceCheckBox();  // inlined in 0x00532d88 CKInterfaceCheckBox_Create (copy 0x531238)
-    ~CKInterfaceCheckBox() override {}
+    // 0x005326d8 CKInterfaceCheckBox_Destructor (0x00530b48 BaseDestructor: the same code; 0x005325c8
+    // DeletingDestructor: then the delete): per state from the last down its billboard, text and video tables freed.
+    ~CKInterfaceCheckBox() override;
+    // vt+0x24 0x00530280 CKInterfaceCheckBox_RecursiveRegistration: the base's, then per state from the last down its
+    // text accessor (unchecked), its particles, its texts (the accessor unchecked) and its billboards (its videos are
+    // not visited); then the two texts, billboards 3..0 and the sound dictionary (unchecked). Null references are
+    // skipped unless said otherwise.
+    void RecursiveRegistration(int32_t type) override;
     int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9c8768
         return key == 0xa14c || key == 0x63cc || key == 0xc;
     }

@@ -14,7 +14,7 @@
 //   [x] 0xaf8f8  PS3Video_CreateFrameBuffers_maybe
 //   [x] 0xafd78  PS3Video_CreateShader_maybe
 //   [x] 0xb00a8  PS3Video_DestroyFrameBuffers_maybe
-//   [ ] 0xb01a0  CColorizedScreenData_Delete
+//   [x] 0xb01a0  CColorizedScreenData_Delete  (DOTD_DECLARE_FACTORIES(CColorizedScreenData))
 #include "k2000/system/PS3Video.h"
 
 #include <cstdlib>
@@ -135,6 +135,14 @@ int32_t PS3Video_CreateFrameBuffers(BINKFRAMEBUFFERS* buffers) {
         set.cBPlane.Buffer = next + cSize;
         set.cBPlane.BufferPitch = cPitch;
         tex.cB = CreateFrameTexture(buffers->cRcBBufferWidth, buffers->cRcBBufferHeight);
+        // Host: the sets start as a black picture (Y 16, Cr and Cb 128; an A plane stays 0), uploaded by the
+        // first draw. The video is drawn every frame, also before Bink decoded into a set: the PS3 always has
+        // the first frame by then, a decoder that waits for data (the web build) has not, and planes of zeros
+        // would be shown as a green screen.
+        std::memset(set.YPlane.Buffer, 16, ySize);
+        std::memset(set.cRPlane.Buffer, 128, cSize);
+        std::memset(set.cBPlane.Buffer, 128, cSize);
+        tex.dirty = 1;
     }
     return 1;
 }

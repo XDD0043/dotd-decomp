@@ -6,5 +6,5 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0xfdb40  PSGLFragmentProgram_BindAndApplyMaterialTextures_maybe
-//   [ ] 0xfdbb8  PSGLFragmentProgram_UploadPassConstants_maybe
+//   [ ] 0xfdb40  PSGLFragmentProgram_BindAndApplyMaterialTextures_maybe  [platform]  (the PSGL fragment program bind and its textures: CShaderManagerPSGL_2.cpp binds the GLSL program, uniforms and textures)
+//   [ ] 0xfdbb8  PSGLFragmentProgram_UploadPassConstants_maybe  [platform]  (the PSGL constant upload: CShaderManagerPSGL_2.cpp FillUniforms)

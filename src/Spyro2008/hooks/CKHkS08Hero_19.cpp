@@ -4,7 +4,7 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x364ab0  CKHkS08Hero_GetAITarget_maybe
+//   [x] 0x364ab0  CKHkS08Hero_GetAITarget_maybe  (CKHkS08Hero.h)
 //   [ ] 0x364af0  CKHkS08Hero_GetTargetSlotPosition_maybe  [dead]
 //   [ ] 0x364d50  IKHkHero_GetByte354Bit0_2_maybe  [dead]
 //   [ ] 0x364d60  FUN_00364d60  [dead]
@@ -17,7 +17,7 @@
 //   [ ] 0x365bf8  KStub_Nop_365bf8  [dead]
 //   [x] 0x365c00  CKHkS08Hero_UpdateShadowGroundPoint_maybe
 //   [x] 0x365e78  CKHkS08Hero_SetMainShadowActive
-//   [ ] 0x365f30  CKHkS08Hero_DetachWaterWaveFx_maybe
+//   [x] 0x365f30  CKHkS08Hero_DetachWaterWaveFx_maybe
 //   [ ] 0x366020  CKHkS08Hero_SetFxRecordPlayerIndex_maybe  [dead]
 //   [x] 0x366098  CKHkS08Hero_PlayMovementEventSounds_maybe
 //   [x] 0x366ba8  CKHkS08Hero_UpdateFootstepFx_maybe
@@ -34,7 +34,7 @@
 //   [x] 0x368248  CKHkS08Hero_HandleAIFollowGroundPhase_maybe
 //   [ ] 0x368390  FUN_00368390  [dead]
 //   [x] 0x368478  CKHkS08Hero_CtlState8_PlayerFollowsFocus
-//   [ ] 0x368618  CKHkS08Hero_CtlState2_MoveToTargetBody_maybe
+//   [x] 0x368618  CKHkS08Hero_CtlState2_MoveToTargetBody_maybe
 //   [x] 0x3688a8  UpdateHeroControlStateMachine
 //   [x] 0x368de0  CKHkS08Hero_ResetMoveInput
 //   [x] 0x368f18  UpdateHeroInputDerivedState
@@ -47,15 +47,15 @@
 //   [x] 0x369f40  IKHkHero_GetNavTransitionFlag2_IfAllowed_maybe
 //   [ ] 0x36a000  NavSectors_IsNavPointValidAndWalkable_maybe  [dead]
 //   [ ] 0x36a1a8  CKHkS08Hero_ReparentNodeToSceneRoot_maybe  [dead]
-//   [~] 0x36a260  CKHkS08Hero_RequestOwnDragonSelectionIfMultiHero_maybe
+//   [x] 0x36a260  CKHkS08Hero_RequestOwnDragonSelectionIfMultiHero_maybe
 //   [x] 0x36a2f8  CKHkS08Hero_ValidateNavPosition_maybe
 //   [x] 0x36a578  CKHkS08Hero_TeleportTo_maybe
-//   [~] 0x36ac88  CKHkS08Hero_TeleportToSavedPosition_maybe
+//   [x] 0x36ac88  CKHkS08Hero_TeleportToSavedPosition_maybe
 //   [x] 0x36ad50  CKHkS08Hero_ProcessPendingTeleport_maybe
 //   [x] 0x36aec0  CKHkS08Hero_ComputeCarriedSidePush_maybe
 //   [x] 0x36b1a0  CKHkS08Hero_ConstrainMovementToNavigation_maybe
-//   [ ] 0x36bbf8  IKHkHero_InitMoveRequestFromSourcePoint_maybe
-//   [ ] 0x36bf20  CKHkS08Hero_MoveTowardDrivenTarget_maybe
+//   [x] 0x36bbf8  IKHkHero_InitMoveRequestFromSourcePoint_maybe
+//   [x] 0x36bf20  CKHkS08Hero_MoveTowardDrivenTarget_maybe
 //   [x] 0x36c160  CKHkS08Hero_AISteerToWaypoint_maybe
 //   [x] 0x36c6a0  CKHkS08Hero_AIComputeFollowSteeringAndSpeed_maybe
 //   [x] 0x36cc88  CKHkS08Hero_AIWarpToWaypointOnPathFailure_maybe
@@ -63,7 +63,7 @@
 //   [x] 0x36dd08  CKHkS08Hero_AIMoveToTarget_maybe
 //   [x] 0x36de10  CKHkS08Hero_AIUpdateFollowPathAndArrival_maybe
 //   [x] 0x36df50  CKHkS08Hero_AIUpdateFollowDestination_maybe
-//   [ ] 0x36e278  CKS08HeroBlow_Delete
+//   [x] 0x36e278  CKS08HeroBlow_Delete  (DOTD_DECLARE_FACTORIES, Spyro2008/logic/CKS08HeroBlow.h)
 //   [ ] 0x36e2c8  KStub_Nop_36e2c8  [dead]
 #include "Spyro2008/hooks/CKHkS08Hero.h"
 #include "Spyro2008/groups/CKGrpS08Hero.h"
@@ -101,10 +101,21 @@
 #include "k2000/math/CBBox.h"
 #include "k2000/math/Vec3.h"
 #include "k2000/misc/NavGrid.h"
+#include "k2000/logic/fx/CKTargetCursorFxData.h"
+#include "k2000/logic/fx/CKWaterSplashNodeFx.h"
+#include "k2000/logic/fx/CKWaterWaveNodeFx.h"
+#include "k2000/logic/IKFxData.h"
+#include "k2000/services/CKSrvFx.h"
 #include "k2000/scenegraph/CSGMovable.h"
 #include "k2000/services/CKSrvDetect.h"
 #include "k2000/services/CollisionDatas.h"
 #include "k2000/system/CTimeManager.h"
+#include "k2000/fx/IKFx.h"
+#include "k2000/logic/fx/CKSparkNodeFx.h"
+#include "k2000/logic/fx/CKTargetCursorNodeFx.h"
+#include "k2000/scenegraph/CParticlesNodeFx.h"
+#include "k2000/scenegraph/CSGBranch.h"
+#include "k2000/scenegraph/CSparkNodeFx.h"
 
 // 0x00365e78 CKHkS08Hero_SetMainShadowActive: the hero's shadow caster (the record at +0x64, whose byte +0x1d is
 // m_unk81) joins or leaves the shadow service.
@@ -502,12 +513,12 @@ void CKHkS08Hero::AIUpdateFollowDestination(IKTime* clock) {
     const uint16_t coneDegrees = static_cast<const IKGrpHero*>(m_pGrpHero)->m_sProperties.m_aui16Values[1];  // +0xf2
     bool stay = false;
     if (mayStay != 0 && (m_unk354 & 0x200000u) == 0 && (m_unk364 & 0x20u) == 0 && speed == zero &&
-        !(distance >= stayRadius)) {
+        distance < stayRadius) {  // bge: a NaN follows
         if (distance > coneRadius) {
             stay = true;
         } else {
             const float halfCone = static_cast<float>(coneDegrees) * 0.5f * 1.74532905e-2f;  // TOC +0x2f2c, +0x2f38
-            stay = !(halfCone >= angle);
+            stay = halfCone < angle;  // bge: a NaN follows
         }
     }
     if (stay) {
@@ -656,16 +667,12 @@ void CKHkS08Hero::UpdateFootsteps(IKTime* clock) {
     }
     m_unk16c = 0;  // vt+0xe8 0x00333608 CKHkS08Hero_vfE8: 0
     UpdateFootstepFx(clock);  // 0x00366ba8
-    // STUB(C2.7: FX): vt+0x10c 0x336598 CKHkS08Hero_UpdateTrailAndFootstepFx (trail and dust FX, surface FX through
-    // CKS08GameManager_SpawnSurfaceFx, a pad vibration and a sound on landing) and vt+0x110 0x335158
-    // CKHkS08Hero_UpdateSwingTrails (the attacks' trails); vt+0x114 0x333610 is empty.
-    DOTD_STUB_ONCE("CKHkS08Hero_UpdateTrailAndFootstepFx 0x336598 / UpdateSwingTrails 0x335158 (C2.7)");
+    UpdateTrailAndFootstepFx();  // vt+0x10c 0x00336598
+    UpdateSwingTrails();  // vt+0x110 0x00335158 (vt+0x114 0x333610 is empty)
     PlayMovementEventSounds(clock);       // 0x00366098
     PlayFootstepSounds(clock);            // vt+0x118 0x00334110
     UpdateMainShadowAndSurfaceFx(clock);  // 0x003670f8
-    // STUB(C2.7: FX): vt+0x11c 0x33a050 CKHkS08Hero_UpdateShadowsAndFlightFx_maybe (the secondary shadows, the flight
-    // FX, UpdatePartnerLinkFx 0x339050 and UpdateTriggeredExplosionFxAndVibration 0x338458).
-    DOTD_STUB_ONCE("CKHkS08Hero_UpdateShadowsAndFlightFx_maybe 0x33a050 (C2.7)");
+    UpdateShadowsAndFlightFx();           // vt+0x11c 0x0033a050
 }
 
 // 0x00365c00 CKHkS08Hero_UpdateShadowGroundPoint_maybe: the main shadow's ground point (+0x64), normal (+0x70), height
@@ -822,18 +829,73 @@ void CKHkS08Hero::PlayMovementEventSounds(IKTime* clock) {
     }
 }
 
-// 0x00366ba8 CKHkS08Hero_UpdateFootstepFx_maybe. STUB(C2.7: FX): the footprint / dust particle nodes of the hero's
-// object list (+0x50, by the group's vt+0x14c index) moved to the foot hot spots (+0x16f / +0x170 on +0x354 bits 27 /
-// 28, +0x171 / +0x172 on +0x360 bits 22 / 23, the point +0x858 on +0x360 bit 24) and started. No hero state, no rand.
+namespace {
+// The footstep particle index of `kind` for `hero` (CKGrpS08Hero vt+0x154 0x2ce428: the signed byte [hero][kind] of the
+// two 8-byte tables the pointers at 0x00b01020 name, 0x00ceadc8 / 0x00ceadd0: zero-filled data that nothing writes, so
+// every kind gives particle 0; -1 would be none).
+int8_t FootstepParticleIndex(uint8_t /*hero*/, uint8_t /*kind*/) { return 0; }
+
+// A footstep particle node put at `at` (its frame's modelling position, the frame dirtied) and started: shown (bit 9),
+// emitting (bit 10), not pending (bit 19), the emission speed adjustment 0, its emitter's flags 0xa set.
+void PlaceAndStartParticleNode(IKSerializable* object, const CVector3& at) {
+    CParticlesNodeFx* node = static_cast<CParticlesNodeFx*>(object);
+    RwFrame* frame = node->m_pRwFrame;
+    frame->modelling.pos.z = at.z;
+    frame->modelling.pos.x = at.x;
+    frame->modelling.pos.y = at.y;
+    frame->modelling.flags &= 0xfffdffffu;
+    RwFrame_MarkDirty(frame);  // 0x00010698
+    node->m_sgProperties = (node->m_sgProperties | 0x600u) & 0xfff7ffffu;
+    node->m_fEmissionSpeedAdjustment = 0.0f;
+    node->m_pRpPrtStdEmitter->flag |= 0xau;
+}
+}  // namespace
+
+// 0x00366ba8 CKHkS08Hero_UpdateFootstepFx_maybe: with the surface +0x16c's footstep FX on (the group's vt+0x160 entry),
+// a foot down (+0x354 bit 27: hot spot +0x16f, else bit 28: +0x170) starts the kind 0 particles (+0x50, index + +0x16c)
+// at that foot; +0x360 bit 22 / 23 (hot spots +0x171 / +0x172, the second when bit 23 with +0x35c bit 26 or bit 22
+// without it) the kind 1 particles; +0x360 bit 24 the kind 2 particles at the point +0x858. No rand.
 void CKHkS08Hero::UpdateFootstepFx(IKTime*) {
-    if ((m_unk354 & 0x18000000u) != 0 || (m_unk360 & 0x1c00000u) != 0) {
-        DOTD_STUB_ONCE("CKHkS08Hero_UpdateFootstepFx_maybe 0x366ba8 (C2.7)");
+    IKSerializable** particles = m_apParticles;  // +0x50
+    if (*CKGrpS08Hero::GetSurfaceEntry(m_unk16c) != 0) {  // vt+0x160 0x002ce468
+        const uint8_t left = m_unk16f;
+        const uint8_t right = m_unk170;
+        if (((m_unk354 & 0x08000000u) != 0 && left != 0xff) || ((m_unk354 & 0x10000000u) != 0 && right != 0xff)) {
+            const int8_t index = FootstepParticleIndex(m_ui8Hero, 0);  // vt+0x154
+            if (index != -1) {
+                const int8_t foot = static_cast<int8_t>((m_unk354 & 0x08000000u) != 0 ? left : right);
+                CVector3 at;
+                static_cast<CSGHotSpot*>(m_apHotSpots[foot])->GetWorldPosition(&at);  // 0x000ce790
+                IKSerializable* node = particles[static_cast<int8_t>(index + m_unk16c)];
+                if (node != nullptr) PlaceAndStartParticleNode(node, at);
+            }
+        }
     }
+    const uint8_t first = m_unk171;
+    const uint8_t second = m_unk172;
+    if (((m_unk360 & 0x00400000u) != 0 && first != 0xff) || ((m_unk360 & 0x00800000u) != 0 && second != 0xff)) {
+        const int8_t index = FootstepParticleIndex(m_ui8Hero, 1);  // vt+0x154
+        if (index != -1) {
+            const bool flag26 = (m_unk35c & 0x04000000u) != 0;
+            const bool useSecond = ((m_unk360 & 0x00800000u) != 0 && flag26) || ((m_unk360 & 0x00400000u) != 0 && !flag26);
+            CVector3 at;
+            static_cast<CSGHotSpot*>(m_apHotSpots[static_cast<int8_t>(useSecond ? second : first)])->GetWorldPosition(&at);
+            IKSerializable* node = particles[index];
+            if (node != nullptr) PlaceAndStartParticleNode(node, at);
+        }
+    }
+    if ((m_unk360 & 0x01000000u) == 0) return;
+    const int8_t index = FootstepParticleIndex(m_ui8Hero, 2);  // vt+0x154
+    if (index == -1) return;
+    IKSerializable* node = particles[index];
+    if (node == nullptr) return;
+    const CVector3 at = {m_unk858, m_unk85c, m_unk860};
+    PlaceAndStartParticleNode(node, at);
 }
 
 // 0x003670f8 CKHkS08Hero_UpdateMainShadowAndSurfaceFx_maybe: the main shadow caster registered (and its ground point
-// updated) unless +0x358 bit 23, +0x364 bit 2 or +0x35c bit 3 (then unregistered); the water splash and wave FX
-// (C2.7); the timer +0x880 against the limit +0x884 (+0x364 bits 0 / 1, the rate +0x2e8; -1000 off) with its HUD gauge.
+// updated) unless +0x358 bit 23, +0x364 bit 2 or +0x35c bit 3 (then unregistered); the water splash and wave FX; the
+// timer +0x880 against the limit +0x884 (+0x364 bits 0 / 1, the rate +0x2e8; -1000 off) with its HUD gauge.
 void CKHkS08Hero::UpdateMainShadowAndSurfaceFx(IKTime* clock) {
     CKSrvShadow* shadows = static_cast<CKSrvShadow*>(g_pEngine->m_srvShadow);
     CKShadowGround* caster = reinterpret_cast<CKShadowGround*>(&m_unk64);
@@ -845,22 +907,33 @@ void CKHkS08Hero::UpdateMainShadowAndSurfaceFx(IKTime* clock) {
         UpdateShadowGroundPoint();  // 0x00365c00
     }
     flags = m_unk358;
-    const CGround* ground = static_cast<const CGround*>(m_gcCurDatasInOut.m_pGround);
-    bool splash = (flags & 0x200u) != 0;
-    if (!splash && (m_unk35c & 0x2000u) != 0 && (m_unk354 & 1u) != 0) splash = true;
+    // The water surface point: the hero's position, at the water level (+0x40) of a ground of engine flag 1.
+    CVector3 surface = {m_unk54c, m_unk550, m_unk554};
+    const CGround* ground = static_cast<const CGround*>(m_gcCurDatasInOut.m_pGround);  // +0x4b8
+    if (ground != nullptr && (ground->m_ba16EngineFlags & 2u) != 0) surface.y = ground->m_fPropertieValue;
+    // A splash on +0x358 bit 9, or on +0x35c bit 13 with +0x354 bit 0.
+    const bool splash = (flags & 0x200u) != 0 || ((m_unk35c & 0x2000u) != 0 && (m_unk354 & 1u) != 0);
+    CKSrvFx* fxService = static_cast<CKSrvFx*>(g_pEngine->m_srvFx);
     if (splash) {
-        // STUB(C2.7: FX): a water splash from the FX pool of +0x8c at the hero's position (y: the water level +0x40 of a
-        // ground of engine flag 2).
-        DOTD_STUB_ONCE("UpdateMainShadowAndSurfaceFx 0x3670f8: the water splash (C2.7)");
+        // A CKWaterSplashNodeFx of the data +0x8c (the reserving pool lookup inlined: CKSrvFx::AcquireFx; none when the
+        // level has no free one) triggered at `surface` (0x56f7a0), then its reservation released (vt+0x54).
+        IKFx* fx = fxService->AcquireFx(static_cast<IKFxData*>(m_pWaterSplashFxData), this);
+        if (fx != nullptr) {
+            static_cast<CKWaterSplashNodeFx*>(fx)->TriggerAt(&surface, this);  // 0x0056f7a0
+            fx->ReleaseReservation(this);  // vt+0x54
+        }
     }
-    (void)ground;
+    // The wave while +0x35c bit 9 (when +0x35c bit 8 decides) or +0x358 bit 8.
     const bool wave = (m_unk35c & 0x100u) != 0 ? (m_unk35c & 0x200u) != 0 : (m_unk358 & 0x100u) != 0;
     if (wave) {
-        // STUB(C2.7: FX): the water wave (+0x88, taken from the pool of +0x84 when none) following the hero.
-        DOTD_STUB_ONCE("UpdateMainShadowAndSurfaceFx 0x3670f8: the water wave (C2.7)");
-    } else if (m_unk88 != 0) {
-        // STUB(C2.7: FX): CKWaterWaveNodeFx_StopIfLinkedTo_maybe and the wave's release (vt+0x54); none runs natively.
-        m_unk88 = 0;
+        // The CKWaterWaveNodeFx +0x88, taken from the pool of the data +0x84 (reserved) when there is none, placed at
+        // `surface` (0x570068); +0x88 stays null when no effect is free.
+        if (m_unk88 == nullptr) m_unk88 = fxService->AcquireFx(static_cast<IKFxData*>(m_pWaterWaveFxData), this);
+        if (m_unk88 != nullptr) static_cast<CKWaterWaveNodeFx*>(m_unk88)->SetPositionIfOwner(&surface, this);
+    } else if (m_unk88 != nullptr) {
+        static_cast<CKWaterWaveNodeFx*>(m_unk88)->StopIfOwnedBy(this);  // 0x00570498
+        m_unk88->ReleaseReservation(this);  // vt+0x54
+        m_unk88 = nullptr;
     }
     const float limit = m_unk884;
     if (limit == 0.0f) return;  // TOC +0x2dbc
@@ -882,14 +955,14 @@ void CKHkS08Hero::UpdateMainShadowAndSurfaceFx(IKTime* clock) {
         }
         m_unk880 = (left + time) - full;
     }
+    CKS08GameManager* manager = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager);
     if (left == m_unk884 && (state & 1u) != 0) {
-        // STUB(C2.7: HUD): the game manager's vt+0x2c4 (0, hero): the gauge hidden.
-        DOTD_STUB_ONCE("UpdateMainShadowAndSurfaceFx 0x3670f8: game manager vt+0x2c4 (C2.7)");
+        manager->Vf2C4(0, m_ui8Hero);  // vt+0x2c4 (empty in CKS08GameManager)
         m_unk880 = -1000.0f;
         m_unk364 &= 0xfffffffeu;
     } else {
-        // STUB(C2.7: HUD): the game manager's vt+0x2c0 (0, hero) and vt+0x2c8 (`left`, 0, hero): the gauge shown and set.
-        DOTD_STUB_ONCE("UpdateMainShadowAndSurfaceFx 0x3670f8: game manager vt+0x2c0 / 0x2c8 (C2.7)");
+        manager->Vf2C0(0, m_ui8Hero);        // vt+0x2c0 (empty)
+        manager->Vf2C8(left, 0, m_ui8Hero);  // vt+0x2c8 (empty)
     }
 }
 
@@ -1046,16 +1119,94 @@ uint8_t CKHkS08Hero::HasNonZeroSpeed530Or534() {
     return 1;
 }
 
-// 0x0036ac88 CKHkS08Hero_TeleportToSavedPosition_maybe. STUB(C2.7: hazards and respawn): the hero back at its saved
-// position after a hazard; reported as not done (the caller then hurts it, also a C2.7 stub).
-uint8_t CKHkS08Hero::TeleportToSavedPosition() {
-    DOTD_STUB_ONCE("CKHkS08Hero_TeleportToSavedPosition_maybe 0x36ac88 (C2.7)");
-    return 0;
+// 0x0036bbf8 IKHkHero_InitMoveRequestFromSourcePoint_maybe: a push away from `source` with the speeds `speeds` (0
+// horizontal, 1 vertical, 2 the duration factor): none when both speeds are 0. +0x354 bit 24; the flat direction from
+// the source (+0x660, y 0, normalised when not 0) into +0x66c, the speeds into +0x530 / +0x534, +0x678 the factor times
+// +0x318, +0x67c the word +0x33c; the push's facing +0x66c turned back (mode 1 always, mode 0 when the direction points
+// against the facing +0x540), +0x680 and +0x358 bit 28 cleared; with a vertical speed the camera direction locked
+// (0x354cf0), +0x354 bit 0 set and bit 2 cleared (then, bit 0 being set, bit 9), and with `savePosition` the position kept
+// in +0x474 and +0x368 bit 1 = the model drawn this frame.
+void CKHkS08Hero::InitMoveRequestFromSourcePoint(const float* speeds, const CVector3* source, int32_t mode,
+                                                 int32_t savePosition) {
+    const float zero = 0.0f;  // TOC +0x2e88
+    if (speeds[0] == zero && speeds[1] == zero) return;
+    m_unk354 = (m_unk354 & ~0x01000000u) | 0x01000000u;
+    const float dx = m_unk54c - source->x;
+    const float dy = m_unk550 - source->y;
+    const float dz = m_unk554 - source->z;
+    m_unk660 = dx;
+    m_unk664 = dy;
+    m_unk664 = zero;
+    const float yy = m_unk664 * m_unk664;
+    m_unk668 = dz;
+    const float length = std::sqrt(ppc::fmadds(dz, dz, ppc::fmadds(dx, dx, yy)));  // 0x00010690
+    if (length != zero) {
+        const float inv = 1.0f / length;  // TOC +0x2ecc
+        const float x = m_unk660;
+        const float y = m_unk664;
+        const float z = m_unk668;
+        m_unk668 = inv * z;
+        m_unk660 = inv * x;
+        m_unk664 = inv * y;
+    }
+    m_unk530 = speeds[0];
+    m_unk534 = speeds[1];
+    m_unk678 = speeds[2] * m_unk318;
+    m_unk67c = static_cast<float>(static_cast<double>(m_unk33c));
+    const float fx = m_unk660;
+    const float fy = m_unk664;
+    const float fz = m_unk668;
+    m_unk66c = fx;
+    m_unk670 = fy;
+    m_unk674 = fz;
+    bool turn = mode == 1;
+    if (!turn && mode == 0) {
+        const float dot = ppc::fmadds(fz, m_unk548, ppc::fmadds(fx, m_unk540, fy * m_unk544));
+        turn = dot < zero;  // bge: a NaN keeps the direction
+    }
+    if (turn) {
+        m_unk66c = -fx;
+        m_unk670 = -fy;
+        m_unk674 = -fz;
+    }
+    m_unk680 = 0;
+    m_unk358 &= ~0x10000000u;
+    if (m_unk534 == zero) return;
+    SetCameraDirectionLock(1);  // 0x00354cf0
+    m_unk354 = ((m_unk354 & ~1u) | 1u) & ~4u;
+    if ((m_unk354 & 1u) != 0) m_unk354 = (m_unk354 & ~0x200u) | 0x200u;
+    if (savePosition == 0) return;
+    m_unk474 = m_unk54c;
+    m_unk47c = m_unk554;
+    m_unk478 = m_unk550;
+    const CSGLeaf* node = static_cast<const CSGLeaf*>(m_pKGLObject);
+    // ((stamp ^ frame) - 1) >> 30 & 2: bit 1 set when the model was drawn this frame (TOC +0x2ec0: 0x00c29694).
+    const uint32_t drawn = ((static_cast<uint32_t>(node->m_ui16LastRenderedFrame ^ g_ui16RenderFrameCounter) - 1u) >> 30) & 2u;
+    m_unk368 = (m_unk368 & ~2u) | drawn;
 }
 
-// 0x0036a260 CKHkS08Hero_RequestOwnDragonSelectionIfMultiHero_maybe. STUB(C2.7: hazards).
+// 0x0036ac88 CKHkS08Hero_TeleportToSavedPosition_maybe: with more than one controlled hero (GetControlledHeroCount
+// 0x2ca288: the group's +0x50), a hero its own player controls (+0x25 == +0x24) and without +0x368 bit 1 goes back to its
+// saved position +0x474 facing +0x540 (keeping its ground, no navigation check, no sector): 1; else 0.
+uint8_t CKHkS08Hero::TeleportToSavedPosition() {
+    const uint8_t controlled = static_cast<IKGrpHero*>(m_pGrpHero)->m_ui8ControlledHeroCount;  // 0x002ca288
+    if (controlled <= 1 || m_ui8Hero != m_ui8TrackedLeader) return 0;
+    if ((m_unk368 & 2u) != 0) return 0;
+    TeleportTo(reinterpret_cast<const CVector3*>(&m_unk474), reinterpret_cast<const CVector3*>(&m_unk540), 1, 0, 0xffff,
+               0);  // 0x0036a578
+    return 1;
+}
+
+// 0x0036a260 CKHkS08Hero_RequestOwnDragonSelectionIfMultiHero_maybe: with more than one controlled hero, a hero its own
+// player controls (+0x25 == +0x24) asks the group for itself (RequestDragonSelection 0x2cbb08 from the group's +0x66,
+// immediate, applied) unless the group's +0x66 is that player already.
 void CKHkS08Hero::RequestOwnDragonSelectionIfMultiHero() {
-    DOTD_STUB_ONCE("CKHkS08Hero_RequestOwnDragonSelectionIfMultiHero_maybe 0x36a260 (C2.7)");
+    CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_pGrpHero);
+    const uint8_t controlled = group->m_ui8ControlledHeroCount;  // 0x002ca288
+    const uint8_t current = group->m_unk66;
+    if (controlled <= 1) return;
+    if (m_ui8TrackedLeader != m_ui8Hero || current == m_ui8TrackedLeader) return;
+    group->RequestDragonSelection(current, m_ui8Hero, 0, 0, 1, 1, 0);  // 0x002cbb08
 }
 
 // 0x00369f40 IKHkHero_GetNavTransitionFlag2_IfAllowed_maybe: for two different valid graph nodes, bit 2 of the flags
@@ -1408,7 +1559,7 @@ uint8_t CKHkS08Hero::AIComputeFollowSteeringAndSpeed(float speed, IKTime* clock,
             m_unk3dc = m_unk264 > slowed ? m_unk264 : slowed;
         } else if (nearRadius * 0.5f > toEnd) {  // TOC +0x2f2c
             const float slowed = asked - m_unk260;
-            m_unk3dc = m_unk264 <= slowed ? slowed : m_unk264;
+            m_unk3dc = !(m_unk264 > slowed) ? slowed : m_unk264;  // ble 0x0036cbf4: a NaN keeps it
         } else {
             m_unk3dc = asked;
             m_unk3b8 = tx;
@@ -1477,7 +1628,7 @@ void CKHkS08Hero::AITeleportIfLost(IKTime* clock, int32_t onPathFailure) {
     if (facing.x == none.x && facing.y == none.y && facing.z == none.z) return;
     TeleportTo(&ground, &facing, 0, 0, 0xffff, 0);  // 0x0036a578 (the result is not used)
     if ((m_unk358 & 0x40000000u) != 0) return;
-    const RwV3d& node = static_cast<const CSGMovable*>(m_pKGLObject)->m_pRwFrame->ltm.pos;  // RwFrame +0x80
+    const RwV3d& node = FrameLtm(static_cast<const CSGMovable*>(m_pKGLObject)->m_pRwFrame)->pos;  // RwFrame +0x80
     m_unk468 = node.x - m_unk54c;
     m_unk470 = node.z - m_unk554;
     m_unk46c = node.y - m_unk550;
@@ -1513,11 +1664,13 @@ uint8_t CKHkS08Hero::AIUpdatePathToTarget(IKTime* clock, CVector3* target, CVect
             jumps = static_cast<int8_t>(jumps);
         }
         if (jumps <= 2) {
+            // rlwinm 21 / rotlwi 11 keep the bits outside 3..10 (mask 0xfffff807), the and keeps the field's others:
+            // bits 6, then 5, then 4 cleared.
             uint32_t bits = current.m_bits;
-            bits = ((bits >> 11) << 11) | (bits & 0x7b8u);
+            bits = (bits & 0xfffff807u) | (bits & 0x7b8u);
             if (jumps <= 1) {
-                bits = ((bits >> 11) << 11) | (bits & 0x7d8u);
-                if (jumps <= 0) bits = ((bits >> 11) << 11) | (bits & 0x7e8u);
+                bits = (bits & 0xfffff807u) | (bits & 0x7d8u);
+                if (jumps <= 0) bits = (bits & 0xfffff807u) | (bits & 0x7e8u);
             }
             current.m_bits = bits;
         }
@@ -1713,4 +1866,276 @@ uint8_t CKHkS08Hero::CtlPlayerFollowsFocus(IKTime* clock, int32_t phase, uint8_t
     }
     if ((m_unk3b0 & 1u) != 0) ProcessPendingTeleport(1, 1);  // 0x0036ad50
     return other;
+}
+
+// ---- The lock and unlock (the cinematic actors' SetObjectLocked) ----
+
+namespace {
+
+// 0x001d4698 StopOwnedSparkEffect_maybe: a spark effect reserved by `owner` stops bursting (its spark node's +0x41).
+void StopOwnedSparkEffect(IKSerializable* effect, const IKSerializable* owner) {
+    CKSparkNodeFx* spark = reinterpret_cast<CKSparkNodeFx*>(effect);
+    if ((spark->m_baFxData & 2u) == 0 || spark->m_pOwner != owner) return;
+    reinterpret_cast<CSparkNodeFx*>(spark->m_pSparkNode)->m_unk41 = 1;
+}
+
+// 0x001d5988 CKTargetCursorNodeFx_StopForOwner_maybe with `immediate` 1 (the only use here): the fade time (+0x20)
+// from the data's +0x0c, then stopped (vt+0x6c).
+void StopTargetCursorNow(IKSerializable* effect, const IKSerializable* owner) {
+    CKTargetCursorNodeFx* cursor = reinterpret_cast<CKTargetCursorNodeFx*>(effect);
+    if ((cursor->m_baFxData & 2u) == 0 || cursor->m_pOwner != owner) return;
+    cursor->m_fPhaseTime = static_cast<const CKTargetCursorFxData*>(cursor->m_pFxData)->m_unk0c;
+    cursor->Stop();
+}
+
+// A particle node of the hero's list stops emitting: its scene flag 0x400 (and 0x80000) cleared, its emitter's
+// rpPRTSTDEMITTERFLAGEMIT.
+void StopParticleNodeEmission(IKSerializable* object) {
+    if (object == nullptr) return;
+    CParticlesNodeFx* node = static_cast<CParticlesNodeFx*>(object);
+    if ((node->m_sgProperties & 0x400u) == 0) return;
+    node->m_sgProperties &= 0xfff7fbffu;
+    node->m_pRpPrtStdEmitter->flag &= ~static_cast<uint32_t>(rpPRTSTDEMITTERFLAGEMIT);
+}
+
+}  // namespace
+
+// 0x00348f00 CKHkS08Hero_ExitAllStateMachines_maybe: a carried object told 0x940; the control, action, animation and
+// locomotion machines' current states left (phase 2, next 0xff) and cleared; the move input reset, the position put on
+// the frame; without a current animation the group's state row D's animation played; the inactive blend layers reset;
+// the water wave and the owned effects released.
+void CKHkS08Hero::ExitAllStateMachines() {
+    if ((m_unk358 & 1u) != 0) GetAttachedObject()->MessageProc(0x940, this);  // vt+0x1c
+    IKTime* clock = g_pEngine->m_timeManager->m_pTime;
+    if (m_unkAC != 0xff) CallStateHandler(m_unka8[m_unkAC].m_aPtmf, clock, 2, 0xff);
+    m_unkAC = 0xff;
+    if (m_unkCC != 0xff) CallStateHandler(m_unkc8[m_unkCC].m_aPtmf, clock, 2, 0xff);
+    m_unkCC = 0xff;
+    if (m_unk14c != 0xff) CallStateHandler(m_unk148[m_unk14c].m_aPtmf, clock, 2, 0xff);
+    m_unk14c = 0xff;
+    if (m_unk52c != 0xff) CallStateHandler(m_unk528[m_unk52c].m_aPtmf, clock, 2, 0xff);
+    m_unk52c = 0xff;
+    ResetMoveInput(0);      // 0x00368de0
+    ApplyPositionToFrame();  // 0x00355c00
+    AnimBlendSlot* slot = GetAnimBlendSlot();  // vt+0x194
+    const CKBlenderController* blender = static_cast<const CKBlenderController*>(slot->m_pController);
+    const CKAnmKeyFrameController* track = static_cast<const CKAnmKeyFrameController*>(blender->m_apControllers[slot->m_unk10]);
+    if (track->m_unk5c == 0) {
+        const SHeroStateRow* row = static_cast<IKGrpHero*>(m_pGrpHero)->GetHeroStatesD();  // vt+0x13c
+        PlayAnimation(0.0f, 0.0f, static_cast<uint16_t>(row->m_key >> 16));  // vt+0x184, TOC1 +0x2acc; the row's +0x10 halfword
+    }
+    ResetInactiveBlendLayers();  // 0x00351908
+    DetachWaterWaveFx();         // 0x00365f30
+}
+
+// 0x00365f30 CKHkS08Hero_DetachWaterWaveFx_maybe: the water wave (+0x88) released; the game manager's vt+0x2c4 (empty)
+// when +0x880 is set; then ReleaseOwnedFx (vt+0x134).
+void CKHkS08Hero::DetachWaterWaveFx() {
+    if (m_unk88 != nullptr) {
+        static_cast<CKWaterWaveNodeFx*>(m_unk88)->StopIfOwnedBy(this);  // 0x00570498
+        m_unk88->ReleaseReservation(this);  // vt+0x54
+        m_unk88 = nullptr;
+    }
+    // m_unk880 != -1000 (TOC1 +0x2db4): CKS08GameManager_vf2C4 0x9c69d8 (0, the dragon) is empty.
+    ReleaseOwnedFx();  // vt+0x134
+}
+
+// 0x003349a8 CKHkS08Hero_ReleaseOwnedFx (vt+0x134): the hero's effects let go: the sparks (+0x19e0, +0x19e8, +0x19d8)
+// stopped bursting and released, the particle nodes 16 / 12 / 13 of its list stop emitting, the objects 0 and 1
+// hidden, the effects +0x19b8 / +0x19c0 and the link bolts (+0x19c8 / +0x19d0) stopped and released (vt+0x58), the dust
+// (+0x19f4) stopped and released, the target cursor (+0x1a08) stopped at once and released; the group's +0x2d0 cleared.
+void CKHkS08Hero::ReleaseOwnedFx() {
+    auto releaseSpark = [this](IKSerializable*& slot) {
+        if (slot == nullptr) return;
+        IKFx* effect = static_cast<IKFx*>(slot);
+        StopOwnedSparkEffect(effect, this);  // 0x001d4698
+        effect->ReleaseReservation(this);    // vt+0x54
+        slot = nullptr;
+    };
+    auto stopAndRelease = [this](IKSerializable*& slot) {
+        if (slot == nullptr) return;
+        static_cast<IKFx*>(slot)->StopAndRelease(this);  // vt+0x58
+        slot = nullptr;
+    };
+    releaseSpark(m_unk19e0);
+    releaseSpark(m_unk19e8);
+    StopParticleNodeEmission(m_apParticles[0x10]);
+    StopParticleNodeEmission(m_apParticles[0x0c]);
+    StopParticleNodeEmission(m_apParticles[0x0d]);
+    // BUG(original): a dragon index above 1 uses a stale register for the node; the heroes are 0 and 1.
+    if (m_ui8Hero <= 1) {
+        CSGLeaf* object = static_cast<CSGLeaf*>(m_apObjects[0]);
+        if (object != nullptr) object->m_sgProperties = (object->m_sgProperties & 0xfffffffbu) | 4u;
+    }
+    stopAndRelease(m_unk19b8);
+    stopAndRelease(m_unk19c0);
+    releaseSpark(m_unk19d8);
+    stopAndRelease(m_unk19c8);
+    stopAndRelease(m_unk19d0);
+    if (m_ui8Hero <= 1) {
+        CSGLeaf* object = static_cast<CSGLeaf*>(m_apObjects[1]);
+        object->m_sgProperties = (object->m_sgProperties & 0xfffffffbu) | 4u;
+    }
+    if (m_unk19f4 != nullptr) {
+        StopOwnedParticleEffect(static_cast<IKFx*>(m_unk19f4), this);  // 0x001cdde8
+        static_cast<IKFx*>(m_unk19f4)->ReleaseReservation(this);
+        m_unk19f4 = nullptr;
+    }
+    if (m_unk1a08 != nullptr) {
+        IKFx* cursor = m_unk1a08;
+        StopTargetCursorNow(cursor, this);  // 0x001d5988 (immediate)
+        cursor->StopAndRelease(this);       // vt+0x58
+        m_unk1a08 = nullptr;
+    }
+    static_cast<CKGrpS08Hero*>(m_pGrpHero)->m_unk2d0 = 0;
+}
+
+// 0x00345e50 IKHkHero_AttachNodeToHotspot_maybe: `node` taken from its parent and hung under the hero's body hot spot
+// (the group's vt+0x16c, part 0) when that has a node, else under the hero's node (vt+0x70).
+void CKHkS08Hero::AttachNodeToHotspot(CSGLeaf* node) {
+    if (node->m_pParent != nullptr) node->m_pParent->RemoveChild(node);  // vt+0x78
+    const int8_t index = static_cast<int8_t>(static_cast<IKGrpHero*>(m_pGrpHero)->GetHotSpotIndex(m_ui8Hero, 0));
+    if (index != -1) {
+        CSGHotSpot* spot = static_cast<CSGHotSpot*>(m_apHotSpots[index]);
+        if (spot->m_pParent != nullptr) {
+            spot->AttachVolume(node);  // 0x000ce2b8
+            return;
+        }
+    }
+    static_cast<CSGBranch*>(m_pKGLObject)->AddChild(node);  // vt+0x70
+}
+
+// 0x002dbb88 CKHkS08Hero_OnLock (vt+0xa8): every state machine left, the root blend slot's crossfade finished (one step
+// of its remaining time), the camera target leaf (+0x1818) back on the body at identity, the landing / approach
+// records cleared, the group's dragon request dropped.
+void CKHkS08Hero::OnLock() {
+    ExitAllStateMachines();  // 0x00348f00
+    m_animBlendSlot10f0.UpdateCrossfade(m_animBlendSlot10f0.m_unk0c);  // 0x0007a9d0
+    CSGLeaf* leaf = static_cast<CSGLeaf*>(m_unk1818);
+    AttachNodeToHotspot(leaf);  // 0x00345e50
+    leaf->SetIdentity();        // 0x000d08f0
+    const float zero = 0.0f;    // TOC1 +0x1da4
+    m_unk1174 = 0;
+    m_unk1175 = 0;
+    m_unk1178 = zero;
+    m_unk117c = zero;
+    m_unk1180 = 0;
+    m_unk1181 = 0;
+    m_unk1184 = zero;
+    m_unk1188 = zero;
+    m_unk118c = 0;
+    CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_pGrpHero);
+    group->m_unk65 = group->m_unk64;
+    group->m_unkf8 &= ~0x20u;
+}
+
+// 0x002dafa8 CKHkS08Hero_OnUnlock (vt+0xac): the runtime state reset (IKHkHero_OnDisable_maybe 0x347528), the camera
+// target leaf shown in sector 0, the motion reset, the game manager's record of the dragon (+0xdf8 + 0x20 x dragon)
+// cleared: both vectors to the null vector, the two bytes and the word 0.
+void CKHkS08Hero::OnUnlock() {
+    ResetRuntimeState(0);  // IKHkHero_OnDisable_maybe 0x00347528 = ResetRuntimeState(0) 0x00346480
+    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_unk1818), 0, 0, 0);  // 0x005832a8
+    ResetMotionState(0);   // 0x002d9410
+    // TOC1 +0x1dc0: the zero vector 0xc50d64.
+    uint8_t* record = reinterpret_cast<uint8_t*>(&static_cast<CKS08GameManager*>(g_pEngine->m_gameManager)->m_unkDF4[1]) +
+                      static_cast<uint32_t>(m_ui8Hero) * 0x20u;
+    std::memcpy(record + 0x00, &kHeroZeroVector, 12);
+    std::memcpy(record + 0x0c, &kHeroZeroVector, 12);
+    record[0x18] = 0;
+    record[0x19] = 0;
+    std::memset(record + 0x1c, 0, 4);
+}
+
+// 0x00368618 CKHkS08Hero_CtlState2_MoveToTargetBody_maybe: entering (1) sets +0xb0 = 4 and answers 0; leaving (any other
+// phase) clears +0x360 bit 30 and +0x35c bits 5 / 29 and answers 0. Running (0): the facing +0x3a4 is +0x540.. with
+// +0x360 bit 30, else with +0x35c bit 29 the flat direction to the controlling hero (y 0.0, TOC +0x2e08; normalised
+// unless of length 0: 1.0 / length, TOC +0x2e04), else kept; then AIMoveToTarget to +0x398 (walk speed for the player
+// itself, the lost check on); arrived with +0x3b0 bit 1, +0x360 bit 30 clears and +0x35c bits 5 / 29 clear, bit 6 sets.
+uint8_t CKHkS08Hero::CtlMoveToTargetBody(IKTime* clock, int32_t phase, uint8_t other) {
+    if (phase == 1) {
+        m_unkb0 = 4;
+        return 0;
+    }
+    if (phase != 0) {
+        m_unk360 &= 0xbfffffffu;
+        m_unk35c &= 0xdfffffdfu;
+        return 0;
+    }
+    if ((m_unk360 & 0x40000000u) != 0) {
+        m_unk3a4 = m_unk540;
+        m_unk3a8 = m_unk544;
+        m_unk3ac = m_unk548;
+    } else if ((m_unk35c & 0x20000000u) != 0) {
+        const CKHkS08Hero* leader = GetControllingHero();  // 0x00344e68
+        const float zero = 0.0f;
+        const float x = leader->m_unk54c - m_unk54c;
+        const float y = leader->m_unk550 - m_unk550;
+        const float z = leader->m_unk554 - m_unk554;
+        m_unk3a4 = x;
+        m_unk3a8 = y;
+        m_unk3a8 = zero;
+        m_unk3ac = z;
+        const float length = static_cast<float>(
+            c22spyro::MathSqrtf(ppc::fmadds(z, z, ppc::fmadds(x, x, m_unk3a8 * m_unk3a8))));  // 0x00010690
+        if (length != zero) {
+            const float scale = 1.0f / length;
+            m_unk3ac = scale * m_unk3ac;
+            m_unk3a4 = scale * m_unk3a4;
+            m_unk3a8 = scale * m_unk3a8;
+        }
+    }
+    const uint8_t player = m_ui8Hero == m_ui8TrackedLeader ? 1 : 0;
+    if (AIMoveToTarget(clock, reinterpret_cast<CVector3*>(&m_unk398), reinterpret_cast<const CVector3*>(&m_unk3a4), player, 0,
+                       1) != 0 &&  // 0x0036dd08
+        (m_unk3b0 & 2u) != 0) {
+        m_unk360 &= 0xbfffffffu;
+        m_unk35c = (m_unk35c & 0xdfffff9fu) | 0x40u;
+    }
+    return other;
+}
+
+// 0x0036bf20 CKHkS08Hero_MoveTowardDrivenTarget_maybe (CKHkS08Hero_UpdateObjectDrivenMove_maybe 0x363090 passes +0x3dc and
+// +0x398): +0x530 and +0x3dc = `speed`; with a speed, the flat direction to `target` (normalised unless 0) becomes the
+// move and facing directions (+0x540, +0x3b8) and the yaw (+0x538); within this frame's step (+0x3dc x dt) of the target
+// (+0x398) the hero is put there (TeleportTo, facing the direction; +0x3dc = 0) and 1 is returned; else, with +0x35c bit
+// 7, the vertical speed +0x5f4 = the 3D direction's y x the step, and 0. Without a speed 1.
+uint8_t CKHkS08Hero::MoveTowardDrivenTarget(float speed, const IKTime* clock, const CVector3* target) {
+    m_unk530 = speed;
+    m_unk3dc = speed;
+    if (speed == 0.0f) return 1;  // TOC +0x2e88
+    const float dx = target->x - m_unk54c;
+    const float dz = target->z - m_unk554;
+    const float y = m_unk550;
+    float ty = target->y;
+    CVector3 dir{dx, 0.0f, dz};
+    const float xx = dx * dx;
+    const float zz = dz * dz;
+    const float flat = static_cast<float>(std::sqrt(static_cast<double>((xx + 0.0f) + zz)));  // 0x00010690
+    if (flat != 0.0f) {
+        const float k = 1.0f / flat;  // TOC +0x2ecc
+        dir.z = dir.z * k;
+        dir.x = dir.x * k;
+        dir.y = dir.y * k;
+    }
+    m_unk540 = dir.x;
+    m_unk548 = dir.z;
+    m_unk544 = dir.y;
+    m_unk3b8 = dir.x;
+    m_unk3c0 = dir.z;
+    m_unk3bc = dir.y;
+    m_unk538 = Vec3_GetYawAngleFromX(&dir);  // 0x00244638
+    const float ox = m_unk54c - m_unk398;
+    const float oz = m_unk554 - m_unk3a0;
+    const float step = m_unk3dc * clock->m_afDeltaTime[0];
+    if (ppc::fmadds(ox, ox, oz * oz) <= step * step) {  // cror lt / eq
+        TeleportTo(target, &dir, 0, 1, 0xffff, 0);  // 0x0036a578
+        m_unk3dc = 0.0f;
+        return 1;
+    }
+    if ((m_unk35c & 0x80u) == 0) return 0;
+    ty = ty - y;
+    const float length = static_cast<float>(std::sqrt(static_cast<double>(zz + ppc::fmadds(ty, ty, xx))));  // 0x00010690
+    if (length != 0.0f) ty = ty * (1.0f / length);
+    m_unk5f4 = ty * step;
+    return 0;
 }

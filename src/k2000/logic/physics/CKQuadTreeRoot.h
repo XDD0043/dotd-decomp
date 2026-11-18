@@ -10,6 +10,9 @@
 class CKQuadTreeRoot : public CKQuadTreeBranch {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x63)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9b0758
+        return key == 0x18cc || key == 0x1acc || key == 0x16cc || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKQuadTreeRoot)
 
     // 0x001f2338 CKQuadTreeRoot_Construct (= 0x1f22e8 NavSectorQuadTree_Construct_maybe): the branch
@@ -21,6 +24,14 @@ public:
         m_apChildren[1] = nullptr;
     }
     ~CKQuadTreeRoot() override {}
+    // vt+0x10 0x001f21f8 CKQuadTreeRoot_Destroy: the branch's (empty), then the four children cleared (not freed).
+    void Destroy() override {
+        m_apChildren[3] = nullptr;
+        m_apChildren[0] = nullptr;
+        m_apChildren[2] = nullptr;
+        m_apChildren[1] = nullptr;
+    }
+    // vt+0x24 0x001f21d0 CKQuadTreeRoot_RecursiveRegistration: the branch's (returns 1, nothing).
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001f2620 CKQuadTreeRoot_Load
     // 0x001f2430 NavSectorQuadTree_FindSector_maybe: the cell of `position` (x and z times the grid scale,

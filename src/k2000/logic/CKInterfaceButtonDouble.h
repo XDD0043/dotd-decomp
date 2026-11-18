@@ -105,6 +105,11 @@ public:
     }
     // vt+0x10 0x00523690 CKInterfaceButtonDouble_Destroy: the texture references released, the entries freed.
     void Destroy() override;
+    // vt+0x24 0x00521ae8 CKInterfaceButtonDouble_RecursiveRegistration: the base's, the state effects (RecordB +0x3c, from
+    // the last), the label text (unchecked), the label, the value text and image, the arrows and parts (each from the
+    // last), the sound dictionary (unchecked); then per entry from the last its text (unchecked), videos, texts (the
+    // accessor unchecked) and images. Null references are skipped unless said otherwise.
+    void RecursiveRegistration(int32_t type) override;
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00524060 CKInterfaceButtonDouble_Load
     int32_t PostLoad(int32_t /*type*/) override { return 1; }  // vt+0x30 0x5232f8
 

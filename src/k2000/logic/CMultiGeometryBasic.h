@@ -10,6 +10,7 @@
 class CMultiGeometryBasic : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0xc5)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x314c || key == 0xc; }  // vt+0x08 0x9b9d40
     DOTD_DECLARE_FACTORIES(CMultiGeometryBasic)
 
     CMultiGeometryBasic() {}  // 0x00245210 CMultiGeometryBasic_Create: only the vtable
@@ -17,6 +18,9 @@ public:
 
     // vt+0x2c 0x002455c8 CMultiGeometryBasic_Load: the type byte, then the shape.
     int32_t Load(IKFile* file, int32_t type) override;
+    // vt+0x24 0x00245088 CMultiGeometryBasic_RecursiveRegistration (CMultiGeometry 0x1aa6d0 has the same body): type 0
+    // registers it with the saving manager.
+    void RecursiveRegistration(int32_t type) override;
     // 0x002452e0 CMultiGeometryBasic_LoadShape: by m_baData & 3: 0 six floats, 1 five floats, 2 five floats
     // and a byte (+0x18), 3 nothing.
     void LoadShape(IKFile* file);

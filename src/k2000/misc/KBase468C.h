@@ -12,6 +12,9 @@ public:
     KBase468C() {}  // 0x00218040 CKPxElement_468c_maybe_ConstructBase: the vtable only
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00218078 CKPxElement_468c_maybe_Load
+    // 0x0022cb98 CKPxShape_474c_maybe_GetOwnerBody_maybe (unit CKPxMesh.cpp): +0x04. Its callers are CKSrvPhysics's
+    // solvers (CollideBoxBoxSAT, CKPxBoxShape_vf68).
+    IKSerializable* GetOwnerBody() const { return m_unk04; }
 
     IKSerializable* m_unk04;  // +0x04 four references, each read on its own
     IKSerializable* m_unk08;  // +0x08

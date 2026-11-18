@@ -26,10 +26,12 @@ public:
     };
 
     CVideoManager();                  // 0x000a9820 CVideoManager_Create (inlined; = CVideoManager_Construct 0xa8488)
-    ~CVideoManager() override {}      // STUB(C1.6): 0xa9a98 / 0xa99e8
+    ~CVideoManager() override;        // 0x000a9a98 / 0x000a99e8 CVideoManager_Destructor / _DeletingDestructor
     // vt+0x08 0x9a0628
     int32_t IsKindOfClass(uint32_t key) override { return key == 0x9cd || key == 0xa8d || key == 0xc; }
     void Destroy() override;  // vt+0x10 0x000a8450 CVideoManager_Destroy
+    // vt+0x0c 0x000a9068 CVideoManager_DestroyGame: the fade forgotten, the video array (+0x18) freed.
+    void DestroyGame() override;
     int32_t Load(IKFile* file, int32_t type) override;      // vt+0x2c 0x000a92a0 CVideoManager_Load
     int32_t GetSerializationFlags() override { return 0; }  // vt+0x34 0x9a0660
     // vt+0x54 0x000a8618 CVideoManager_PreUpdate: every running video's Update (vt+0x64).
@@ -41,7 +43,7 @@ public:
     // vt+0x5c 0x000a98b0 CVideoManager_Render (Ghidra also CVideoManager_Draw): the running videos' Draw
     // (vt+0x84), then the loading video's Update, UpdateFrame and Draw. The PS3 passes the frame clock
     // (XXL2 Render(IKTime*)); the port's slot has none, so it is the time manager's clock.
-    void Render() override;
+    void Render(IKTime* frameClock) override;
 
     bool IsLoadingVideoActive();   // 0x000a8148 CVideoManager_IsLoadingVideoActive_maybe
     void PlayLoadingVideo();       // 0x000a7f48 CVideoManager_PlayLoadingVideo_maybe (plays m_pLoadingVideo)
@@ -56,6 +58,10 @@ public:
     void StopFirstActiveVideoWithoutFlag40();  // 0x000a8f18
     void PauseAllVideos();                   // 0x000a86e0 CVideoManager_PauseAllVideos_maybe
     void ResumeAllVideos();                  // 0x000a8e80 CVideoManager_ResumeAllVideos_maybe
+    // 0x000a8820 GraphicObjectList_PauseAll_maybe / 0x000a87b0 GraphicObjectList_ResumeAll_maybe (CKGraphic Pause /
+    // Resume): every running video's Pause (vt+0x7c) / Resume (vt+0x80), the next node read before the call.
+    void PauseRunningVideos();
+    void ResumeRunningVideos();
 
     IKVideo** m_apVideoArray;        // +0x18 PS3_CKVideo references (GAME; Mem_AllocAligned16)
     uint32_t m_ui32VideoNb;          // +0x1c

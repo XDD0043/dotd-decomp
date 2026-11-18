@@ -14,7 +14,7 @@
 //   [x] 0x75c58  CKFlashText_SetFont_maybe
 //   [x] 0x75ce8  CKFlashText_Load
 //   [ ] 0x75ed8  CKFlashText_Save
-//   [ ] 0x75f00  CKFlashText_RecursiveRegistration
+//   [x] 0x75f00  CKFlashText_RecursiveRegistration
 //   [x] 0x75fb8  CKFlashText_Destroy
 //   [x] 0x76018  CKFlashText_DeleteArray
 //   [x] 0x760c0  CKFlashText_ApplyColorMultiplier_maybe
@@ -54,6 +54,7 @@
 #include "k2000/graphical/ui/CManager2d.h"
 #include "k2000/graphical/ui/CameraContextUi.h"
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/CKSavingManager.h"
 #include "k2000/logic/CKSector.h"
 #include "k2000/logic/ui/CKLocText.h"
 #include "k2000/memory/Mem.h"
@@ -387,4 +388,12 @@ uint8_t CKFlashText::GetScreenAnchor(CVector2* position, CVector2* size, uint8_t
         return 1;
     }
     return 0;
+}
+
+// 0x00075f00 CKFlashText_RecursiveRegistration (returns 1). The accessor is not null-checked.
+void CKFlashText::RecursiveRegistration(int32_t type) {
+    IKFlashObject::RecursiveRegistration(type);  // 0x00077b78
+    if (type != 0) return;
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    m_pTextAccessor->RecursiveRegistration(0);  // vt+0x24
 }

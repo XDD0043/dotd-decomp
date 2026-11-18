@@ -15,7 +15,7 @@
 //   [ ] 0x34fc10  FUN_0034fc10  [dead]
 //   [ ] 0x34fc28  FUN_0034fc28  [dead]
 //   [ ] 0x34fc40  FUN_0034fc40  [dead]
-//   [ ] 0x34fc50  CKHkS08Hero_GetAnimTimeRemapped_maybe
+//   [ ] 0x34fc50  CKHkS08Hero_GetAnimTimeRemapped_maybe  [dead: no pointer to its descriptor 0xba0998, no call]
 //   [ ] 0x34fd38  FUN_0034fd38  [dead]
 //   [ ] 0x34fe30  FUN_0034fe30  [dead]
 //   [ ] 0x34ff18  FUN_0034ff18  [dead]
@@ -31,7 +31,7 @@
 //   [ ] 0x350918  FUN_00350918  [dead]
 //   [ ] 0x350a58  FUN_00350a58  [dead]
 //   [ ] 0x350bc0  FUN_00350bc0  [dead]
-//   [ ] 0x350c48  CKHkS08Hero_AdvanceInnerBlenderAnimTime_maybe
+//   [x] 0x350c48  CKHkS08Hero_AdvanceInnerBlenderAnimTime_maybe
 //   [ ] 0x350c88  FUN_00350c88  [dead]
 //   [ ] 0x350e38  FUN_00350e38  [dead]
 //   [ ] 0x350f70  FUN_00350f70  [dead]
@@ -42,13 +42,13 @@
 //   [ ] 0x351a20  FUN_00351a20  [dead]
 //   [ ] 0x352100  FUN_00352100  [dead]
 //   [x] 0x352468  CKHkS08Hero_UpdateAnimStateMachine_maybe
-//   [ ] 0x352bf8  IKHkHero_CallRestoreDefaultVolumes
+//   [x] 0x352bf8  IKHkHero_CallRestoreDefaultVolumes  (inlined at its callers: vt+0x130)
 //   [x] 0x352c38  CKHkS08Hero_ResetBoundingSpheresAtDelta_maybe
 //   [ ] 0x352da8  IKHkHero_SetVolumeMaskBits_maybe  [dead]
 //   [x] 0x352dd0  IKHkHero_UpdateSpeedScaledVolumeRadius_maybe
 //   [x] 0x352f10  CKHkS08Hero_SetCollisionVolumeEnabled
-//   [ ] 0x352f78  CKHkS08Hero_AttachVolumeToHotspot
-//   [ ] 0x3531e0  IKHkHero_vf190
+//   [x] 0x352f78  CKHkS08Hero_AttachVolumeToHotspot
+//   [ ] 0x3531e0  IKHkHero_vf190  [dead: only in the abstract IKHkHero vtable 0xb22f10 (vt+0x190), which only IKHkHero's destructors 0x9be9a8 / 0x9bea98 install; CKHkS08Hero, the only hero, has 0x30d688 HandleHeroDamageAndReaction in that slot of its vtable 0xb22c98 (C2.8 port-final F07)]
 //   [x] 0x353528  ResolveHeroContactMovement_maybe
 //   [ ] 0x354350  KStub_Return1_354350  [dead]
 //   [ ] 0x354358  FUN_00354358  [dead]
@@ -58,6 +58,9 @@
 //   [ ] 0x354470  IKHkHero_ContactPointToHeroPosition_maybe  [dead]
 //   [ ] 0x3544c0  Vec3_AddScaledOrSubtract_maybe  [dead]
 #include "Spyro2008/hooks/CKHkS08Hero.h"
+#include "k2000/scenegraph/CSGBranch.h"
+#include "k2000/math/Quat.h"
+#include "k2000/logic/CSGHotSpot.h"
 #include <cmath>
 #include "k2000/math/Math.h"
 #include "Renderware/rwcore/RwCamera.h"
@@ -256,8 +259,8 @@ void CKHkS08Hero::ResolveHeroContactMovement(IKTime* clock) {
     static const CVector3 kNull = {0.0f, 0.0f, 0.0f};  // 0x00c50d64 (TOC1 +0x2bc0)
     if ((m_unk354 & 0x20u) != 0 || (m_unk35c & 0x200000u) != 0) return;
     if ((m_unk35c & 0x10u) != 0) {
-        // STUB(C2.7): vt+0x190 (this, +0xd4, +0xd8, 0, 0), HandleHeroDamageAndReaction 0x30d688: a pending hit.
-        DOTD_STUB_ONCE("ResolveHeroContactMovement_maybe 0x353528: the pending hit vt+0x190 (C2.7)");
+        // A pending hit without a volume: its source +0xd4 at the point +0xd8 (vt+0x190, a fifth argument 0 unused).
+        HandleHeroDamageAndReaction(m_unkd4, reinterpret_cast<const CVector3*>(&m_unkd8), nullptr);  // 0x0030d688
     }
     CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_pGrpHero);
     const uint8_t count = group->GetNbBoundingVolumes(m_ui8Hero);  // vt+0x100
@@ -442,7 +445,7 @@ void CKHkS08Hero::ResolveHeroContactMovement(IKTime* clock) {
             IKBoundingVolume* volume = static_cast<IKBoundingVolume*>(m_apBoundings[j]);
             if (volume->GetClassID() != 0xf) continue;  // vt+0x18; CKDynamicBoundingSphere
             CKDynamicBoundingSphere* sphere = static_cast<CKDynamicBoundingSphere*>(volume);
-            const RwV3d& position = sphere->m_pRwFrame->ltm.pos;  // RwFrame +0x80
+            const RwV3d& position = FrameLtm(sphere->m_pRwFrame)->pos;  // RwFrame +0x80
             const float pz = z + position.z;
             const float px = x + position.x;
             const float py = y + position.y;
@@ -474,7 +477,7 @@ void CKHkS08Hero::ResetBoundingSpheresAtDeltaPos(const CVector3* delta) {
         IKBoundingVolume* volume = static_cast<IKBoundingVolume*>(m_apBoundings[i]);
         if (volume->GetClassID() != 0xf) continue;  // vt+0x18
         CKDynamicBoundingSphere* sphere = static_cast<CKDynamicBoundingSphere*>(volume);
-        const RwV3d& position = sphere->m_pRwFrame->ltm.pos;  // RwFrame +0x80
+        const RwV3d& position = FrameLtm(sphere->m_pRwFrame)->pos;  // RwFrame +0x80
         const float pz = position.z + delta->z;
         const float px = position.x + delta->x;
         const float py = position.y + delta->y;
@@ -488,4 +491,43 @@ void CKHkS08Hero::ResetBoundingSpheresAtDeltaPos(const CVector3* delta) {
         sphere->m_v3LastWorldPos.z = pz;
         sphere->m_v3LastWorldPos.y = py;
     }
+}
+
+// 0x00352f78 CKHkS08Hero_AttachVolumeToHotspot: the volume under hot spot `hotspot` of the hero (-1: the hero's node,
+// -2: the engine's dynamic scene root); already under that hot spot's node and bone, only its local transform reset to
+// the hot spot's. The radius set when not 0 (0.001 for a negative one).
+void CKHkS08Hero::AttachVolumeToHotspot(IKBoundingVolume* volume, int32_t hotspot, float radius) {
+    CSGBranch* parent = volume->m_pParent;
+    if (hotspot == -2 || hotspot == -1) {
+        CSGBranch* target = hotspot == -2 ? static_cast<CSGBranch*>(g_pEngine->m_dynamicSceneRoot)  // TOC +0x2be0 -> +0x14
+                                          : static_cast<CSGBranch*>(m_pKGLObject);
+        if (parent != target) {
+            if (parent != nullptr) parent->RemoveChild(volume);  // vt+0x78
+            target->AddChild(volume);                            // vt+0x70
+        }
+    } else {
+        CSGHotSpot* spot = static_cast<CSGHotSpot*>(m_apHotSpots[hotspot]);
+        if (parent == spot->m_pParent && volume->m_ui8BoneParent == spot->m_ui8BoneNumber) {
+            RwFrame* frame = volume->m_pRwFrame;
+            Quat_ToMatrix(spot->m_qUnitRelativeOrientation, reinterpret_cast<CMatrix34*>(&frame->modelling));  // 0x00241e48
+            frame->modelling.pos.x = spot->m_v3RelativePosition.x;
+            frame->modelling.pos.y = spot->m_v3RelativePosition.y;
+            frame->modelling.pos.z = spot->m_v3RelativePosition.z;
+            frame->modelling.flags &= 0xfffdffffu;
+            RwFrame_MarkDirty(frame);  // 0x00010698
+        } else {
+            if (parent != nullptr) parent->RemoveChild(volume);  // vt+0x78
+            spot->AttachVolume(volume);                          // 0x000ce2b8
+        }
+    }
+    if (radius == 0.0f) return;  // TOC +0x2bd8
+    volume->m_fRadius = radius <= 0.0f ? 0.001f : radius;  // TOC +0x2bd4
+}
+
+// 0x00350c48 CKHkS08Hero_AdvanceInnerBlenderAnimTime_maybe
+void CKHkS08Hero::AdvanceInnerBlenderAnimTime(float dt, uint32_t slot) {
+    AnimBlendSlot& blend = m_unk138[slot];
+    CKBlenderController* blender = static_cast<CKBlenderController*>(blend.m_pController);
+    CKAnmKeyFrameController* controller = static_cast<CKAnmKeyFrameController*>(blender->m_apControllers[blend.m_unk10]);
+    controller->m_unk50 = dt + controller->m_unk50;  // fadds f1, f1, f0
 }

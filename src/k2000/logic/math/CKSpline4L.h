@@ -11,6 +11,9 @@
 class CKSpline4L : public IKPath {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x1f)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a2098
+        return key == 0x7cc || key == 0x70c || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKSpline4L)
 
     CKSpline4L();  // inlined in CKSpline4L_Create

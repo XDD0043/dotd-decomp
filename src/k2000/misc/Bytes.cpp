@@ -7,8 +7,8 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x256d38  Crypto_DecryptAndVerifyBlock400_maybe
-//   [ ] 0x256f48  Crypto_SelfTest_maybe
+//   [ ] 0x256d38  Crypto_DecryptAndVerifyBlock400_maybe  [dead: no pointer to the descriptors of the unit's only roots Crypto_DecryptAndVerifyBlock400_maybe 0x256d38 (0xb84a10) / Crypto_SelfTest_maybe 0x256f48 (0xb84a18) and no call to them (raw ELF scan, R08); every call to the AES / SHA-1 functions is from inside 0x2540a0-0x25a000]
+//   [ ] 0x256f48  Crypto_SelfTest_maybe  [dead: no pointer to the descriptors of the unit's only roots Crypto_DecryptAndVerifyBlock400_maybe 0x256d38 (0xb84a10) / Crypto_SelfTest_maybe 0x256f48 (0xb84a18) and no call to them (raw ELF scan, R08); every call to the AES / SHA-1 functions is from inside 0x2540a0-0x25a000]
 //   [ ] 0x256f98  Bytes_ReadU32BE  [dead]
 //   [ ] 0x256fc8  Bytes_WriteU32BE  [dead]
 //   [ ] 0x256fe8  Bytes_WriteU64BE  [dead]

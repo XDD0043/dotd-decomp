@@ -6,49 +6,50 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [ ] 0x2d8d98  CKHkS08Hero_TickTimers_maybe  [dead]
 //   [x] 0x2d8f38  ProcessHeroContactList
-//   [ ] 0x2d9310  CKHkS08Hero_SelectMovementCamera_maybe
+//   [ ] 0x2d9310  CKHkS08Hero_SelectMovementCamera_maybe  [dead: no pointer to its descriptor 0xb98be0, no call]
 //   [ ] 0x2d93e0  FUN_002d93e0  [dead]
 //   [x] 0x2d9410  CKHkS08Hero_ResetMotionState_maybe
-//   [ ] 0x2d9698  CKHkS08Hero_SectorUnload
-//   [ ] 0x2d96c0  CKHkS08Hero_SectorLoaded
-//   [ ] 0x2d96e8  CKHkS08Hero_Resume
-//   [ ] 0x2d9730  CKHkS08Hero_Pause
+//   [x] 0x2d9698  CKHkS08Hero_SectorUnload  (IKLife::SectorUnload inherited (through 0x345118))
+//   [x] 0x2d96c0  CKHkS08Hero_SectorLoaded  (= the inherited slot)
+//   [x] 0x2d96e8  CKHkS08Hero_Resume
+//   [x] 0x2d9730  CKHkS08Hero_Pause
 //   [x] 0x2d97a8  CKHkS08Hero_DeleteArray
-//   [ ] 0x2d9850  RegisterCKHkS08HeroType
+//   [x] 0x2d9850  RegisterCKHkS08HeroType  (the two file statics at the end; the registration: Kp3Ported)
 //   [ ] 0x2d98d8  _GLOBAL__D_2d98d8
 //   [ ] 0x2d98e8  _GLOBAL__I_2d98e8
-//   [ ] 0x2d98f8  CKHkS08Hero_RecursiveRegistration
-//   [ ] 0x2daa78  CKHkS08Hero_GetInfo
+//   [x] 0x2d98f8  CKHkS08Hero_RecursiveRegistration
+//   [x] 0x2daa78  CKHkS08Hero_GetInfo
 //   [x] 0x2dacb0  CKHkS08Hero_CanAttachTo_maybe
-//   [ ] 0x2dafa8  CKHkS08Hero_OnUnlock
+//   [x] 0x2dafa8  CKHkS08Hero_OnUnlock
 //   [x] 0x2db098  CKHkS08Hero_PostLoad
-//   [ ] 0x2db3d8  CKHkS08Hero_Stop
-//   [ ] 0x2db9d8  CKHkS08Hero_ClearMovementFloatFields_maybe
-//   [ ] 0x2dba30  CKHkS08Hero_OnAttachToObject
+//   [x] 0x2db3d8  CKHkS08Hero_Stop
+//   [x] 0x2db9d8  CKHkS08Hero_ClearMovementFloatFields_maybe
+//   [x] 0x2dba30  CKHkS08Hero_OnAttachToObject
 //   [x] 0x2dbb50  CKHkS08Hero_InitAnimBlendSlot
-//   [ ] 0x2dbb88  CKHkS08Hero_OnLock
-//   [ ] 0x2dbc60  CKHkS08Hero_CanDragonSwitch_maybe
-//   [ ] 0x2dbde0  CKHkS08Hero_LockedUpdate
-//   [ ] 0x2dbe68  CKHkS08Hero_MessageProc
+//   [x] 0x2dbb88  CKHkS08Hero_OnLock
+//   [x] 0x2dbc60  CKHkS08Hero_CanDragonSwitch_maybe
+//   [x] 0x2dbde0  CKHkS08Hero_LockedUpdate
+//   [x] 0x2dbe68  CKHkS08Hero_MessageProc
 //   [x] 0x2dc3d8  CKHkS08Hero_ResetControlState_maybe
-//   [ ] 0x2dc5a0  CKHkS08Hero_OnDetachFromObject
+//   [x] 0x2dc5a0  CKHkS08Hero_OnDetachFromObject
 //   [x] 0x2dc660  CKHkS08Hero_UpdateGroundSurfaceFlags_maybe
 //   [x] 0x2dc730  CKHkS08Hero_UpdateMovement
-//   [ ] 0x2dca08  CKHkS08Hero_FreeOwnedResources_maybe
-//   [ ] 0x2dcb60  CKHkS08Hero_Destroy
-//   [ ] 0x2dcbc0  CreateCKHkS08HeroArray
+//   [x] 0x2dca08  CKHkS08Hero_FreeOwnedResources_maybe
+//   [x] 0x2dcb60  CKHkS08Hero_Destroy
+//   [x] 0x2dcbc0  CreateCKHkS08HeroArray  (DOTD_DECLARE_FACTORIES, CKHkS08Hero.h: the constructor per element)
 //   [x] 0x2dd000  CKHkS08Hero_Create
-//   [~] 0x2dd340  CKHkS08Hero_UpdateModeFlagsAndTetherTimers_maybe
+//   [x] 0x2dd340  CKHkS08Hero_UpdateModeFlagsAndTetherTimers_maybe  (CKHkS08HeroCameraTarget.cpp)
 //   [x] 0x2de6d0  UpdateCKHkS08Hero
 //   [x] 0x2df070  CKHkS08Hero_InitLocomotionAnimSubStateMachines
-//   [ ] 0x2df308  CKHkS08Hero_Restart
+//   [x] 0x2df308  CKHkS08Hero_Restart
 //   [x] 0x2df3e0  CKHkS08Hero_Start
 //   [ ] 0x2df4a0  FUN_002df4a0  [dead]
 //   [x] 0x2e2198  CKHkS08Hero_Load
 //   [ ] 0x2ec710  FUN_002ec710  [dead]
 //   [ ] 0x2eee20  CKHkS08Hero_Save
-//   [ ] 0x2f8518  CKHkS08Hero_vf180
+//   [x] 0x2f8518  CKHkS08Hero_vf180  (CKHkS08Hero.h)
 #include "Spyro2008/hooks/CKHkS08Hero.h"
+#include "k2000/fx/IKFx.h"
 #include "k2000/hooks/CKHkClimbZone.h"
 #include "k2000/services/ICollisionMesh.h"
 #include "k2000/services/CollisionDatas.h"
@@ -66,6 +67,8 @@
 #include "k2000/core/Stub.h"
 #include "Spyro2008/groups/C22SpyroShims.h"
 #include "Spyro2008/logic/CKS08CarrierHero.h"
+#include "k2000/logic/CKAbilityElement.h"
+#include "k2000/core/IKInfo.h"
 
 #include "Renderware/rwcore/RwMatrix.h"
 #include "Spyro2008/logic/CKS08HeroBlow.h"
@@ -78,6 +81,16 @@
 #include "k2000/scenegraph/CAnimatedNode.h"
 #include "k2000/services/CKSrvDynamic.h"
 #include "k2000/core/Ps3MemberFn.h"
+#include "k2000/components/CKImpulsionCpnt.h"
+#include "k2000/logic/CSGHotSpot.h"
+#include "k2000/misc/CKHkActorBase.h"
+#include "Spyro2008/hooks/CKHkS08PowerBucket.h"
+#include "Spyro2008/hooks/CKHkS08TransportableWeight.h"
+#include "k2000/render/CRenderer.h"
+#include "k2000/scenegraph/CSGLeaf.h"
+#include "k2000/misc/Mat4.h"
+#include "k2000/scenegraph/CSGBranch.h"
+#include "Spyro2008/misc/CKS08HeroAbilityHost.h"
 
 namespace {
 // 0x00a704cc (TOC +0x1db8 points 4 bytes before it): two rows of 36 floats, hero 0 and the other heroes
@@ -122,6 +135,11 @@ CKHkS08Hero::CKHkS08Hero() {
     // reset that is not ported yet: ResetCombatState 0x2fc938 ...) and the camera-target registration
     // (CKHkS08HeroCameraTarget.cpp) reads them. Remove when the hero resets are ported.
     m_unk1780 = 0.0f;
+    // The take-off push byte: ComputeFlightThrustForce_maybe 0x313f50 tests it (then reads the timer +0x1388) on the first
+    // flying frame, before LocoState0_Flying's entry clears both. The live stores to +0x1385 (EBOOT scan: LocoState0_Flying,
+    // DynamicStage1Flying, UpdateFlyingLocomotion; FUN_00312a48 is dead) are all flight code, so the original reads its
+    // fresh heap there, 0 (work/fill_test.py fight2 with fill 3f, found by work/fill_bisect.py).
+    m_unk1385 = 0;
     m_unk1784 = 0;
     m_unk1788 = 0.0f;
     m_unk13d1 = 0;
@@ -145,6 +163,105 @@ CKHkS08Hero::CKHkS08Hero() {
     m_unk1a2c = 0;
     m_unk1a38 = 0;
     m_apUnk1a30 = nullptr;
+}
+
+// 0x002d98f8 CKHkS08Hero_RecursiveRegistration: the base's (CKHkS08HeroBase_RecursiveRegistration 0x345b60), then
+// every object the hero references (vt+0x24 each with the same type), in the original's order; the null-tested ones
+// are tested as the original does. The two trigger starters (+0x114c / +0x1154) call KStub_Return1_2361b0: nothing.
+void CKHkS08Hero::RecursiveRegistration(int32_t type) {
+    IKHkHero::RecursiveRegistration(type);  // 0x00345b60
+    m_unk1a8c->RecursiveRegistration(type);
+    for (uint32_t i = 0, n = m_unk1a2c; i != n; ++i) m_apUnk1a24[i]->RecursiveRegistration(type);
+    m_apUnk1a30[0]->RecursiveRegistration(type);
+    m_apUnk1a30[1]->RecursiveRegistration(type);
+    m_apUnk1a30[2]->RecursiveRegistration(type);
+    m_unk1a90->RecursiveRegistration(type);
+    m_unk1a94->RecursiveRegistration(type);
+    m_unk1a98->RecursiveRegistration(type);
+    m_unk1a9c->RecursiveRegistration(type);
+    m_unk1aa0->RecursiveRegistration(type);
+    m_unk1aa4->RecursiveRegistration(type);
+    m_unk1ae4->RecursiveRegistration(type);
+    m_unkee8->RecursiveRegistration(type);
+    m_unk1818->RecursiveRegistration(type);
+    m_unk19b4->RecursiveRegistration(type);
+    m_unk19bc->RecursiveRegistration(type);
+    m_unk19d4->RecursiveRegistration(type);
+    m_unk19f8->RecursiveRegistration(type);
+    m_unk19fc->RecursiveRegistration(type);
+    m_unkfb8->RecursiveRegistration(type);
+    m_apUnkfbc[0]->RecursiveRegistration(type);
+    m_apUnkfbc[1]->RecursiveRegistration(type);
+    m_apUnkfbc[2]->RecursiveRegistration(type);
+    m_apUnkfbc[3]->RecursiveRegistration(type);
+    m_apUnkfbc[4]->RecursiveRegistration(type);
+    if (m_apUnk1bd0[0] != nullptr) m_apUnk1bd0[0]->RecursiveRegistration(type);
+    if (m_apUnk1bd0[1] != nullptr) m_apUnk1bd0[1]->RecursiveRegistration(type);
+    if (m_apUnk1bd0[2] != nullptr) m_apUnk1bd0[2]->RecursiveRegistration(type);
+    if (m_apUnk1bd0[3] != nullptr) m_apUnk1bd0[3]->RecursiveRegistration(type);
+    if (m_apUnk1bd0[4] != nullptr) m_apUnk1bd0[4]->RecursiveRegistration(type);
+    if (m_apUnk1bd0[5] != nullptr) m_apUnk1bd0[5]->RecursiveRegistration(type);
+    if (m_apUnk1bd0[6] != nullptr) m_apUnk1bd0[6]->RecursiveRegistration(type);
+    if (m_apUnk1bd0[7] != nullptr) m_apUnk1bd0[7]->RecursiveRegistration(type);
+    if (m_apUnk1bd0[8] != nullptr) m_apUnk1bd0[8]->RecursiveRegistration(type);
+    if (m_apUnk1bd0[9] != nullptr) m_apUnk1bd0[9]->RecursiveRegistration(type);
+    m_unk19dc->RecursiveRegistration(type);
+    m_unk1b1c->RecursiveRegistration(type);
+    m_unk1b20->RecursiveRegistration(type);
+    m_unk1b24->RecursiveRegistration(type);
+    m_unk1a78->RecursiveRegistration(type);
+    m_unk1a7c->RecursiveRegistration(type);
+    m_unk1d38->RecursiveRegistration(type);
+    m_unk1b28->RecursiveRegistration(type);
+    m_unk1ae0->RecursiveRegistration(type);
+    m_unk19e4->RecursiveRegistration(type);
+    m_unk1a00->RecursiveRegistration(type);
+    m_unk19f0->RecursiveRegistration(type);
+    for (int32_t i = 0; i < 8; ++i) {
+        for (int32_t j = 0; j < 4; ++j) {
+            if (m_apUnk1070[i][j] != nullptr) m_apUnk1070[i][j]->RecursiveRegistration(type);
+        }
+    }
+    if (m_unk147c != nullptr) m_unk147c->RecursiveRegistration(type);
+    m_unk19c4->RecursiveRegistration(type);
+    m_unk19cc->RecursiveRegistration(type);
+    m_unk1dbc->RecursiveRegistration(type);
+    m_unk1b50->RecursiveRegistration(type);
+    m_unk1b58->RecursiveRegistration(type);
+    m_unk1b54->RecursiveRegistration(type);
+    m_unk1b60->RecursiveRegistration(type);
+    m_unk1b5c->RecursiveRegistration(type);
+    m_unk1b64->RecursiveRegistration(type);
+    m_unk1b6c->RecursiveRegistration(type);
+    m_unk1b70->RecursiveRegistration(type);
+    m_unk1b74->RecursiveRegistration(type);
+    m_unk1190->RecursiveRegistration(type);
+    m_unk1dc4->RecursiveRegistration(type);
+    m_unk1dc8->RecursiveRegistration(type);
+    m_unk1dd4->RecursiveRegistration(type);
+    m_unk1dd8->RecursiveRegistration(type);
+    m_unk1ddc->RecursiveRegistration(type);
+    if (m_unk1de0 != nullptr) m_unk1de0->RecursiveRegistration(type);
+    m_unk1de4->RecursiveRegistration(type);
+    m_unk1de8->RecursiveRegistration(type);
+    m_unk1dec->RecursiveRegistration(type);
+    m_unk1df0->RecursiveRegistration(type);
+    m_unk1ccc->RecursiveRegistration(type);
+    m_unk1ce0->RecursiveRegistration(type);
+    m_unk1cd0->RecursiveRegistration(type);
+    m_unk1ce4->RecursiveRegistration(type);
+    m_unk1cd4->RecursiveRegistration(type);
+    m_unk1ce8->RecursiveRegistration(type);
+    m_unk1cd8->RecursiveRegistration(type);
+    m_unk1cec->RecursiveRegistration(type);
+    m_unk1cdc->RecursiveRegistration(type);
+    m_unk1cf0->RecursiveRegistration(type);
+    m_unk1cf8->RecursiveRegistration(type);
+    m_unk1a04->RecursiveRegistration(type);
+    if (m_unk1164 != nullptr) m_unk1164->RecursiveRegistration(type);
+    if (m_unk116c != nullptr) m_unk116c->RecursiveRegistration(type);
+    if (m_unk1168 != nullptr) m_unk1168->RecursiveRegistration(type);
+    if (m_unk1170 != nullptr) m_unk1170->RecursiveRegistration(type);
 }
 
 // 0x002e2198 CKHkS08Hero_Load
@@ -427,7 +544,7 @@ int32_t CKHkS08Hero::Load(IKFile* file, int32_t type) {
     m_unk1a38 = 3;
     for (uint32_t i = 0; i < 3; ++i) {
         IKFile_ReadRef(file, &m_apUnk1a30[i]);
-        // STUB(C2.1): m_apUnk1a30[i]->vt+0x98(m_ui8Hero) (the combat family's class, still a placeholder).
+        static_cast<CKS08HeroBlow*>(m_apUnk1a30[i])->Vf98(m_ui8Hero);  // vt+0x98 0x009bec20 CKS08HeroBlow_vf98
     }
     IKFile_ReadRef(file, &m_unk1aa4);
     IKFile_ReadRef(file, &m_unkfb8);
@@ -1003,6 +1120,22 @@ void CKHkS08Hero::InitLocomotionAnimSubStateMachines() {
 }
 
 // 0x002df3e0 CKHkS08Hero_Start
+// 0x002d9730 CKHkS08Hero_Pause
+void CKHkS08Hero::Pause() {
+    if (m_unk1a08 != nullptr) {
+        IKFx* cursor = m_unk1a08;
+        cursor->StopAndRelease(this);  // vt+0x58
+        m_unk1a08 = nullptr;
+    }
+}
+
+// 0x002d96e8 CKHkS08Hero_Resume: ShouldStayClimbing is asked for its answer only (the base's Resume is empty).
+void CKHkS08Hero::Resume() {
+    if (ShouldStayClimbing() == 0) {
+        // CKHkS08Hero_BaseResume_maybe 0x344e18: empty.
+    }
+}
+
 void CKHkS08Hero::Start() {
     IKHkHero::Start();
     ResetMotionState(1);
@@ -1019,6 +1152,26 @@ void CKHkS08Hero::Start() {
     m_unk1a88 = m_unk1a8c;
     DisableSwingTrails();
     static_cast<CKS08CarrierHero*>(m_unkfb8)->Reset();  // vt+0x68 0x4b4118
+}
+
+// 0x002df308 CKHkS08Hero_Restart (vt+0x54, the level restart): the default state (which makes the controlled hero the
+// group's focused dragon again: ApplyControlAssignment), no swing trails, the motion state and the locomotion
+// sub-machines reset, the root combo back, a running ability cancelled (vt+0x5c with 0), the status words cleared and
+// the carried object dropped (the carrier's vt+0x70).
+void CKHkS08Hero::Restart() {
+    ResetToDefaultState();  // 0x00348ac0
+    DisableSwingTrails();   // 0x00334e20
+    ResetMotionState(1);    // 0x002d9410
+    InitLocomotionAnimSubStateMachines();  // 0x002df070
+    m_unk1a88 = m_unk1a8c;
+    if (m_unk1cc0 != nullptr) static_cast<CKAbilityElement*>(m_unk1cc0)->Stop(0);  // vt+0x5c
+    m_unked8 = 0;
+    m_unkec4 = 0;
+    m_unkec8 = 0;
+    m_unkecc = 0;
+    m_unked0 = 0;
+    m_unked4 = 0;
+    static_cast<CKS08CarrierHero*>(m_unkfb8)->DropCarriedObjectAndReset();  // vt+0x70 0x4b3e40
 }
 
 // 0x009bd698 CKHkS08Hero_vf198 (an inline copy in the original): a float stored at +0x894.
@@ -1044,6 +1197,194 @@ void CKHkS08Hero::VfD4() {
 // animation controller.
 void CKHkS08Hero::InitAnimBlendSlot() {
     m_animBlendSlot10f0.Init(static_cast<CAnimatedNode*>(m_pKGLObject)->m_pController);  // 0x0007a710
+}
+
+// 0x002dba30 CKHkS08Hero_OnAttachToObject (vt+0x120)
+void CKHkS08Hero::OnAttachToObject() {
+    m_unkedc = 0;
+    m_unkec8 &= ~4u;
+    CKImpulsionCpnt* impulsion = static_cast<CKImpulsionCpnt*>(m_unk1190);
+    impulsion->m_unk2c = 0.0f;
+    impulsion->m_unk24 = 0.0f;
+    impulsion->m_unk28 = 0.0f;
+    if (m_unk90->GetClassID() == 0x247) return;  // vt+0x18
+    // The zero vector 0x00c50d64 (x, then z, then y as the original stores them).
+    m_unk1268 = 0.0f;
+    m_unk1270 = 0.0f;
+    m_unk126c = 0.0f;
+    SetMovementMode(0);  // 0x340c18
+    m_unkec8 &= ~0x80u;
+    m_unked0 &= ~0xcu;
+    m_unk534 = 0.0f;
+    m_unk5b4 = 0.0f;
+    m_unk5bc = 0.0f;
+    m_unk5b8 = 0.0f;
+}
+
+// A carried object's weight (its vt+0x104) by its class: 0x009c5460 CKHkS08TransportableKey_vf104 (TOC +0x6334, 0.0),
+// 0x009c5550 CKHkS08TransportableWeight_vf104 (+0x18c), 0x009c5ea8 CKHkS08PowerBucket_vf104 (+0x1f4 while the byte +0x1f0
+// is set, else +0x18c). The hero carries no other class (the carrier's pickups are these three).
+float CarriedObjectWeight(IKSerializable* object) {
+    switch (object->GetClassID()) {  // vt+0x18
+    case 0xc3: {  // CKHkS08PowerBucket (key 0x30c2)
+        const CKHkS08PowerBucket* bucket = static_cast<const CKHkS08PowerBucket*>(object);
+        return (bucket->m_unk1f0 >> 24) != 0 ? bucket->m_unk1f4 : bucket->m_unk18c;
+    }
+    case 0xc5:  // CKHkS08TransportableWeight (key 0x3142)
+        return static_cast<const CKHkS08TransportableWeight*>(object)->m_unk18c;
+    default:
+        return 0.0f;
+    }
+}
+
+// 0x002dc5a0 CKHkS08Hero_OnDetachFromObject (vt+0x124)
+void CKHkS08Hero::OnDetachFromObject() {
+    if (m_unk90->GetClassID() == 0x247) return;  // vt+0x18
+    // The zero vector 0x00c50d64 (x, then z, then y as the original stores them).
+    m_unk1268 = 0.0f;
+    m_unk1270 = 0.0f;
+    m_unk126c = 0.0f;
+    SetMovementMode(0);  // 0x340c18
+    m_unkec8 &= 0xffffff7fu;
+    m_unked0 &= 0xfffffff3u;
+}
+
+// 0x002dbde0 CKHkS08Hero_LockedUpdate (vt+0x80): a locked hero (a cinematic holds it) counts the model fade timer
+// +0x1178 and the link bolt timer +0x1184 down by the frame's delta while positive, then fades its model and updates
+// the partner link bolts.
+void CKHkS08Hero::Vf80(IKTime* clock) {
+    const float dt = clock->m_afDeltaTime[0];
+    if (m_unk1178 > 0.0f) m_unk1178 = m_unk1178 - dt;  // TOC1 +0x1da4 = 0.0 (ble: NaN keeps it)
+    if (m_unk1184 > 0.0f) m_unk1184 = m_unk1184 - dt;
+    UpdateModelFade(dt);         // 0x003346d8
+    UpdatePartnerLinkBolt();     // 0x00337898
+}
+
+// 0x002dbe68 CKHkS08Hero_MessageProc (vt+0x1c): HeroBaseMessageProc first (0x00348220), then the hero's own messages:
+// 0x94d clears +0xec8 bits 22 / 23; 0xc13 drops the carried object (+0xfb8's vt+0x80, its vt+0xf8 with the null
+// vector) and clears them too; 0xc14 (`data`: the strength) while climbing and +0x1744 clear starts the 0.05 s downward
+// impulse record +0x1758 (TOC +0x1e20, the down vector 0x00c50d7c); 0xc19 shows the carried power bucket (vt+0x194 1);
+// 0xc1c sets +0xed0 bit 2 on the hero the player does not control; 0xc20..0xc23 set the bytes +0x1174 / +0x1175 (and
+// a positive `data` the times +0x1178 / +0x117c), 0xc24 / 0xc25 the byte +0x1181 (and +0x1184 / +0x1188); 0x400 writes
+// hot spot 4's position into the aim query, 0x402 answers "hittable". The answer: 3 or 2 from either side wins, else 0
+// when the hero handled it, else the base's (0 or 1). The jump table 0x002dbfe4 (TOC +0x1e1c).
+int32_t CKHkS08Hero::MessageProc(uint16_t message, void* data) {
+    const int32_t base = HeroBaseMessageProc(message, data);  // 0x00348220
+    const uint32_t category = (message >> 8) & 0xffu;
+    const uint32_t id = message & 0xffu;
+    int32_t own = 1;
+    // The timers of 0xc20..0xc25: a positive `data` (TOC +0x1da4 0.0; ble) sets both of a pair.
+    auto timers = [&](float* a, float* b) {
+        const float value = *static_cast<const float*>(data);
+        if (!(value <= 0.0f)) {
+            *a = value;
+            *b = value;
+        }
+    };
+    if (category == 9) {
+        if (id == 0x4d) {
+            m_unkec8 &= 0xff3fffffu;
+            own = 0;
+        }
+    } else if (category == 0xc) {
+        switch (id) {
+        case 0x13: {
+            own = 0;
+            CKS08CarrierHero* carrier = static_cast<CKS08CarrierHero*>(m_unkfb8);
+            if (carrier == nullptr) break;
+            IKSerializable* carried = carrier->GetCarriedObject();  // vt+0x80
+            if (carried == nullptr) break;
+            // STUB(C2.8: carrying): the carried object's vt+0xf8 (the carrier, the null vector 0x00c50d64 = TOC +0x1dc0);
+            // LVL010 carries nothing before the power buckets.
+            DOTD_STUB_ONCE("CKHkS08Hero_MessageProc 0x2dbe68: message 0xc13, the carried object's vt+0xf8 (C2.8)");
+            m_unkec8 &= 0xff3fffffu;
+            break;
+        }
+        case 0x14: {
+            if (data == nullptr) {
+                own = 2;
+                break;
+            }
+            own = 0;
+            if (ShouldStayClimbing() == 0 || m_unk1744 != 0) break;  // 0x00342fa8
+            // The impulse record +0x1758 (HeroTimedImpulse's layout): magnitude `data`, duration 0.05, started along
+            // the down vector (the null vector first, as the inlined reset writes it).
+            const float duration = 0.0500000007f;  // TOC +0x1e20
+            m_unk1758 = *static_cast<const float*>(data);
+            std::memcpy(&m_unk175c, &duration, sizeof duration);
+            m_unk1764 = 0.0f;  // 0x00c50d64
+            m_unk1768 = 0.0f;
+            m_unk176c = 0.0f;
+            m_unk1770 = 0;
+            m_unk1774 = 0;
+            m_unk1760 = 0;
+            m_unk1764 = 0.0f;  // 0x00c50d7c (0, -1, 0)
+            m_unk1768 = -1.0f;
+            m_unk176c = 0.0f;
+            m_unk1774 = 0;
+            std::memcpy(&m_unk1770, &m_unk175c, sizeof m_unk1770);
+            m_unk1760 = 1;
+            break;
+        }
+        case 0x19: {
+            own = 0;
+            IKSerializable* bucket = GetCarriedPowerBucket();  // 0x003401f0
+            if (bucket != nullptr) static_cast<CKHkS08PowerBucket*>(bucket)->SetCarriedShown(1);  // vt+0x194
+            break;
+        }
+        case 0x1c:
+            own = 0;
+            if (m_ui8Hero != m_ui8TrackedLeader) m_unked0 = (m_unked0 & ~4u) | 4u;
+            break;
+        case 0x20:
+        case 0x21:
+        case 0x22:
+        case 0x23:
+            if (data == nullptr) {
+                own = 2;
+                break;
+            }
+            timers(&m_unk1178, &m_unk117c);
+            m_unk1174 = (id == 0x20 || id == 0x22) ? 1 : 0;
+            m_unk1175 = (id == 0x22 || id == 0x23) ? 1 : 0;
+            own = 0;
+            break;
+        case 0x24:
+        case 0x25:
+            if (data == nullptr) {
+                own = 2;
+                break;
+            }
+            timers(&m_unk1184, &m_unk1188);
+            m_unk1181 = id == 0x24 ? 1 : 0;
+            own = 0;
+            break;
+        default:
+            break;
+        }
+    } else if (category == 4) {
+        if (id == 0) {
+            if (data == nullptr) {
+                own = 2;
+            } else {
+                CVector3 at;
+                static_cast<CSGHotSpot*>(GetHotSpot(4))->GetWorldPosition(&at);  // 0x00361b70, 0x000ce790
+                static_cast<SAimPointQuery*>(data)->m_point = at;
+                own = 0;
+            }
+        } else if (id == 2) {
+            if (data == nullptr) {
+                own = 2;
+            } else {
+                *static_cast<uint8_t*>(data) = 1;
+                own = 0;
+            }
+        }
+    }
+    if (base == 3) return 3;
+    if (own == 2 || base == 2) return 2;
+    if (own == 0) return 0;
+    return base != 0 ? 1 : 0;
 }
 
 // 0x002dacb0 CKHkS08Hero_CanAttachTo_maybe (vt+0xe0): whether the hero may attach to `object` (`count`: the carrier's
@@ -1094,7 +1435,7 @@ int32_t CKHkS08Hero::PostLoad(int32_t type) {
         m_unk1df8 = nullptr;
         m_unk114c.PostLoad(0);  // TriggerEventList_PostLoad_maybe 0x00236330
         m_unk1154.PostLoad(0);
-        m_unk1a08 = 0;
+        m_unk1a08 = nullptr;
         m_unk1dcc = nullptr;
     }
     // The first node of each of the eight attach sets is marked (bit 2 of its scene properties).
@@ -1191,14 +1532,25 @@ void CKHkS08Hero::Update(IKTime* clock) {
     const bool carriedAfter = carrier->GetCarriedObject() != nullptr;
     if (carrier->GetCarriedObject() != nullptr) {
         m_unkec8 = (m_unkec8 & 0xff3fffffu) | 0xc00000u;
-        // STUB(C2.8: carrying): the dropping of a carried object of class 0x3142 over a ground of property 0x200
-        // (CKGrpS08Hero_GetMaxPartnerDistance_maybe, the height above the ground, the object's vt+0xf8).
-        DOTD_STUB_ONCE("UpdateCKHkS08Hero: carried object over a ground (C2.8)");
+        // CKGrpS08Hero_GetMaxPartnerDistance_maybe 0x2ce518 (its answer is not used), then the ground: a hero drawn this
+        // frame (node +0x16 against the render frame counter 0x00c29694) over a ground of property 0x200 (engine flag
+        // bit 1 and property bit 1 clear) less than 0.25 above it drops a carried weight (class 0x3142).
+        const ICollisionMesh* ground = static_cast<const ICollisionMesh*>(GetGroundInfo());  // 0x00361b68
+        if (static_cast<const CSGLeaf*>(m_pKGLObject)->m_ui16LastRenderedFrame == g_ui16RenderFrameCounter &&
+            ground != nullptr && (ground->m_ui16PropertiesFlags & 0x200u) != 0 &&
+            ((ground->m_ba16EngineFlags >> 1) & 1u) == 0 && (ground->m_ui16PropertiesFlags & 2u) == 0 &&
+            GetHeightAboveGround() < 0.25f &&  // 0x0032a008; TOC +0x1e64 (bge: a NaN keeps it)
+            carrier->GetCarriedObject()->IsKindOfClass(0x3142) != 0) {
+            // STUB(C2.8 carry-mechs): the carried weight's vt+0xf8 (CKHkS08TransportableWeight_vfF8 0x4b4d18 / the power
+            // bucket's 0x4d3ae8: the drop, with the carrier and the zero vector 0x00c50d64) belongs to the carry-mechs
+            // package's transportable classes; the hero's part (the condition and the flags) is ported.
+            DOTD_STUB_ONCE("UpdateCKHkS08Hero: the carried weight's drop vt+0xf8 (C2.8 carry-mechs)");
+            m_unkec8 &= 0xff3fffffu;
+        }
     }
     m_unk1258 = 0.0f;
     if (carrier != nullptr && carrier->GetCarriedObject() != nullptr) {
-        // STUB(C2.8): the carried object's vt+0x104 (its weight) into +0x1258.
-        DOTD_STUB_ONCE("UpdateCKHkS08Hero: carried object weight (C2.8)");
+        m_unk1258 = CarriedObjectWeight(carrier->GetCarriedObject());  // vt+0x104
     }
     UpdateField794ByAnimAndElementLevel();  // 0x003101e8
     IKSerializable* climbGround = nullptr;
@@ -1368,10 +1720,21 @@ void CKHkS08Hero::UpdateMovement(IKTime* clock) {
         m_unk1284 = zero.z;
         m_unk1280 = zero.y;
         leaf->SetLocalMatrix(&node->m_pRwFrame->modelling);  // 0x000d0be8
-        // STUB(C2.8: attachments): CSGHotSpot_GetWorldPosition 0xce790 of hot spot 0 into +0x181c and the model offset
-        // and bank (CKHkS08Hero_UpdateModelOffsetAndBank_maybe 0x359388) of a hero locked to an object or out of its
-        // locomotion. Not reached by a standing hero.
-        DOTD_STUB_ONCE("CKHkS08Hero_UpdateMovement: locked hero (C2.8)");
+        // The reference point at the first hot spot (+0x4c [0]) in the world, the leaf's frame there, then the model's
+        // offset and bank (0x00359388); this branch returns without the tail below.
+        CVector3 reference;
+        static_cast<CSGHotSpot*>(m_apHotSpots[0])->GetWorldPosition(&reference);  // 0x000ce790
+        m_unk181c = reference.x;
+        m_unk1820 = reference.y;
+        m_unk1824 = reference.z;
+        RwFrame* lockedFrame = leaf->m_pRwFrame;
+        lockedFrame->modelling.pos.z = m_unk1824;
+        lockedFrame->modelling.pos.x = m_unk181c;
+        lockedFrame->modelling.pos.y = m_unk1820;
+        lockedFrame->modelling.flags &= 0xfffdffffu;
+        c22spyro::RwFrameMarkDirty(lockedFrame);  // 0x00010698
+        UpdateModelOffsetAndBank(clock);  // 0x00359388
+        return;
     }
     RwFrame* frame = leaf->m_pRwFrame;
     frame->modelling.pos.z = m_unk1824;
@@ -1395,28 +1758,28 @@ HandlerEntry g_heroStateHandlers[] = {
     {0x00ba29d0u, &CKHkS08Hero::CtlInactive, "CKHkS08Hero_CtlState10_Inactive 0x367fc0", false},
     {0x00ba2a20u, &CKHkS08Hero::CtlPlayer, "CKHkS08Hero_CtlState9_Player 0x367ff8", false},
     {0x00ba2a90u, &CKHkS08Hero::CtlPlayerFollowsFocus, "CKHkS08Hero_CtlState8_PlayerFollowsFocus 0x368478", false},
-    {0x00b9f0c8u, nullptr, "CKHkS08Hero_CtlState2_ScriptedMoveTo 0x33e378 (C2.8: scripted moves)", false},
-    {0x00b9f078u, nullptr, "CKHkS08Hero_CtlState4_ControlLocked 0x33da70 (C2.8: locked by a script)", false},
+    {0x00b9f0c8u, &CKHkS08Hero::CtlScriptedMoveTo, "CKHkS08Hero_CtlState2_ScriptedMoveTo 0x33e378", false},
+    {0x00b9f078u, &CKHkS08Hero::CtlControlLocked, "CKHkS08Hero_CtlState4_ControlLocked 0x33da70", false},
     {0x00b9f0d0u, &CKHkS08Hero::CtlAIFollowGround, "CKHkS08Hero_CtlState7_AIFollowGround 0x33e600", false},
     {0x00b9f0f0u, &CKHkS08Hero::CtlAIFollowFlying, "CKHkS08Hero_CtlState6_AIFollowFlying 0x33f4d0", false},
     {0x00b9f0e0u, &CKHkS08Hero::CtlAIClimbing, "CKHkS08Hero_CtlState5_AIClimbing_maybe 0x33f080", false},
-    {0x00b9efb8u, nullptr, "CKHkS08Hero_CtlState3_AICombat 0x33d000 (C2.7)", false},
+    {0x00b9efb8u, &CKHkS08Hero::CtlAICombat, "CKHkS08Hero_CtlState3_AICombat 0x33d000", false},
     {0x00b9f0e8u, &CKHkS08Hero::CtlAIWarpToCatchUpPoint, "CKHkS08Hero_CtlState0_AIWarpToCatchUpPoint 0x33f150", false},
     {0x00b9f0b8u, &CKHkS08Hero::CtlAIPickCatchUpPoint, "CKHkS08Hero_CtlState1_AIPickCatchUpPoint 0x33e108", false},
     // The action machine (0xc4b3fc).
     {0x00ba2110u, &CKHkS08Hero::ActFreeMovement, "CKHkS08Hero_ActState12_FreeMovement 0x364a30", false},
-    {0x00b9e408u, nullptr, "CKHkS08Hero_ActState11_GroundComboKind0 0x330528 (C2.7)", false},
-    {0x00b9e480u, nullptr, "CKHkS08Hero_ActState7_GroundGrabComboKind1 0x332078 (C2.7)", false},
-    {0x00b9e460u, nullptr, "CKHkS08Hero_ActState2_HurtReaction 0x330fe8 (C2.7)", false},
-    {0x00b9e400u, nullptr, "CKHkS08Hero_ActState10_GroundAltComboKind2 0x32fce0 (C2.7)", false},
-    {0x00b9e390u, nullptr, "CKHkS08Hero_ActState9_ClimbComboKind4_maybe 0x32e820 (C2.7)", false},
-    {0x00b9e3f8u, nullptr, "CKHkS08Hero_ActState8_FlyingComboKind3 0x32f470 (C2.7)", false},
-    {0x00b9d200u, nullptr, "CKHkS08Hero_ActState4_AbilityHandler 0x3276d0 (C2.7)", false},
-    {0x00b9e478u, nullptr, "CKHkS08Hero_ActState6_GrabDashComboKind5 0x331540 (C2.7)", false},
-    {0x00b9e488u, nullptr, "CKHkS08Hero_ActState5_GrabSlamSeq_maybe 0x332a70 (C2.7)", false},
-    {0x00b9e4d0u, nullptr, "CKHkS08Hero_ActState0_Dead 0x3332c0 (C2.7)", false},
-    {0x00b9e3f0u, nullptr, "CKHkS08Hero_ActState3_Recovery_maybe 0x32f268 (C2.7)", false},
-    {0x00b9d068u, nullptr, "CKHkS08Hero_ActState1_FuryCoop_maybe 0x326950 (C2.7)", false},
+    {0x00b9e408u, &CKHkS08Hero::ActGroundCombo, "CKHkS08Hero_ActState11_GroundComboKind0 0x330528", false},
+    {0x00b9e480u, &CKHkS08Hero::ActGroundGrabCombo, "CKHkS08Hero_ActState7_GroundGrabComboKind1 0x332078", false},
+    {0x00b9e460u, &CKHkS08Hero::ActHurtReaction, "CKHkS08Hero_ActState2_HurtReaction 0x330fe8", false},
+    {0x00b9e400u, &CKHkS08Hero::ActGroundAltCombo, "CKHkS08Hero_ActState10_GroundAltComboKind2 0x32fce0", false},
+    {0x00b9e390u, &CKHkS08Hero::ActClimbCombo, "CKHkS08Hero_ActState9_ClimbComboKind4_maybe 0x32e820", false},
+    {0x00b9e3f8u, &CKHkS08Hero::ActFlyingCombo, "CKHkS08Hero_ActState8_FlyingComboKind3 0x32f470", false},
+    {0x00b9d200u, &CKHkS08Hero::ActAbility, "CKHkS08Hero_ActState4_AbilityHandler 0x3276d0", false},
+    {0x00b9e478u, &CKHkS08Hero::ActGrabDashCombo, "CKHkS08Hero_ActState6_GrabDashComboKind5 0x331540", false},
+    {0x00b9e488u, &CKHkS08Hero::ActGrabSlamSeq, "CKHkS08Hero_ActState5_GrabSlamSeq_maybe 0x332a70", false},
+    {0x00b9e4d0u, &CKHkS08Hero::ActDead, "CKHkS08Hero_ActState0_Dead 0x3332c0", false},
+    {0x00b9e3f0u, &CKHkS08Hero::ActRecovery, "CKHkS08Hero_ActState3_Recovery_maybe 0x32f268", false},
+    {0x00b9d068u, &CKHkS08Hero::ActFuryCoop, "CKHkS08Hero_ActState1_FuryCoop_maybe 0x326950", false},
     // The locomotion machine (0xc4b398).
     {0x00b9ba20u, &CKHkS08Hero::LocoFlying, "CKHkS08Hero_LocoState0_Flying 0x315088", false},
     {0x00b9cbf0u, &CKHkS08Hero::LocoClimbSustained, "CKHkS08Hero_LocoState1_ClimbSustained_maybe 0x324780", false},
@@ -1427,14 +1790,14 @@ HandlerEntry g_heroStateHandlers[] = {
     {0x00b9a348u, &CKHkS08Hero::AnimLocomotionFlying, "CKHkS08Hero_AnimState8_LocomotionFlying 0x30a518", false},
     {0x00b9a368u, &CKHkS08Hero::AnimLocomotionGround, "CKHkS08Hero_AnimState10_LocomotionGround 0x30aa78", false},
     {0x00b9a340u, &CKHkS08Hero::AnimLocomotionClimb, "CKHkS08Hero_AnimState9_LocomotionClimb 0x30a0d8", false},
-    {0x00b9de18u, nullptr, "CKHkS08Hero_AnimState7_ComboAnim 0x32cb98 (C2.7)", false},
-    {0x00b9dd78u, nullptr, "CKHkS08Hero_AnimState4_Hurt 0x32c628 (C2.7)", false},
-    {0x00b9dcc8u, nullptr, "CKHkS08Hero_AnimState5_Recovery 0x32c170 (C2.7)", false},
-    {0x00b9dd38u, nullptr, "CKHkS08Hero_AnimState6_Ability 0x32c520 (C2.7)", false},
-    {0x00b9ddd0u, nullptr, "CKHkS08Hero_AnimState3_GuardedHurt 0x32c780 (C2.7)", false},
-    {0x00b9dd30u, nullptr, "CKHkS08Hero_AnimState0_Dead 0x32c380 (C2.7)", false},
-    {0x00b9ddd8u, nullptr, "CKHkS08Hero_AnimState2_HurtType1 0x32c950 (C2.7)", false},
-    {0x00b9dcd0u, nullptr, "CKHkS08Hero_AnimState1_Fury 0x32c268 (C2.7)", false},
+    {0x00b9de18u, &CKHkS08Hero::AnimComboAnim, "CKHkS08Hero_AnimState7_ComboAnim 0x32cb98", false},
+    {0x00b9dd78u, &CKHkS08Hero::AnimHurt, "CKHkS08Hero_AnimState4_Hurt 0x32c628", false},
+    {0x00b9dcc8u, &CKHkS08Hero::AnimRecovery, "CKHkS08Hero_AnimState5_Recovery 0x32c170", false},
+    {0x00b9dd38u, &CKHkS08Hero::AnimAbility, "CKHkS08Hero_AnimState6_Ability 0x32c520", false},
+    {0x00b9ddd0u, &CKHkS08Hero::AnimGuardedHurt, "CKHkS08Hero_AnimState3_GuardedHurt 0x32c780", false},
+    {0x00b9dd30u, &CKHkS08Hero::AnimDead, "CKHkS08Hero_AnimState0_Dead 0x32c380", false},
+    {0x00b9ddd8u, &CKHkS08Hero::AnimHurtType1, "CKHkS08Hero_AnimState2_HurtType1 0x32c950", false},
+    {0x00b9dcd0u, &CKHkS08Hero::AnimFury, "CKHkS08Hero_AnimState1_Fury 0x32c268", false},
     // The flying animation sub-machine (+0x183c, 18 states).
     {0x00b9a150u, &CKHkS08Hero::FlyAnimState00, "CKHkS08Hero_FlyAnimState00_Glide_maybe 0x3059d0", false},
     {0x00b9a190u, &CKHkS08Hero::FlyAnimState01, "CKHkS08Hero_FlyAnimState01_Anim33_36 0x305d20", false},
@@ -1498,16 +1861,16 @@ ConditionEntry g_heroStateConditions[] = {
     {0x00b9ef08u, &CKHkS08Hero::CtlAIPickCatchUpPointCondition, "CKHkS08Hero_CtlState1_AIPickCatchUpPoint_Condition 0x33cab0", false},
     // The action machine.
     {0x00ba2108u, &CKHkS08Hero::ActFreeMovementCondition, "CKHkS08Hero_ActState12_FreeMovement_Condition 0x364a28", false},
-    {0x00b9e368u, nullptr, "CKHkS08Hero_ActState11_GroundComboKind0_Condition 0x32e158 (C2.7: combo input)", false},
-    {0x00b9e3a0u, nullptr, "CKHkS08Hero_ActState7_GroundGrabComboKind1_Condition 0x32ecc0 (C2.7: combo input)", false},
+    {0x00b9e368u, &CKHkS08Hero::ActGroundComboCondition, "CKHkS08Hero_ActState11_GroundComboKind0_Condition 0x32e158", false},
+    {0x00b9e3a0u, &CKHkS08Hero::ActGroundGrabComboCondition, "CKHkS08Hero_ActState7_GroundGrabComboKind1_Condition 0x32ecc0", false},
     {0x00b9e258u, &CKHkS08Hero::ActHurtReactionCondition, "CKHkS08Hero_ActState2_HurtReaction_Condition 0x32d4c8", false},
-    {0x00b9e388u, nullptr, "CKHkS08Hero_ActState10_GroundAltComboKind2_Condition 0x32e668 (C2.7: combo input)", false},
-    {0x00b9e378u, nullptr, "CKHkS08Hero_ActState9_ClimbComboKind4_maybe_Condition 0x32e3d0 (C2.7: combo input)", false},
-    {0x00b9e380u, nullptr, "CKHkS08Hero_ActState8_FlyingComboKind3_Condition 0x32e488 (C2.7: combo input)", false},
-    {0x00b9d020u, nullptr, "CKHkS08Hero_ActState4_Ability_Condition 0x326498 (C2.7: ability input)", false},
-    {0x00b9e398u, nullptr, "CKHkS08Hero_ActState6_GrabDashComboKind5_Condition 0x32eb80 (C2.7: combo input)", false},
-    {0x00b9e370u, nullptr, "CKHkS08Hero_ActState5_GrabSlamSeq_maybe_Condition 0x32e378 (C2.7: combo input)", false},
-    {0x00b9e3e8u, nullptr, "CKHkS08Hero_ActState0_Dead_Condition 0x32f170 (C2.7: health)", false},
+    {0x00b9e388u, &CKHkS08Hero::ActGroundAltComboCondition, "CKHkS08Hero_ActState10_GroundAltComboKind2_Condition 0x32e668", false},
+    {0x00b9e378u, &CKHkS08Hero::ActClimbComboCondition, "CKHkS08Hero_ActState9_ClimbComboKind4_maybe_Condition 0x32e3d0", false},
+    {0x00b9e380u, &CKHkS08Hero::ActFlyingComboCondition, "CKHkS08Hero_ActState8_FlyingComboKind3_Condition 0x32e488", false},
+    {0x00b9d020u, &CKHkS08Hero::ActAbilityCondition, "CKHkS08Hero_ActState4_Ability_Condition 0x326498", false},
+    {0x00b9e398u, &CKHkS08Hero::ActGrabDashComboCondition, "CKHkS08Hero_ActState6_GrabDashComboKind5_Condition 0x32eb80", false},
+    {0x00b9e370u, &CKHkS08Hero::ActGrabSlamSeqCondition, "CKHkS08Hero_ActState5_GrabSlamSeq_maybe_Condition 0x32e378", false},
+    {0x00b9e3e8u, &CKHkS08Hero::ActDeadCondition, "CKHkS08Hero_ActState0_Dead_Condition 0x32f170", false},
     {0x00b9e260u, &CKHkS08Hero::ActRecoveryCondition, "CKHkS08Hero_ActState3_Recovery_maybe_Condition 0x32d4d0", false},
     {0x00b9d028u, &CKHkS08Hero::ActFuryCoopCondition, "CKHkS08Hero_ActState1_FuryCoop_maybe_Condition 0x3267e8", false},
     // The locomotion machine.
@@ -1598,3 +1961,173 @@ void CKHkS08Hero::UpdateGroundSurfaceFlags(IKTime* /*clock*/) {
     }
     if (static_cast<int16_t>(props) < 0) m_unkecc = (m_unkecc & ~0x10000000u) | 0x10000000u;
 }
+
+// 0x002dbc60 CKHkS08Hero_CanDragonSwitch_maybe (vt+0x170): whether the dragon switch may happen now. Flying: not
+// during animation 0x55 (the request dropped). Climbing: yes. On the ground: not on a climb edge (+0x1511, unless the
+// partner's climb flag, another owner or +0xec8 bit 10), else yes when +0x1810 was set (cleared) or another hero owns the
+// control, else the group's +0x320. A hero with +0xed0 bit 3 drops the request and refuses.
+uint8_t CKHkS08Hero::CanDragonSwitch() {
+    CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_pGrpHero);
+    uint8_t answer;
+    const int8_t mode = static_cast<int8_t>(GetMovementMode());  // 0x003401b8
+    if (mode == 1) {
+        if (m_unk160 == 0x55) {
+            group->m_unk65 = group->m_unk64;
+            group->m_unkf8 &= ~0x20u;
+            answer = 0;
+        } else {
+            answer = 1;
+        }
+    } else if (mode == 2) {
+        answer = 1;
+    } else if (mode == 0) {
+        const bool owner = m_ui8Hero == m_ui8TrackedLeader;
+        if (m_unk1511 != 0 && IsPartnerClimbFlagSet() == 0 && owner && (m_unkec8 & 0x400u) == 0) {  // 0x002f87e8
+            answer = 0;
+        } else if (m_unk1810 != 0 || !owner) {
+            m_unk1810 = 0;
+            answer = 1;
+        } else {
+            answer = group->m_unk320 != 0 ? 1 : 0;
+        }
+    } else {
+        // BUG(original): another mode answers the low byte of the hero's address (the modes are 0, 1 and 2).
+        answer = static_cast<uint8_t>(reinterpret_cast<uintptr_t>(this));
+    }
+    if ((m_unked0 & 8u) != 0) {
+        group->m_unk65 = group->m_unk64;
+        group->m_unkf8 &= ~0x20u;
+        answer = 0;
+    }
+    return answer;
+}
+
+// 0x002daa78 CKHkS08Hero_GetInfo, with its accessors 0x9bd710 IsClimbingForTrigger, 0x9bd850 / 0x9bd828 / 0x9bd800 /
+// 0x9bd7d8 the carrying thunks, 0x9bd760 IsFlying_Thunk2, 0x9bd6e0 IsAirborneActionActive and 0x9bd788
+// IsHoldingEnemyInGrabCombo. IKHkHero's answer 2 wins; an id of its own answers 0; else IKHkHero's (0 or 1).
+int32_t CKHkS08Hero::GetInfo(IKInfo* info, int32_t request) {
+    const int32_t base = IKHkHero::GetInfo(info, request);
+    bool unknown = true;
+    if (request == kGetInfoValueAccessor) {
+        unknown = false;
+        switch (info->m_ui32Id) {
+        case 0x14:
+            AnswerInfo(info, [](IKSerializable* o, uint32_t) {
+                CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(o);
+                if (hero->ShouldStayClimbing() == 0) return 0u;  // 0x00342fa8
+                return hero->m_unk1628 == 0 ? 1u : 0u;
+            }, 0);
+            break;
+        case 0x15:
+            AnswerInfo(info, [](IKSerializable* o, uint32_t) {
+                return static_cast<uint32_t>(static_cast<CKHkS08Hero*>(o)->IsCarryingTransportableKey());  // 0x0032a090
+            }, 0);
+            break;
+        case 0x16:
+            AnswerInfo(info, [](IKSerializable* o, uint32_t) {
+                return static_cast<uint32_t>(static_cast<CKHkS08Hero*>(o)->IsCarryingTransportableWeight());  // 0x0032a148
+            }, 0);
+            break;
+        case 0x17:
+            AnswerInfo(info, [](IKSerializable* o, uint32_t) {
+                return static_cast<uint32_t>(static_cast<CKHkS08Hero*>(o)->IsFlyingMovementMode1());  // 0x00340188
+            }, 0);
+            break;
+        case 0x18:
+            AnswerInfo(info, [](IKSerializable* o, uint32_t) { return static_cast<uint32_t>(static_cast<CKHkS08Hero*>(o)->m_unk13d8); }, 0);
+            break;
+        case 0x19:
+            AnswerInfo(info, [](IKSerializable* o, uint32_t) {
+                return static_cast<uint32_t>(static_cast<CKHkS08Hero*>(o)->IsCarryingPowerBucket());  // 0x0032a200
+            }, 0);
+            break;
+        case 0x1a:
+            AnswerInfo(info, [](IKSerializable* o, uint32_t) {
+                return static_cast<uint32_t>(static_cast<CKHkS08Hero*>(o)->IsCarryingFilledPowerBucket());  // 0x0032a2b8
+            }, 0);
+            break;
+        case 0xe6:
+            AnswerInfo(info, [](IKSerializable* o, uint32_t) {
+                const CKHkS08Hero* hero = static_cast<const CKHkS08Hero*>(o);
+                if (hero->IsGrabComboKind() == 0) return 0u;  // 0x002fc208
+                return hero->m_unk1acc != 0 ? 1u : 0u;
+            }, 0);
+            break;
+        default:
+            unknown = true;
+            break;
+        }
+    }
+    if (base == 2) return 2;
+    if (!unknown) return 0;
+    return base != 0 ? 1 : 0;
+}
+
+// 0x002db3d8 CKHkS08Hero_Stop
+void CKHkS08Hero::Stop() {
+    // KStub_Nop_344e20 (IKHkHero's Stop)
+    CSGBranch* node = static_cast<CSGBranch*>(m_pKGLObject);
+    for (uint32_t i = 0; i < 8; ++i) {  // unrolled in the original
+        CSGLeaf* bounding = static_cast<CSGLeaf*>(m_apBoundings[i]);
+        CSGBranch* parent = bounding->m_pParent;
+        if (static_cast<CSGBranch*>(m_pKGLObject) == parent) continue;
+        if (parent != nullptr) parent->RemoveChild(bounding);  // vt+0x78
+        node = static_cast<CSGBranch*>(m_pKGLObject);
+        node->AddChild(bounding);                              // vt+0x70
+    }
+    SetCollisionVolumeEnabled(static_cast<IKBoundingVolume*>(m_apBoundings[0]), 0);
+    static_cast<CKS08CarrierHero*>(m_unkfb8)->DropCarriedObject();  // vt+0x6c
+    m_unk218 = m_unk1724;
+    IKSerializable** effects[4] = {&m_unk19b8, &m_unk19c0, &m_unk19c8, &m_unk19d0};
+    for (IKSerializable** effect : effects) {
+        if (*effect != nullptr) {
+            static_cast<IKFx*>(*effect)->StopAndRelease(this);  // vt+0x58
+            *effect = nullptr;
+        }
+    }
+    if (m_unk1ac5 != 0) CancelAbilityA(0);
+    if (m_unk1ac6 != 0) CancelAbilityB(0);
+}
+
+// 0x002dca08 CKHkS08Hero_FreeOwnedResources_maybe
+void CKHkS08Hero::FreeOwnedResources() {
+    if (m_apUnk1a24 != nullptr) {
+        Mem_FreeAligned16(m_apUnk1a24);
+        m_apUnk1a24 = nullptr;
+    }
+    m_apUnk1a24 = nullptr;
+    m_unk1a2c = 0;
+    if (m_apUnk1a30 != nullptr) {
+        Mem_FreeAligned16(m_apUnk1a30);
+        m_apUnk1a30 = nullptr;
+    }
+    m_unk1a38 = 0;
+    m_apUnk1a30 = nullptr;
+    RwMatrixDestroy_Thunk(m_unk16d8);
+    RwMatrixDestroy_Thunk(m_unk16d4);
+    static_cast<CKSrvDynamic*>(g_pEngine->m_srvDynamic)->UnregisterHook(this);
+    RwMatrixDestroy_Thunk(m_unk16dc);
+    RwMatrixDestroy_Thunk(m_unk16e0);
+    RwMatrixDestroy_Thunk(m_unk16e4);
+    RwMatrixDestroy_Thunk(m_unk16e8);
+    RwMatrixDestroy_Thunk(m_unk16ec);
+    RwMatrixDestroy_Thunk(m_unk16f0);
+    if (m_unk1df8 != nullptr) {
+        delete m_unk1df8;  // vt+0x04 the deleting destructor
+        m_unk1df8 = nullptr;
+    }
+}
+
+// 0x002dcb60 CKHkS08Hero_Destroy
+void CKHkS08Hero::Destroy() {
+    FreeBuffers();  // 0x3452c0
+    m_unk1ae0->Destroy();  // vt+0x10
+    FreeOwnedResources();
+}
+
+// 0x002d9850 RegisterCKHkS08HeroType (_GLOBAL__I_2d98e8): two file statics (0x00ceade8, 0x00ceadec) set to -1.0f, read by
+// nothing, then the class registration (2, 0x97; dotd registers its classes through the generated Kp3Ported registry).
+namespace {
+[[maybe_unused]] float s_unkceade8 = -1.0f;
+[[maybe_unused]] float s_unkceadec = -1.0f;
+}  // namespace

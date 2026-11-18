@@ -11,6 +11,8 @@
 
 class IKFile;
 class CTextureDictionary;
+struct RwImage;
+struct RwRaster;
 struct RwTexture;
 
 // One texture to create (XXL2 SDynamicTextureData), 0x120 bytes on the PS3.
@@ -38,7 +40,7 @@ class TextureBank {
 public:
     TextureBank() {}  // 0x000a59d0 TextureBank_Construct_maybe: the vtable only
     virtual ~TextureBank() {}                                     // vt+0x00 / +0x04 0xa5a70 / 0xa5a40
-    virtual void Destroy() {}                                     // vt+0x08 0xa69e0 TextureBank_Release_maybe  STUB(C1.6)
+    virtual void Destroy();                                       // vt+0x08 0x000a69e0 TextureBank_Release_maybe
     virtual int32_t RecursiveRegistration(int32_t) { return 1; }  // vt+0x0c 0xa59e8
     virtual int32_t Save(IKFile*, int32_t) { return 1; }          // vt+0x10 0xa59f0
     virtual int32_t Load(IKFile* file, int32_t type);             // vt+0x14 0xa6ed8 TextureBank_Load_maybe
@@ -61,3 +63,8 @@ public:
 DOTD_ASSERT_SIZE(TextureBank, 0xc);
 DOTD_ASSERT_OFFSET(TextureBank, m_asDynamicTextureData, 0x04);
 DOTD_ASSERT_OFFSET(TextureBank, m_ui32NbDynamicTextures, 0x08);
+
+// 0x000a6548 Raster_CreateFromImage_maybe (see TextureBank.cpp): the texture raster made from an image; null on failure.
+RwRaster* Raster_CreateFromImage(TextureBank* bank, RwImage* image, uint8_t mipmap, const char* path);
+// 0x000a66b0 Texture_CreateFromImage_maybe: a texture of that raster.
+RwTexture* Texture_CreateFromImage(TextureBank* bank, RwImage* image, uint8_t mipmap, const char* path);

@@ -5,47 +5,47 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0xd07b8  CSGMovable_Delete
-//   [ ] 0xd0808  CSGMovable_RecursiveRegistration
+//   [x] 0xd0808  CSGMovable_RecursiveRegistration
 //   [ ] 0xd0868  RegisterCSGMovableClass
 //   [ ] 0xd08e0  _GLOBAL__I_d08e0
-//   [ ] 0xd08f0  CSGMovable_SetIdentity
+//   [x] 0xd08f0  CSGMovable_SetIdentity
 //   [x] 0xd0918  CSGMovable_SetOrientationFromAtUp
-//   [ ] 0xd0970  CSGMovable_SetUniformScale_maybe
-//   [ ] 0xd09d8  CSGMovable_SetBasisFromAtRight
-//   [ ] 0xd0a30  CSGMovable_SetBasisFromUpAndForward
-//   [ ] 0xd0a88  CSGMovable_SetOrientationFromUpAt
-//   [ ] 0xd0ae0  CSGMovable_OrthonormalizeMatrix_maybe
-//   [ ] 0xd0b38  CSGMovable_SetBasisFromRightUp
-//   [ ] 0xd0b90  SceneNode_SetLocalFromWorldTimes_maybe
+//   [x] 0xd0970  CSGMovable_SetUniformScale_maybe  (CSGMovable::SetUniformScale)
+//   [x] 0xd09d8  CSGMovable_SetBasisFromAtRight
+//   [x] 0xd0a30  CSGMovable_SetBasisFromUpAndForward
+//   [x] 0xd0a88  CSGMovable_SetOrientationFromUpAt
+//   [ ] 0xd0ae0  CSGMovable_OrthonormalizeMatrix_maybe  [dead: no pointer to its descriptor 0xb4fb40]
+//   [x] 0xd0b38  CSGMovable_SetBasisFromRightUp  (CSGMovable::SetBasisFromRightUp)
+//   [x] 0xd0b90  SceneNode_SetLocalFromWorldTimes_maybe  (inlined in its callers CAnimatedNode::AttachChildToBone and CSGBranch::AddChildKeepWorldTransform)
 //   [x] 0xd0be8  CSGMovable_SetLocalMatrix_maybe
-//   [ ] 0xd0c18  CSGMovable_TransformPostConcat_maybe
+//   [ ] 0xd0c18  CSGMovable_TransformPostConcat_maybe  [dead: no pointer to its descriptor 0xb4fb60]
 //   [x] 0xd0c48  CSGMovable_RotateKeepPosition_maybe
-//   [ ] 0xd0cb8  CSGMovable_RotateKeepPosition_2_maybe
-//   [ ] 0xd0d28  CSGMovable_ScaleXYZ
+//   [ ] 0xd0cb8  CSGMovable_RotateKeepPosition_2_maybe  [dead: no pointer to its descriptor 0xb4fb70]
+//   [x] 0xd0d28  CSGMovable_ScaleXYZ
 //   [x] 0xd0d88  CSGMovable_Scale
-//   [ ] 0xd0dd8  CSGMovable_SetScale_maybe
-//   [ ] 0xd0e60  CSGMovable_SetScaleXYZ_maybe
-//   [ ] 0xd0ef8  CSGMovable_SetScale_2_maybe
-//   [ ] 0xd0f80  CSGMovable_RotateAboutPoint_maybe
+//   [ ] 0xd0dd8  CSGMovable_SetScale_maybe  [dead: no pointer to its descriptor 0xb4fb88]
+//   [x] 0xd0e60  CSGMovable_SetScaleXYZ_maybe
+//   [ ] 0xd0ef8  CSGMovable_SetScale_2_maybe  [dead: no pointer to its descriptor 0xb4fb98]
+//   [x] 0xd0f80  CSGMovable_RotateAboutPoint_maybe
 //   [x] 0xd1090  CSGMovable_Construct_2
 //   [x] 0xd10d0  CSGMovable_Construct
 //   [x] 0xd1110  CSGMovable_DeleteArray
 //   [x] 0xd11b0  CSGMovable_RotateInPlace
-//   [ ] 0xd1230  CSGMovable_AlignVectorToVector_maybe
-//   [ ] 0xd1650  CSGMovable_RotateVectorToVector_maybe
+//   [ ] 0xd1230  CSGMovable_AlignVectorToVector_maybe  [dead: no pointer to its descriptor 0xb4fbe0]
+//   [ ] 0xd1650  CSGMovable_RotateVectorToVector_maybe  [dead: no pointer to its descriptor 0xb4fbe8]
 //   [ ] 0xd19d0  CSGMovable_Save
 //   [x] 0xd1a08  CSGMovable_Load
-//   [ ] 0xd1a58  CSGMovable_BaseDestructor
+//   [x] 0xd1a58  CSGMovable_BaseDestructor  (~CSGMovable)
 //   [x] 0xd1ab0  CSGMovable_LookAtPoint
 //   [x] 0xd1da0  CSGMovable_CreateArray
 //   [x] 0xd1e50  CSGMovable_Create
 //   [x] 0xd1ea8  rwSetHierarchyRoot
 //   [ ] 0xd2058  CSGMovable_ClearReferences_2_maybe  [dead]
 //   [x] 0xd2128  CSGMovable_Destroy
-//   [ ] 0xd21f8  CSGMovable_DeletingDestructor
-//   [ ] 0xd2268  CSGMovable_Destructor
+//   [x] 0xd21f8  CSGMovable_DeletingDestructor  (~CSGMovable + delete)
+//   [x] 0xd2268  CSGMovable_Destructor  (~CSGMovable)
 //   [x] 0xd22c0  CSGPointLight_Delete  (DOTD_DECLARE_FACTORIES in CSGPointLight.h)
-//   [ ] 0xd2310  CSGPointLight_RecursiveRegistration
+//   [x] 0xd2310  CSGPointLight_RecursiveRegistration  (CSGPointLight's RecursiveRegistration: returns 1, registers nothing: CSGLeaf's)
 //   [ ] 0xd2318  FUN_000d2318  [dead]
 //   [ ] 0xd2330  KStub_Nop_d2330  [dead]
 //
@@ -58,10 +58,13 @@
 #include "k2000/scenegraph/CSGMovable.h"
 
 #include "Renderware/rwcore/RwCamera.h"
+#include "Renderware/rwcore/RwFrameList.h"
 #include "Renderware/rwcore/RwMatrix.h"
 #include "crt/ppc_ops.h"
 
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 #include "k2000/math/CMatrix34.h"
 #include "k2000/misc/Mat4.h"
 
@@ -201,9 +204,128 @@ void CSGMovable::Scale(const float* scale) {
     RwFrame_MarkDirty(m_pRwFrame);
 }
 
+// 0x000d08f0 CSGMovable_SetIdentity: RwFrameSetIdentity (0x74aaa0 through its TOC bridge 0x98ec00): the modelling matrix
+// the identity (flags |= rwMATRIXINTERNALIDENTITY | rwMATRIXTYPEORTHONORMAL), then RwFrameUpdateObjects.
+void CSGMovable::SetIdentity() {
+    RwMatrix* m = &m_pRwFrame->modelling;
+    m->right.x = 1.0f;
+    m->up.x = 0.0f;
+    m->flags = m->flags | 0x20003u;
+    m->at.z = 1.0f;
+    m->up.y = 1.0f;
+    m->up.z = 0.0f;
+    m->right.z = 0.0f;
+    m->right.y = 0.0f;
+    m->at.y = 0.0f;
+    m->at.x = 0.0f;
+    m->pos.x = 0.0f;
+    m->pos.z = 0.0f;
+    m->pos.y = 0.0f;
+    RwFrameUpdateObjects(m_pRwFrame);
+}
+
 // 0x000d0918 CSGMovable_SetOrientationFromAtUp
 int32_t CSGMovable::SetOrientationFromAtUp(const CVector3* at, const CVector3* up) {
     const int32_t written = Mat4_SetBasisFromAtUp(reinterpret_cast<CMatrix34*>(&m_pRwFrame->modelling), at, up);
     RwFrame_MarkDirty(m_pRwFrame);
     return written;
+}
+
+// 0x000d09d8 CSGMovable_SetBasisFromAtRight
+uint8_t CSGMovable::SetBasisFromAtRight(const CVector3* at, const CVector3* right) {
+    const int32_t written = Mat4_SetBasisFromAtRight(reinterpret_cast<CMatrix34*>(&m_pRwFrame->modelling), at, right);  // 0x0023fe58
+    RwFrame_MarkDirty(m_pRwFrame);
+    return static_cast<uint8_t>(written);
+}
+
+// ---- C2.7 fx (the air currents' flow FX, the animated effects' rigs) ----
+
+// 0x000d0a30 CSGMovable_SetBasisFromUpAndForward
+int32_t CSGMovable::SetBasisFromUpAndForward(const CVector3* up, const CVector3* forward) {
+    const int32_t written = Mat4_BuildFromUpAndForward(reinterpret_cast<CMatrix34*>(&m_pRwFrame->modelling), up, forward);
+    RwFrame_MarkDirty(m_pRwFrame);
+    return written;
+}
+
+// 0x000d0a88 CSGMovable_SetOrientationFromUpAt
+uint8_t CSGMovable::SetOrientationFromUpAt(const CVector3* up, const CVector3* at) {
+    const int32_t written = Mat4_SetBasisFromUpAt(reinterpret_cast<CMatrix34*>(&m_pRwFrame->modelling), up, at);  // 0x002400a8
+    RwFrame_MarkDirty(m_pRwFrame);
+    return static_cast<uint8_t>(written);
+}
+
+// 0x000d0d28 CSGMovable_ScaleXYZ (RwMatrixScale through its TocBridge)
+void CSGMovable::ScaleXYZ(float x, float y, float z) {
+    const RwV3d scale = {x, y, z};
+    RwMatrixScale(&m_pRwFrame->modelling, &scale, rwCOMBINEPRECONCAT);
+    RwFrame_MarkDirty(m_pRwFrame);
+}
+
+// 0x000d0e60 CSGMovable_SetScaleXYZ_maybe (RwMatrixScale through its TocBridge; the position saved and put back)
+void CSGMovable::SetScaleXYZ(float x, float y, float z) {
+    RwMatrix* modelling = &m_pRwFrame->modelling;
+    const float px = modelling->pos.x;
+    const float pz = modelling->pos.z;
+    const float py = modelling->pos.y;
+    const RwV3d scale = {x, y, z};
+    RwMatrixScale(modelling, &scale, rwCOMBINEREPLACE);
+    m_pRwFrame->modelling.pos.x = px;
+    m_pRwFrame->modelling.pos.z = pz;
+    m_pRwFrame->modelling.pos.y = py;
+    RwFrame_MarkDirty(m_pRwFrame);
+}
+
+// 0x000d0f80 CSGMovable_RotateAboutPoint_maybe (RwMatrixInvert, RwFrameRotate, RwV3dTransformPoints, RwFrameTranslate
+// through their TocBridges; RwFrameRotate / RwFrameTranslate are the matrix operation and the frame marked dirty)
+void CSGMovable::RotateAboutPoint(float degrees, const CVector3* point, const CVector3* axis) {
+    RwMatrix inverse;
+    RwMatrixInvert(&inverse, &m_pRwFrame->modelling);
+    RwMatrixRotate(&m_pRwFrame->modelling, reinterpret_cast<const RwV3d*>(axis), degrees, rwCOMBINEPOSTCONCAT);
+    RwFrame_MarkDirty(m_pRwFrame);
+    m_pRwFrame->modelling.pos.x = point->x;
+    m_pRwFrame->modelling.pos.y = point->y;
+    m_pRwFrame->modelling.pos.z = point->z;
+    RwV3d back;
+    RwV3dTransformPoints(&back, reinterpret_cast<const RwV3d*>(point), 1, &inverse);
+    back.x = -back.x;
+    back.y = -back.y;
+    back.z = -back.z;
+    RwMatrixTranslate(&m_pRwFrame->modelling, &back, rwCOMBINEPRECONCAT);
+    RwFrame_MarkDirty(m_pRwFrame);
+}
+
+// C2.8 port-all P11.
+
+// 0x000d1a58 CSGMovable_BaseDestructor (0xd2268 / 0xd21f8 the same)
+CSGMovable::~CSGMovable() {
+    RwFrameDestroy(m_pRwFrame);  // through TocBridge_RwFrameDestroy (not null-checked)
+    m_pRwFrame = nullptr;
+}
+
+// 0x000d0808 CSGMovable_RecursiveRegistration
+void CSGMovable::RecursiveRegistration(int32_t type) {
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+}
+
+// 0x000d0970 CSGMovable_SetUniformScale_maybe
+void CSGMovable::SetUniformScale(float scale) {
+    RwMatrix* m = &m_pRwFrame->modelling;
+    m->flags = 2;
+    m->right.x = scale;
+    m->right.y = 0.0f;
+    m->at.z = scale;
+    m->up.y = scale;
+    m->at.y = 0.0f;
+    m->at.x = 0.0f;
+    m->up.z = 0.0f;
+    m->up.x = 0.0f;
+    m->right.z = 0.0f;
+    RwFrame_MarkDirty(m_pRwFrame);  // 0x00010698
+}
+
+// 0x000d0b38 CSGMovable_SetBasisFromRightUp
+uint8_t CSGMovable::SetBasisFromRightUp(const CVector3* right, const CVector3* up) {
+    const int32_t result = Mat4_SetBasisFromRightUp(reinterpret_cast<CMatrix34*>(&m_pRwFrame->modelling), right, up);  // 0x0023fa90
+    RwFrame_MarkDirty(m_pRwFrame);
+    return static_cast<uint8_t>(result);
 }

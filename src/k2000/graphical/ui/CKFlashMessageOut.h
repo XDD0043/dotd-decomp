@@ -18,6 +18,9 @@ public:
     int32_t IsKindOfClass(uint32_t key) override {                          // vt+0x08 0x999398
         return key == 0x88d || key == 0x80d || key == 0x74d || key == 0xc;
     }
+    // vt+0x24 0x000757d8 CKFlashMessageOut_RecursiveRegistration: IKFlashObject's (empty), then (type 0) registered with the
+    // saving manager (vt+0x24).
+    void RecursiveRegistration(int32_t type) override;
     int32_t Load(IKFile* file, int32_t type) override;                      // vt+0x2c 0x00075888 CKFlashMessageOut_Load
     // vt+0x54 0x755e8 CKFlashMessageOut_vf54 only calls IKFlashObject's (inherited).
     // 0x00075610 CKFlashMessageOut_Send_maybe (XXL2 PostFlashMessage): the interface posts the label.

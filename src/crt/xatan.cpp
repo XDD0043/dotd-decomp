@@ -10,6 +10,7 @@
 #include <cstring>
 
 #include "crt/ppc_ops.h"
+#include "crt/xfsin.h"
 
 namespace crt {
 
@@ -104,6 +105,28 @@ float Asinf(float x) {
         return FAtan(root / x, (sign ^ 2) & 0xa);
     }
     return FromBits(0x7fc00000);  // 0xc4adc0
+}
+
+// 0x0077e720 Math_Acosf_2_maybe (library TOC -0x2e9c sqrt(1/2), -0x2e98 1, -0x2e94 the NaN pointer 0xc4adc0).
+float AcosfLib(float x) {
+    if (x != x) return x;  // _FDtest 2
+    uint32_t sign = 2;
+    if (x < 0.0f) {
+        x = -x;
+        sign = 4;
+    }
+    if (x <= kInvSqrtHalf) {
+        const float sum = x + kOne;
+        const float diff = kOne - x;
+        const float root = Sqrtf(diff * sum);  // sqrtf_maybe 0x77f6b8
+        return FAtan(x / root, sign & 6);
+    }
+    if (x <= kOne) {
+        const float diff = kOne - x;
+        const float root = Sqrtf(ppc::fmadds(x, diff, diff));  // sqrtf_maybe 0x77f6b8
+        return FAtan(root / x, (sign ^ 2) & 6);
+    }
+    return FromBits(0x7fc00000);  // _Feraise 0x20000000; 0xc4adc0
 }
 
 }  // namespace crt

@@ -10,12 +10,19 @@
 class CKCombiner : public IKEvaluator {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x8b)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9b7518
+        return key == 0x22cc || key == 0x228c || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKCombiner)
 
     CKCombiner() { m_lEvaluators = nullptr; }  // inlined in 0x00234100 CKCombiner_Create
     ~CKCombiner() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00233e88 CKCombiner_Load
+    // vt+0x24 0x00234150 CKCombiner_RecursiveRegistration: the base's (0x235030), then for type 0 each evaluator of the
+    // list (vt+0x24 with 0). Returns the base's result.
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x10 0x00234038 CKCombiner_Destroy: KStub_Nop_235180 (IKEvaluator's empty Destroy) only.
     void Vf60() override;    // vt+0x60 0x00234328 CKCombiner_vf60
     void Start() override;   // vt+0x58 0x002343f8 CKCombiner_ClearFiredEvents_maybe
     void Vf50() override;    // vt+0x50 0x002341f0 CKCombiner_vf50: Vf50 on each evaluator, in list order

@@ -19,8 +19,13 @@ public:
 
     CKPlayVideoCinematicBloc();  // 0x001876c0 CKPlayVideoCinematicBloc_Create (the constructor inlined)
     ~CKPlayVideoCinematicBloc() override {}
+    // vt+0x10 0x00187e10 CKPlayVideoCinematicBloc_Destroy: the three arrays (+0x38, +0x44, +0x50) freed and emptied.
+    void Destroy() override;
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001879f8 CKPlayVideoCinematicBloc_Load
+    // vt+0x24 0x001873c0 CKPlayVideoCinematicBloc_RecursiveRegistration: registered whatever the type (no 4..7 test), the
+    // base's, every video's, then the colorized screen FX's (not tested for null).
+    void RecursiveRegistration(int32_t type) override;
     // The runtime slots (C2.3 step 2). PreActivate (vt+0x58 0x9a9f10) is empty.
     void Start() override;                              // vt+0x5c 0x00187ec8 CKPlayVideoCinematicBloc_Start
     void Complete() override;                           // vt+0x64 0x00188d38 CKPlayVideoCinematicBloc_Complete
@@ -34,6 +39,8 @@ public:
     // (m_vi32SekIndex, subtitles) is requested.
     void PlayNextVideo();
     // 0x001882a8 CKPlayVideoCinematicBloc_UpdateSubtitles_maybe: the video's sekens follows the video's elapsed time.
+    // 0x001872c0 CKPlayVideoCinematicBloc_UpdateSubtitleVisibility_maybe (dead in the original; PlayNextVideo inlines it).
+    void UpdateSubtitleVisibility(class CKSekens* sekens);
     void UpdateSubtitles();
     // 0x00188b40 CKPlayVideoCinematicBloc_FinishVideo_maybe: the video (and its sekens) ended early (a skip): the current
     // video stopped, the sekens stopped, the pictures told.

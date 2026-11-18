@@ -4,20 +4,20 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x1c1d0  CKCoreManager_Delete
+//   [ ] 0x1c1d0  CKCoreManager_Delete  [platform] by design: CoreSingletons_Create makes the one instance and FindNonRecreableInstances hands it to the loader; no registry factories (gen_kp3_stubs.py PROVIDED)
 //   [x] 0x1c220  CKCoreManager_Construct
 //   [x] 0x1c238  CKCoreManager_Destroy
-//   [ ] 0x1c248  CKCoreManager_DestroyGame
+//   [x] 0x1c248  CKCoreManager_DestroyGame  (empty: the root's DestroyGame)
 //   [x] 0x1c250  SetObjectLocked
 //   [ ] 0x1c2e0  FUN_0001c2e0  [dead]
 //   [ ] 0x1c330  FUN_0001c330  [dead]
 //   [ ] 0x1c388  FUN_0001c388  [dead]
-//   [ ] 0x1c408  CKCoreManager_RecursiveRegistration
+//   [x] 0x1c408  CKCoreManager_RecursiveRegistration
 //   [ ] 0x1c4a0  CKCoreManager_Save
 //   [x] 0x1c4a8  CKCoreManager_Load
-//   [ ] 0x1c550  CKCoreManager_PostLoad
-//   [ ] 0x1c558  CKCoreManager_vf50
-//   [ ] 0x1c560  CKCoreManager_vf54
+//   [x] 0x1c550  CKCoreManager_PostLoad  (returns 1: the root's default)
+//   [x] 0x1c558  CKCoreManager_vf50  (empty: its own vt+0x50 slot, not declared)
+//   [x] 0x1c560  CKCoreManager_vf54  (empty: its own vt+0x54 slot, not declared)
 //   [ ] 0x1c568  FUN_0001c568  [dead]
 //   [ ] 0x1c570  CKCoreManager_Construct_2  [dead]
 //   [ ] 0x1c588  RegisterCKCoreManagerClass
@@ -28,21 +28,21 @@
 //   [x] 0x1c988  Engine_ReloadLocalizedData
 //   [x] 0x1cb10  SetObjectActiveInContext_maybe
 //   [ ] 0x1cb68  FUN_0001cb68  [dead]
-//   [ ] 0x1cc50  ShutdownParticleUpdateScheduler_maybe
-//   [ ] 0x1cd48  CKCoreManager_DeleteArray
+//   [x] 0x1cc50  ShutdownParticleUpdateScheduler_maybe
+//   [ ] 0x1cd48  CKCoreManager_DeleteArray  [platform] by design: CoreSingletons_Create makes the one instance and FindNonRecreableInstances hands it to the loader; no registry factories (gen_kp3_stubs.py PROVIDED)
 //   [x] 0x1cdf0  CKCoreManager_GetObjectByClassKey
 //   [x] 0x1ce38  CKCoreManager_Init_maybe
 //   [x] 0x1cef8  Engine_ChangeLanguage_maybe
 //   [x] 0x1cfb8  CKCoreManager_FindNonRecreableInstances
-//   [ ] 0x1d1c0  SetObjectActive_maybe
-//   [ ] 0x1d208  CKCoreManager_CreateArray
-//   [ ] 0x1d2b0  CKCoreManager_Create
+//   [x] 0x1d1c0  SetObjectActive_maybe
+//   [ ] 0x1d208  CKCoreManager_CreateArray  [platform] by design: CoreSingletons_Create makes the one instance and FindNonRecreableInstances hands it to the loader; no registry factories (gen_kp3_stubs.py PROVIDED)
+//   [ ] 0x1d2b0  CKCoreManager_Create  [platform] by design: CoreSingletons_Create makes the one instance and FindNonRecreableInstances hands it to the loader; no registry factories (gen_kp3_stubs.py PROVIDED)
 //   [x] 0x1d2f8  CKCoreManager_UnregisterObjectUuid
 //   [ ] 0x1d460  FUN_0001d460  [dead]
 //   [ ] 0x1d518  FUN_0001d518  [dead]
-//   [ ] 0x1d5c0  Group_TransferHook_maybe
-//   [ ] 0x1d798  CKCoreManager_DeletingDestructor
-//   [ ] 0x1d7d8  CKCoreManager_Destructor
+//   [x] 0x1d5c0  Group_TransferHook_maybe  (local copy)
+//   [x] 0x1d798  CKCoreManager_DeletingDestructor
+//   [x] 0x1d7d8  CKCoreManager_Destructor
 //   [ ] 0x1d7f0  CKCoreManager_Destructor_2  [dead]
 //
 //   [ ] 0x992b90  CKCoreManager_GetClassType  [inline]
@@ -73,7 +73,9 @@ CKCoreManager::CKCoreManager() : m_uuidBuckets(nullptr), m_groupRoot(nullptr) {
     dotd::trace::Boot("create CKCoreManager (core singleton)");  // trace only (not in the original)
 }
 
-CKCoreManager::~CKCoreManager() {}  // STUB(C1.6): the hash nodes go back to their pool
+// 0x0001d7d8 CKCoreManager_Destructor (0x1d798 the deleting one): the vtables only (the UUID hash table and its
+// nodes are not released here).
+CKCoreManager::~CKCoreManager() {}
 
 // 0x0001c238 CKCoreManager_Destroy: the group root (a level object) forgotten.
 void CKCoreManager::Destroy() {
@@ -99,6 +101,30 @@ void CKCoreManager::Init() {
     InitializeParticleUpdateScheduler(scheduler);
     Engine_SetParticleScheduler(scheduler);
     dotd::trace::Boot("CKCoreManager::Init (UUID hash, particle scheduler: serial)");
+}
+
+// 0x0001cc50 ShutdownParticleUpdateScheduler_maybe (Cleanup): Init's counterpart. The UUID buckets, last first (the
+// array's own count, 0x61): each bucket's nodes back to their pool (0x00ceaa70: here the host heap), the bucket
+// cleared; the bucket array deleted; then the particle scheduler destroyed and the engine's slot cleared.
+void CKCoreManager::ShutdownParticleUpdateScheduler() {
+    if (m_uuidBuckets != nullptr) {
+        for (uint32_t i = 0x61; i-- > 0;) {
+            for (UuidNode* node = m_uuidBuckets[i]; node != nullptr;) {
+                UuidNode* next = node->next;
+                delete node;
+                node = next;
+            }
+            m_uuidBuckets[i] = nullptr;
+        }
+        delete[] m_uuidBuckets;  // OperatorDeleteArray
+    }
+    m_uuidBuckets = nullptr;
+    ParticleUpdateScheduler* scheduler = g_pEngine->m_particleScheduler;
+    if (scheduler != nullptr) {
+        ParticleUpdateScheduler_DestructBody(scheduler);  // 0xed978
+        delete scheduler;                                 // OperatorDelete_Bridge
+    }
+    Engine_SetParticleScheduler(nullptr);
 }
 
 // 0x0001cdf0 CKCoreManager_GetObjectByClassKey
@@ -245,10 +271,26 @@ void SetObjectLocked(CKCoreManager* /*core*/, IKLife* object, uint32_t locked) {
 }
 
 // 0x0001cb10 SetObjectActiveInContext_maybe
+// 0x0001d1c0 SetObjectActive_maybe
+void SetObjectActive(CKCoreManager* core, IKBaseGroup* group, uint32_t active) {
+    if ((active & 0xff) != ((group->m_bitArray ^ 1u) & 1u)) {
+        static_cast<CKServiceLife*>(core->m_pServiceLife)
+            ->SetObjectActive(group, active & 0xff, static_cast<CKBundle*>(group->m_pKBundle));
+    }
+}
+
 void SetObjectActiveInContext(CKCoreManager* core, IKLife* object, uint32_t active, IKBaseGroup* context) {
     if (context == nullptr) return;
     if ((active & 0xff) != (((object->m_bitArray ^ 1u) & 1u))) {
         static_cast<CKServiceLife*>(core->m_pServiceLife)
             ->SetObjectActive(object, active & 0xff, static_cast<CKBundle*>(context->m_pKBundle));
     }
+}
+
+// 0x0001c408 CKCoreManager_RecursiveRegistration (C2.8 save-menu)
+#include "k2000/logic/CKSavingManager.h"
+void CKCoreManager::RecursiveRegistration(int32_t type) {
+    if (type != 0) return;
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    m_groupRoot->RecursiveRegistration(0);
 }

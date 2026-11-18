@@ -18,6 +18,9 @@ public:
     ~CKPauseCinematicBloc() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00184460 CKPauseCinematicBloc_Load
+    // vt+0x24 0x001845b0 CKPauseCinematicBloc_RecursiveRegistration: registered with the saving manager (vt+0x24) unless the type is 4..7, then
+    // IKCinematicBloc_LevelReset 0x18e8d8 (which registers it once more).
+    void RecursiveRegistration(int32_t type) override;
 
     void Start() override;                 // vt+0x5c 0x001847f0 CKPauseCinematicBloc_Start
     void Complete() override;              // vt+0x64 0x00184ab0 CKPauseCinematicBloc_Complete

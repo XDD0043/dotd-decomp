@@ -4,8 +4,8 @@
 // The container holds a vector of marks; each mark is one of five small classes, picked by a type word
 // in the file (the Load's jump table 0x7d9ec): two constants and three key lists. The marks are not
 // IKBaseClass objects: their vtable starts with GetType (slot 0), then Save, Load, ClearKeys, ValueAt,
-// MaxInRange, MinInRange, CrossedValue, GetKeyValue. Only the slots the Load uses are declared; the rest
-// come with C2.2.
+// MaxInRange, MinInRange, CrossedValue, GetKeyValue. GetType, Save and Load are declared; the query slots are
+// dispatched on GetType below.
 #pragma once
 #include <cstdint>
 #include <cstring>
@@ -21,11 +21,21 @@
 class AnimMark {
 public:
     virtual uint32_t GetType() = 0;                // slot 0 (KStub_ReturnN)
-    virtual void Save(IKFile* /*file*/) {}         // slot 1  STUB(C2.2)
+    // slot 1: the mark written in the Load's format (only the vtables reference these: the container's Save,
+    // 0x7d708, writes nothing). The words go out little-endian (the PS3 swaps them with lwbrx; here the host order is
+    // little-endian already).
+    virtual void Save(IKFile* file) = 0;
     virtual void Load(IKFile* file) = 0;           // slot 2
+    // slot 3: KStub_Nop_7dd60 for the constants; the key lists free their keys (AnimMarkKeys::ClearKeys).
+    virtual void ClearKeys() {}
+    // DOTD: the original sets the base vtable (0xb168a0) and calls OperatorDelete (no virtual destructor); a virtual
+    // one here lets the container's delete free the right size.
+    virtual ~AnimMark() = default;
 
     // 0x0007dcf8 AnimMark_LoadChannel
     void LoadChannel(IKFile* file) { ReadU32LE(file, &m_channel); }
+    // 0x0007dc98 AnimMark_SaveChannel
+    void SaveChannel(IKFile* file) { file->Write(&m_channel, 4); }  // vt+0x20
 
     uint32_t m_channel;  // +0x04 not set by the constructors
 };
@@ -36,6 +46,11 @@ DOTD_ASSERT_SIZE(AnimMark, 0x8);
 class AnimMarkConst0 : public AnimMark {
 public:
     uint32_t GetType() override { return 0; }  // 0x999960 KStub_Return0_999960
+    // 0x0099add0 AnimMarkConst0_Save
+    void Save(IKFile* file) override {
+        SaveChannel(file);
+        file->Write(&m_value, 4);
+    }
     // 0x0099ad48 AnimMarkConst0_Load
     void Load(IKFile* file) override {
         LoadChannel(file);
@@ -48,6 +63,11 @@ DOTD_ASSERT_SIZE(AnimMarkConst0, 0xc);
 class AnimMarkConst1 : public AnimMark {
 public:
     uint32_t GetType() override { return 1; }  // 0x999930 KStub_Return1_999930
+    // 0x0099a898 AnimMarkConst1_Save
+    void Save(IKFile* file) override {
+        SaveChannel(file);
+        file->Write(&m_value, 4);
+    }
     // 0x0099ae50 AnimMarkConst1_Load
     void Load(IKFile* file) override {
         LoadChannel(file);
@@ -73,6 +93,17 @@ public:
         m_capacity = 1;
         m_count = 0;
     }
+    // 0x0099a910 AnimMarkKeys2_Save, 0x0099aa78 AnimMarkKeys3_Save, 0x0099abe0 AnimMarkKeys4_Save (the same code): the
+    // channel, the count, then each key's time and value.
+    void Save(IKFile* file) override {
+        SaveChannel(file);
+        const uint32_t count = m_count;
+        file->Write(&count, 4);
+        for (uint32_t i = 0; i < count; ++i) {
+            file->Write(&m_aKeys[i].m_fTime, 4);
+            file->Write(&m_aKeys[i].m_value, 4);
+        }
+    }
     // 0x0099aed8 AnimMarkKeys2_Load, 0x0099b0a8 AnimMarkKeys3_Load, 0x0099b278 AnimMarkKeys4_Load
     void Load(IKFile* file) override {
         LoadChannel(file);
@@ -96,6 +127,16 @@ public:
             ReadF32LE(file, &m_aKeys[i].m_fTime);
             ReadU32LE(file, &m_aKeys[i].m_value);
         }
+    }
+    // 0x00999998 AnimMarkKeys2_ClearKeys / 0x0099a838 AnimMarkKeys3_ClearKeys / 0x009999f8 AnimMarkKeys4_ClearKeys (the
+    // same body in each type's vtable, slot 3): KStub_Nop_7dd60 (the base's), the keys freed, no keys.
+    void ClearKeys() override {
+        if (m_aKeys != nullptr) {
+            Mem_FreeAligned16(m_aKeys);
+            m_aKeys = nullptr;
+        }
+        m_count = 0;
+        m_aKeys = nullptr;
     }
     AnimMarkKey* m_aKeys;  // +0x08 Mem_AllocAligned16
     uint32_t m_capacity;   // +0x0c
@@ -195,6 +236,16 @@ inline uint32_t AnimMark_CrossedValueR3(AnimMark* mark, float t0, float t1) {
     return 1;
 }
 
+// vt+0x20 GetKeyValue as an integer (r3): type 1 its constant (0x999958 AnimMarkConst1_GetKeyValue), type 2 the value word
+// of key `index` (0x00999a88 AnimMarkKeys2_GetKeyValue: keys + index * 8, +4; no bound check), else a pointer (1; the
+// types 0 / 3 / 4 return f1).
+inline uint32_t AnimMark_GetKeyValueR3(AnimMark* mark, uint32_t index) {
+    const uint32_t type = mark->GetType();
+    if (type == 1) return static_cast<AnimMarkConst1*>(mark)->m_value;
+    if (type == 2) return static_cast<AnimMarkKeys*>(mark)->m_aKeys[index].m_value;
+    return 1;
+}
+
 // vt+0x10 as a float (f1): constant 0 its value as a float (0x999968); constant 1 (0x999938) leaves f1, `t`; keys 2
 // (0x999aa0) leave the wrapped time; keys 3 (0x999b70) the value of the key before the first key not before the time (a
 // step), 0 with one key or past the last; keys 4 (0x999c40) the same, interpolated linearly.
@@ -229,11 +280,21 @@ AnimMark* Anim_GetMarkById(RtAnimAnimation* animation, uint32_t id);
 class CKAnimationMarkContainer : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x226)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x898c || key == 0xc; }  // vt+0x08 0x99a810
     DOTD_DECLARE_FACTORIES(CKAnimationMarkContainer)
 
     CKAnimationMarkContainer();  // 0x0007d6b8 CKAnimationMarkContainer_Create (as the dead _Construct 0x7d3a0)
-    ~CKAnimationMarkContainer() override {}
+    // 0x0007d798 CKAnimationMarkContainer_Destructor (0x7d718 the deleting one): the mark pointer block freed, the count
+    // and the block cleared (the marks themselves are Destroy's).
+    ~CKAnimationMarkContainer() override {
+        if (m_ppMarks != nullptr) Mem_FreeAligned16(m_ppMarks);
+        m_count = 0;
+        m_ppMarks = nullptr;
+    }
+    // vt+0x10 0x0007db98 CKAnimationMarkContainer_Destroy: every mark's ClearKeys (slot 3) and delete, the block freed.
+    void Destroy() override;
 
+    int32_t Save(IKFile* /*file*/, int32_t /*type*/) override { return 1; }  // vt+0x28 0x0007d708 CKAnimationMarkContainer_Save: nothing written
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x0007d868 CKAnimationMarkContainer_Load
 
     AnimMark** m_ppMarks;  // +0x04 Mem_AllocAligned16; 0 in the constructor

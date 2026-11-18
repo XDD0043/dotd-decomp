@@ -20,21 +20,21 @@
 //   [x] 0xaa398  PS3_CKVideo_SetCurrentAndTargetFrame_maybe
 //   [ ] 0xaa3d0  PS3_CKVideo_GetDurationSeconds_maybe  [dead]
 //   [ ] 0xaa420  PS3_CKVideo_DrawSingleTile_maybe  [dead]
-//   [ ] 0xaa4c0  PS3_CKVideo_DrawTiledFrame_maybe
+//   [ ] 0xaa4c0  PS3_CKVideo_DrawTiledFrame_maybe  [dead: its only caller PS3_CKVideo_DrawFrame_maybe 0xac5e8 is dead (C2.8 port-rest R02)]
 //   [ ] 0xaa830  Math_NextPowerOfTwoMax1024_maybe  [dead]
-//   [ ] 0xaa8d8  IKVideo_vf94
+//   [x] 0xaa8d8  IKVideo_vf94  (IKVideo::RegisterFrameBuffers, empty (IKVideo.h))
 //   [ ] 0xaa8e0  PS3_CKVideo_GetHeight_maybe  [dead]
 //   [ ] 0xaa900  PS3_CKVideo_GetWidth_maybe  [dead]
 //   [x] 0xaa920  PS3_CKVideo_GetFrameCount_maybe
 //   [ ] 0xaa940  KStub_Nop_aa940  [dead]
-//   [ ] 0xaa948  KStub_ReturnFloat0p02_aa948
+//   [x] 0xaa948  KStub_ReturnFloat0p02_aa948  (returns 0.02f: CKFlashUI::Update and CKS08GameManager_2.cpp use the constant inline)
 //   [ ] 0xaa950  PS3_CKVideo_GetFrameRate_maybe  [dead]
 //   [ ] 0xaa998  PS3_CKVideo_GetFrameRateNumerator_maybe  [dead]
 //   [ ] 0xaa9b8  PS3_CKVideo_GetFrameRateDivisor_maybe  [dead]
 //   [ ] 0xaa9d8  FUN_000aa9d8  [dead]
-//   [ ] 0xaaa28  IKVideo_vf70
-//   [ ] 0xaaa30  Bink_CopyFrameTileToRaster_maybe
-//   [ ] 0xaac10  Bink_CopyFrameToRasterTiles_maybe
+//   [x] 0xaaa28  IKVideo_vf70  (IKVideo::SelectNextFrame, empty (IKVideo.h))
+//   [ ] 0xaaa30  Bink_CopyFrameTileToRaster_maybe  [platform] (the IKVideo RW-raster path: a Bink frame tile into an RwRaster; called by IKVideo_vf6C (never run: IKVideo is abstract and PS3_CKVideo overrides it) and the dead 0xaac10; dotd's video goes through platform/video (C2.8 port-rest R02))
+//   [ ] 0xaac10  Bink_CopyFrameToRasterTiles_maybe  [dead: no pointer to its descriptor 0xb49df0, no call (C2.8 port-rest R02)]
 //   [ ] 0xaad38  PS3_CKVideo_GetClosestKeyFrame_maybe  [dead]
 //   [x] 0xaad78  PS3Video_SelectSoundTracks_maybe
 //   [ ] 0xaade8  PS3_CKVideo_SetSoundOnOff_maybe  [dead]
@@ -43,30 +43,30 @@
 //   [ ] 0xaaef0  PS3_CKVideo_SetTrackEnabled_maybe  [dead]
 //   [x] 0xaaf60  PS3_CKVideo_vf80
 //   [x] 0xaafe0  PS3_CKVideo_Pause_maybe
-//   [ ] 0xab070  IKVideo_vfA0
-//   [ ] 0xab0e8  IKVideo_DestroyFrameTextures_maybe
+//   [ ] 0xab070  IKVideo_vfA0  [platform] (IKVideo's own CloseStream of the RW-raster path; never run: IKVideo is abstract (vt+0x88 pure) and PS3_CKVideo, its only class, overrides the slot; dotd's video goes through platform/video (C2.8 port-rest R02))
+//   [ ] 0xab0e8  IKVideo_DestroyFrameTextures_maybe  [platform] (IKVideo's own DestroyFrameTextures of the RW-raster path; never run, PS3_CKVideo overrides it (C2.8 port-rest R02))
 //   [x] 0xab1c8  PS3_CKVideo_AdvanceFrame_maybe
 //   [x] 0xab260  PS3_CKVideo_SetCurrentAndTargetFrame_VariantB_maybe
 //   [x] 0xab2a8  PS3_CKVideo_ConstructBase_maybe
-//   [ ] 0xab2c8  IKVideo_vf24
+//   [x] 0xab2c8  IKVideo_vf24  (IKVideo::RecursiveRegistration)
 //   [ ] 0xab3c0  PS3_CKVideo_ConstructBase_2_maybe  [dead]
 //   [x] 0xab3e0  PS3_CKVideo_StopIfEnded_maybe
-//   [ ] 0xab448  KStub_Nop_ab448
-//   [ ] 0xab450  IKVideo_vf98
+//   [x] 0xab448  KStub_Nop_ab448  (empty: CVideoManager_ForEachVideoNopHook_maybe calls it, nothing to port)
+//   [ ] 0xab450  IKVideo_vf98  [platform] (IKVideo's own vt+0x98 of the RW-raster path; never run, PS3_CKVideo overrides it (C2.8 port-rest R02))
 //   [x] 0xab890  PS3_CKVideo_StopImpl_maybe
-//   [ ] 0xabb50  PS3_CKVideo_GetInfo
-//   [ ] 0xabbb8  IKVideo_vf28
+//   [x] 0xabb50  PS3_CKVideo_GetInfo  (IKVideo::GetInfo)
+//   [x] 0xabbb8  IKVideo_vf28  (Save: returns 1, the default slot (PS3_CKVideo_Save calls it))
 //   [x] 0xabbc0  PS3_CKVideo_MessageProc
-//   [ ] 0xabc88  IKVideo_vfC
-//   [ ] 0xabc98  PS3_CKVideo_ReleaseTexture_maybe
+//   [x] 0xabc88  IKVideo_vfC  (IKVideo::DestroyGame, IKVideo.h)
+//   [x] 0xabc98  PS3_CKVideo_ReleaseTexture_maybe  (IKVideo::ReleaseTexture)
 //   [x] 0xabd20  IKVideo_DrawPlaceholderQuad_maybe
 //   [ ] 0xabd80  PS3_CKVideo_UpdateFrameDeltaSeconds_maybe  [dead]
 //   [x] 0xabe58  PS3_CKVideo_GetElapsedSeconds_maybe
-//   [ ] 0xabeb8  IKVideo_vf8C
+//   [ ] 0xabeb8  IKVideo_vf8C  [platform] (IKVideo's own CreateFrameTextures of the RW-raster path; never run, PS3_CKVideo overrides it (C2.8 port-rest R02))
 //   [x] 0xac410  IKVideo_vf30
 //   [x] 0xac4a0  PS3_CKVideo_GetPlaybackPosition_maybe
 //   [ ] 0xac550  PS3_CKVideo_SeekToFrame_maybe  [dead]
-//   [ ] 0xac5e8  PS3_CKVideo_DrawFrame_maybe
+//   [ ] 0xac5e8  PS3_CKVideo_DrawFrame_maybe  [dead: no pointer to its descriptor 0xb49f18, no call (C2.8 port-rest R02)]
 //   [x] 0xac740  PS3_CKVideo_BeginPlayback_maybe
 //   [x] 0xac908  PS3_CKVideo_UpdateFrame_maybe
 //   [x] 0xacd90  PS3_CKVideo_OpenBink_maybe
@@ -74,7 +74,7 @@
 //   [ ] 0xacfa8  PS3_CKVideo_RequestSeekToSeconds_maybe  [dead]
 //   [x] 0xad040  PS3_CKVideo_RestartSegmentOrLoop_maybe
 //   [x] 0xad2c0  PS3_CKVideo_vf60
-//   [ ] 0xad4d0  IKVideo_vf6C
+//   [ ] 0xad4d0  IKVideo_vf6C  [platform] (IKVideo's own CopyFrameToTexture of the RW-raster path; never run, PS3_CKVideo overrides it (C2.8 port-rest R02))
 //   [x] 0xad5f8  IKVideo_Load
 //   [x] 0xad890  PS3_CKVideo_UpdatePlaybackState_maybe
 //   [x] 0xae020  PS3_CKVideo_Delete
@@ -82,7 +82,7 @@
 //   [x] 0xae110  PS3_CKVideo_vf6C
 //   [x] 0xae118  PS3_CKVideo_vf88
 //   [x] 0xae120  PS3_CKVideo_vf98
-//   [ ] 0xae128  RegisterPS3_CKVideoClass
+//   [x] 0xae128  RegisterPS3_CKVideoClass  (RegisterAllClasses: ClassTable.inc)
 //   [ ] 0xae1a0  _GLOBAL__I_ae1a0
 //   [x] 0xae1b0  DrawPS3VideoFrameQuad
 //   [x] 0xae2d0  PS3_CKVideo_SelectNextFrame
@@ -94,18 +94,18 @@
 //   [x] 0xae458  PS3_CKVideo_PostLoad
 //   [x] 0xae480  PS3_CKVideo_Load
 //   [ ] 0xae4a8  PS3_CKVideo_Save
-//   [ ] 0xae4d0  PS3_CKVideo_RecursiveRegistration
-//   [ ] 0xae4f8  PS3_CKVideo_DestroyGame
-//   [ ] 0xae520  PS3_CKVideo_Destroy
+//   [x] 0xae4d0  PS3_CKVideo_RecursiveRegistration  (IKVideo::RecursiveRegistration (inherited; it only calls IKVideo_vf24))
+//   [x] 0xae4f8  PS3_CKVideo_DestroyGame  (IKVideo::DestroyGame (inherited; it only calls IKVideo_vfC))
+//   [x] 0xae520  PS3_CKVideo_Destroy  (IKVideo::Destroy, IKVideo.h)
 //   [x] 0xae548  PS3Video_Shutdown_maybe
-//   [ ] 0xae578  PS3Video_ConfigureAudioOutput_maybe
+//   [ ] 0xae578  PS3Video_ConfigureAudioOutput_maybe  [dead: no pointer to its descriptor 0xb4a178, no call; cellAudioOut configuration, platform code (C2.8 port-rest R02)]
 //   [x] 0xae748  PS3_CKVideo_DeleteArray
 //   [x] 0xae7e8  PS3_CKVideo_Create
 //   [x] 0xae840  PS3_CKVideo_OpenStream_maybe
 //   [x] 0xae9c8  PS3_CKVideo_CloseStream_maybe
 //   [x] 0xaea40  PS3Video_InitRenderer_maybe
 //   [x] 0xaeab0  PS3_CKVideo_CreateArray
-//   [ ] 0xaeb60  Video_SetSystemBgmPlayback_maybe
+//   [ ] 0xaeb60  Video_SetSystemBgmPlayback_maybe  [dead: no pointer to its descriptor 0xb4a1d0, no call; cellSysutil BGM playback, platform code (C2.8 port-rest R02)]
 //   [x] 0xaec20  PS3_CKVideo_Update_maybe
 //   [x] 0xaed08  PS3_CKVideo_Stop_maybe
 //   [x] 0xaede0  PS3_CKVideo_Play_maybe
@@ -117,17 +117,18 @@
 //   [x] 0x9a0690  IKVideo_vf18  [inline]
 //   [x] 0x9a0698  PS3_CKVideo_SetGuid  [inline]
 //   [x] 0x9a06c8  IKVideo_vf8  [inline]
-//   [ ] 0x9a06e8  IKVideo_DeletingDestructor  [inline]
-//   [ ] 0x9a0728  IKVideo_vf0  [inline]
+//   [x] 0x9a06e8  IKVideo_DeletingDestructor  [inline]
+//   [x] 0x9a0728  IKVideo_vf0  [inline]
 //   [x] 0x9a0740  PS3_CKVideo_IsKindOfClass  [inline]
 //   [x] 0x9a0768  PS3_CKVideo_GetClassType  [inline]
 //   [x] 0x9a0770  PS3_CKVideo_GetClassID  [inline]
-//   [ ] 0x9a0778  PS3_CKVideo_DeletingDestructor  [inline]
-//   [ ] 0x9a07c0  PS3_CKVideo_Destructor  [inline]
+//   [x] 0x9a0778  PS3_CKVideo_DeletingDestructor  [inline]
+//   [x] 0x9a07c0  PS3_CKVideo_Destructor  [inline]
 #include "k2000/graphical/system/PS3_CKVideo.h"
 
 #include <cstdio>
 
+#include "Renderware/rwcore/RwIm3D.h"
 #include "Renderware/rwcore/RwTexture.h"
 #include "crt/ppc_ops.h"
 #include "k2000/graphical/system/CKVideoSegment.h"
@@ -163,18 +164,17 @@ float CameraContext_GetVideoPixelAspect() { return CameraContext_GetPixelAspect8
 CVideoManager* VideoManager() { return g_pEngine->m_videoManager; }
 CKGameLoop* GameLoop() { return g_pEngine->m_gameLoop; }
 
-// 0x0001e150 CKGameLoop_HasRequestedLevel_maybe: the game manager has a requested level (+0x280 != -1).
-bool GameLoop_HasRequestedLevel(CKGameLoop* loop) { return loop->m_gameManager->m_requestedLevel != -1; }
-// 0x0001e188 / 0x0001e198 CKGameLoop_IncPauseCount_maybe / _DecPauseCount_maybe (+0x20)
-void GameLoop_IncPauseCount(CKGameLoop* loop) { ++loop->m_inhibitCount; }
-void GameLoop_DecPauseCount(CKGameLoop* loop) { --loop->m_inhibitCount; }
+// 0x0001e150 CKGameLoop_HasRequestedLevel_maybe / 0x0001e188 _IncPauseCount_maybe / 0x0001e198 _DecPauseCount_maybe
+bool GameLoop_HasRequestedLevel(CKGameLoop* loop) { return loop->HasRequestedLevel(); }
+void GameLoop_IncPauseCount(CKGameLoop* loop) { loop->IncPauseCount(); }
+void GameLoop_DecPauseCount(CKGameLoop* loop) { loop->DecPauseCount(); }
 
 // IKGameManager vt+0xf4 (CKS08GameManager_vfF4 0x4ec878): whether the XMB background music may keep
 // playing during this video (0 in GameManager state 3, the logos; in state 5 only for videos other than
 // the demo video, vt+0xe0).
 uint8_t GameManager_AllowsBgmDuringVideo(IKVideo* video) { return g_pEngine->m_gameManager->AllowsBgmDuringVideo(video); }
 // IKGameManager vt+0x1c MessageProc(0x2501 = video started / 0x2502 = video stopped, video). The game
-// manager's handler (0x4fa438 CKS08GameManager_MessageProc) is STUB(C1.6): the base's returns 1.
+// manager's handler is 0x4fa438 CKS08GameManager_MessageProc (its HandleUIMessage part).
 void GameManager_VideoMessage(uint32_t message, IKVideo* video) {
     g_pEngine->m_gameManager->MessageProc(static_cast<uint16_t>(message), video);
 }
@@ -319,13 +319,34 @@ void IKVideo::ComputeDisplayRect() {
     m_fPosX = 0.0f;
 }
 
-// 0x000a9f50 PS3_CKVideo_SetRenderStates_maybe. The PS3 sets, through RwRenderStateSet: z test and z write
-// off, no texture raster, linear filtering, clamp addressing, Gouraud shading, no culling, no fog, alpha
-// test "always", then vertex alpha = (alpha level != 0xff) and the blend pair m_blendIndex of the blend
-// tables 0xc297ec / 0xc297fc (0: opaque, 1: SRCALPHA / INVSRCALPHA). Draw wraps them in Push/PopRenderStates.
-// STUB(C1.4 gfx): the render-state stack (0x9e590 / 0x9e858) is family gfx's; DrawVideoPlanes sets the
-// same GL state itself (blending from m_blendIndex), so nothing is recorded here.
-void IKVideo::SetRenderStates() {}
+// 0x000a9f50 PS3_CKVideo_SetRenderStates_maybe: z test and z write off, no texture raster, linear filtering, clamp
+// addressing, Gouraud shading, no culling, no fog, alpha test "always", then (alpha level below 0xff) vertex alpha on
+// and the blend pair m_blendIndex of the blend tables 0xc297ec / 0xc297fc (0: ONE / ZERO, 1: SRCALPHA /
+// INVSRCALPHA), or (opaque) that pair and vertex alpha off. Draw wraps them in Push/PopRenderStates. The frame quad
+// itself is the platform's PSGL replacement (DrawPSGLTexturedScreenQuad -> gfx DrawVideoPlanes), which sets the same
+// GL blend from m_blendIndex.
+void IKVideo::SetRenderStates() {
+    static const int32_t kBlendSrc[4] = {2, 5, 5, 1};   // 0x00c297ec
+    static const int32_t kBlendDest[4] = {1, 6, 2, 4};  // 0x00c297fc
+    RwRenderStateSet(rwRENDERSTATEZTESTENABLE, reinterpret_cast<void*>(0));
+    RwRenderStateSet(rwRENDERSTATEZWRITEENABLE, reinterpret_cast<void*>(0));
+    RwRenderStateSet(rwRENDERSTATETEXTURERASTER, nullptr);
+    RwRenderStateSet(rwRENDERSTATETEXTUREFILTER, reinterpret_cast<void*>(2));
+    RwRenderStateSet(rwRENDERSTATETEXTUREADDRESS, reinterpret_cast<void*>(3));
+    RwRenderStateSet(rwRENDERSTATESHADEMODE, reinterpret_cast<void*>(2));
+    RwRenderStateSet(rwRENDERSTATECULLMODE, reinterpret_cast<void*>(1));
+    RwRenderStateSet(rwRENDERSTATEFOGENABLE, reinterpret_cast<void*>(0));
+    RwRenderStateSet(rwRENDERSTATEALPHATESTFUNCTION, reinterpret_cast<void*>(8));
+    if (m_ui32AlphaLevel != 0xffu) {
+        RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, reinterpret_cast<void*>(1));
+        RwRenderStateSet(rwRENDERSTATESRCBLEND, reinterpret_cast<void*>(static_cast<intptr_t>(kBlendSrc[m_blendIndex])));
+        RwRenderStateSet(rwRENDERSTATEDESTBLEND, reinterpret_cast<void*>(static_cast<intptr_t>(kBlendDest[m_blendIndex])));
+        return;
+    }
+    RwRenderStateSet(rwRENDERSTATESRCBLEND, reinterpret_cast<void*>(static_cast<intptr_t>(kBlendSrc[m_blendIndex])));
+    RwRenderStateSet(rwRENDERSTATEDESTBLEND, reinterpret_cast<void*>(static_cast<intptr_t>(kBlendDest[m_blendIndex])));
+    RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, reinterpret_cast<void*>(0));
+}
 
 // 0x000aa370 PS3_CKVideo_SetFadeLevel_maybe
 void IKVideo::SetFadeLevel(uint32_t level) {
@@ -909,9 +930,11 @@ void PS3_CKVideo::Draw(IKTime* frameClock) {
     IKVideo::Draw(frameClock);
     BINK* bink = m_pBink;
     if (bink != nullptr && (m_baData & 0x200u) == 0 && (m_baData & 0x40u) == 0) {
-        SetRenderStates();  // between PushRenderStates / PopRenderStates (0x9e590 / 0x9e858) on the PS3
+        PushRenderStates(g_pRenderStateRenderer);
+        SetRenderStates();
         DrawPSGLTexturedScreenQuad(m_fPosX, m_fPosY, m_fScaleX, m_fScaleY, 1.0f, &m_frameBuffers, bink->Width,
                                    bink->Height, 0, m_blendIndex != 0);
+        PopRenderStates(g_pRenderStateRenderer);
     }
     StopIfEnded();
 }
@@ -965,4 +988,38 @@ void PS3_CKVideo_SetSpeechTrackVolume(float volume, IKVideo* video) {
         BinkSetVolume(video->m_pBink, track,
                       static_cast<int32_t>(ppc::fctiwz(static_cast<double>(volume) * static_cast<double>(kBinkVolumeScale))));
     }
+}
+
+#include "Renderware/rwcore/RwTexture.h"
+#include "k2000/core/IKInfo.h"
+#include "k2000/logic/CKSavingManager.h"
+
+// 0x000ab2c8 IKVideo_vf24
+void IKVideo::RecursiveRegistration(int32_t type) {
+    if (type == 0) {
+        g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+        // KStub_Return1_2361b0(&m_tsEndVideoTrigger, 0): the trigger starter registers nothing.
+        return;
+    }
+    if (type != 1) return;
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);
+}
+
+// 0x000abb50 PS3_CKVideo_GetInfo
+int32_t IKVideo::GetInfo(IKInfo* info, int32_t request) {
+    if (request == kGetInfoValueAccessor && info->m_ui32Id == 5) {
+        return AnswerInfo(
+            info, [](IKSerializable* self, uint32_t) { return static_cast<uint32_t>(static_cast<IKVideo*>(self)->GetPlaybackPosition()); },
+            1);
+    }
+    return 1;
+}
+
+// 0x000abc98 PS3_CKVideo_ReleaseTexture_maybe
+void IKVideo::ReleaseTexture() {
+    if ((m_baData & 0x40u) != 0) {
+        if (m_pTexture != nullptr) RwTextureDestroy(static_cast<RwTexture*>(m_pTexture));
+        m_pTexture = nullptr;
+    }
+    CloseStreamIfOpen();  // vt+0x58
 }

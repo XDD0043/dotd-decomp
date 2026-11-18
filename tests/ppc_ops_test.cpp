@@ -34,6 +34,37 @@ int main() {
         CHECK(ppc::fnmadds(a, b, c) == std::ldexp(1.0f, -46));
         CHECK(ppc::fnmsubs(a, b, 1.0f) == std::ldexp(1.0f, -46));
     }
+    // the hardware FMA path (DOTD_PPC_HW_FMA) gives the library's bits: random triples, half of them with c near -a*b
+    // (cancellation, halfway cases), plus specials (zeros, infinities, NaN payloads, subnormals, the largest finite)
+    {
+        static const uint32_t kSpecials[] = {0u,          0x80000000u, 0x7f800000u, 0xff800000u, 0x7fc00000u,
+                                             0x7fa00001u, 0xffc12345u, 1u,          0x80000001u, 0x007fffffu,
+                                             0x7f7fffffu, 0x00800000u, 0x3f800000u};
+        uint64_t state = 88172645463325252ull;
+        auto next = [&state]() {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            return state;
+        };
+        auto pick = [&]() {
+            uint32_t u = static_cast<uint32_t>(next());
+            if ((next() & 7) == 0) u = kSpecials[next() % (sizeof(kSpecials) / sizeof(kSpecials[0]))];
+            float f;
+            std::memcpy(&f, &u, 4);
+            return f;
+        };
+        int mismatches = 0;
+        for (int i = 0; i < 2000000; ++i) {
+            const float a = pick(), b = pick();
+            const float c = (i & 1) ? -static_cast<float>(static_cast<double>(a) * b) : pick();
+            if (bits(ppc::fmadds(a, b, c)) != bits(std::fmaf(a, b, c))) ++mismatches;
+            const double da = a, db = static_cast<double>(b) * 1.0000001, dc = c;
+            const double x = ppc::fmadd(da, db, dc), y = std::fma(da, db, dc);
+            if (std::memcmp(&x, &y, 8) != 0) ++mismatches;
+        }
+        CHECK(mismatches == 0);
+    }
     // fctiwz: truncation, saturation, NaN
     CHECK(ppc::fctiwz(1.9) == 1);
     CHECK(ppc::fctiwz(-1.9) == -1);

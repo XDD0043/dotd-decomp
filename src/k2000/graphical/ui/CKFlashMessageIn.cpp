@@ -18,7 +18,7 @@
 //   [x] 0x75108  CKFlashMessageIn_TriggerTargets_maybe
 //   [x] 0x75190  CKFlashMessageIn_PostLoad
 //   [x] 0x751b8  CKFlashMessageIn_Destroy
-//   [ ] 0x75200  CKFlashMessageIn_RecursiveRegistration
+//   [x] 0x75200  CKFlashMessageIn_RecursiveRegistration  (CKFlashMessageIn::RecursiveRegistration)
 //   [ ] 0x75288  CKFlashMessageIn_Save
 //   [x] 0x752b0  CKFlashMessageIn_Load
 //   [x] 0x75458  CKFlashMessageIn_DeletingDestructor
@@ -64,4 +64,13 @@ void CKFlashMessageIn::Destroy() {
 // 0x00075108 CKFlashMessageIn_TriggerTargets_maybe (XXL2 StartAllEvents)
 void CKFlashMessageIn::StartAllEvents() {
     for (uint32_t i = 0; i < m_ui32GenericEventNb; ++i) m_apGenericEvent[i]->Vf50();
+}
+
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
+
+// 0x00075200 CKFlashMessageIn_RecursiveRegistration
+void CKFlashMessageIn::RecursiveRegistration(int32_t type) {
+    IKFlashObject::RecursiveRegistration(type);
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);
 }

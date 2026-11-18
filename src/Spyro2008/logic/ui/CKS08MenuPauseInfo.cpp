@@ -6,8 +6,8 @@
 //   [x] 0x55f7a0  CKS08MenuPauseInfo_Delete
 //   [ ] 0x55f7f0  CKS08MenuPauseInfo_Construct  [dead]
 //   [x] 0x55f8b8  CKS08MenuPauseInfo_CheckContinueInput_maybe
-//   [ ] 0x55fa18  CKS08MenuPauseInfo_RecursiveRegistration
-//   [ ] 0x55fa88  CKS08MenuPauseInfo_Destroy
+//   [x] 0x55fa18  CKS08MenuPauseInfo_RecursiveRegistration
+//   [x] 0x55fa88  CKS08MenuPauseInfo_Destroy  (inherited: TocBridge_CKMenuBase_114c_maybe_Destroy)
 //   [x] 0x55fab0  CKS08MenuPauseInfo_DeleteArray
 //   [ ] 0x55fb50  RegisterCKS08MenuPauseInfoClass
 //   [ ] 0x55fbd8  _GLOBAL__D_55fbd8
@@ -203,4 +203,10 @@ uint8_t CKS08MenuPauseInfo::OnMenuState(int32_t phase, uint8_t /*other*/) {
         CheckContinueInput();
     }
     return static_cast<uint8_t>(GetMenuId());  // vt+0xe0
+}
+
+// 0x0055fa18 CKS08MenuPauseInfo_RecursiveRegistration: the referenced objects' registration, then the base.
+void CKS08MenuPauseInfo::RecursiveRegistration(int32_t type) {
+    m_pTimeScalingFx->RecursiveRegistration(type);
+    CKMenuBase114c::RecursiveRegistration(type);
 }

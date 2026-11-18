@@ -107,4 +107,10 @@ struct DecodedPlanes {
 bool GetDecodedPlanes(BINK* bink, DecodedPlanes* out);
 // Number of keyframes in the index (tests).
 uint32_t CountKeyFrames(BINK* bink);
+// Replays (debug, off by default): the PS3's Bink plays on real time and may skip frames to keep up with its audio
+// track, so the frame a video ends in is an input of a recording. A source answers for the current frame: +1 the
+// original's video ended in this frame (BinkWait says the frame is due and BinkShouldSkip says behind, so UpdateFrame
+// decodes through to the last frame now), -1 it did not (BinkWait holds the last frame back), 0 no answer.
+using BinkReplayEndSource = int32_t (*)();
+void SetBinkReplayEndSource(BinkReplayEndSource source);  // nullptr = off
 }  // namespace dotd::video

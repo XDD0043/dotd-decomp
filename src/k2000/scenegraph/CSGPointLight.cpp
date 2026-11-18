@@ -9,7 +9,7 @@
 //   [x] 0xd23c0  CSGPointLight_PostLoad
 //   [x] 0xd2418  CSGPointLight_Load
 //   [ ] 0xd2568  CSGPointLight_Save
-//   [ ] 0xd26c8  CSGPointLight_Destroy
+//   [x] 0xd26c8  CSGPointLight_Destroy
 //   [x] 0xd2710  CSGPointLight_DeleteArray
 //   [x] 0xd27b8  CSGPointLight_CreateArray
 //   [ ] 0xd2870  FUN_000d2870  [dead]
@@ -51,4 +51,12 @@ void CSGPointLight::UpdateAndExtract(float /*maxDistanceSquared*/, RenderQueue**
                                      int32_t /*distanceCull*/) {
     static_cast<CLightComponent*>(m_pLight)->UpdateColorAnimation(frameClock);
     if ((m_sgProperties & 4) == 0) m_ui16LastRenderedFrame = g_ui16RenderFrameCounter;
+}
+
+// C2.8 port-all P11.
+
+// 0x000d26c8 CSGPointLight_Destroy
+void CSGPointLight::Destroy() {
+    CSGLeaf::Destroy();  // 0x000ceda8
+    if (m_pLight != nullptr) m_pLight = nullptr;
 }

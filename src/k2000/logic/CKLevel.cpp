@@ -4,27 +4,27 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x2f078  CKLevel_Delete
+//   [x] 0x2f078  CKLevel_Delete  (stubs/BootStubs.cpp: new / delete)
 //   [x] 0x2f0c8  CKLevel_Construct  [dead]
-//   [ ] 0x2f120  CKLevel_RecursiveRegistration
+//   [x] 0x2f120  CKLevel_RecursiveRegistration  (1: the inherited default)
 //   [x] 0x2f128  CKLevel_ResetSectorState_maybe
 //   [x] 0x2f140  CKLevel_ClearLoadingSector
 //   [x] 0x2f150  CKLevel_IterateActiveSectors
 //   [ ] 0x2f1c8  CKLevel_PauseSectorServices_maybe  [dead]
 //   [ ] 0x2f2a0  CKLevel_ResumeSectorServices_maybe  [dead]
-//   [ ] 0x2f308  CKLevel_FindNonRecreableInstances
+//   [x] 0x2f308  CKLevel_FindNonRecreableInstances  (0: the inherited default)
 //   [ ] 0x2f310  CKLevel_NotifyGameLoopSectorLoadActivate_maybe  [dead]
 //   [ ] 0x2f3a0  CKLevel_NotifyGameLoopSectorDeactivateUnload_maybe  [dead]
-//   [ ] 0x2f430  CKLevel_Pause
-//   [ ] 0x2f438  CKLevel_Resume
-//   [ ] 0x2f440  CKLevel_Stop
+//   [x] 0x2f430  CKLevel_Pause  (empty)
+//   [x] 0x2f438  CKLevel_Resume  (empty)
+//   [x] 0x2f440  CKLevel_Stop
 //   [x] 0x2f450  CKLevel_GetDefaultSector_maybe
 //   [ ] 0x2f460  FUN_0002f460  [dead]
 //   [ ] 0x2f478  RegisterCKLevelClass
 //   [ ] 0x2f4f0  _GLOBAL__I_2f4f0
-//   [ ] 0x2f500  CKLevel_PostSectorLoad_maybe
-//   [ ] 0x2f590  Game_GetCurrentLevelNumber_maybe
-//   [ ] 0x2f5d8  CKLevel_DeleteArray
+//   [x] 0x2f500  CKLevel_PostSectorLoad_maybe
+//   [x] 0x2f590  Game_GetCurrentLevelNumber_maybe  (local copy)
+//   [x] 0x2f5d8  CKLevel_DeleteArray
 //   [x] 0x2f680  CKLevel_PostSectorUnload
 //   [x] 0x2f718  CKLevel_SectorUnload
 //   [x] 0x2f7d8  CKLevel_PreSectorLoaded
@@ -33,27 +33,27 @@
 //   [x] 0x2f968  CKLevel_Start
 //   [ ] 0x2fa28  CKLevel_FinishPendingSectorRequest_maybe  [dead]
 //   [ ] 0x2fae0  CKLevel_ResumeNonBaseSectorServices_maybe  [dead]
-//   [ ] 0x2fb80  CKLevel_GetInfo
+//   [x] 0x2fb80  CKLevel_GetInfo  (1: the inherited default)
 //   [ ] 0x2fb88  CKLevel_Save
 //   [x] 0x2fb90  CKLevel_PostLoad
 //   [x] 0x2fbc8  CKLevel_Destroy
-//   [ ] 0x2fc28  CKLevel_CreateArray
-//   [ ] 0x2fd30  CKLevel_Create
+//   [x] 0x2fc28  CKLevel_CreateArray
+//   [x] 0x2fd30  CKLevel_Create  (stubs/BootStubs.cpp: new / delete)
 //   [x] 0x2fdb0  CKLevel_Load
 //   [x] 0x300a8  CKLevel_SectorLoaded
-//   [ ] 0x30170  CKLevel_Restart
-//   [ ] 0x302b8  CKLevel_PostSectorLoadIfIdle_maybe
-//   [ ] 0x30378  CKLevel_RequestSector_maybe
+//   [x] 0x30170  CKLevel_Restart
+//   [x] 0x302b8  CKLevel_PostSectorLoadIfIdle_maybe
+//   [x] 0x30378  CKLevel_RequestSector_maybe
 //   [x] 0x30448  CKLevel_UnloadCurrentSector
 //   [x] 0x305d8  CKLevel_UpdateSectorStreaming
 //   [x] 0x306a0  CKLevel_UpdateUnloadSectors_maybe
-//   [ ] 0x308a8  CKLevel_StreamUntilSector_maybe
+//   [x] 0x308a8  CKLevel_StreamUntilSector_maybe
 //   [x] 0x30908  CKLevel_SwitchToSector
-//   [ ] 0x30a48  CKLevel_EnterSector_maybe
+//   [x] 0x30a48  CKLevel_EnterSector_maybe
 //   [ ] 0x30b88  CKLevel_SwitchToSectorContainingPoint_maybe  [dead]
 //   [x] 0x30c88  CKLevel_Update
-//   [ ] 0x31180  CKLevel_DeletingDestructor
-//   [ ] 0x31208  CKLevel_Destructor
+//   [x] 0x31180  CKLevel_DeletingDestructor
+//   [x] 0x31208  CKLevel_Destructor
 //   [ ] 0x31288  CKLevel_Destructor_2  [dead]
 //
 //   [ ] 0x993e88  CKLevel_GetClassType  [inline]
@@ -74,8 +74,11 @@
 #include "k2000/logic/CDefaultGameManager.h"
 #include "k2000/logic/GameVector.h"
 #include "k2000/managers/CKGraphic.h"
+#include "k2000/memory/Mem.h"
 #include "k2000/misc/CKGameLoop.h"
 #include "k2000/misc/Engine.h"
+#include "k2000/misc/JobQueue.h"
+#include "k2000/io/KHostFS.h"
 #include "k2000/render/CRenderer.h"
 
 // 0x0002f0c8 CKLevel_Construct (the same stores inlined in CKLevel_Create 0x2fd30)
@@ -93,6 +96,14 @@ CKLevel::CKLevel() {
     m_i32NumLoadingSector = -2;
     m_i32NumUnloadingSector = -2;
     m_ui32ProjectVersionNumber = 0;
+}
+
+// 0x00031208 CKLevel_Destructor (0x00031180 CKLevel_DeletingDestructor: the same, then the delete): the sector vector's
+// block freed, its length and block cleared (the inlined vector destructor).
+CKLevel::~CKLevel() {
+    if (m_vpSectors.m_pBlock != nullptr) Mem_FreeAligned16(m_vpSectors.m_pBlock);
+    m_vpSectors.m_ui32NbUsedElt = 0;
+    m_vpSectors.m_pBlock = nullptr;
 }
 
 // 0x0002fbc8 CKLevel_Destroy: no dynamic scene root, the sector list freed.
@@ -137,11 +148,10 @@ SectorRequest& RequestOf(CKLevel* level, int32_t sector) {
     return static_cast<CKSector*>(level->m_vpSectors.m_pBlock[sector])->m_request;
 }
 
-// 0x000cdb30 CSGBranch_RemoveChild_maybe (vt+0x78 of the main scene root): the sector's root taken off the
-// scene graph. STUB(C2.2): the scene graph's child lists (RwFrameRemoveChild, SceneNode_SetParent_maybe) are
-// not ported; only a sector made active by CKLevel_Update gets here, and that is not ported either.
-void RemoveSectorRoot(CSGSectorRoot* /*sectorRoot*/) {
-    DOTD_STUB_ONCE("CKLevel: CSGBranch_RemoveChild_maybe 0xcdb30 of the unloading sector's root (C2.2)");
+// The main scene root's vt+0x78 (0x000cdb30 CSGBranch_RemoveChild_maybe): the sector's root taken off the scene graph
+// (its frame out of the root's, out of the child list, no parent).
+void RemoveSectorRoot(CSGSectorRoot* sectorRoot) {
+    static_cast<CSGBranch*>(g_pEngine->m_mainSceneRoot)->RemoveChild(sectorRoot);
 }
 }  // namespace
 
@@ -206,8 +216,7 @@ uint8_t CKLevel::UnloadCurrentSector(int32_t /*unused*/) {
     if (sector == -2 || sector == 0) return 1;
     if ((static_cast<CKSector*>(m_vpSectors.m_pBlock[sector])->m_ba16Properties & 1) != 0) {
         // An active sector first tells the game loop (vt+0x8c SectorUnload and vt+0x90 PostSectorUnload with
-        // the sector) and takes its root off the main scene root (vt+0x78). Sectors other than the base one
-        // only become active in CKLevel_Update, which is not ported.
+        // the sector) and takes its root off the main scene root (vt+0x78).
         g_pEngine->m_gameLoop->SectorUnload(sector);
         g_pEngine->m_gameLoop->PostSectorUnload(sector);
         RemoveSectorRoot(static_cast<CKSector*>(m_vpSectors.m_pBlock[m_currentSector])->m_pSectorRoot);
@@ -300,6 +309,25 @@ void CKLevel::SectorLoaded(int32_t sector) {
     static_cast<CKTriggerSynchro*>(m_unk34)->FindSetForSector(sector)->SetEnabled(1);
 }
 
+// 0x00030170 CKLevel_Restart (vt+0x54): every sector (last to first) that is not kept (+0x06 bit 1) gets bit 2; then
+// each sector's trigger domain set is enabled when it is the base sector 0 or the current one, disabled otherwise
+// (only when its flag byte differs).
+// BUG(original): as in SectorLoaded, the set found for a sector is not tested.
+void CKLevel::Restart() {
+    for (uint32_t i = m_ui32NbSectors; i != 0; --i) {
+        CKSector* sector = static_cast<CKSector*>(m_vpSectors.m_pBlock[i - 1]);
+        if ((sector->m_ba16Properties & 2u) != 0) continue;
+        sector->m_ba16Properties = static_cast<uint16_t>(sector->m_ba16Properties | 4u);  // rlwinm 29,1,31 / 3,0,31 / ori 4
+    }
+    CKTriggerSynchro* synchro = static_cast<CKTriggerSynchro*>(m_unk34);
+    for (uint32_t i = 0; i < m_ui32NbSectors; ++i) {
+        const uint8_t enabled = (i == 0 || static_cast<int32_t>(i) == m_currentSector) ? 1 : 0;
+        if (enabled != synchro->FindSetForSector(static_cast<int32_t>(i))->m_unk10) {
+            synchro->FindSetForSector(static_cast<int32_t>(i))->SetEnabled(enabled);
+        }
+    }
+}
+
 // 0x00030c88 CKLevel_Update. The branches follow the assembly (the decompiler's gotos), see the notes below.
 void CKLevel::Update(IKTime* frameClock) {
     UpdateSectorStreaming();
@@ -366,4 +394,61 @@ void CKLevel::Update(IKTime* frameClock) {
         updating = static_cast<CKSector*>(m_vpSectors.m_pBlock[0]);
     }
     m_ba8GroundStateFlags &= 0xfc;
+}
+
+// 0x000308a8 CKLevel_StreamUntilSector_maybe
+uint8_t CKLevel::StreamUntilSector(void* level, int32_t /*id*/, void* sector) {
+    CKLevel* self = static_cast<CKLevel*>(level);
+    self->UpdateSectorStreaming();  // 0x000305d8
+    return self->m_currentSector == static_cast<int32_t>(reinterpret_cast<intptr_t>(sector)) ? 1 : 0;
+}
+
+// 0x00030a48 CKLevel_EnterSector_maybe
+uint8_t CKLevel::EnterSector(int32_t sector) {
+    if (m_currentSector == sector) return 1;
+    if (m_i32NumLoadingSector != sector) SwitchToSector(sector, 0);  // 0x00030908
+    const uint32_t state = static_cast<uint32_t>(KHostFS_GetInstance()->GetDeviceState()) - 3u;  // 0x00051990, 0x000519c8
+    if (state <= 4) {
+        static const int32_t kStateJobs[5] = {0xcc & 0xcf, 0xc8, 0xc9, 0xca, 0xca};  // jump table 0x30b0c
+        g_pEngine->m_jobQueue->PostAndWait(kStateJobs[state], 2, nullptr, &CKLevel::HostFsStateJobCallback, nullptr);
+        return 1;
+    }
+    g_pEngine->m_jobQueue->PostAndWait(0xcb, 2, this, &CKLevel::StreamUntilSector,
+                                       reinterpret_cast<void*>(static_cast<intptr_t>(sector)));
+    return 1;
+}
+
+// 0x0002fc28 CKLevel_CreateArray
+IKBaseClass* CKLevel::CreateArray(uint32_t count, uint16_t* elementSize) {
+    if (elementSize != nullptr) *elementSize = static_cast<uint16_t>(sizeof(CKLevel));
+    return new CKLevel[count];
+}
+
+// 0x0002f5d8 CKLevel_DeleteArray
+void CKLevel::DeleteArray(IKBaseClass* first) { delete[] static_cast<CKLevel*>(first); }
+
+// 0x0002f500 CKLevel_PostSectorLoad_maybe
+uint8_t CKLevel::PostSectorLoad(int32_t sector, int32_t wait) {
+    RequestOf(this, sector).Post(SectorRequest::kLoad);
+    if (wait != 0) RequestOf(this, sector).Wait();
+    return 1;
+}
+
+// 0x000302b8 CKLevel_PostSectorLoadIfIdle_maybe
+uint8_t CKLevel::PostSectorLoadIfIdle(int32_t sector, int32_t wait) {
+    if (m_i32NumUnloadingSector != -2) return 1;
+    RequestOf(this, sector).Post(SectorRequest::kLoad);
+    if (wait != 0) RequestOf(this, sector).Wait();
+    return 1;
+}
+
+// 0x00030378 CKLevel_RequestSector_maybe
+uint8_t CKLevel::RequestSector(int32_t sector) {
+    if (sector == -2) sector = m_defaultSector;
+    if (sector == 0 || sector == -2) return 1;
+    m_requestedSector = sector;
+    if (m_i32NumUnloadingSector != -2) return 1;
+    RequestOf(this, sector).Post(SectorRequest::kLoad);
+    RequestOf(this, sector).Wait();
+    return 1;
 }

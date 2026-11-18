@@ -7,9 +7,9 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x521a8  KMemoryManager_DumpBlockMapPPM_maybe
-//   [ ] 0x52310  MemHeap_FreeBlock_maybe
-//   [ ] 0x524e0  MemPool_AllocBestFit_maybe
+//   [ ] 0x521a8  KMemoryManager_DumpBlockMapPPM_maybe  [dead: no pointer to its descriptor; its only call is from the dead 0x52970 KMemoryManager_DumpBlockMapToFile_maybe]
+//   [ ] 0x52310  MemHeap_FreeBlock_maybe  [dead: no pointer to its descriptor; its calls are from the dead 0x52a18 / 0x53040 / 0x53300]
+//   [ ] 0x524e0  MemPool_AllocBestFit_maybe  [dead: no pointer to its descriptor; its calls are from the dead 0x52a58 / 0x53300]
 //   [ ] 0x527a0  KMemoryManager_LinearAllocNoLock_maybe  [dead]
 //   [ ] 0x527c8  KMemoryManager_ClearLinearActiveFlag_maybe  [dead]
 //   [ ] 0x527d8  KStub_Nop_527d8  [dead]

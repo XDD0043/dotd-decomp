@@ -15,6 +15,9 @@
 class CKS08GameState : public CKGameState {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x1e5)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9c71c0
+        return key == 0x794c || key == 0x32cc || key == 0x330c || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKS08GameState)
 
     // +0xd8 entries: 8 bytes on the PS3. Names ours.
@@ -25,13 +28,36 @@ public:
     };
 
     CKS08GameState();             // 0x0050b458 CKS08GameState_Construct
-    ~CKS08GameState() override {} // vt+0x00 / +0x04  0x50e928 / 0x50e560
+    ~CKS08GameState() override;   // vt+0x00 / +0x04  0x50e928 / 0x50e560
+    void RemoveObjectEntryAt(uint32_t index);           // 0x005095e0 CKS08GameState_RemoveObjectEntryAt_maybe
+    uint32_t AddObjectEntry(IKSerializable* object);    // 0x00509638 CKS08GameState_AddObjectEntry_maybe
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x0050d050 CKS08GameState_Load
+    // vt+0x28 0x0050bc78 CKS08GameState_Save (C2.8 save-menu): CKGameState's, then K_GAME_MEMCARD the mirror of Load's.
+    int32_t Save(IKFile* file, int32_t type) override;
     void InitializeGameData() override;                 // vt+0x58 0x00509ac0 (Ghidra CKS08GameState_vf58)
     // vt+0x5c 0x509a98 InitLevelData, vt+0x80 0x509740, +0x88 0x509718, +0xa4 0x5097b8 and +0xac 0x509768
-    // only call CKGameState's. Not ported: vt+0x10 0x509ea0, +0x60 0x509a70, +0x64 0x509808, +0x6c 0x50a710,
-    // +0x84, +0x8c, +0xa0, +0xa8, +0xc8..+0xd0 (STUB(C1.6)).
+    // only call CKGameState's.
+    void Destroy() override;              // vt+0x10 0x00509ea0 CKS08GameState_Destroy: CKGameState's (0x3dc38: IKGameObject's)
+    void DestroyLevelData() override;     // vt+0x60 0x00509a70 CKS08GameState_ClearLevelData: CKGameState's
+    // vt+0x64 0x00509808 CKS08GameState_ClearGameData_maybe: CKGameState's, then the +0xd8 list and the twelve byte
+    // lists freed and emptied.
+    void DestroyGameData() override;
+    // vt+0x6c 0x0050a710 CKS08GameState_ResetStateFlags_maybe: CKGameState's, then the counters back to their new-game
+    // values (InitializeGameData's), the twelve byte lists' bytes cleared, the +0xe4 bytes 3, +0x1ca 1, the rest 0.
+    void Vf6C() override;
+    // vt+0x84 0x0050a2c8 CKS08GameState_vf84: the +0xd8 entries whose object's level (KBase1D0C +0x18) is the stage
+    // removed leave the list (the last entry moves in), then CKGameState's.
+    void RemoveGameStage(uint32_t index) override;
+    void RemoveGameModule(uint32_t index) override;                            // vt+0x8c 0x005096f0: CKGameState's
+    void WriteStageData(IKFile* file, int32_t type, uint32_t index) override;   // vt+0xa0 0x005097e0: CKGameState's
+    void WriteModuleData(IKFile* file, int32_t type, uint32_t index) override;  // vt+0xa8 0x00509790: CKGameState's
+    // vt+0xc8 0x0050a8e0 CKS08GameState_vfC8 / vt+0xcc 0x0050a930 CKS08GameState_vfCC: every +0xd8 entry's object
+    // (a CKS08GameLevelCollectible) gets its collected byte (+0x1c) from the entry's state / cleared, from the last
+    // entry down. Names ours.
+    virtual void ApplyCollectibleStates();
+    virtual void ClearCollectibleStates();
+    virtual void VfD0() {}  // vt+0xd0 0x00509520 CKS08GameState_vfD0 (empty)
     // C1.6 gm: the state and the game structure (Spyro's counters, the collectibles, the unlock bytes).
     void ApplyToStructure() override;                     // vt+0x70 0x0050a9f0 (Ghidra CKS08GameState_ApplyToGame_maybe)
     void CopyFromStructure() override;                    // vt+0x78 0x0050afc8 (Ghidra CKS08GameState_CaptureFromGame_maybe)
@@ -77,4 +103,7 @@ DOTD_ASSERT_OFFSET(CKS08GameState, m_aUnk1CA, 0x1ca);
 // 0x0050f288 AddDragonPlayTime_maybe / 0x0050f2a8 AddPlayerSlotPlayTime_maybe (CKS08GameState.cpp): the play time
 // of dragon `index` (+0x144) / of player slot `index` (+0x14c) in the game structure (CKS08GameStructure) grows by `dt`.
 void AddDragonPlayTime(IKSerializable* structure, uint32_t index, float dt);
+// 0x0050f238 AddElementManaSpent_maybe (CKS08GameState.cpp): the mana dragon `dragon` (0 Spyro, else Cynder) spent on
+// element `element` (Spyro +0x11c, Cynder +0x130, a word each) grows by `amount`.
+void AddElementManaSpent(IKSerializable* structure, uint32_t dragon, uint32_t element, uint32_t amount);
 void AddPlayerSlotPlayTime(IKSerializable* structure, uint32_t index, float dt);

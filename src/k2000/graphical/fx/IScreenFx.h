@@ -27,7 +27,7 @@ public:
     // vt+0x58 / +0x5c: pure in IScreenFx (both are __cxa_pure_virtual in 0xb16d10; XXL2 declares
     // UpdateAndExtract and Render pure here).
     void UpdateAndExtract(float maxDistanceSquared, RenderQueue** stages, IKTime* frameClock, RwCamera* camera, int32_t distanceCull) override = 0;
-    void Render() override = 0;
+    void Render(IKTime* frameClock) override = 0;
     // vt+0x70 0x99c738: !(g_pEngine->m_graphic->m_renderer word +0xa4 & 2) (xori 2, bit 1): not while the world
     // stages are skipped.
     int32_t CanBeUpdated() override;

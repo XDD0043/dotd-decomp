@@ -7,13 +7,13 @@
 //   [ ] 0x2520c0  CKTransformationCpntUpdater_GetCpnt_maybe  [dead]
 //   [ ] 0x2520c8  RegisterCKTransformationCpntUpdaterClass
 //   [ ] 0x252140  _GLOBAL__I_252140
-//   [ ] 0x252150  Mat4_ApplyLocalTRSDelta_maybe
-//   [ ] 0x2524a8  Node_ApplyTRSDeltaToLocalMatrix_maybe
+//   [ ] 0x252150  Mat4_ApplyLocalTRSDelta_maybe  [dead: its only caller Node_ApplyTRSDeltaToLocalMatrix_maybe 0x2524a8 has no pointer to its descriptor]
+//   [ ] 0x2524a8  Node_ApplyTRSDeltaToLocalMatrix_maybe  [dead: no pointer to its descriptor 0xb84398]
 //   [ ] 0x2525b8  CKTransformationCpntUpdater_EvaluateRunning_maybe  [dead]
 //   [ ] 0x252670  CKTransformationCpntUpdater_Resume_maybe  [dead]
 //   [ ] 0x2526a8  CKTransformationCpntUpdater_Pause_maybe  [dead]
 //   [ ] 0x2526e0  CKTransformationCpntUpdater_Stop_maybe  [dead]
-//   [ ] 0x252718  CKTransformationCpntUpdater_Restart_maybe
+//   [x] 0x252718  CKTransformationCpntUpdater_Restart_maybe
 //   [x] 0x252750  CKTransformationCpntUpdater_DeleteArray
 //   [x] 0x2527f0  CKTransformationCpntUpdater_Create
 //   [ ] 0x252828  CKTransformationCpntUpdater_SetTransformationCpnt_maybe  [dead]
@@ -21,8 +21,8 @@
 //   [ ] 0x2528c0  CKTransformationCpntUpdater_Save
 //   [x] 0x2528c8  CKTransformationCpntUpdater_Load
 //   [x] 0x252958  CKTransformationCpntUpdater_PostLoad
-//   [ ] 0x252978  CKTransformationCpntUpdater_RecursiveRegistration
-//   [ ] 0x252980  CKTransformationCpntUpdater_Destroy
+//   [x] 0x252978  CKTransformationCpntUpdater_RecursiveRegistration  (returns 1, registers nothing: the default)
+//   [x] 0x252980  CKTransformationCpntUpdater_Destroy  (empty: the default)
 //   [ ] 0x252988  CKTransformationCpntUpdater_Evaluate_maybe  [dead]
 //
 //   [ ] 0x9ba620  CKTransformationCpntUpdater_IsKindOfClass  [inline]
@@ -46,4 +46,9 @@ int32_t CKTransformationCpntUpdater::PostLoad(int32_t type) {
     m_unk08 = 0;
     m_unk0c = 0.0f;
     return 1;
+}
+
+// 0x00252718 CKTransformationCpntUpdater_Restart_maybe
+void CKTransformationCpntUpdater::Restart() {
+    if (m_pTransformation != nullptr) m_pTransformation->StartUpdater(this);
 }

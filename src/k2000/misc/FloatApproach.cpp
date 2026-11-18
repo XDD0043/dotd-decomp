@@ -6,7 +6,7 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x2436e8  FloatApproach_Step
 //   [x] 0x243748  FloatApproach_StepAngle_maybe
-//   [ ] 0x243800  FloatApproachAccel_Step_maybe
+//   [x] 0x243800  FloatApproachAccel_Step_maybe  (FloatApproachAccel_Step; its callers (bridges, CKHkLedge_Update, CKHkPushKillObject) are not ported yet)
 //   [ ] 0x2438f8  FloatApproachAccel_StepAngle_maybe  [dead]
 //   [x] 0x243a10  Math_ApproachWithAccelDecel
 //   [x] 0x243c88  Math_ApproachAngleWithAccelDecel
@@ -19,7 +19,9 @@
 #include "crt/ppc_ops.h"
 
 // 0x002436e8 FloatApproach_Step: approach[2] moves towards approach[0] by dt * approach[1] (fmuls, then
-// fsubs / fadds) and stops on it; returns it.
+// fsubs / fadds) and stops on it; returns it. The end tests are blelr / bgelr (not greater / not less), so an unordered
+// compare (a NaN target) keeps the stepped value: the hero's speed turn divides a zero angle by a zero dt in a frozen
+// frame (the finisher pause) and the original keeps its turn speed.
 float FloatApproach_Step(float dt, float* approach) {
     const float target = approach[0];
     float current = approach[2];
@@ -28,13 +30,61 @@ float FloatApproach_Step(float dt, float* approach) {
     if (current < target) {
         current = current + step;
         approach[2] = current;
-        if (current <= target) return current;
+        if (!(current > target)) return current;  // blelr
     } else {
         current = current - step;
         approach[2] = current;
-        if (current >= target) return current;
+        if (!(current < target)) return current;  // bgelr
     }
     approach[2] = target;
+    return target;
+}
+
+// 0x00243800 FloatApproachAccel_Step_maybe. The branches as the original's (fcmpu: beq / bne, bge / ble / bgt), so that an
+// unordered compare goes the same way.
+float FloatApproachAccel_Step(float dt, float* state) {
+    const float target = state[0];
+    float current = state[4];
+    if (current == target) {  // beq
+        float speed = state[2];
+        if (!(speed > 0.0f)) return current;  // ble
+        speed = speed - dt * state[3];
+        state[2] = speed;
+        if (!(speed < 0.0f)) return current;  // bge
+        state[2] = 0.0f;
+        return current;
+    }
+    float speed = state[2];
+    const float top = state[1];
+    if (!(speed == top)) {  // bne
+        const float step = dt * state[3];
+        if (!(speed < top)) {  // bge
+            speed = speed - step;
+            state[2] = speed;
+            if (speed < top) {  // bge not taken
+                speed = top;
+                state[2] = top;
+            }
+        } else {
+            speed = speed + step;
+            state[2] = speed;
+            if (speed > top) {  // ble not taken
+                speed = top;
+                state[2] = top;
+            }
+        }
+    }
+    const float move = dt * speed;
+    if (target > current) {  // bgt
+        current = move + current;
+        state[4] = current;
+        if (!(current > target)) return current;  // ble
+    } else {
+        current = current - move;
+        state[4] = current;
+        if (!(current < target)) return current;  // bge
+    }
+    state[4] = target;
     return target;
 }
 
@@ -48,17 +98,18 @@ void FloatApproach_StepAngle(float dt, float* approach) {
     float difference = target - current;
     const float step = dt * approach[1];
     if (difference < 0.0f) difference = difference + kTwoPi;
-    if (difference <= kPi) {
-        if (step <= difference) {
+    // The tests as the original branches (blt to the target), so that an unordered compare takes a step.
+    if (difference <= kPi) {  // cror lt|eq
+        if (!(difference < step)) {
             const float next = current + step;
             approach[2] = next;
-            if (next >= kTwoPi) approach[2] = next - kTwoPi;
+            if (next >= kTwoPi) approach[2] = next - kTwoPi;  // cror gt|eq
             return;
         }
-    } else if (step <= kTwoPi - difference) {
+    } else if (!(kTwoPi - difference < step)) {
         const float next = current - step;
         approach[2] = next;
-        if (next < 0.0f) approach[2] = next + kTwoPi;
+        if (next < 0.0f) approach[2] = next + kTwoPi;  // bgelr returns when not less
         return;
     }
     approach[2] = approach[0];

@@ -4,6 +4,9 @@
 // in comments; the variant key +0x4c lives in CShaderManagerPSGL_2.cpp).
 #pragma once
 #include "k2000/core/IKUpdatable.h"
+#include "k2000/render/CKShaderRequestQueue.h"
+
+struct RpAtomic;
 
 class CShaderManagerPSGL : public IKUpdatable {
 public:
@@ -16,6 +19,16 @@ public:
 
     static IKBaseClass* Create();
     static void Delete(IKBaseClass* object);
+    // 0x00100978 CShaderManagerPSGL_CreateArray / 0x000ffca0 CShaderManagerPSGL_DeleteArray (the registry's array
+    // factories; CShaderManagerPSGL_2.cpp).
+    static IKBaseClass* CreateArray(uint32_t count, uint16_t* elementSize);
+    static void DeleteArray(IKBaseClass* first);
+    // vt+0x60 0x000ff888 CShaderManagerPSGL_CreateAtomicPipeline: +0x04 = 0, then the new pipeline (the constructor's
+    // call; CShaderManagerPSGL_2.cpp: a tag object, the RenderWare pipeline is not modelled).
+    void Vf60() override;
+    // vt+0x64 0x000ff6a8 CShaderManagerPSGL_UpdateProfileCapabilities_maybe: the profile part of the constructor (+0x44 0,
+    // +0x40 4, then the best profile mode and +0x44 when it reaches +0x3c; CShaderManagerPSGL_2.cpp).
+    void Vf64() override;
 
     void Start() override;   // vt+0x50 0x100640 CShaderManagerPSGL_ResetRuntime_maybe (cgCreateContext)
     void Stop() override {}
@@ -24,9 +37,21 @@ public:
     void Update(IKTime*) override {}
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0xffb58 CShaderManagerPSGL_Load
 
+    // vt+0x54 0x00100698 CShaderManagerPSGL_ReleaseShaderResources_maybe (CKGraphic_DestroyModule): the shader caches
+    // and the Cg context released (CShaderManagerPSGL_2.cpp).
+    void ReleaseShaderResources();
+
     // 0x000f8888 KBase11CD_vf2C: the base class's Load (KBase11CD, not modelled yet).
     int32_t LoadBase(IKFile* file, int32_t type);
 
+    // 0x000f8168 ShaderManagerPSGL_TryAssignOverride_maybe (CGeometry_SetupMaterialShader_maybe's first call): with the
+    // atomic pipeline (+0x45 and +0x04) 1, and an atomic without a skin takes that pipeline (+0x6c); a skinned one keeps
+    // the skin plugin's. 0 without the atomic pipeline.
+    int32_t TryAssignOverride(RpAtomic* atomic);
+
+    // +0x04 the atomic pipeline (RxPipeline*, CShaderManagerPSGL_CreateAtomicPipeline 0xff888: one PS3 all-in-one node);
+    // here a tag object (RpAtomicPSGL_Render draws every atomic the same way, Renderware/rpworld/RpAtomicPSGL.h).
+    void* m_pAtomicPipeline = nullptr;
     int32_t m_i32DefaultShaderMode = 6;  // +0x3c (ShaderSceneInputs::defaultShaderMode reads the same value)
     // +0x40 the best Cg profile mode: 6 when cgGLGetLatestProfile gives the RSX vertex and fragment profiles
     // (CG_PROFILE_SCE_VP_RSX 0x1b5b, CG_PROFILE_SCE_FP_RSX 0x1b5c), else 0.
@@ -41,6 +66,9 @@ public:
     // Read by the base's Load (PS3 offsets; the layout before them is not modelled yet).
     uint32_t m_unk64[6];  // +0x64 floats_maybe (LVL000: 0, -1, 0, 0, 1, 0)
     uint32_t m_unk7c[2];  // +0x7c floats_maybe (LVL000: 1, 0.2)
+    // +0x8508 the shader request queue (ConstructMembers 0xf9138 constructs it, CKGameLoop_ShutdownAndExit_maybe aborts and
+    // joins it, the destructor's DestructMembers 0xfa4c0 destroys it).
+    CKShaderRequestQueue m_requestQueue;
 };
 
 // 0x00c685e0
@@ -58,6 +86,11 @@ void DrawPSGLMeshPasses(RpDeviceMesh* mesh, uint32_t geometryFlags);
 
 // 0x000ff960 InstallPSGLMeshCallbacks (CShaderManagerPSGL_2.cpp): the pipelines' shader callbacks (the Im2D one here).
 void InstallPSGLMeshCallbacks(CShaderManagerPSGL* manager);
+// PLATFORM (perf, no PS3 counterpart: the PS3 loads its compiled programs from Shader/ps3/shfct.bin): the programs the
+// level used in earlier runs are built now, with their uniform bindings (platform/gfx/cg_program.h, the variant list),
+// and the variants built from here on are listed under the level. CKGameLoop's level load calls it once the level is
+// in, before its loading screen goes: play then does not stop for a shader build. Nothing without a GL device.
+void ShaderManagerPSGL_PrewarmLevelPrograms(int32_t level);
 
 // 0x000f7fd8 BeginRenderCameraUpdate: BeginCameraUpdateAndCacheShaderMatrices 0x247ff8 (RwCameraBeginUpdate, then with the
 // shader pipelines the view and projection copied into the shader matrix cache); the camera or null.

@@ -7,15 +7,15 @@
 //   [ ] 0x1895c8  RegisterCKSekensorCinematicBlocClass
 //   [ ] 0x189640  _GLOBAL__I_189640
 //   [x] 0x189650  CKSekensorCinematicBloc_Complete
-//   [ ] 0x189828  CKSekensorCinematicBloc_PostLoad
+//   [x] 0x189828  CKSekensorCinematicBloc_PostLoad  (= the inherited slot)
 //   [x] 0x189850  CKSekensorCinematicBloc_Load
 //   [ ] 0x189930  CKSekensorCinematicBloc_Save
-//   [ ] 0x189958  CKSekensorCinematicBloc_RecursiveRegistration
+//   [x] 0x189958  CKSekensorCinematicBloc_RecursiveRegistration
 //   [x] 0x1899e8  CKSekensorCinematicBloc_DeleteArray
 //   [x] 0x189a90  CKSekensorCinematicBloc_Create
 //   [x] 0x189ae8  CKSekensorCinematicBloc_Abort
 //   [x] 0x189b70  CKSekensorCinematicBloc_Update
-//   [ ] 0x189ca8  CKSekensorCinematicBloc_Destroy
+//   [x] 0x189ca8  CKSekensorCinematicBloc_Destroy  (empty: the default)
 //   [x] 0x189cb0  CKSekensorCinematicBloc_CreateArray
 //   [x] 0x189d68  CKSekensorCinematicBloc_Start
 //   [x] 0x18a0a8  CKSekensorCinematicBloc_Stop
@@ -27,6 +27,7 @@
 //   [ ] 0x9aa110  CKSekensorCinematicBloc_Destructor  [inline]
 //   [ ] 0x9aa130  CKSekensorCinematicBloc_DeletingDestructor  [inline]
 #include "k2000/cinematics/CKSekensorCinematicBloc.h"
+#include "k2000/logic/CKSavingManager.h"
 
 #include "k2000/logic/CKSekens.h"
 #include "k2000/misc/Engine.h"
@@ -91,4 +92,10 @@ void CKSekensorCinematicBloc::Abort() {
         if (Sekensor()->IsSekensDone(sekens) == 0) sekens->UsesSpeechStream();
         Sekensor()->StopSekens(sekens);
     }
+}
+
+// 0x00189958 CKSekensorCinematicBloc_RecursiveRegistration
+void CKSekensorCinematicBloc::RecursiveRegistration(int32_t type) {
+    if (static_cast<uint32_t>(type - 4) > 3u) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);
+    IKCinematicBloc::RecursiveRegistration(type);  // 0x0018e8d8
 }

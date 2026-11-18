@@ -8,6 +8,9 @@
 
 #include "k2000/core/IKSerializable.h"
 #include "k2000/core/Layout.h"
+#include "k2000/components/CKBonusData.h"
+
+struct CVector3;
 
 class CKBonusConfigType : public IKSerializable {
 public:
@@ -15,8 +18,11 @@ public:
 
     int32_t IsKindOfClass(uint32_t key) override { return key == 0x2c8c || key == 0xc; }  // vt+0x08 0x9a7088
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001274b8 CKBonusConfigType_2c8c_maybe_Load
-    // vt+0x50 pure (Ghidra *_GenerateSpawns_maybe; arguments unverified).
-    virtual void GenerateSpawns() = 0;
+    // vt+0x50 pure (Ghidra *_GenerateSpawns_maybe): the entry's spawns at `pos` around `dir` (velocities from `base`),
+    // started at once (`immediate`: CKSrvBonus vt+0xa8) or queued (BonusSpawnList_Add_maybe); `randomAngle` jitters
+    // each spawn's angle within its share.
+    virtual void GenerateSpawns(CKBonusData::Entry* entry, const CVector3* pos, const CVector3* dir, const CVector3* base,
+                                uint8_t immediate, uint8_t randomAngle) = 0;
     // vt+0x54 pure (Ghidra *_GetLayoutType_maybe): Cone returns 0, Star 1 (0x127480, dead, maps them
     // back to the keys 0x2d0c / 0x2f8c).
     virtual int32_t GetLayoutType() = 0;

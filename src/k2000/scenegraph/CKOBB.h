@@ -9,6 +9,9 @@
 class CKOBB : public IKBoundingBox {
 public:
     DOTD_CLASS_KEY(kCategoryNode, 0x12)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a45d8
+        return key == 0x48b || key == 0x40b || key == 0x34b || key == 0x20b || key == 0x14b || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKOBB)
 
     CKOBB() {}  // 0x000d7fe0 CKOBB_Create: CSGLeaf's constructor, +0x28 and +0x1c cleared, the vtables

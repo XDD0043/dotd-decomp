@@ -26,6 +26,9 @@ struct Program {
     uint32_t vertexShaderId = 0;  // index of the distinct vertex GLSL text (0-based, for statistics)
     uint32_t pixelShaderId = 0;
     std::string error;
+    // The web build only (background builds, below): the program is still being built; glProgram is 0 until it
+    // is ready, and what would be drawn with it is not drawn meanwhile.
+    bool building = false;
 };
 
 // The Cg sources (EBOOT.elf, read once). False with `error` when the file does not match.
@@ -46,5 +49,42 @@ struct Statistics {
 };
 Statistics GetStatistics();
 void DestroyPrograms();
+// Counts the DestroyPrograms calls: a Program* kept outside (ShaderVariant_GetProgram's cache by key) is valid only while
+// this has the value it had when the pointer was taken.
+uint32_t ProgramsGeneration();
+
+// ---- background builds (the web build; nothing happens natively) -------------------------------------------------------
+// WebGL builds a program far more slowly than a desktop driver (about 55 ms for a variant the browser has not seen,
+// 5 ms from its cache), and the browser builds in the background as long as nobody asks for the result. So on the web,
+// with KHR_parallel_shader_compile, GetProgram does not wait: it starts the build and answers a Program that is
+// `building` (glProgram 0: its draws are skipped, like a failed variant's); PollBuilds, once per frame (EndFrame),
+// completes the programs the browser has finished and starts the waiting ones (a variant's Cg translation is the
+// game's own time, about 3 ms: 8 ms of them per frame). FlushBuilds waits for all of them (PrewarmVariantGroup: a
+// loading screen is up).
+void PollBuilds();
+void FlushBuilds();
+
+// ---- the variant list (perf: no shader build in the middle of play) ---------------------------------------------------
+// A variant's first use translates, compiles and links its program: about 7 ms with the GPU driver's own shader cache
+// warm and 50 ms with it cold (a new driver, the first run), and a new part of a level brings ten or twenty variants in
+// one frame. The variant list is a text file outside the repository (the user's cache folder) that remembers which
+// variants (define lists) each group used; a group is a level number. The game calls PrewarmVariantGroup when a level
+// has loaded, while its loading screen is still up: the group's listed variants are built there, so from the second
+// visit on play finds its programs ready. The list only moves when a program is built: the programs, their uniforms and
+// what they draw are the same with and without it.
+//
+// The file: a first line "dotd-shader-variants 1", then one line per (group, variant): the group number, a tab, the
+// variant's define list as "name=value;name=value;...". A line that does not parse is ignored; a variant that no longer
+// translates only logs its error, as on a first use.
+//
+// EnableVariantList(path): turns the list on with that file (null or empty: the default file, shader-variants.txt in
+// %LOCALAPPDATA%\dotd\cache or ~/.cache/dotd). The environment variable DOTD_SHADER_LIST wins over the argument: a path,
+// or "off" for no list. Without a call and without the variable there is no list (the tests).
+void EnableVariantList(const char* path);
+// The group the variants built from now on are listed under (-1 at the start: not listed).
+void SetVariantGroup(int group);
+// Builds the programs of the group's listed variants that are not built yet and calls `built` (when given) with each
+// one that linked. Returns how many it built; 0 without a list or a GL device.
+int PrewarmVariantGroup(int group, void (*built)(const Program* program));
 
 }  // namespace dotd::gfx::cg

@@ -13,10 +13,18 @@
 class CKServiceLife : public IKService {
 public:
     DOTD_CLASS_KEY(kCategoryService, 0x1)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9adcb0
+        return key == 0x41 || key == 0x1 || key == 0x3fe || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKServiceLife)
 
     CKServiceLife();  // 0x001dee30 CKServiceLife_Construct
-    ~CKServiceLife() override {}
+    // 0x001dfaf0 CKServiceLife_Destructor (0x1dfa90 Destructor_2 the same, 0x1dfa28 DeletingDestructor + delete): the
+    // engine's life service cleared.
+    ~CKServiceLife() override;
+    // vt+0x24 0x001df058 CKServiceLife_RecursiveRegistration: type 4: every bundle of the list (linked through +0x04)
+    // gets RecursiveRegistration(4).
+    void RecursiveRegistration(int32_t type) override;
 
     void Destroy() override;  // vt+0x10 0x001ded90 CKServiceLife_Destroy
     // vt+0x2c 0x001df670 (Ghidra: DeserializeLifeServiceBundleHead). Reads for every type.

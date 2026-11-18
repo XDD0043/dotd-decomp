@@ -9,20 +9,20 @@
 //   [ ] 0x28230  _GLOBAL__D_28230
 //   [ ] 0x28240  _GLOBAL__I_28240
 //   [x] 0x28250  CKLoadingManager_ReadTexture
-//   [ ] 0x28308  CKLoadingManager_DeleteArray
+//   [x] 0x28308  CKLoadingManager_DeleteArray
 //   [x] 0x283a8  CKLoadingManager_UnloadSector
 //   [x] 0x28678  CKLoadingManager_UnloadLevel
-//   [ ] 0x286a0  CKLoadingManager_Construct
-//   [ ] 0x28740  CKLoadingManager_Construct_2
+//   [x] 0x286a0  CKLoadingManager_Construct
+//   [x] 0x28740  CKLoadingManager_Construct_2  (the same as 0x286a0 CKLoadingManager_Construct)
 //   [ ] 0x287e0  CKLoadingManager_FileExists_maybe  [dead]
-//   [ ] 0x28820  CKLoadingManager_GetObjectRefId
+//   [x] 0x28820  CKLoadingManager_GetObjectRefId
 //   [x] 0x28ad8  GetObjectDatabaseInstance
 //   [x] 0x28b70  CKLoadingManager_UnloadGameObjects
 //   [x] 0x28e30  CKLoadingManager_Destructor
-//   [ ] 0x28f08  CKLoadingManager_Destructor_2
-//   [ ] 0x28fe0  CKLoadingManager_DeletingDestructor
+//   [x] 0x28f08  CKLoadingManager_Destructor_2  (the C++ destructor chain: 0x28e30)
+//   [x] 0x28fe0  CKLoadingManager_DeletingDestructor  (the destructor; delete)
 //   [x] 0x290d0  CKLoadingManager_ReadSectorClassCounts
-//   [ ] 0x29280  CKLoadingManager_CreateArray
+//   [x] 0x29280  CKLoadingManager_CreateArray
 //   [x] 0x293c0  CKLoadingManager_Create
 //   [x] 0x29480  CKLoadingManager_ReadContiguousHandles
 //   [x] 0x295d8  CKLoadingManager_ReadHandle
@@ -31,8 +31,8 @@
 //   [x] 0x2a198  CKLoadingManager_LoadLevel
 //   [x] 0x2a2b8  CKLoadingManager_LoadSectorFile
 //   [x] 0x2a420  CKLoadingManager_LoadSector
-//   [ ] 0x2a558  CKLoadingManager_LoadObjectList
-//   [ ] 0x2a7c8  CKLoadingManager_LoadSavedObjects_maybe
+//   [x] 0x2a558  CKLoadingManager_LoadObjectList
+//   [x] 0x2a7c8  CKLoadingManager_LoadSavedObjects_maybe
 //   [x] 0x2a868  CKLoadingManager_LoadLocFile
 //   [x] 0x2ac30  CKLoadingManager_LoadGameFile
 //   [ ] 0x2b2c8  FUN_0002b2c8  [dead]
@@ -106,7 +106,8 @@ void TraceLoad(const char* path, IKFile* stream) {
 }
 }  // namespace
 
-// 0x000293c0 CKLoadingManager_Create (the constructor is inlined there)
+// 0x000286a0 CKLoadingManager_Construct / 0x00028740 CKLoadingManager_Construct_2 (inlined in 0x000293c0
+// CKLoadingManager_Create and 0x00029280 CreateArray): the members, then Engine_SetLoadingManager(this).
 CKLoadingManager::CKLoadingManager()
     : m_pTypeBundleLoad(nullptr),
       m_pIdBundleLoad(nullptr),
@@ -121,15 +122,21 @@ CKLoadingManager::CKLoadingManager()
       m_kGameGUID(),
       m_unk238(nullptr) {
     for (int32_t& state : m_aeStreamStates) state = 3;
+    Engine_SetLoadingManager(this);
 }
 
-IKBaseClass* CKLoadingManager::Create() {
-    CKLoadingManager* manager = new CKLoadingManager();
-    Engine_SetLoadingManager(manager);
-    return manager;
-}
+IKBaseClass* CKLoadingManager::Create() { return new CKLoadingManager(); }
 
 void CKLoadingManager::Delete(IKBaseClass* object) { delete object; }
+
+// 0x00029280 CKLoadingManager_CreateArray
+IKBaseClass* CKLoadingManager::CreateArray(uint32_t count, uint16_t* elementSize) {
+    if (elementSize != nullptr) *elementSize = static_cast<uint16_t>(sizeof(CKLoadingManager));
+    return new CKLoadingManager[count];
+}
+
+// 0x00028308 CKLoadingManager_DeleteArray
+void CKLoadingManager::DeleteArray(IKBaseClass* first) { delete[] static_cast<CKLoadingManager*>(first); }
 
 // 0x00028e30 CKLoadingManager_Destructor: m_unk238 released (an atomic decrement of its +4; the last
 // reference calls its deleting destructor).
@@ -263,6 +270,12 @@ uint32_t CKLoadingManager::LoadLevel(int32_t level) {
 
 // 0x00029e00 CKLoadingManager_LoadKp3Stream
 uint32_t CKLoadingManager::LoadKp3Stream(IKFile* stream, int8_t sector) {
+    // DEV: a sector's objects join Kp3_ForEachLoadedObject's list once the stream is loaded (it loads on the worker).
+    struct StagedLoad {
+        bool on;
+        explicit StagedLoad(bool staged) : on(staged) { if (on) Kp3_BeginStagedLoad(); }
+        ~StagedLoad() { if (on) Kp3_EndStagedLoad(); }
+    } staged(sector != -1);
     const int32_t mode = m_eSerializationType;
     stream->Seek(0, kSeekSet);
     m_i32NbLoadedInstances = 0;
@@ -528,6 +541,14 @@ uint8_t CKLoadingManager::UnloadSector(int8_t sector) {
         }
         // BUG(original): m_pIdBundleLoad keeps the freed pointer (the next ReadLevelClassTable replaces it).
         delete[] m_pIdBundleLoad;
+        // PORT: the game manager's five level references (+0x04, CDefaultGameManager_Load mode 0) keep pointing at the
+        // freed level objects until the next level's Load, and the original reads them in between (PS3PadDevice_Update
+        // -> GetControlledHeroCount, the hero group's count byte, when a pad is seen disconnected). A native free can
+        // unmap that memory (a rare access violation on a level change), so they are cleared here; the count read then
+        // falls back to 1, the single-player count the freed group held.
+        if (g_pEngine->m_gameManager != nullptr) {
+            for (IKSerializable*& reference : g_pEngine->m_gameManager->m_unk04) reference = nullptr;
+        }
     }
     if (m_pTypeBundleLoad != nullptr) {
         for (uint32_t category = kCategoryCount; category != 0; --category) m_pTypeBundleLoad[category - 1].m_pID = nullptr;
@@ -709,4 +730,79 @@ IKSerializable* CKLoadingManager::DecodeObjectId(uint32_t id) {
     if (kind <= 1) return nullptr;
     if ((record->m_ui32TyIdInst >> 17) == 1) return static_cast<IKSerializable*>(record->instances);
     return static_cast<IKSerializable**>(record->instances)[id >> 17];
+}
+
+// 0x00028820 CKLoadingManager_GetObjectRefId (C2.8 save-menu: the saves' object handles; the inverse of DecodeObjectId):
+// the object's class record (its category's slice, its class id); -3 for a class whose objects carry UUIDs; otherwise
+// category | class id << 6 | the object's index << 17 in its class (a global of count 1: no index; a global array: the
+// pointer list; a contiguous class: the array (m_ui16SizeOfClass apart), then the GAME objects this level adds data to);
+// -1 when it is not there.
+int32_t CKLoadingManager::GetObjectRefId(IKSerializable* object) {
+    if (object == nullptr) return -1;
+    const uint32_t category = static_cast<uint32_t>(object->GetClassType());  // vt+0x14
+    const uint32_t classId = static_cast<uint32_t>(object->GetClassID());     // vt+0x18
+    const CKIDBundleLoad& record = m_pTypeBundleLoad[category].m_pID[classId];
+    if (record.m_bIsGUID != 0) return -3;
+    const uint32_t base = category + ((classId << 6) & 0xffffffc0u);
+    uint32_t index = 0;
+    if (record.m_ui8StreamType == CKIDBundleLoad::kGlobal) {
+        const uint32_t count = record.m_ui16NbCommunInst;
+        if (count == 1) return record.instances == object ? static_cast<int32_t>(base) : -1;
+        if (count == 0) return -1;
+        IKSerializable* const* list = static_cast<IKSerializable* const*>(record.instances);
+        for (index = 0; index < count; ++index) {
+            if (list[index] == object) return static_cast<int32_t>(base + ((index << 17) & 0xfffe0000u));
+        }
+        return -1;
+    }
+    const uint32_t count = record.m_ui16NbCommunInst;
+    const uint8_t* instances = static_cast<const uint8_t*>(record.instances);
+    for (index = 0; index < count; ++index) {
+        if (instances + index * record.m_ui16SizeOfClass == reinterpret_cast<const uint8_t*>(object)) {
+            return static_cast<int32_t>(base + ((index << 17) & 0xfffe0000u));
+        }
+    }
+    const uint32_t gameCount = record.m_ui16NbGameInst;
+    for (index = 0; index < gameCount; ++index) {
+        if (record.m_apGameRecreableInstances[index] == object) {
+            return static_cast<int32_t>(base + ((index << 17) & 0xfffe0000u));
+        }
+    }
+    return -1;
+}
+
+// ==== C2.8 menus-load: the saved objects ===========================================================================
+#include "k2000/memory/Mem.h"
+
+// 0x0002a558 CKLoadingManager_LoadObjectList: the mode kept (+0x224, the handles decode by it), the count (a
+// little-endian word), then per object its handle (the stream's resolver, vt+0x24; without one the raw word), the end
+// offset skipped (Seek(4, SEEK_CUR)) and its Load(stream, mode) with the load nesting counted; then every object's
+// PostLoad(mode) in the same order. SaveObjects / WriteObjectList write that layout.
+int32_t CKLoadingManager::LoadObjectList(IKFile* stream, int32_t mode) {
+    m_eSerializationType = mode;
+    uint32_t count = 0;
+    ReadU32LE(stream, &count);
+    if (count == 0) return 1;
+    // count << 2 on the PS3 (4-byte pointers): the host block holds count host pointers.
+    IKSerializable** objects = static_cast<IKSerializable**>(Mem_AllocAligned16(count * static_cast<uint32_t>(sizeof(IKSerializable*))));  // 0x00053198
+    for (uint32_t i = 0; i < count; ++i) {
+        IKSerializable* object = nullptr;
+        IKFile_ReadObjectRef(stream, &object);
+        objects[i] = object;
+        stream->Seek(4, kSeekCur);  // vt+0x2c
+        ++g_loadProgress.nesting;
+        object->Load(stream, mode);  // vt+0x2c (no null test: a handle the tables do not hold would crash the PS3 too)
+        --g_loadProgress.nesting;
+    }
+    for (uint32_t i = 0; i < count; ++i) objects[i]->PostLoad(mode);  // vt+0x30
+    Mem_FreeAligned16(objects);  // 0x00052fb8
+    return 1;
+}
+
+// 0x0002a7c8 CKLoadingManager_LoadSavedObjects_maybe: the stream's Tell (vt+0x44) before and after, unused. Returns 1.
+int32_t CKLoadingManager::LoadSavedObjects(IKFile* stream, int32_t mode) {
+    stream->Tell();
+    LoadObjectList(stream, mode);
+    stream->Tell();
+    return 1;
 }

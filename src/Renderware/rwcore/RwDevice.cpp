@@ -2,6 +2,7 @@
 #include "Renderware/rwcore/RwDevice.h"
 
 #include <cmath>
+#include <cstddef>
 #include <cstring>
 #include <unordered_map>
 #include <vector>
@@ -12,6 +13,7 @@
 #include "Renderware/rwcore/RwIm3D.h"
 #include "Renderware/rwcore/RwTexture.h"
 #include "platform/gfx/device.h"
+#include "platform/gfx/raster.h"
 #include "platform/gfx/mesh.h"
 #include "platform/log.h"
 #include "platform/sdl/freecam.h"
@@ -24,136 +26,16 @@ RwCamera* g_camera = nullptr;
 // The camera rasters' device targets (RwDevice_RasterTarget) and the Im2D shader bind callback.
 std::unordered_map<const RwRaster*, uint32_t> g_rasterTargets;
 RwDeviceIm2DShaderBind g_im2dShaderBind = nullptr;
+// The Im3D shader bind callback (0xc4d674; the PS3 default is the nop 0x76b588: the device's program) and the PTank
+// draws' replacement of it.
+RwDeviceIm3DShaderBind g_im3dShaderBind = nullptr;
+RwDeviceIm3DShaderBind g_im3dShaderBindOverride = nullptr;
 // BeginPSGLCameraUpdate's saved z test / z write states of a camera without a z buffer (the driver's +0x14 / +0x18).
 RwInt32 g_savedZTest = 0;
 RwInt32 g_savedZWrite = 0;
 RwCamera* g_worldCameras[2] = {nullptr, nullptr};  // the cameras the debug free-fly camera replaces
 float g_cameraViewProj[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
 float g_cameraView[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};  // world -> camera, column-major
-
-uint32_t LoadLE32(const uint8_t* b) {
-    return static_cast<uint32_t>(b[0]) | (static_cast<uint32_t>(b[1]) << 8) | (static_cast<uint32_t>(b[2]) << 16) |
-           (static_cast<uint32_t>(b[3]) << 24);
-}
-
-int MaskShift(uint32_t mask) {
-    if (mask == 0) return 0;
-    int s = 0;
-    while (((mask >> s) & 1) == 0) ++s;
-    return s;
-}
-
-uint8_t MaskChannel(uint32_t pixel, uint32_t mask, uint8_t absent) {
-    if (mask == 0) return absent;
-    const int s = MaskShift(mask);
-    const uint32_t m = mask >> s;
-    return static_cast<uint8_t>(((pixel >> s) & m) * 255u / m);
-}
-
-// A DDS file's levels as device levels (first face only), or the RW Image's pixels.
-uint32_t CreateDdsRasterTexture(const RwShim_DdsRaster& raster);
-
-uint32_t CreateRasterTexture(const RwShim_DdsRaster& raster) {
-    const std::vector<uint8_t>& bytes = raster.bytes;
-    if (raster.width == 0 || raster.height == 0) return 0;
-    const bool isDds = bytes.size() >= 0x80 && std::memcmp(bytes.data(), "DDS ", 4) == 0;
-    if (!isDds) {
-        // RW Image (CManager2d's font atlases): 32-bit RGBA rows, or an 8-bit image (not in these files).
-        if (raster.bitsPerPixel != 32) {
-            DOTD_LOG("RwDevice: image raster %ux%u with %u bits per pixel not supported", raster.width, raster.height,
-                     raster.bitsPerPixel);
-            return 0;
-        }
-        const size_t need = static_cast<size_t>(raster.width) * raster.height * 4;
-        if (bytes.size() < need) return 0;
-        const gfx::TextureLevel level = {bytes.data(), need};
-        return gfx::CreateTexture(gfx::TextureFormat::kRGBA8, static_cast<int>(raster.width),
-                                  static_cast<int>(raster.height), 1, &level);
-    }
-    const uint32_t texture = CreateDdsRasterTexture(raster);
-    // 0x0073a8d8 RwStreamReadDDSRaster_maybe: glTexParameterf(GL_TEXTURE_MAX_LOD) = 1 + the halvings of the smaller side
-    // down to 16 texels (1.0 when it is 16 or less), so the mip levels below about 8 texels are not sampled.
-    int side = static_cast<int>(raster.width <= raster.height ? raster.width : raster.height);
-    float maxLod = 1.0f;  // library TOC -0x3594
-    if (side > 16) {
-        int count = 1;
-        while (side > 16) {
-            side >>= 1;
-            ++count;
-        }
-        maxLod = static_cast<float>(count);
-    }
-    if (texture != 0) gfx::SetTextureMaxLod(texture, maxLod);
-    return texture;
-}
-
-// The DDS file's levels as a device texture.
-uint32_t CreateDdsRasterTexture(const RwShim_DdsRaster& raster) {
-    const std::vector<uint8_t>& bytes = raster.bytes;
-    const uint8_t* header = bytes.data() + 4;
-    const uint8_t* data = bytes.data() + 0x80;
-    const size_t available = bytes.size() - 0x80;
-    std::vector<gfx::TextureLevel> levels;
-    uint32_t w = raster.width, h = raster.height;
-    size_t offset = 0;
-    if (raster.fourCC != 0) {
-        gfx::TextureFormat format;
-        uint32_t blockBytes = 16;
-        if (raster.fourCC == 0x31545844u) {  // DXT1
-            format = gfx::TextureFormat::kBC1;
-            blockBytes = 8;
-        } else if (raster.fourCC == 0x33545844u) {  // DXT3
-            format = gfx::TextureFormat::kBC2;
-        } else if (raster.fourCC == 0x35545844u) {  // DXT5
-            format = gfx::TextureFormat::kBC3;
-        } else {
-            DOTD_LOG("RwDevice: DDS fourCC %08x not supported", raster.fourCC);
-            return 0;
-        }
-        for (uint32_t m = 0; m < raster.mipCount; ++m) {
-            const size_t size = static_cast<size_t>((w + 3) / 4) * ((h + 3) / 4) * blockBytes;
-            if (offset + size > available) break;
-            levels.push_back(gfx::TextureLevel{data + offset, size});
-            offset += size;
-            w = w > 1 ? w >> 1 : 1;
-            h = h > 1 ? h >> 1 : 1;
-        }
-        if (levels.empty()) return 0;
-        return gfx::CreateTexture(format, static_cast<int>(raster.width), static_cast<int>(raster.height),
-                                  static_cast<int>(levels.size()), levels.data());
-    }
-    // Uncompressed: converted to RGBA8 by the pixel format's masks.
-    const uint32_t pfFlags = LoadLE32(header + 0x48 + 0x04);
-    const uint32_t bits = LoadLE32(header + 0x48 + 0x0c);
-    const uint32_t rMask = LoadLE32(header + 0x48 + 0x10);
-    const uint32_t gMask = LoadLE32(header + 0x48 + 0x14);
-    const uint32_t bMask = LoadLE32(header + 0x48 + 0x18);
-    const uint32_t aMask = (pfFlags & 1u) != 0 ? LoadLE32(header + 0x48 + 0x1c) : 0;
-    if (bits != 32 && bits != 24 && bits != 16 && bits != 8) return 0;
-    std::vector<std::vector<uint8_t>> converted;
-    for (uint32_t m = 0; m < raster.mipCount; ++m) {
-        const size_t pixels = static_cast<size_t>(w) * h;
-        const size_t size = pixels * bits / 8;
-        if (offset + size > available) break;
-        std::vector<uint8_t> rgba(pixels * 4);
-        for (size_t i = 0; i < pixels; ++i) {
-            uint32_t p = 0;
-            for (uint32_t k = 0; k < bits / 8; ++k) p |= static_cast<uint32_t>(data[offset + i * (bits / 8) + k]) << (8 * k);
-            rgba[i * 4 + 0] = MaskChannel(p, rMask, 0);
-            rgba[i * 4 + 1] = MaskChannel(p, gMask, 0);
-            rgba[i * 4 + 2] = MaskChannel(p, bMask, 0);
-            rgba[i * 4 + 3] = MaskChannel(p, aMask, 255);
-        }
-        converted.push_back(std::move(rgba));
-        offset += size;
-        w = w > 1 ? w >> 1 : 1;
-        h = h > 1 ? h >> 1 : 1;
-    }
-    for (const auto& level : converted) levels.push_back(gfx::TextureLevel{level.data(), level.size()});
-    if (levels.empty()) return 0;
-    return gfx::CreateTexture(gfx::TextureFormat::kRGBA8, static_cast<int>(raster.width),
-                              static_cast<int>(raster.height), static_cast<int>(levels.size()), levels.data());
-}
 
 gfx::Blend BlendOf(RwInt32 rw) {
     switch (rw) {  // rwBLEND*
@@ -181,23 +63,35 @@ gfx::Address AddressOf(RwInt32 rw) {
     }
 }
 
-// The render states as the PSGL driver applies them. "Vertex alpha" off disables blending; the alpha
-// test goes with it (RW's drivers enable the test only for blended draws).
-// The raster's rwRASTERFORMATMIPMAP: false for a camera texture (a render target), the DDS flag otherwise.
-bool RasterHasMipmaps(void* raster) {
-    if (g_rasterTargets.find(static_cast<const RwRaster*>(raster)) != g_rasterTargets.end()) return false;
-    return static_cast<const RwShim_DdsRaster*>(raster)->mipmapFormat;
-}
+// The render states as the PSGL driver applies them. "Vertex alpha" off disables blending; the alpha test does not go
+// with it: the PSGL alpha test function state (0x73c940) enables its GL cap (driver state +0x1a8 / +0x1ac) for any
+// function but ALWAYS (8) whatever the vertex alpha, and the vertex alpha state (0x73dc48) only switches the blend cap
+// (+0x1b0 / +0x1b4). (Coupled before: the pooled particle effects' PTanks, drawn with vertex alpha off and ONE / ZERO,
+// showed their textures' cut-out texels as the flat purple and pink quads of the fights.)
 
 gfx::DrawState StateOf(const RwIm3DRenderStates& s, void* raster) {
     gfx::DrawState d;
-    d.texture = raster != nullptr ? RwDevice_GetRasterTexture(static_cast<RwShim_DdsRaster*>(raster)) : 0;
+    // RwDevice_GetRasterTexture, with the raster's rwRASTERFORMATMIPMAP from the same search of the camera rasters (perf):
+    // false for a camera texture drawn into (a render target), cFormat bit 7 otherwise.
+    bool hasMipmaps = false;
+    if (raster != nullptr) {
+        const RwRaster* r = static_cast<const RwRaster*>(raster);
+        // perf: only a camera texture raster can be in g_rasterTargets (RwDevice_RasterTarget adds no other), so every
+        // other raster skips the search (two searches per bound texture of every mesh draw).
+        const auto camera = r->cType == rwRASTERTYPECAMERATEXTURE ? g_rasterTargets.find(r) : g_rasterTargets.end();
+        if (camera != g_rasterTargets.end()) {
+            d.texture = gfx::IsReady() ? gfx::RenderTargetTexture(camera->second) : 0;
+        } else {
+            d.texture = gfx::IsReady() ? gfx::RasterTextureDevice(r->psgl.texture) : 0;
+            hasMipmaps = (r->cFormat & 0x80) != 0;
+        }
+    }
     // rwFILTER*: 1 nearest, 2 linear, 3 mip nearest, 4 mip linear, 5 linear mip nearest, 6 linear mip linear
     RwInt32 filter = s.textureFilter;
     // 0x0073e048 RwPSGL_SetTextureFilterMode_maybe (and 0x0073df28 RwPSGL_SetRenderStateTextureFilter): a raster without
     // mip levels (rwRASTERFORMATMIPMAP clear: a camera texture, a DDS without DDSCAPS_MIPMAP) takes the mip modes 3 / 4 as
     // rwFILTERNEAREST and 5 / 6 as rwFILTERLINEAR; the GL filters are the driver's tables (gfx::DrawState::filterMode).
-    if (raster != nullptr && (filter >= 3 && filter <= 6) && !RasterHasMipmaps(raster)) filter = filter <= 4 ? 1 : 2;
+    if (raster != nullptr && (filter >= 3 && filter <= 6) && !hasMipmaps) filter = filter <= 4 ? 1 : 2;
     d.filterMode = static_cast<uint8_t>(filter >= 1 && filter <= 6 ? filter : 0);
     d.linear = !(filter == 1 || filter == 3 || filter == 5);
     d.mipmaps = filter >= 3 && filter <= 6;
@@ -206,7 +100,7 @@ gfx::DrawState StateOf(const RwIm3DRenderStates& s, void* raster) {
     d.blend = s.vertexAlphaEnable != 0;
     d.srcBlend = BlendOf(s.srcBlend);
     d.dstBlend = BlendOf(s.destBlend);
-    d.alphaTest = d.blend && s.alphaTestFunction != 8;
+    d.alphaTest = s.alphaTestFunction != 8;
     d.alphaFunc = static_cast<gfx::Compare>(s.alphaTestFunction >= 1 && s.alphaTestFunction <= 8 ? s.alphaTestFunction - 1 : 7);
     d.alphaRef = static_cast<float>(s.alphaTestFunctionRef) / 255.0f;
     d.depthTest = s.zTestEnable != 0;
@@ -233,19 +127,72 @@ gfx::Primitive PrimitiveOf(RwPrimitiveType type) {
     }
 }
 
+// A vertex for the shader manager's programs: POSITION (slot 0), COLOR0 (slot 3), TEXCOORD0 (slot 8).
+struct ShaderVertex {
+    float x, y, z;
+    uint8_t rgba[4];
+    float u, v;
+};
+
+// The shader inputs POSITION (slot 0), COLOR0 (slot 3) and TEXCOORD0 (slot 8) in a ShaderVertex.
+const gfx::MeshAttribute kShaderVertexAttributes[3] = {{0, 3, false, 0}, {3, 4, true, 12}, {8, 2, false, 16}};
+// The same inputs read straight from an RwIm3DVertex (objVertex +0x00, color +0x18 as R, G, B, A bytes, u +0x1c, v +0x20;
+// the normal is not an input): the values the program sees are those of the ShaderVertex copy (dotd perf: no copy).
+const gfx::MeshAttribute kIm3DVertexAttributes[3] = {{0, 3, false, 0}, {3, 4, true, 0x18}, {8, 2, false, 0x1c}};
+static_assert(sizeof(RwIm3DVertex) == 0x24 && offsetof(RwIm3DVertex, color) == 0x18 && offsetof(RwIm3DVertex, u) == 0x1c &&
+                  offsetof(RwIm3DVertex, v) == 0x20,
+              "RwIm3DVertex layout");
+
+// One draw through a program a shader bind callback bound (and filled): the vertices (numVertices of `stride` bytes, the
+// shader inputs at `attributes`) into the stream device mesh, the texture on unit 0 and the blend / depth / cull state, the
+// alpha test as the program's two uniforms (the function, 8 = always, and the reference), glDrawRangeElements /
+// glDrawArrays.
+void DrawThroughProgram(uint32_t program, RwPrimitiveType primType, const void* vertices, RwInt32 numVertices,
+                        uint32_t stride, const gfx::MeshAttribute* attributes, const RwImVertexIndex* indices,
+                        RwInt32 numIndices, const gfx::DrawState& state, int alphaFunc) {
+    // RwImVertexIndex is 32-bit: the indices go to the index buffer as they are.
+    static_assert(sizeof(RwImVertexIndex) == sizeof(uint32_t), "32-bit Im3D indices");
+    const size_t indexCount = indices != nullptr && numIndices > 0 ? static_cast<size_t>(numIndices) : 0;
+    // dotd perf: one stream mesh refilled per draw (gfx::StreamMesh) instead of a mesh created and deleted around it.
+    const uint32_t mesh = gfx::StreamMesh(vertices, static_cast<size_t>(numVertices) * stride, stride,
+                                          indexCount != 0 ? indices : nullptr, indexCount, attributes, 3);
+    gfx::BindTarget();
+    gfx::BindTextureUnit(0, state.texture, state);
+    gfx::ApplyState(state);
+    gfx::SetAlphaTest(program, alphaFunc, state.alphaRef);
+    uint32_t mode = 4;  // GL_TRIANGLES
+    switch (primType) {
+        case rwPRIMTYPELINELIST: mode = 1; break;
+        case rwPRIMTYPEPOLYLINE: mode = 3; break;
+        case rwPRIMTYPETRISTRIP: mode = 5; break;
+        case rwPRIMTYPETRIFAN: mode = 6; break;
+        default: break;
+    }
+    static const float kDefaults[16][4] = {{0, 0, 0, 1}, {1, 0, 0, 0}, {0, 0, 1, 0}, {1, 1, 1, 1}, {0, 0, 0, 1},
+                                           {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0},
+                                           {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0},
+                                           {0, 0, 0, 0}};
+    if (indexCount != 0) {
+        gfx::DrawMesh(mesh, mode, true, 0, static_cast<uint32_t>(numVertices - 1), static_cast<uint32_t>(indexCount), 0,
+                      kDefaults);
+    } else {
+        gfx::DrawMesh(mesh, mode, false, 0, 0, static_cast<uint32_t>(numVertices), 0, kDefaults);
+    }
+    gfx::UseProgram(0);
+}
+
 }  // namespace
 
-uint32_t RwDevice_GetRasterTexture(RwShim_DdsRaster* raster) {
+uint32_t RwDevice_GetRasterTexture(RwRaster* raster) {
     if (raster == nullptr || !gfx::IsReady()) return 0;
     // A camera raster set as a texture (RwTextureSetRaster with a camera texture, CKPBuffer's shared rasters, or the
-    // raster render state of DrawFullscreenRasterQuad): its render target's colour.
-    const auto camera = g_rasterTargets.find(reinterpret_cast<const RwRaster*>(raster));
-    if (camera != g_rasterTargets.end()) return gfx::RenderTargetTexture(camera->second);
-    if (!raster->deviceTried) {
-        raster->deviceTried = true;
-        raster->deviceTexture = CreateRasterTexture(*raster);
+    // raster render state of DrawFullscreenRasterQuad): its render target's colour. (perf: only a camera texture raster
+    // can be in the table, see StateOf.)
+    if (raster->cType == rwRASTERTYPECAMERATEXTURE) {
+        const auto camera = g_rasterTargets.find(raster);
+        if (camera != g_rasterTargets.end()) return gfx::RenderTargetTexture(camera->second);
     }
-    return raster->deviceTexture;
+    return gfx::RasterTextureDevice(raster->psgl.texture);  // the raster's GL texture
 }
 
 uint32_t RwDevice_RasterTarget(const RwRaster* raster) {
@@ -304,6 +251,8 @@ void RwDevice_EndCameraUpdate(RwCamera* camera) {
 }
 
 void RwDevice_SetIm2DShaderBindCallBack(RwDeviceIm2DShaderBind callback) { g_im2dShaderBind = callback; }
+void RwDevice_SetIm3DShaderBindCallBack(RwDeviceIm3DShaderBind callback) { g_im3dShaderBind = callback; }
+void RwDevice_SetIm3DShaderBindOverride(RwDeviceIm3DShaderBind bind) { g_im3dShaderBindOverride = bind; }
 
 RwMatrix RwDevice_CameraPose(const RwCamera* camera) {
     RwFrame* frame = RwCameraGetFrame(const_cast<RwCamera*>(camera));
@@ -441,12 +390,36 @@ dotd::gfx::DrawState RwDevice_TextureState(const RwTexture* texture) {
     return d;
 }
 
-void RwDevice_DrawIm3D(const RwIm3DDraw& draw) {
-    if (!gfx::IsReady() || draw.vertices.empty()) return;
-    std::vector<gfx::Vertex> vertices(draw.vertices.size());
-    for (size_t i = 0; i < draw.vertices.size(); ++i) {
-        const RwIm3DVertex& v = draw.vertices[i];
-        gfx::Vertex& o = vertices[i];
+void RwDevice_DrawIm3D(const RwIm3DDraw& draw, const RwIm3DVertex* vertices, size_t numVertices, const RwImVertexIndex* indices,
+                       size_t numIndices) {
+    if (!gfx::IsReady() || numVertices == 0) return;
+    // rwIM3D_VERTEXUV clear: the PSGL immediate pipeline sends no texture coordinates (texturing off).
+    void* raster = (draw.transformFlags & rwIM3D_VERTEXUV) != 0 ? draw.states.textureRaster : nullptr;
+    const gfx::DrawState state = StateOf(draw.states, raster);
+    // DrawPSGLImmediateGeometry 0x76b610: the shader bind callback first (the PTank draws: the programs their hook bound).
+    // With a program the object-space vertices go to it (glVertexPointer / glColorPointer / glTexCoordPointer at the
+    // shader's input slots; the LTM is in its world-view-projection uniform); the texture coordinates only with
+    // rwIM3D_VERTEXUV (the key then has no texture coordinate set and the program does not read them).
+    const RwDeviceIm3DShaderBind bind = g_im3dShaderBindOverride != nullptr ? g_im3dShaderBindOverride : g_im3dShaderBind;
+    const uint32_t program = bind != nullptr ? bind(draw) : 0;
+    // dotd perf: the device vertices are made after the bind (making them has no GL effect), and only for the device's
+    // own program (gfx::Vertex, in a buffer kept across draws); a bound program reads the RwIm3DVertex array as it is.
+    const size_t count = numVertices;
+    if (program != 0) {
+        if (draw.indexed && numIndices == 0) {
+            gfx::UseProgram(0);
+            return;
+        }
+        DrawThroughProgram(program, draw.primType, vertices, static_cast<RwInt32>(count), sizeof(RwIm3DVertex),
+                           kIm3DVertexAttributes, draw.indexed ? indices : nullptr, static_cast<RwInt32>(numIndices), state,
+                           state.alphaTest ? draw.states.alphaTestFunction : 8);
+        return;
+    }
+    static thread_local std::vector<gfx::Vertex> deviceVertices;
+    deviceVertices.resize(count);
+    for (size_t i = 0; i < count; ++i) {
+        const RwIm3DVertex& v = vertices[i];
+        gfx::Vertex& o = deviceVertices[i];
         o.x = v.objVertex.x;
         o.y = v.objVertex.y;
         o.z = v.objVertex.z;
@@ -457,19 +430,17 @@ void RwDevice_DrawIm3D(const RwIm3DDraw& draw) {
         o.u = v.u;
         o.v = v.v;
     }
-    // rwIM3D_VERTEXUV clear: the PSGL immediate pipeline sends no texture coordinates (texturing off).
-    void* raster = (draw.transformFlags & rwIM3D_VERTEXUV) != 0 ? draw.states.textureRaster : nullptr;
-    const gfx::DrawState state = StateOf(draw.states, raster);
     float model[16];
     if (draw.hasLtm) ToGl(draw.ltm, model);
-    std::vector<uint16_t> indices;
+    static thread_local std::vector<uint16_t> deviceIndices;
+    deviceIndices.clear();
     if (draw.indexed) {
-        indices.reserve(draw.indices.size());
-        for (RwImVertexIndex index : draw.indices) indices.push_back(static_cast<uint16_t>(index));
-        if (indices.empty()) return;
+        deviceIndices.reserve(numIndices);
+        for (size_t i = 0; i < numIndices; ++i) deviceIndices.push_back(static_cast<uint16_t>(indices[i]));
+        if (deviceIndices.empty()) return;
     }
-    gfx::DrawPrimitive(PrimitiveOf(draw.primType), vertices.data(), static_cast<int>(vertices.size()),
-                       draw.indexed ? indices.data() : nullptr, static_cast<int>(indices.size()),
+    gfx::DrawPrimitive(PrimitiveOf(draw.primType), deviceVertices.data(), static_cast<int>(deviceVertices.size()),
+                       draw.indexed ? deviceIndices.data() : nullptr, static_cast<int>(deviceIndices.size()),
                        draw.hasLtm ? model : nullptr, nullptr, state);
 }
 
@@ -573,15 +544,10 @@ void RwDevice_DrawIm2D(RwPrimitiveType primType, const RwIm2DVertex* vertices, R
     // the Im2D pass state. Attributes at the shader's input slots: POSITION 0, COLOR0 3, TEXCOORD0 8.
     const uint32_t program = g_im2dShaderBind != nullptr ? g_im2dShaderBind() : 0;
     if (program != 0) {
-        struct ClipVertex {
-            float x, y, z;
-            uint8_t rgba[4];
-            float u, v;
-        };
-        std::vector<ClipVertex> clip(static_cast<size_t>(numVertices));
+        std::vector<ShaderVertex> clip(static_cast<size_t>(numVertices));
         for (RwInt32 i = 0; i < numVertices; ++i) {
             const gfx::Vertex& o = out[static_cast<size_t>(i)];
-            ClipVertex& c = clip[static_cast<size_t>(i)];
+            ShaderVertex& c = clip[static_cast<size_t>(i)];
             c.x = o.x * (2.0f / w) - 1.0f;
             c.y = -(o.y * (2.0f / h) - 1.0f);
             c.z = vertices[i].z;
@@ -589,40 +555,8 @@ void RwDevice_DrawIm2D(RwPrimitiveType primType, const RwIm2DVertex* vertices, R
             c.u = o.u;
             c.v = o.v;
         }
-        static const gfx::MeshAttribute kAttributes[3] = {
-            {0, 3, false, 0}, {3, 4, true, 12}, {8, 2, false, 16}};
-        std::vector<uint32_t> idx32;
-        if (indices != nullptr) {
-            for (RwInt32 i = 0; i < numIndices; ++i) idx32.push_back(indices[i]);
-        }
-        const uint32_t mesh = gfx::CreateMesh(clip.data(), clip.size() * sizeof(ClipVertex), sizeof(ClipVertex),
-                                              idx32.empty() ? nullptr : idx32.data(), idx32.size(), kAttributes, 3);
-        gfx::BindTarget();
-        gfx::BindTextureUnit(0, state.texture, state);
-        gfx::ApplyState(state);
-        gfx::SetUniformInt(gfx::UniformLocation(program, "dotd_alphaFunc"), state.alphaTest ? states.alphaTestFunction : 8);
-        const float ref = state.alphaRef;
-        gfx::SetUniform(gfx::UniformLocation(program, "dotd_alphaRef"), "float", 1, &ref);
-        uint32_t mode = 4;  // GL_TRIANGLES
-        switch (primType) {
-            case rwPRIMTYPELINELIST: mode = 1; break;
-            case rwPRIMTYPEPOLYLINE: mode = 3; break;
-            case rwPRIMTYPETRISTRIP: mode = 5; break;
-            case rwPRIMTYPETRIFAN: mode = 6; break;
-            default: break;
-        }
-        static const float kDefaults[16][4] = {{0, 0, 0, 1}, {1, 0, 0, 0}, {0, 0, 1, 0}, {1, 1, 1, 1}, {0, 0, 0, 1},
-                                               {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0},
-                                               {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0},
-                                               {0, 0, 0, 0}};
-        if (!idx32.empty()) {
-            gfx::DrawMesh(mesh, mode, true, 0, static_cast<uint32_t>(numVertices - 1), static_cast<uint32_t>(idx32.size()), 0,
-                          kDefaults);
-        } else {
-            gfx::DrawMesh(mesh, mode, false, 0, 0, static_cast<uint32_t>(numVertices), 0, kDefaults);
-        }
-        gfx::DestroyMesh(mesh);
-        gfx::UseProgram(0);
+        DrawThroughProgram(program, primType, clip.data(), static_cast<RwInt32>(clip.size()), sizeof(ShaderVertex),
+                           kShaderVertexAttributes, indices, numIndices, state, state.alphaTest ? states.alphaTestFunction : 8);
         return;
     }
     std::vector<uint16_t> idx;

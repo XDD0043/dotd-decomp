@@ -230,6 +230,11 @@ void SetVoiceMasterLevel(float level) {
     S().voiceLevel = level;
 }
 
+float VoiceMasterLevel() {
+    Lock l;
+    return S().voiceLevel;
+}
+
 int32_t VoiceCreate() {
     Lock l;
     for (int32_t i = 0; i < kMaxVoices; ++i) {

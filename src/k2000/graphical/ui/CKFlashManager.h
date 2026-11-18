@@ -24,8 +24,9 @@ public:
     int32_t IsKindOfClass(uint32_t key) override { return key == 0x70d || key == 0xc; }  // vt+0x08 0x998cc0
     void Destroy() override;                                                // vt+0x10 0x0006d130 CKFlashManager_Destroy
     int32_t MessageProc(uint16_t, void*) override { return 1; }                            // vt+0x1c 0x6c798
-    // vt+0x24 0x6c738 CKFlashManager_RecursiveRegistration: with type 0, registers itself with the saving
-    // manager (engine +0x50 vt+0x24). STUB(C1.6): the saving manager is not ported.
+    // vt+0x24 0x0006c738 CKFlashManager_RecursiveRegistration: with type 0, registers itself with the saving
+    // manager (engine +0x50 vt+0x24, owner null).
+    void RecursiveRegistration(int32_t type) override;
     int32_t Load(IKFile* file, int32_t type) override;                      // vt+0x2c 0x0006cfa0 CKFlashManager_Load
     int32_t GetSerializationFlags() override { return 0; }                  // vt+0x34 0x998cb8
 

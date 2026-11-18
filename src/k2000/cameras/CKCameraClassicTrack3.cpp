@@ -17,14 +17,14 @@
 //   [x] 0x158428  CKCameraClassicTrack3_Deactivate_maybe
 //   [x] 0x158460  CKCameraClassicTrack3_PostLoad
 //   [ ] 0x158488  CKCameraClassicTrack3_Save
-//   [ ] 0x1584b0  CKCameraClassicTrack3_RecursiveRegistration
-//   [ ] 0x1584d8  CKCameraClassicTrack3_Destroy
+//   [x] 0x1584b0  CKCameraClassicTrack3_RecursiveRegistration  (inherited: IKCamera_LevelReset 0x144108, a tail call)
+//   [x] 0x1584d8  CKCameraClassicTrack3_Destroy  (inherited: CKCameraTrack_ClearReferences_BaseNop_maybe)
 //   [x] 0x158500  CKCameraClassicTrack3_Construct
 //   [x] 0x158568  CKCameraClassicTrack3_DeleteArray
-//   [ ] 0x158608  CKCameraClassicTrack3_BaseDestructor
-//   [ ] 0x158638  CKCameraClassicTrack3_DeletingDestructor
-//   [ ] 0x158680  CKCameraClassicTrack3_Destructor
-//   [ ] 0x1586b0  CKCameraClassicTrack3_Construct_2
+//   [x] 0x158608  CKCameraClassicTrack3_BaseDestructor  [dead: no pointer to its descriptor 0xb601a0, no call]  (C++ destructor chain: the vtable store, then IKCamera's (~CKCameraClassicTrack3))
+//   [x] 0x158638  CKCameraClassicTrack3_DeletingDestructor  (the deleting form of the implicit destructor)
+//   [x] 0x158680  CKCameraClassicTrack3_Destructor  (C++ destructor chain: vtable stores only)
+//   [x] 0x1586b0  CKCameraClassicTrack3_Construct_2  [dead: no pointer to its descriptor 0xb601d8, no call]  (the constructor: the same stores as 0x158500 CKCameraClassicTrack3_Construct)
 //   [x] 0x158718  CKCameraClassicTrack3_CreateArray
 //   [x] 0x158808  CKCameraClassicTrack3_Create
 //   [x] 0x158880  CKCameraClassicTrack3_Load
@@ -438,9 +438,8 @@ int32_t CKCameraClassicTrack3::PostLoad(int32_t /*type*/) {
 
 // 0x00158428 CKCameraClassicTrack3_Deactivate_maybe: CKCamera_StopAttachedFx_maybe (0x144238), then the current field of
 // view back to the loaded one.
-// STUB(C2.7, the FX service): CKCamera_StopAttachedFx_maybe is CKSrvFx_StopCameraFx_maybe 0x1affd8 on the attached fx (+0x50).
 void CKCameraClassicTrack3::Stop() {
-    if (m_unk50 != nullptr) DOTD_STUB_ONCE("CKCamera_StopAttachedFx_maybe: CKSrvFx_StopCameraFx_maybe 0x1affd8 (C2.7)");
+    StopAttachedFx();  // 0x00144238
     m_unk18 = m_fFov;
 }
 
@@ -2012,9 +2011,9 @@ void CKCameraClassicTrack3::ResolveViewObstructions(float dt, const CVector3* fo
 // from the camera service, the camera placed at the default distance from the focus in the direction of
 // `startPosition` (the service's real view direction, negated, without one) at the focus targets' pitch; the fov and
 // +0x44 approach states set up, the framing and the obstruction test run once and a blend started when there is a zone.
-// CKCamera_StartAttachedFx_maybe (0x1441e8): STUB(C2.7, the FX service), as in CKCamera::Start.
+// CKCamera_StartAttachedFx_maybe (0x1441e8) first, as in CKCamera::Start.
 void CKCameraClassicTrack3::Start(const CVector3* startPosition) {
-    if (m_unk50 != nullptr) DOTD_STUB_ONCE("CKCamera_StartAttachedFx_maybe: CKSrvFx_StartCameraFx_maybe 0x1afaf8 (C2.7)");
+    StartAttachedFx();  // 0x001441e8
     m_trackFlags = 0;
     ResetState();
     CKSrvCamera* camera = SrvCamera();

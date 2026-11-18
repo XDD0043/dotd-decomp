@@ -41,7 +41,7 @@ public:
     int32_t IsKindOfClass(uint32_t key) override { return key == 0xc0d || key == 0xc; }  // vt+0x08 0x998fc0
     void Destroy() override;                                                // vt+0x10 0x00072c30 CFlashHotSpot_Destroy
     void RecursiveRegistration(int32_t /*type*/) override {}                // vt+0x24 0x72af0 (returns 1)
-    int32_t Save(IKFile* /*file*/) override { return 1; }                   // vt+0x28 0x72ae8
+    int32_t Save(IKFile* /*file*/, int32_t /*type*/) override { return 1; }                   // vt+0x28 0x72ae8
     int32_t Load(IKFile* file, int32_t type) override;                      // vt+0x2c 0x00073068 CFlashHotSpot_Load
     int32_t PostLoad(int32_t type) override;                                // vt+0x30 0x00072af8 CFlashHotSpot_PostLoad
 

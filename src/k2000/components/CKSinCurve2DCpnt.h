@@ -14,11 +14,18 @@
 class CKSinCurve2DCpnt : public IKComponent {
 public:
     DOTD_CLASS_KEY(kCategoryComponent, 0x22)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9ba388
+        return key == 0x886 || key == 0x6 || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKSinCurve2DCpnt)
 
     using Point = CKCurve2DCpnt::Point;
 
     CKSinCurve2DCpnt();  // 0x0024ffb0 CKSinCurve2DCpnt_Create (the constructor is inlined there)
+    // 0x0024fde0 CKSinCurve2DCpnt_Destructor (0x24fe58 Destructor_2 the same, 0x250158 DeletingDestructor + delete): the
+    // amplitude then the frequency curve blocks freed (the fields left as they are). vt+0x10 0x24fed0 Destroy (empty)
+    // and vt+0x24 0x24fdd8 RecursiveRegistration (returns 1) are the defaults.
+    ~CKSinCurve2DCpnt() override;
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00250010 CKSinCurve2DCpnt_Load
 

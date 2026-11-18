@@ -4,16 +4,16 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x2b3bc8  CKS08EnemyCpnt_Delete
-//   [ ] 0x2b3c18  CKS08EnemyCpnt_PostLoad
+//   [x] 0x2b3c18  CKS08EnemyCpnt_PostLoad  (returns 1: IKSerializable's PostLoad inherited)
 //   [ ] 0x2b3c20  CKS08EnemyCpnt_Save
-//   [ ] 0x2b3c48  CKS08EnemyCpnt_RecursiveRegistration
-//   [ ] 0x2b3c70  CKS08EnemyCpnt_Destroy
+//   [x] 0x2b3c48  CKS08EnemyCpnt_RecursiveRegistration  (CKEnemyCpnt's: inherited)
+//   [x] 0x2b3c70  CKS08EnemyCpnt_Destroy  (CKEnemyCpnt_Destroy only: empty, the default)
 //   [x] 0x2b3c98  CKS08EnemyCpnt_DeleteArray
 //   [x] 0x2b3d38  CKS08EnemyCpnt_Create
 //   [ ] 0x2b3e18  RegisterCKS08EnemyCpntClass
 //   [ ] 0x2b3ea0  _GLOBAL__D_2b3ea0
 //   [ ] 0x2b3eb0  _GLOBAL__I_2b3eb0
-//   [ ] 0x2b3ec0  CKS08EnemyCpnt_GetAttackAnimTableEntryPtr_maybe
+//   [x] 0x2b3ec0  CKS08EnemyCpnt_GetAttackAnimTableEntryPtr_maybe  (GetAttackAnimBase)
 //   [x] 0x2b3f00  CKS08EnemyCpnt_CreateArray
 //   [x] 0x2b4060  CKS08EnemyCpnt_Load
 //
@@ -26,6 +26,7 @@
 
 #include "k2000/groups/TVectorPush.h"
 #include "k2000/io/IKFile.h"
+#include "Spyro2008/logic/CKS08EnemyAttack.h"
 #include "k2000/memory/Mem.h"
 
 namespace {
@@ -310,7 +311,7 @@ int32_t CKS08EnemyCpnt::Load(IKFile* file, int32_t type) {
     ReadF32LE(file, &m_unk4d0);
     ReadF32LE(file, &m_unk1cc);
     ReadF32LE(file, &m_unk4e4);
-    ReadU32LE(file, &m_unk4e8);
+    ReadF32LE(file, &m_unk4e8);
     ReadF32LE(file, &m_unk4ec);
     ReadF32LE(file, &m_unk360);
     ReadF32LE(file, &m_unk364);
@@ -356,4 +357,11 @@ int32_t CKS08EnemyCpnt::Load(IKFile* file, int32_t type) {
     ReadF32LE(file, &m_unk560);
     ReadF32LE(file, &m_unk564);
     return 1;
+}
+
+// 0x002b3ec0 CKS08EnemyCpnt_GetAttackAnimTableEntryPtr_maybe
+uint32_t CKS08EnemyCpnt::GetAttackAnimBase(uint32_t index) const {
+    static const uint32_t kTypeAnimBase[9] = {0x56, 0x55, 0x4f, 0x4d, 0x4d, 0x41, 0x3f, 0x55, 0x43};  // 0x00a70400
+    const CKS08EnemyAttack* attack = static_cast<const CKS08EnemyAttack*>(m_vUnk11c.m_pBlock[index]);
+    return kTypeAnimBase[m_unkb8] + static_cast<uint32_t>(attack->m_unk24) * 4u;
 }

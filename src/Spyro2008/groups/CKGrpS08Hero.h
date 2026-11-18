@@ -14,6 +14,9 @@ class CKHkS08Hero;
 class CKGrpS08Hero : public IKGrpHero {
 public:
     DOTD_CLASS_KEY(kCategoryGroup, 0x26)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9bd280
+        return key == 0x984 || key == 0x1544 || key == 0x17e || key == 0x4 || key == 0x2fe || key == 0x3fe || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKGrpS08Hero)
 
     // 0x002cf1b0 CKGrpS08Hero_Create (after the IKGrpHero constructor), in its order: 0.0f (TOC 0x1c28).
@@ -25,19 +28,37 @@ public:
         m_unk36c = 0.0f;
         m_unk368 = 0.0f;
         m_unka88 = 0;
-        m_unk370 = 0;
+        m_pAnnounced = nullptr;
     }
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x002d0b60 CKGrpS08Hero_Load
+    // vt+0x10 0x002cf410 CKGrpS08Hero_Destroy: IKGrpHero's, then the group off the dynamic service.
+    void Destroy() override;
+    // vt+0x40 0x002cf940 CKGrpS08Hero_GetInfo: IKGrpHero_GetInfo 0x2c8788 first (ids 0-3), then the trigger
+    // values 7 (+0xab8), 0xb (+0xf8 bit 10), 0xd the focused hero free (no combo), 0xf the focused dragon (+0x66),
+    // 0x13 (+0x2c8 bit 8), 0xc the average mana at least half, 0xe the fury gauge full.
+    int32_t GetInfo(IKInfo* info, int32_t request) override;
     // vt+0x30 0x002cf2e0 CKGrpS08Hero_PostLoad (step 4): the CKSrvDynamic entry of the hero pair's geometry.
     int32_t PostLoad(int32_t type) override;
     // C2.2 spyro: the level start.
     void Start() override;             // vt+0x50 0x002ceee8 CKGrpS08Hero_Start
     void Restart() override;           // vt+0x54 0x002d0a08 CKGrpS08Hero_Restart
     uint8_t GetHeroCount() override { return 2; }  // vt+0xf4 0x002ce318 GetCKGrpS08HeroCount
+    // 0x002ca188 CKGrpS08Hero_IsDragonSwitchPending_maybe (C2.8 sequence: the sequence manager's Update): +0xf8 bit 5.
+    uint8_t IsDragonSwitchPending() const { return static_cast<uint8_t>((m_unkf8 >> 5) & 1u); }
+    // vt+0x1c 0x002cfb68 CKGrpS08Hero_MessageProc: IKGrpHero's messages (0x2ce1f0: the commands 0xc00..0xc10,
+    // 0x2666), then the group's own 0xc11..0xc1f (+0x2c8 bits 8, 9, 11, 12, +0xfc, the heroes' +0xed4 bit 4).
+    int32_t MessageProc(uint16_t message, void* data) override;
+    int32_t HandleHeroCommand(uint32_t command, void* data);  // 0x002cde60 IKGrpHero_HandleCommandMessage_maybe
     // vt+0x100 0x002ce340 CKGrpS08Hero_vf100: the number of collision volumes of a hero (0x00a70458: 9, 9).
     uint8_t GetNbBoundingVolumes(uint8_t hero) { return kNbBoundingVolumes[hero]; }
     static constexpr uint8_t kNbBoundingVolumes[2] = {9, 9};
+    // vt+0xf8 0x002ce320 CKGrpS08Hero_vfF8 / vt+0x104 0x002ce350 CKGrpS08Hero_vf104 (P16, for IKHkHero's
+    // RecursiveRegistration): the hero's hot spot count (0x00a70448: 0x21, 0x1d) and object count (0x00a70460: 14, 14).
+    uint8_t GetNbHotSpots(uint8_t hero) { return kNbHotSpots[hero]; }
+    static constexpr uint8_t kNbHotSpots[2] = {0x21, 0x1d};
+    uint8_t GetNbObjects(uint8_t hero) { return kNbObjects[hero]; }
+    static constexpr uint8_t kNbObjects[2] = {0x0e, 0x0e};
     uint8_t GetHeroRuntimeBlockSize() override { return 0x34; }  // vt+0x10c 0x002ce370
     uint8_t GetNbInputActions() override { return 0x32; }        // vt+0x110 0x002ce378
     uint8_t GetNbExtraInputActions() override { return 2; }      // vt+0x114 0x002ce380
@@ -113,8 +134,16 @@ public:
     // CKGrpS08Hero_RequestDragonSelection_maybe: the dragon switch (+0x64 the selected dragon, +0x65 the requested one).
     uint8_t CanSwitchToDragon(uint8_t dragon);
     uint8_t IsDragonSelectable(uint8_t dragon);
+    // 0x002cb0a8 CKGrpS08Hero_FindNextSelectableHero_maybe without its filter (a member function pointer; null from
+    // CKHkS08Hero's message 0xc42): the next hero index after `start` (wrapping over vt+0xf4) that the player does
+    // not control and whose dragon is selectable (vt+0x188); -1 when none.
+    int8_t FindNextSelectableHero(int8_t start);
     void RequestDragonSelection(uint8_t selected, uint8_t requested, uint8_t flag6, uint8_t flag7, uint8_t immediate,
                                 uint8_t applyArg, uint8_t forceFlag8);
+    // 0x002ca740 CKGrpS08Hero_RequestDragonSelection_Thunk_maybe: RequestDragonSelection with the last two arguments 0.
+    void RequestDragonSelectionThunk(uint8_t selected, uint8_t requested, uint8_t flag6, uint8_t flag7, uint8_t immediate) {
+        RequestDragonSelection(selected, requested, flag6, flag7, immediate, 0, 0);
+    }
     // 0x002ceb30 CKGrpS08Hero_ApplyTetherPullToHero_maybe: the hero's external displacement (+0x1668) toward the
     // tether's middle when its distance to it (+0x314 / +0x318) is above half `maxDistance` (that distance is cut to
     // the half).
@@ -126,11 +155,19 @@ public:
     void UpdateHeroPairGeometry(float dt);
     // DOTD: CKSrvDynamic's native dispatcher of the group's entry (CKSrvDynamic::SetNativeDispatch).
     static void DispatchDynamicHook(IKSerializable* object, const uint32_t pair[2], float step);
+    // The external lock (CKHkS08Clamp holds the two heroes): +0x2c8 bit 0 and its owner (+0x2ec); while it is held the
+    // tether's middle (+0x2f0) is the owner's and the heroes have no tether (UpdateHeroPairGeometry).
+    // 0x002d4c30 / 0x002d4d10 / 0x002d4c40 / 0x002d4c78 CKGrpS08Hero_IsExternalLockFree / AcquireExternalLock /
+    // ReleaseExternalLock / SetExternalLockPosition_maybe (CKGrpS08Hero_2.cpp).
+    uint8_t IsExternalLockFree() const;
+    void AcquireExternalLock(const IKSerializable* owner);
+    void ReleaseExternalLock(const IKSerializable* owner);
+    void SetExternalLockPosition(const CVector3* position, const IKSerializable* owner);
     // 0x002d4d48 CKGrpS08Hero_IsGameManagerVf154Le1AndField36CNonNegative_maybe (CKGrpS08Hero_3.cpp): at most one
     // player (the game manager's vt+0x154) and +0x36c not negative.
     uint8_t IsSinglePlayerAndTimer36cSet();
     // step 6 AI: one record of the leader's follow trail at +0x380 (0x24 bytes, +0xa88 records; written by
-    // CKGrpS08Hero_RecordLeaderTrail_maybe 0x2d5be0, not ported: no caller ran in the traced windows).
+    // CKGrpS08Hero_RecordLeaderTrail_maybe 0x2d5be0: dead, no pointer to its descriptor).
     struct SFollowWaypoint {
         CVector3 m_vPosition;  // +0x00
         CVector3 m_vUnk0c;     // +0x0c
@@ -142,14 +179,21 @@ public:
     // 0x002d4fd8 CKGrpS08Hero_GetFollowTrailPoint_maybe (CKGrpS08Hero_3.cpp): the trail record +0xaa8 back from the end
     // when that index is above 0, else the last one; none (zero, 0xffff) for an empty trail.
     SFollowWaypoint GetFollowWaypoint() const;
-    // vt+0x180 0x002d6f90 CKGrpS08Hero_ProcessDragonSwitchRequest (CKGrpS08Hero_3.cpp; STUB).
+    // vt+0x180 0x002d6f90 CKGrpS08Hero_ProcessDragonSwitchRequest (CKGrpS08Hero_3.cpp).
     void ProcessDragonSwitchRequest(uint8_t arg);
+    // 0x002cc7c0 ApplyRequestedDragonSelection (CKGrpS08Hero.cpp): the requested dragon takes the selected one's player.
+    void ApplyRequestedDragonSelection(uint8_t applyArg);
     void UpdateHeroSpeechAnims(IKTime* clock);             // 0x002cb280
     void UpdateFlightAltitudeGap();                        // 0x002ce888
     void UpdateCoopFocusedDragon(IKTime* clock);           // 0x002d6c60 (CKGrpS08Hero_3.cpp)
     void SynchronizeHeroPlayerAssignments();               // 0x002d63f8 (CKGrpS08Hero_3.cpp)
     void UpdateFury(IKTime* clock);                        // 0x002d71f0 (CKGrpS08Hero_3.cpp)
     void UpdateTimers364(IKTime* clock);                   // 0x002d61b8 (CKGrpS08Hero_3.cpp)
+    // 0x002d5430 CKGrpS08Hero_AllowFinisherCamera_maybe: with at most one player and the announcer idle (+0x36c -1): a
+    // blow already announced refuses it (`lethal`: the blow is forgotten instead); else the announcer restarts (+0x364 0,
+    // +0x368 1, +0x36c +0x1c4 + +0x1c8 less a random part of +0x1c8 up to two, one draw; +0x374 0) and the blow is
+    // remembered (the oldest forgotten past +0x1d4 of them; none kept without +0x1d4): 1.
+    uint8_t AllowFinisherCamera(const void* blow, int32_t lethal);   // (CKGrpS08Hero_3.cpp)
     void UpdateSinglePlayerPartnerFlags();                 // 0x002d57a8 (CKGrpS08Hero_3.cpp)
     const SHeroStateRow* GetHeroStatesD() override;              // vt+0x13c 0x002ce3f8
     uint8_t GetNbHeroStatesD() override { return 0xb; }          // vt+0x140 0x002ce400
@@ -157,6 +201,73 @@ public:
     uint8_t GetNbHeroStatesA() override { return 0xb; }          // vt+0x148 0x002ce410
     const SHeroStateRow* GetHeroStatesB() override;              // vt+0x14c 0x002ce418
     uint8_t GetNbHeroStatesB() override { return 0xd; }          // vt+0x150 0x002ce420
+    // port-all P22: the group's small slots and helpers. The slots IKGrpHero does not declare stay non-virtual (the
+    // heroes read most of them through local copies: CKHkS08Hero_7 / _11 / _15 / _19, IKHkHero, CKGrpSquad,
+    // CKS08GameManager_2 / _3, CKHkS08Enemy_7 / _11).
+    // 0x002ca1b8 CKGrpS08Hero_SetDragonSwitchLocked_maybe: locking takes the selected dragon as the requested one (+0x64
+    // into +0x65) and clears the pending switch (+0xf8 bit 5); +0xf8 bit 1 = `locked` (the whole word or'ed in).
+    void SetDragonSwitchLocked(uint32_t locked) {
+        if (locked != 0) {
+            m_unk65 = m_unk64;
+            m_unkf8 &= ~0x20u;
+        }
+        m_unkf8 = (m_unkf8 & ~2u) | (locked << 1);
+    }
+    // 0x002ca258 CKGrpS08Hero_IsInputBlocked_maybe / 0x002ca268 SetInputBlocked_maybe: +0xf8 bit 3.
+    uint8_t IsInputBlocked() const { return static_cast<uint8_t>((m_unkf8 >> 3) & 1u); }
+    void SetInputBlocked(uint32_t blocked) { m_unkf8 = (m_unkf8 & ~8u) | (blocked << 3); }
+    // 0x002ca298 CKGrpS08Hero_vf16C_Thunk_maybe: vt+0x16c, sign-extended (CKHkPushObstacle / CKHkPushKillObject).
+    int8_t GetHotSpotIndexSigned(uint8_t hero, uint8_t part) { return static_cast<int8_t>(GetHotSpotIndex(hero, part)); }
+    // vt+0xb8 0x002ce308 CKGrpS08Hero_vfB8 returns 1 and vt+0xec 0x002ce310 CKGrpS08Hero_vfEC is empty: IKBaseGroup
+    // models no slot there and no ported code calls them (see CKCommonBaseGroup.h).
+    // vt+0xfc 0x002ce330 CKGrpS08Hero_vfFC (0x00a70450: 0x11, 0x11) and vt+0x108 0x002ce360 CKGrpS08Hero_vf108
+    // (0x00a70468: 13, 13): constants per hero. BUG(original): no bound checks.
+    uint8_t GetHeroTableFC(uint8_t hero) const {
+        static const uint8_t kValues[2] = {0x11, 0x11};
+        return kValues[hero];
+    }
+    uint8_t GetHeroTable108(uint8_t hero) const {
+        static const uint8_t kValues[2] = {0x0d, 0x0d};
+        return kValues[hero];
+    }
+    // vt+0x120 0x002ce3a8 CKGrpS08Hero_vf120 (0x00a70488: 1, 1) and vt+0x124 0x002ce3b8 CKGrpS08Hero_GetNbJumps_maybe
+    // (0x00a70490: 2, 2; IKHkHero.cpp / IKHkHero_2.cpp have copies).
+    uint8_t GetHeroTable120(uint8_t hero) const {
+        static const uint8_t kValues[2] = {1, 1};
+        return kValues[hero];
+    }
+    uint8_t GetNbJumps(uint8_t hero) const {
+        static const uint8_t kValues[2] = {2, 2};
+        return kValues[hero];
+    }
+    uint32_t GetHeroConst130() const { return 0x117; }  // vt+0x130 0x002ce3d8
+    uint32_t GetHeroConst138() const { return 0x61; }   // vt+0x138 0x002ce3f0
+    // vt+0x154 0x002ce428 CKGrpS08Hero_vf154: the signed byte [hero][kind] of the two 8-byte tables named at 0x00b01020
+    // (0x00ceadc8 / 0x00ceadd0: zero-filled data nothing writes). CKHkS08Hero_19.cpp's FootstepParticleIndex is a copy.
+    int8_t GetFootstepParticleIndex(uint8_t /*hero*/, uint8_t /*kind*/) const { return 0; }
+    uint32_t GetHeroConst15C() const { return 2; }      // vt+0x15c 0x002ce460
+    uint32_t GetHeroConst174() const { return 0; }      // vt+0x174 0x002ce4f0 (CKGrpS08Hero.cpp reads it as 0)
+    // vt+0x178 0x002ce4f8 CKGrpS08Hero_vf178: the hot spot of secondary shadow `index` of `hero` (0x00c40958 /
+    // 0x00c40960 through 0x00b01010; CKHkS08Hero_15.cpp's SecondaryShadowHotSpot is a copy). BUG(original): no bound
+    // checks.
+    int8_t GetSecondaryShadowHotSpot(uint8_t hero, uint32_t index) const {
+        static const int8_t kHotSpots[2][8] = {{4, 0x0e, 0x16, 0x17, 5, 0, 0, 0}, {4, 0x0e, 0x15, 0x16, 5, 0, 0, 0}};
+        return kHotSpots[hero][index];
+    }
+    int32_t GetHeroConst18C() const { return -1; }      // vt+0x18c 0x002ce4b0
+    // 0x002ce540 / 0x002ce560 / 0x002ce580 CKGrpS08Hero_GetTetherDampingRadius_maybe / SpringStiffness_maybe /
+    // DampingCoeff_maybe: +0x128 / +0x12c / +0x130 with +0xfc set, else +0x114 / +0x118 / +0x11c.
+    // 0x002d51e0 CKGrpS08Hero_ClearFollowTrail_maybe: no trail points (+0xa88 = 0; CKHkS08Hero_11.cpp has a copy).
+    void ClearFollowTrail() { m_unka88 = 0; }
+    float GetTetherDampingRadius() const { return m_unkfc != 0 ? m_unk128 : m_unk114; }
+    float GetTetherSpringStiffness() const { return m_unkfc != 0 ? m_unk12c : m_unk118; }
+    float GetTetherDampingCoeff() const { return m_unkfc != 0 ? m_unk130 : m_unk11c; }
+    // 0x002d4bc0 CKGrpS08Hero_GetFocusedHeroCamera_maybe: the focused hero's (+0x66) camera target (+0x1818)
+    // (CKS08GameManager::GetFocusedHeroCamera has it inline with its guard).
+    IKSerializable* GetFocusedHeroCamera() const;
+    // vt+0x24 0x002cef40 CKGrpS08Hero_RecursiveRegistration: IKGrpHero's, then the references' (+0x2cc, +0xabc, +0x348,
+    // +0x34c, +0x354, +0x358, +0x360; the trigger starters +0xab0, +0x338, +0x340, +0xac0 register nothing).
+    void RecursiveRegistration(int32_t type) override;
     void ReinitRuntime();              // 0x002c8f78 CKGrpS08Hero_ReinitRuntime
     // 0x002c8dc8 IKGrpHero_ResetRuntimeState_maybe: written on a CKGrpS08Hero (it clears +0xf8).
     void ResetRuntimeState();
@@ -164,6 +275,8 @@ public:
     // vt+0x184 0x002d52d8 CKGrpS08Hero_vf184 (C2.2 strict2; 0x2ca598 is its thunk): every hero registers its camera
     // target (CKHkS08Hero_UpdateModeFlagsAndTetherTimers_maybe).
     void UpdateHeroCameraTargets();
+    // 0x002d4cb8 CKGrpS08Hero_OnEnemyKilled_maybe: both heroes' kill bonus (CKHkS08Hero_GrantKillUpgradeBonus_maybe).
+    void OnEnemyKilled(IKSerializable* enemy);
     static uint8_t GetMaxPlayers();    // 0x002cabd8 GetMaxPlayers_maybe: the game manager's vt+0x150
 
     uint32_t m_unkf8;  // +0xf8 not loaded
@@ -288,7 +401,7 @@ public:
     float m_unk2c4;  // +0x2c4
     uint32_t m_unk2c8;  // +0x2c8 not loaded
     IKSerializable* m_pUnk2cc;  // +0x2cc reference (LVL010: CKQuakeCameraLauncher)
-    uint32_t m_unk2d0;       // +0x2d0 not loaded (Restart: 0)
+    float m_unk2d0;          // +0x2d0 not loaded (Restart: 0; ProcessDragonSwitchRequest: 2.0)
     uint32_t m_unk2d4[17];   // +0x2d4..+0x314 not loaded
     uint32_t m_unk318;       // +0x318 not loaded
     float m_unk31c;          // +0x31c not loaded (Restart copies m_unk178)
@@ -303,16 +416,22 @@ public:
     CTriggerStarter m_tsUnk340;  // +0x340
     IKSerializable* m_pUnk348;  // +0x348 reference (LVL010: CKFlashFxData)
     IKSerializable* m_pUnk34c;  // +0x34c reference (LVL010: CKFilterFxData)
-    uint32_t m_unk350;  // +0x350 not loaded
+    IKSerializable* m_unk350;  // +0x350 not loaded: the fury's filter effect (UpdateFury)
     IKSerializable* m_pUnk354;  // +0x354 reference (LVL010: CKExplosionFxData)
     IKSerializable* m_pUnk358;  // +0x358 reference (LVL010: CKHDRFxData)
-    uint32_t m_unk35c;  // +0x35c not loaded
+    IKSerializable* m_unk35c;  // +0x35c not loaded: the fury's HDR effect (UpdateFury)
     IKSerializable* m_pUnk360;  // +0x360 reference (LVL010: CKCurve2DCpnt)
     float m_unk364;  // +0x364 the constructor sets 0.0; not loaded
     float m_unk368;  // +0x368 the constructor sets 0.0; not loaded
     float m_unk36c;  // +0x36c the constructor sets 0.0; not loaded
-    uint32_t m_unk370;  // +0x370 the constructor sets 0; not loaded
-    uint32_t m_unk374;       // +0x374 not loaded (Restart: 0)
+    // +0x370 the blows whose finisher camera was shown (AllowFinisherCamera; FreeListPool 0x00ceaa20 nodes in the original,
+    // new / delete here): the constructor sets null; not loaded.
+    struct AnnouncedBlow {
+        const void* m_pBlow;     // +0x00
+        AnnouncedBlow* m_pNext;  // +0x04
+    };
+    AnnouncedBlow* m_pAnnounced;
+    float m_unk374;          // +0x374 not loaded (Restart: 0); the announcer time (UpdateTimers364 adds dt)
     uint32_t m_unk378;       // +0x378 not loaded
     uint32_t m_unk37c;       // +0x37c not loaded (Restart: 0)
     uint32_t m_unk380[450];  // +0x380..+0xa84 not loaded
@@ -471,7 +590,7 @@ DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_pUnk360, 0x360);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk364, 0x364);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk368, 0x368);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk36c, 0x36c);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk370, 0x370);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_pAnnounced, 0x370);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unka88, 0xa88);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_tsUnkab0, 0xab0);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_pUnkabc, 0xabc);

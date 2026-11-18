@@ -4,9 +4,9 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1fe788  CKShadowCpnt_Delete
-//   [ ] 0x1fe7d8  CKShadowCpnt_RecursiveRegistration
-//   [ ] 0x1fe7e0  CKShadowCpnt_SetFloat04_maybe
-//   [ ] 0x1fe7e8  CKShadowCpnt_SetFloat08_maybe
+//   [x] 0x1fe7d8  CKShadowCpnt_RecursiveRegistration  (returns 1, registers nothing: the default)
+//   [x] 0x1fe7e0  CKShadowCpnt_SetFloat04_maybe  (CKShadowCpnt::SetShadowLong (header))
+//   [x] 0x1fe7e8  CKShadowCpnt_SetFloat08_maybe  (CKShadowCpnt::SetShadowWidth (header))
 //   [ ] 0x1fe7f0  RegisterCKShadowCpntClass
 //   [ ] 0x1fe868  _GLOBAL__I_1fe868
 //   [ ] 0x1fe878  CKShadowCpnt_SetByte1Clamped_maybe  [dead]
@@ -15,9 +15,9 @@
 //   [x] 0x1fe9b0  CKShadowCpnt_Create
 //   [x] 0x1fe9e8  CKShadowCpnt_CreateArray
 //   [ ] 0x1fea78  CKShadowCpnt_Save
-//   [ ] 0x1fea80  CKShadowCpnt_Destroy
+//   [x] 0x1fea80  CKShadowCpnt_Destroy  (empty: the default)
 //   [x] 0x1fea88  CKShadowCpnt_Load
-//   [ ] 0x1fee10  KStub_Nop_1fee10
+//   [x] 0x1fee10  KStub_Nop_1fee10  (CKShadowSpot::Destroy, CKSrvShadow.h: empty)
 //
 //   [ ] 0x9b1180  CKShadowCpnt_IsKindOfClass  [inline]
 //   [x] 0x9b11a8  CKShadowCpnt_GetClassType  [inline]

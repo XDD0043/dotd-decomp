@@ -1,12 +1,13 @@
-**Approximately 29% ported** — based on tracked engine/game functions; some implementations still contain stubs (2026-10-28).
+**Every tracked engine/game function is ported** (16,444; 2026-11-17). LVL010 and LVL020 replay frame-exact against recordings of the original; the rest of the game is playable but not yet checked frame by frame.
 
 # Dawn of the Dragon remake (work in progress)
 
-![Dawn of the Dragon remake gameplay demo](docs/media/demo.mp4)
+![The remake running in a browser (WebAssembly + WebGL2)](docs/media/web-build.webp)
 
 A behaviour-exact reimplementation of *The Legend of Spyro: Dawn of the Dragon*
 (PS3, BLUS30205). This repository contains the `dotd` source, tests, build
-configuration and documentation.
+configuration, documentation and the build/run tools. It builds as a native
+Windows executable and as a WebAssembly + WebGL2 page.
 
 ## Build on Windows
 
@@ -37,6 +38,23 @@ git clone --depth 1 --branch n7.1.2 -c core.autocrlf=false https://github.com/FF
 
 See [thirdparty/README.md](thirdparty/README.md) for dependency details.
 
+`tools\build_release.bat` does the configure and Release build in one step
+(it finds Visual Studio with vswhere), and `tools\run_release.bat` starts the
+result. Keyboard: RPCS3's default pad layout (Enter START, X cross, C circle,
+Z square, V triangle, WASD move, arrows d-pad, Q/E L1/R1, R/T L2/R2, Space
+select); a gamepad works too. `--fps N` (or `fps = N` in `dotd.ini`) unlocks
+the frame rate; the default 60 is the original's timing.
+
+## Web build (WebAssembly + WebGL2)
+
+The same game code compiled with Emscripten. `tools\build_wasm.bat` builds it
+into `build/wasm` and `tools\run_wasm.bat` serves it on `http://localhost:8080/`,
+reading the game files from your own `USRDIR`. `tools\pack_wasm.bat` and
+`tools\run_wasm_download.bat` make and try a static-site folder whose page
+downloads the game data level by level. The zstd source is needed for that mode
+(see [thirdparty/README.md](thirdparty/README.md)). Details are in
+[web/README.md](web/README.md).
+
 ## Game data
 
 Supply your own copy of the game. Copy `dotd.ini.example` to `dotd.ini` in the
@@ -54,6 +72,8 @@ are kept separately.
 - `src/Renderware/`: the RenderWare portions used by the remake.
 - `src/crt/`: math, random-number and PPC instruction helpers.
 - `src/platform/`: platform replacements for the PS3 imports.
+- `web/`: the web page, its local server and the site packer.
+- `tools/`: Windows build and run launchers.
 - `tests/`: native tests; `docs/`: implementation plans and coding rules.
 
 ## Credits and acknowledgements

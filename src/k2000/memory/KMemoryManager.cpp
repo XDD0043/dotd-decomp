@@ -6,6 +6,6 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x12158  KMemoryManager_GetGlobal_maybe
-//   [ ] 0x12168  KStub_Nop_12168
+//   [x] 0x12158  KMemoryManager_GetGlobal_maybe  (KMemoryManager_GetGlobal, k2000/stubs/BootStubs.cpp: the never-constructed manager (null))
+//   [x] 0x12168  KStub_Nop_12168  (KStub_Nop_12168 (empty), k2000/stubs/BootStubs.cpp)
 //   [ ] 0x12170  KStub_Nop_12170  [dead]

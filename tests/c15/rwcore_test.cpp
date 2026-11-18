@@ -14,6 +14,7 @@
 #include "Renderware/rwcore/RwMatrix.h"
 #include "boot_helper.h"
 #include "crt/xsin.h"
+#include "k2000/math/Vec3.h"
 
 namespace {
 
@@ -175,6 +176,184 @@ void TestMultiply() {
     RwMatrixMultiply(&o, &a, &b2);
     C15_CHECK(o.pad3 == 0u);
     C15_CHECK(o.flags == 0x3u);
+}
+
+// RwMatrixMultiply's four-lane code (perf) against the scalar formula of the port (vmaddfp one lane at a time with
+// std::fmaf, the inputs' and the results' denormals flushed): random matrices with special values in the elements and in
+// the flags / pad words (zeros of both signs, denormals, infinities, quiet and signalling NaNs with payloads, huge and
+// tiny values, exact cancellations), in place (dst == a, dst == b) too. Every byte of the output must be the same.
+float MulRefFtz(float x) {
+    const uint32_t b = Bits(x);
+    float r;
+    const uint32_t w = (b & 0x7f800000u) == 0 ? (b & 0x80000000u) : b;
+    std::memcpy(&r, &w, 4);
+    return r;
+}
+float MulRefMadd(float a, float c, float b) { return MulRefFtz(std::fmaf(MulRefFtz(a), MulRefFtz(c), MulRefFtz(b))); }
+void MulRef(RwMatrix* out, const RwMatrix* a, const RwMatrix* b) {
+    float A[4][4], B[4][4], R[4][4];
+    std::memcpy(A, a, 64);
+    std::memcpy(B, b, 64);
+    for (int i = 0; i < 4; ++i) {
+        for (int k = 0; k < 4; ++k) {
+            float r = MulRefMadd(A[i][0], B[0][k], 0.0f);
+            r = MulRefMadd(B[1][k], A[i][1], r);
+            r = MulRefMadd(B[2][k], A[i][2], r);
+            if (i == 3) r = MulRefFtz(MulRefFtz(r) + MulRefFtz(B[3][k]));
+            R[i][k] = r;
+        }
+    }
+    std::memcpy(out, R, 64);
+    out->flags = a->flags & b->flags;  // (read after the stores: the caller passes copies for the in-place cases)
+}
+
+void TestMultiplyLanes() {
+    uint32_t state = 0x1234567u;
+    auto next = [&state]() {
+        state ^= state << 13;
+        state ^= state >> 17;
+        state ^= state << 5;
+        return state;
+    };
+    static const uint32_t kSpecial[] = {0x00000000u, 0x80000000u, 0x00000001u, 0x807fffffu, 0x00020003u, 0x00800000u,
+                                        0x7f7fffffu, 0xff7fffffu, 0x7f800000u, 0xff800000u, 0x7fc00000u, 0xffc12345u,
+                                        0x7f812345u, 0x3f800000u, 0xbf800000u, 0x3f000000u, 0x40490fdbu, 0x1e3ce508u,
+                                        0x6e3ce508u, 0x33800000u};
+    auto word = [&]() -> uint32_t {
+        const uint32_t r = next();
+        switch (r & 7u) {
+            case 0: return kSpecial[(r >> 3) % (sizeof kSpecial / sizeof kSpecial[0])];
+            case 1: return next();  // any bit pattern
+            case 2: {               // a small integer: exact products and cancellations
+                const float f = static_cast<float>(static_cast<int32_t>((r >> 3) % 17u) - 8);
+                return Bits(f);
+            }
+            default: {              // an ordinary value around 1
+                const float f = (static_cast<float>((r >> 3) & 0xffffu) / 65536.0f - 0.5f) * 8.0f;
+                return Bits(f);
+            }
+        }
+    };
+    int failures = 0;
+    for (int n = 0; n < 2000000 && failures < 5; ++n) {
+        RwMatrix a, b;
+        uint32_t wa[16], wb[16];
+        for (uint32_t& w : wa) w = word();
+        for (uint32_t& w : wb) w = word();
+        std::memcpy(&a, wa, 64);
+        std::memcpy(&b, wb, 64);
+        RwMatrix expected, got;
+        MulRef(&expected, &a, &b);
+        std::memset(&got, 0xcd, sizeof got);
+        RwMatrixMultiply(&got, &a, &b);
+        if (std::memcmp(&got, &expected, 64) != 0) ++failures;
+        // in place: dst == a (the flags are read after the stores: the right row's fourth lane), dst == b
+        RwMatrix inA = a;
+        RwMatrixMultiply(&inA, &inA, &b);
+        RwMatrix refA = expected;  // (MulRef's flags are a & b; in place they are the stored lane & b.flags)
+        {
+            // the stored fourth lane of the right row, before the flags overwrite it
+            float A[4][4], B[4][4];
+            std::memcpy(A, &a, 64);
+            std::memcpy(B, &b, 64);
+            float r = MulRefMadd(A[0][0], B[0][3], 0.0f);
+            r = MulRefMadd(B[1][3], A[0][1], r);
+            r = MulRefMadd(B[2][3], A[0][2], r);
+            refA.flags = Bits(r) & b.flags;
+        }
+        if (std::memcmp(&inA, &refA, 64) != 0) ++failures;
+        RwMatrix inB = b;
+        RwMatrixMultiply(&inB, &a, &inB);
+        RwMatrix refB = expected;
+        {
+            float A[4][4], B[4][4];
+            std::memcpy(A, &a, 64);
+            std::memcpy(B, &b, 64);
+            float r = MulRefMadd(A[0][0], B[0][3], 0.0f);
+            r = MulRefMadd(B[1][3], A[0][1], r);
+            r = MulRefMadd(B[2][3], A[0][2], r);
+            refB.flags = a.flags & Bits(r);
+        }
+        if (std::memcmp(&inB, &refB, 64) != 0) ++failures;
+    }
+    C15_CHECK(failures == 0);
+}
+
+// Bezier_SampleCurvePoints' eight-samples-at-a-time code (perf) against the scalar loop of the port (std::fmaf, one
+// sample after the other, its own work buffer): random control points with special values, 0 .. 70 control points
+// (the lanes handle 2 .. 64), 1 .. 40 samples. Every output byte must be the same, the one-control-point case included
+// (it returns the work buffer's first point, left by the call before).
+void BezierRef(int32_t count, const CVector3* points, int32_t samples, CVector3* out) {
+    static CVector3 buffer[1365];
+    const float step = 1.0f / static_cast<float>(static_cast<double>(samples - 1));
+    if (samples - 1 == -1) return;
+    float t = 0.0f;
+    for (int32_t i = 0;; ++out) {
+        int32_t first = count - 1;
+        if (first > 1365) first = 1365;
+        for (int32_t j = 0; j < first; ++j) {
+            const CVector3& a = points[j];
+            const CVector3& b = points[j + 1];
+            buffer[j].z = std::fmaf(b.z - a.z, t, a.z);
+            buffer[j].x = std::fmaf(b.x - a.x, t, a.x);
+            buffer[j].y = std::fmaf(b.y - a.y, t, a.y);
+        }
+        for (int32_t n = count - 2; n != -1 && n >= -1; --n) {
+            for (int32_t j = 0; j < n && j < 1364; ++j) {
+                const CVector3 a = buffer[j];
+                buffer[j].z = std::fmaf(buffer[j + 1].z - a.z, t, a.z);
+                buffer[j].x = std::fmaf(buffer[j + 1].x - a.x, t, a.x);
+                buffer[j].y = std::fmaf(buffer[j + 1].y - a.y, t, a.y);
+            }
+        }
+        out->x = buffer[0].x;
+        out->y = buffer[0].y;
+        out->z = buffer[0].z;
+        if (++i == samples) break;
+        t = t + step;
+    }
+}
+
+void TestBezierLanes() {
+    uint32_t state = 0x2468aceu;
+    auto next = [&state]() {
+        state ^= state << 13;
+        state ^= state >> 17;
+        state ^= state << 5;
+        return state;
+    };
+    static const uint32_t kSpecial[] = {0x00000000u, 0x80000000u, 0x00000001u, 0x807fffffu, 0x00800000u, 0x7f7fffffu,
+                                        0xff7fffffu, 0x7f800000u, 0xff800000u, 0x7fc00000u, 0xffc12345u, 0x7f812345u,
+                                        0x3f800000u, 0xbf800000u, 0x6e3ce508u, 0x1e3ce508u};
+    int failures = 0;
+    for (int n = 0; n < 60000 && failures < 5; ++n) {
+        const int32_t count = static_cast<int32_t>(next() % 71u);
+        const int32_t samples = 1 + static_cast<int32_t>(next() % 40u);
+        // one run in eight has special values, one in sixteen any bit pattern; the others are positions as a trail has
+        const uint32_t kind = next() & 15u;
+        std::vector<CVector3> points(static_cast<size_t>(count > 0 ? count : 1));
+        for (CVector3& p : points) {
+            float v[3];
+            for (float& f : v) {
+                const uint32_t r = next();
+                uint32_t bits;
+                if (kind == 0 && (r & 3u) == 0) bits = next();
+                else if (kind <= 2 && (r & 7u) == 0) bits = kSpecial[(r >> 3) % (sizeof kSpecial / sizeof kSpecial[0])];
+                else bits = Bits((static_cast<float>((r >> 8) & 0xffffu) / 65536.0f - 0.5f) * 400.0f);
+                std::memcpy(&f, &bits, 4);
+            }
+            p.x = v[0];
+            p.y = v[1];
+            p.z = v[2];
+        }
+        std::vector<CVector3> expected(static_cast<size_t>(samples)), got(static_cast<size_t>(samples));
+        std::memset(expected.data(), 0x5a, expected.size() * sizeof(CVector3));
+        std::memset(got.data(), 0x5a, got.size() * sizeof(CVector3));
+        BezierRef(count, points.data(), samples, expected.data());
+        Bezier_SampleCurvePoints(count, points.data(), samples, got.data());
+        if (std::memcmp(expected.data(), got.data(), expected.size() * sizeof(CVector3)) != 0) ++failures;
+    }
+    C15_CHECK(failures == 0);
 }
 
 void TestInvert() {
@@ -367,6 +546,8 @@ int main() {
     TestSin();
     TestRotate();
     TestMultiply();
+    TestMultiplyLanes();
+    TestBezierLanes();
     TestInvert();
     TestEdits();
     TestOrthoNormalizeAndOptimize();

@@ -15,12 +15,12 @@
 //   [x] 0x2c7018  CKS08AccessoryConfig_CreateArray
 //   [x] 0x2c70b0  CKS08AccessoryConfig_Create
 //   [ ] 0x2c70e8  CKS08AccessoryConfig_Save
-//   [ ] 0x2c70f0  CKS08AccessoryConfig_PostLoad
-//   [ ] 0x2c70f8  CKS08AccessoryConfig_RecursiveRegistration
-//   [ ] 0x2c7100  CKS08AccessoryConfig_Destroy
+//   [x] 0x2c70f0  CKS08AccessoryConfig_PostLoad  (returns 1: the root's default)
+//   [x] 0x2c70f8  CKS08AccessoryConfig_RecursiveRegistration  (returns 1: the root's empty slot)
+//   [x] 0x2c7100  CKS08AccessoryConfig_Destroy  (empty: the root's default)
 //   [x] 0x2c7108  CKS08AccessoryConfig_Load
-//   [ ] 0x2c7460  CKS08AccessoryConfig_DeletingDestructor
-//   [ ] 0x2c74a0  CKS08AccessoryConfig_Destructor
+//   [x] 0x2c7460  CKS08AccessoryConfig_DeletingDestructor  (the deleting form of the implicit destructor)
+//   [x] 0x2c74a0  CKS08AccessoryConfig_Destructor  (C++ destructor chain: vtable stores only)
 //   [ ] 0x2c74b8  CKS08AccessoryConfig_Destructor_2  [dead]
 //
 //   [ ] 0x9bd0a8  CKS08AccessoryConfig_GetClassType  [inline]

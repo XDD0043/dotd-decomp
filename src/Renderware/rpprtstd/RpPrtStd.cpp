@@ -11,6 +11,8 @@
 //   [x] 0x72a408  RpPrtStd_CircularListPush_maybe_3 (and the identical _2, _4, the unnamed one)
 //   [x] 0x72b198  RpPrtStdEmitterInit_maybe
 //   [x] 0x72b2f0  RpPrtStdEmitterAlloc_maybe (inlined in the stream read and the clone)
+//   [x] 0x72c820  RpPrtStdEmitterDestruct_maybe
+//   [x] 0x72cad0  RpPrtStdEmitterDestroy_maybe
 //   [x] 0x72cb68  RpPrtStdEmitterStreamRead_maybe
 //   [x] 0x72d180  RpPrtStdEmitterClone_maybe
 //   [x] 0x72d688  RpPrtStdPClassFindByID_maybe
@@ -22,6 +24,7 @@
 //   [x] 0x72ddb8  RpPrtStdEmitterStd_InitDefaults_maybe
 //   [x] 0x72ddf8  RpPrtStdEmitterStd_Copy_maybe
 //   [x] 0x72e028  RpPrtStdEmitterHeader_StreamRead_maybe
+//   [x] 0x72e1e8  RpPrtStdPTankData_Release_maybe
 //   [x] 0x72ec28  RpPrtStdPropTabDestroy_maybe
 //   [x] 0x72edd0  RpPrtStdPropTabGetInfo_maybe (inlined: the tables' fields are read directly)
 //   [x] 0x72ee20  RpPrtStdPropTabGetPropIndex
@@ -32,11 +35,15 @@
 //   [x] 0x72fb70  RpPrtStdGlobalGetStreamVersion_maybe (g_streamVersion)
 //   [x] 0x72fca8  RpPrtStdAtomicGetEmitter_maybe
 //   [x] 0x72ffe0  RpPrtStdAtomicAddEmitter_maybe
+//   [x] 0x730158  RpPrtStdAtomicPlugin_Dtor_maybe
 //   [x] 0x7301e0  RpPrtStdAtomicStreamRead_maybe
 //   [x] 0x730298  RpPrtStdAtomicPlugin_Copy_maybe
 //   [x] 0x731408  RpPrtStdEmitterStd_Init_maybe
 //   [x] 0x731c98  RpPrtStdEmitterStd_StreamRead_maybe
 //   [x] 0x7323a8  RpPrtStdEmitterStdCloneCB_maybe
+//   [x] 0x732bd0  RpPrtStdEmitterStd_Destruct_maybe
+//   [x] 0x6ef3b0  RpPrtStd_ClearStdClassIfMatch_maybe (RpPrtAdv's table destroy hook)
+//   [x] 0x6efe48  _rpPrtStdPropTabFixupLegacy_maybe (RpPrtAdv's table setup hook)
 // The running side: RpPrtStdRuntime.cpp, RpPrtStdEmit.cpp, RpPrtStdUpdate.cpp.
 #include "Renderware/rpprtstd/RpPrtStd.h"
 
@@ -47,6 +54,8 @@
 #include "Renderware/rpprtstd/RpPrtStdInternal.h"
 #include "Renderware/rpprtstd/RpPrtStdRuntime.h"
 #include "Renderware/rpworld/RpAtomic.h"
+#include "Renderware/rpworld/RpGeometry.h"
+#include "Renderware/rwcore/RwCamera.h"
 #include "Renderware/rwcore/RwMatrix.h"
 #include "k2000/core/Stub.h"
 #include "k2000/io/IKFile.h"
@@ -77,6 +86,7 @@ int32_t NativeGrowth(int32_t propID, bool emitterTable) {
     if (propID == rpPRTSTDPROPERTYCODEEMITTERPTANK) return static_cast<int32_t>(sizeof(RpPrtStdEmitterPTank)) - 0x34;
     if (propID == rpPRTADVPROPERTYCODEEMITTERPOINTLIST)
         return static_cast<int32_t>(sizeof(RpPrtAdvEmtPointList)) - 0x18;
+    if (propID == rpPRTADVPROPERTYCODEEMITTERPRTEMITTER) return static_cast<int32_t>(sizeof(RpPrtAdvEmtPrtEmt)) - 0x14;
     return 0;
 }
 
@@ -194,16 +204,78 @@ void Unlink(T*& head, T* item, Next nextOf) {
     if (head == item) head = previous;
 }
 
-// 0x0072ec28 RpPrtStdPropTabDestroy_maybe: one reference less; at none, unlinked and freed. The globals'
-// cached-offset tables (0x00cfbb04 / 0x00cfbb08) and the destroy hook (globals +0x78) belong to the
-// particle update (STUB(C2)).
+// 0x006ef3b0 RpPrtStd_ClearStdClassIfMatch_maybe (the destroy hook RpPrtAdv's open, 0x6efe00, puts at
+// globals +0x78): RpPrtAdv's cached tables (0x00cf9e14 particle, else 0x00cf9e10 emitter) forget a destroyed
+// table. The 0x1000001 update's cache (0x00cf9e18) is not cleared.
+void AdvForgetTable(const RpPrtStdPropertyTable* table) {
+    if (rpprtstd::g_advOffsets.particleTable == table) {
+        rpprtstd::g_advOffsets.particleTable = nullptr;
+    } else if (rpprtstd::g_advOffsets.emitterTable == table) {
+        rpprtstd::g_advOffsets.emitterTable = nullptr;
+    }
+}
+
+// 0x0072ec28 RpPrtStdPropTabDestroy_maybe: one reference less; at none, unlinked, forgotten by the offset
+// cache (0x00cfbb08 particle table, else 0x00cfbb04 emitter table) and the destroy hook (globals +0x78),
+// and freed.
 int32_t PropTabDestroy(RpPrtStdPropertyTable* table) {
     if (table == nullptr) return 0;
     if (--table->refCount > 0) return 1;
     Unlink(s_propTabs, table, [](RpPrtStdPropertyTable* t) -> RpPrtStdPropertyTable*& { return t->next; });
+    if (rpprtstd::g_offsets.particleTable == table) {
+        rpprtstd::g_offsets.particleTable = nullptr;
+    } else if (rpprtstd::g_offsets.emitterTable == table) {
+        rpprtstd::g_offsets.emitterTable = nullptr;
+    }
+    AdvForgetTable(table);
+    rpprtstd::g_propTabDestroyGeneration.fetch_add(1, std::memory_order_release);  // DEV: the other threads' caches
     delete[] table->propPtr;
     delete table;
     return 1;
+}
+
+// 0x006efe48 _rpPrtStdPropTabFixupLegacy_maybe (the setup hook RpPrtAdv's open puts at globals +0x74, run
+// on every table read): streams before version 3 stored the advanced properties without their stride
+// words. The particle table (its first size 0x10) shrinks multi colour / tex coords step / size by 0xc and
+// multi tex coords by 0x14 (the rounded size from the old stream size + 3, resp. - 5); the emitter table
+// grows them by 0xc / 0x14 (rounded from + 0x1b / + 0x23). Then the offsets from the first size on, the last
+// entry the total.
+void PropTabFixupLegacy(RpPrtStdPropertyTable* table) {
+    if (g_streamVersion > 2) return;
+    const int32_t numProp = table->numProp;
+    int32_t offset = table->propSize[0];
+    const bool particle = offset == 0x10;
+    for (int32_t i = 1; i < numProp; ++i) {
+        const int32_t id = table->propID[i];
+        const int32_t old = table->propSizeUA[i];
+        int32_t size = table->propSize[i];
+        int32_t unaligned = old;
+        if (particle) {
+            if (id == rpPRTADVPROPERTYCODEEMITTERPRTMULTICOLOR || id == rpPRTADVPROPERTYCODEEMITTERPRTMULTITEXCOORDSSTEP ||
+                id == rpPRTADVPROPERTYCODEEMITTERPRTMULTISIZE) {
+                size = static_cast<int32_t>(static_cast<uint32_t>(old + 3) & 0xfffffff0u);
+                unaligned = old - 0xc;
+            } else if (id == rpPRTADVPROPERTYCODEEMITTERPRTMULTITEXCOORDS) {
+                size = static_cast<int32_t>(static_cast<uint32_t>(old - 5) & 0xfffffff0u);
+                unaligned = old - 0x14;
+            }
+        } else {
+            if (id == rpPRTADVPROPERTYCODEEMITTERPRTMULTICOLOR || id == rpPRTADVPROPERTYCODEEMITTERPRTMULTISIZE) {
+                size = static_cast<int32_t>(static_cast<uint32_t>(old + 0x1b) & 0xfffffff0u);
+                unaligned = old + 0xc;
+            } else if (id == rpPRTADVPROPERTYCODEEMITTERPRTMULTITEXCOORDS ||
+                       id == rpPRTADVPROPERTYCODEEMITTERPRTMULTITEXCOORDSSTEP) {
+                size = static_cast<int32_t>(static_cast<uint32_t>(old + 0x23) & 0xfffffff0u);
+                unaligned = old + 0x14;
+            }
+        }
+        table->propSizeUA[i] = unaligned;
+        table->propSize[i] = size;
+        table->propOffset[i] = offset;
+        offset += table->propSize[i];
+    }
+    // With fewer than two properties the total goes to entry 1 (the PS3's arrays always have room for it).
+    table->propOffset[numProp > 1 ? numProp : 1] = offset;
 }
 
 // 0x0072f7b0 RpPrtStdPropTabStreamRead_maybe: id, count, the ids, the sizes; an equal table is shared.
@@ -226,9 +298,27 @@ RpPrtStdPropertyTable* PropTabStreamRead(Stream* stream, bool emitterTable) {
         table = PropTabGetOrCreate(numProp, ids, sizes, emitterTable);
     }
     if (table != nullptr) table->id = id;
-    // Streams before version 3 get their sizes and offsets fixed here and in the setup hook
-    // (_rpPrtStdPropTabFixupLegacy_maybe 0x6efe48, globals +0x74; it returns at once for version 3).
-    if (g_streamVersion < 3) DOTD_STUB_ONCE("RpPrtStdPropTabStreamRead: legacy (version < 3) table fixup (C2)");
+    // Streams before version 3: in a table whose first size is not 0x10 (the emitter table) the standard
+    // property (1) grows by 0xc (the size rounded from the old stream size + 0x1b; natively plus its pointer
+    // growth), and the offsets are laid out again from the first size, the last entry the total.
+    // BUG(original): the table is used without a null check (an allocation failure).
+    if (g_streamVersion < 3 && table->propSize[0] != 0x10) {
+        int32_t offset = table->propSize[0];
+        const int32_t numProp = table->numProp;
+        for (int32_t i = 1; i < numProp; ++i) {
+            if (table->propID[i] == rpPRTSTDPROPERTYCODEEMITTERSTANDARD) {
+                const int32_t old = table->propSizeUA[i];
+                table->propSizeUA[i] = old + 0xc;
+                table->propSize[i] = static_cast<int32_t>(
+                    static_cast<uint32_t>(old + 0x1b + NativeGrowth(rpPRTSTDPROPERTYCODEEMITTERSTANDARD, emitterTable)) &
+                    0xfffffff0u);
+            }
+            table->propOffset[i] = offset;
+            offset += table->propSize[i];
+        }
+        table->propOffset[numProp > 1 ? numProp : 1] = offset;
+    }
+    PropTabFixupLegacy(table);  // the setup hook (globals +0x74); it returns at once for version 3
     return table;
 }
 
@@ -629,11 +719,117 @@ RpPrtStdEmitter* EmitterAlloc(RpPrtStdEmitterClass* eClass) {
     return emitter;
 }
 
+// The emitter's particle batches freed (inlined in 0x72c820 RpPrtStdEmitterDestruct_maybe, 0x72cb68 and
+// 0x72d180): the active ring, then the inactive one, each from its head's next. An active batch first runs
+// its class's batch-destroy callbacks (particle slot 3, with (null, batch, null)); when they all return the
+// batch its count, new index and link are cleared. Every batch is freed (RwFree, Engine +0x10c; the batches
+// are malloc'ed, RpPrtStdRuntime.cpp). Then the live count and both rings are cleared.
+void FreeParticleBatches(RpPrtStdEmitter* emitter) {
+    RpPrtStdParticleBatch* const rings[2] = {static_cast<RpPrtStdParticleBatch*>(emitter->activeBatch),
+                                             static_cast<RpPrtStdParticleBatch*>(emitter->inactiveBatch)};
+    for (int32_t r = 0; r < 2; ++r) {
+        if (rings[r] == nullptr) continue;
+        RpPrtStdParticleBatch* const first = rings[r]->next;
+        RpPrtStdParticleBatch* batch = first;
+        for (;;) {
+            RpPrtStdParticleBatch* const next = batch->next;
+            if (r == 0) {
+                const RpPrtStdParticleClass* pClass = batch->prtClass;
+                bool cleared = true;
+                for (int32_t i = 0; i < pClass->numCallback; ++i) {
+                    RpPrtStdParticleCallBack destroy = pClass->callback[i].callback[rpPRTSTDPARTICLECALLBACKDESTROY];
+                    if (destroy != nullptr && destroy(nullptr, batch, nullptr) != batch) {
+                        cleared = false;
+                        break;
+                    }
+                }
+                if (cleared) {
+                    batch->numPrt = 0;
+                    batch->newPrt = 0;
+                    batch->next = nullptr;
+                }
+            }
+            std::free(batch);
+            if (first == next) break;
+            batch = next;
+        }
+    }
+    emitter->prtActive = 0;
+    emitter->activeBatch = nullptr;
+    emitter->inactiveBatch = nullptr;
+}
+
 // The part of 0x72cb68 / 0x72d180 for an emitter that already has a particle class: its batches freed and
-// the class released. After EmitterInit the class is always null, so it never runs.
+// the class released. After EmitterInit the class is always null, so it never runs there.
 void ReleaseParticleClass(RpPrtStdEmitter* emitter) {
     if (emitter->prtClass == nullptr) return;
-    DOTD_STUB_ONCE("RpPrtStdEmitter: particle batches release (C2)");
+    FreeParticleBatches(emitter);
+    PClassDestroy(emitter->prtClass);
+}
+
+// 0x0072e1e8 RpPrtStdPTankData_Release_maybe: the PTank atomic off its frame, the frame and the atomic
+// destroyed; the pointer arrays' block freed (natively the three blocks), the capacity and the in / out
+// pointers cleared. BUG(original): the stride pointer (+0x24, part of the same PS3 block) is left dangling.
+void PTankRelease(RpPrtStdEmitterPTank* ptank) {
+    RpAtomic* pTank = ptank->pTank;
+    if (pTank != nullptr) {
+        RwFrame* frame = pTank->frame;
+        RpAtomicSetFrame(pTank, nullptr);
+        if (frame != nullptr) RwFrameDestroy(frame);
+        RpAtomicDestroy(ptank->pTank);
+    }
+    ptank->pTank = nullptr;
+    if (ptank->dataInPtrs != nullptr) {
+        std::free(ptank->dataInPtrs);
+        std::free(ptank->dataOutPtrs);
+        std::free(ptank->dataStride);
+    }
+    ptank->maxPrt = 0;
+    ptank->dataInPtrs = nullptr;
+    ptank->dataOutPtrs = nullptr;
+}
+
+// 0x0072c820 RpPrtStdEmitterDestruct_maybe: the batches freed, then the class's destroy callbacks (slot 6,
+// with (null, emitter, null); null when one fails), the header cleared (the classes kept), the PTank property
+// released, one reference less on both classes.
+RpPrtStdEmitter* EmitterDestruct(RpPrtStdEmitter* emitter) {
+    FreeParticleBatches(emitter);
+    RpPrtStdEmitterClass* eClass = emitter->emtClass;
+    for (int32_t i = 0; i < eClass->numCallback; ++i) {
+        RpPrtStdEmitterCallBack destroy = eClass->callback[i].callback[rpPRTSTDEMITTERCALLBACKDESTROY];
+        if (destroy != nullptr && destroy(nullptr, emitter, nullptr) != emitter) return nullptr;
+    }
+    emitter->activeBatch = nullptr;
+    emitter->boundingSphere = 0.0f;  // stw 0
+    emitter->next = nullptr;
+    emitter->flag = 0;
+    emitter->prtActive = 0;
+    emitter->prtBatchMaxPrt = 0;
+    emitter->inactiveBatch = nullptr;
+    const int32_t ptank = rpprtstd::EmitterPropOffset(emitter, rpPRTSTDPROPERTYCODEEMITTERPTANK);
+    if (ptank >= 0) PTankRelease(reinterpret_cast<RpPrtStdEmitterPTank*>(rpprtstd::PropertyAt(emitter, ptank)));
+    EClassDestroy(emitter->emtClass);
+    PClassDestroy(emitter->prtClass);
+    return emitter;
+}
+
+// 0x0072cad0 RpPrtStdEmitterDestroy_maybe: destructed and freed (EmitterAlloc's block); 0 when the destruct
+// fails (the block is kept).
+int32_t EmitterDestroy(RpPrtStdEmitter* emitter) {
+    if (EmitterDestruct(emitter) != emitter) return 0;
+    std::free(emitter);
+    return 1;
+}
+
+// 0x00732bd0 RpPrtStdEmitterStd_Destruct_maybe (slot 6): a streamed emitter (flag 0x200) gives its standard
+// property's texture back (RwTextureDestroy: one reference less).
+RpPrtStdEmitter* StdDestruct(RpAtomic*, RpPrtStdEmitter* emitter, void*) {
+    const int32_t offset = rpprtstd::EmitterPropOffset(emitter, rpPRTSTDPROPERTYCODEEMITTERSTANDARD);
+    if (offset < 0) return emitter;
+    if ((emitter->flag & rpPRTSTDEMITTERFLAGSTREAMREAD) == 0) return emitter;
+    RwTexture* texture = reinterpret_cast<RpPrtStdEmitterStandard*>(rpprtstd::PropertyAt(emitter, offset))->texture;
+    if (texture != nullptr) TextureRef_Release(texture);
+    return emitter;
 }
 
 // 0x0072ffe0 RpPrtStdAtomicAddEmitter_maybe
@@ -724,8 +920,8 @@ RpPrtStdEmitter* EmitterStreamRead(RpAtomic* atomic, Stream* stream) {
 }
 
 // 0x0072d180 RpPrtStdEmitterClone_maybe: a new emitter of the same classes, flags and batch size, its
-// properties copied by every clone callback (slot 10). STUB(C2): on a failing callback the original
-// destructs the clone (RpPrtStdEmitterDestruct_maybe 0x72c820); none fails here.
+// properties copied by every clone callback (slot 10). On a failing callback the clone is destructed
+// (RpPrtStdEmitterDestruct_maybe 0x72c820), freed when that worked, and null returned.
 RpPrtStdEmitter* EmitterClone(RpPrtStdEmitter* source) {
     RpPrtStdEmitterClass* eClass = source->emtClass;
     RpPrtStdEmitter* clone = EmitterAlloc(eClass);
@@ -741,7 +937,10 @@ RpPrtStdEmitter* EmitterClone(RpPrtStdEmitter* source) {
     ++pClass->refCount;
     for (int32_t i = 0; i < eClass->numCallback; ++i) {
         RpPrtStdEmitterCallBack copy = eClass->callback[i].callback[rpPRTSTDEMITTERCALLBACKCLONE];
-        if (copy != nullptr && copy(source->atomic, source, clone) != clone) return nullptr;
+        if (copy != nullptr && copy(source->atomic, source, clone) != clone) {
+            EmitterDestroy(clone);
+            return nullptr;
+        }
     }
     return clone;
 }
@@ -759,8 +958,9 @@ void EClassSetCallBackArray(RpPrtStdEmitterClass* eClass, int32_t count, const R
     eClass->numCallback = count;
 }
 
-// The standard callbacks the builder (RpPrtAdv.cpp) puts first (TOC 0x00c21ce0..0x00c21d04). STUB(C2):
-// destruct 0x732bd0, stream write 0x731640 and stream size 0x7314d8 are not ported (null slots).
+// The standard callbacks the builder (RpPrtAdv.cpp) puts first (TOC 0x00c21ce0..0x00c21d04).
+// STUB(C2): stream write 0x731640 and stream size 0x7314d8 are not ported (null slots; nothing in the game
+// writes RenderWare streams).
 RpPrtStdEmitterCallBackArray StandardCallBacks() {
     RpPrtStdEmitterCallBackArray array = {};
     array.callback[rpPRTSTDEMITTERCALLBACKEMIT] = rpprtstd::StdEmit;
@@ -768,6 +968,7 @@ RpPrtStdEmitterCallBackArray StandardCallBacks() {
     array.callback[rpPRTSTDEMITTERCALLBACKPOSTEMIT] = rpprtstd::StdScheduleEmit;
     array.callback[rpPRTSTDEMITTERCALLBACKPRERENDER] = rpprtstd::StdRenderPTank;
     array.callback[rpPRTSTDEMITTERCALLBACKCREATE] = StdInit;
+    array.callback[rpPRTSTDEMITTERCALLBACKDESTROY] = StdDestruct;
     array.callback[rpPRTSTDEMITTERCALLBACKSTREAMREAD] = StdStreamRead;
     array.callback[rpPRTSTDEMITTERCALLBACKCLONE] = StdClone;
     return array;
@@ -830,6 +1031,23 @@ void RpPrtStdAtomicCopy(RpAtomic* dst, const RpAtomic* src) {
     }
     dst->prtStdEmitters = list;
     if (list != nullptr) dst->renderCallBack = RpPrtStdAtomicRender;  // as RpAtomicClone copies +0x48
+}
+
+// 0x00730158 RpPrtStdAtomicPlugin_Dtor_maybe: every emitter destroyed, from the list head's next on; the
+// list cleared.
+void RpPrtStdAtomicDestruct(RpAtomic* atomic) {
+    RpPrtStdEmitter* list = atomic->prtStdEmitters;
+    if (list != nullptr) {
+        RpPrtStdEmitter* const first = list->next;
+        RpPrtStdEmitter* emitter = first;
+        RpPrtStdEmitter* next;
+        do {
+            next = emitter->next;
+            EmitterDestroy(emitter);
+            emitter = next;
+        } while (first != next);
+    }
+    atomic->prtStdEmitters = nullptr;
 }
 
 RpPrtStdShimStats RpPrtStdShim_Stats() { return s_stats; }

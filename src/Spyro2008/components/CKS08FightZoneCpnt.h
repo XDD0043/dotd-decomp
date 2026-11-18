@@ -8,6 +8,7 @@
 #include "k2000/util/TVector.h"
 
 class CKGrpFightZone;
+class IKTime;
 
 class CKS08FightZoneCpnt : public KBaseDC6 {
 public:
@@ -34,6 +35,21 @@ public:
     // vt+0x60 0x274dd8 CKS08FightZoneCpnt_vf60 (CKGrpFightZone_Start / _Restart call it): +0xa8 and +0x94
     // cleared, the byte +0xa4 = whether the vector at +0x30 is empty. Not declared virtual yet (see above).
     void Vf60();
+    // The slots CKGrpFightZone calls (not declared virtual: KBaseDC6's only class is this one).
+    void Vf58();                        // vt+0x58 0x00274e08 CKS08FightZoneCpnt_vf58 (the zone entered)
+    void Update(IKTime* clock);         // vt+0x5c 0x00275058 CKS08FightZoneCpnt_Update_maybe
+    uint32_t CountActiveObjectives();   // vt+0x6c 0x00274d88 CKS08FightZoneCpnt_vf6C
+    uint32_t GetCountA8() { return m_unka8; }       // vt+0x74 0x009bc500 CKS08FightZoneCpnt_vf74
+    void SetCountA8(uint32_t count) { m_unka8 = count; }  // vt+0x78 0x00274b10 CKS08FightZoneCpnt_vf78
+    void Vf7C(uint32_t unused);         // vt+0x7c 0x00274fd0 CKS08FightZoneCpnt_vf7C
+    // port-all P22: vt+0x50 0x00274b00 / vt+0x54 0x00274b08: empty (the component's Start / Restart-like slots; nothing
+    // ported calls them). vt+0x24 0x00274b48 RecursiveRegistration: KBaseDC6's (IKSerializable's), inherited. vt+0x30
+    // 0x00275050 PostLoad: 1 (IKSerializable's).
+    // vt+0x68 0x00275630 CKS08FightZoneCpnt_vf68: the three byte vectors (+0x70, +0x7c, +0x88) made `count` long: shrunk
+    // by their counts, or grown by zero bytes (each push growing a full block by one). No ported caller yet.
+    void ResizeByteVectors(uint32_t count);
+    // The loop vf58 / Update inline for mode 5: the +0x98 crumbly zones' (maximum) health summed.
+    float CrumblyZonesHealth(bool maximum);
 
     uint32_t m_unk04;                       // +0x04
     CKGrpFightZone* m_pFightZone;           // +0x08 set by CKGrpFightZone_Load (vt+0x64)
@@ -48,19 +64,24 @@ public:
     TVector<IKSerializable*, 1> m_vUnk30;   // +0x30 references
     uint32_t m_unk3c;                       // +0x3c
     float m_unk40;                          // +0x40
-    uint32_t m_unk44;                       // +0x44 not set
+    float m_unk44;                          // +0x44 not set; mode 3's timer (Update), vf58 clears it
     float m_unk48;                          // +0x48
+    // 0x00274b18 CKS08FightZoneCpnt_GetFirstNonNullRef4C_maybe: the first of +0x4c / +0x50 / +0x54 that is set (else +0x54).
+    IKSerializable* GetFirstNonNullRef4C() const {
+        if (m_pUnk4c != nullptr) return m_pUnk4c;
+        return m_pUnk50 != nullptr ? m_pUnk50 : m_pUnk54;
+    }
     IKSerializable* m_pUnk4c;               // +0x4c reference
     IKSerializable* m_pUnk50;               // +0x50 reference
     IKSerializable* m_pUnk54;               // +0x54 reference
     uint32_t m_unk58;                       // +0x58
-    uint32_t m_unk5c;                       // +0x5c not set
+    uint32_t m_unk5c;                       // +0x5c not set; vf58 clears it (modes 1, 2)
     float m_unk60;                          // +0x60
     TVector<IKSerializable*, 1> m_vUnk64;   // +0x64 references
     TVector<uint8_t, 1> m_vUnk70;           // +0x70 bytes
     TVector<uint8_t, 1> m_vUnk7c;           // +0x7c bytes
     TVector<uint8_t, 1> m_vUnk88;           // +0x88 bytes
-    uint32_t m_unk94;                       // +0x94 vf60 clears it
+    IKSerializable* m_unk94;                // +0x94 vf60 clears it; CKHkS08CristalKey (message 0x996 / Update) stores its transportable
     TVector<IKSerializable*, 1> m_vUnk98;   // +0x98 references
     uint8_t m_unka4;                        // +0xa4 vf60: the vector at +0x30 is empty (+0xa5..+0xa7: padding never written)
     uint8_t m_pada5[3];

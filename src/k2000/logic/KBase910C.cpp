@@ -6,17 +6,17 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x4ac358  CKS08CarrierBase_maybe_Construct
 //   [ ] 0x4ac368  CKS08CarrierBase_maybe_Construct_2  [dead]
-//   [ ] 0x4ac378  KBase910C_vf28
+//   [x] 0x4ac378  KBase910C_vf28  (Save: returns 1, the default slot)
 //   [x] 0x4ac380  KStub_Return1_4ac380
-//   [ ] 0x4ac388  KBase910C_vf24
-//   [ ] 0x4ac390  KStub_Nop_4ac390
-//   [ ] 0x4ac398  CKS08Carrier_DestructBody
-//   [ ] 0x4ac3b0  KBase910C_DeletingDestructor
-//   [ ] 0x4ac3f0  KBase910C_vf0
-//   [ ] 0x4ac408  CKHkS08TransportableKey_Delete
+//   [x] 0x4ac388  KBase910C_vf24  (RecursiveRegistration: returns 1, the default slot)
+//   [x] 0x4ac390  KStub_Nop_4ac390  (header)
+//   [x] 0x4ac398  CKS08Carrier_DestructBody  (header)
+//   [x] 0x4ac3b0  KBase910C_DeletingDestructor  (the destructor; delete)
+//   [x] 0x4ac3f0  KBase910C_vf0  (C++ destructor chain: vtable stores only)
+//   [x] 0x4ac408  CKHkS08TransportableKey_Delete  (DOTD_DECLARE_FACTORIES in CKHkS08TransportableKey.h)
 //   [ ] 0x4ac458  CKHkS08TransportableKey_IntegrateMotion_maybe  [dead]
-//   [ ] 0x4ac4e0  CKHkS08TransportableKey_vf100
-//   [ ] 0x4ac500  CKHkS08TransportableKey_vf128
+//   [x] 0x4ac4e0  CKHkS08TransportableKey_vf100  (CKHkS08TransportableKey.h)
+//   [x] 0x4ac500  CKHkS08TransportableKey_vf128  (CKHkS08TransportableKey.h)
 //   [ ] 0x4ac510  FUN_004ac510  [dead]
 //
 //   [ ] 0x9c5370  KBase910C_vf14  [inline]

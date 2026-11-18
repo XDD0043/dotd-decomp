@@ -11,6 +11,9 @@
 class CDynamicGround : public CGround {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x13)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9aabb8
+        return key == 0x4cc || key == 0x48c || key == 0x34c || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CDynamicGround)
 
     CDynamicGround() {}  // CDynamicGround_Create: only the vtables (CGround's, then its own)
@@ -29,6 +32,8 @@ public:
     // vt+0x5c 0x001a2798 CDynamicGround_RefreshTransform_maybe: once per update index, flag 0x20 cleared and, while the
     // ground is active, the inverse of the parent's matrix and the world box (the local box m_OBB through the matrix).
     void Update(uint8_t updateIndex) override;
+    // vt+0x60 0x001a2190 CDynamicGround_vf60 (MyDestroy): CGround's, then the inverted matrix destroyed.
+    void MyDestroy() override;
     // vt+0x64 0x001a2860 CDynamicGround_FindFloorAtPoint_maybe: CGround's in the ground's space (the point through
     // the inverse matrix; the contact stays local), and a status 2 contact does not become 1.
     uint8_t GetGroundContactOnFace(const CGroundContactDatasIn* in, CGroundContactDatasInOut* inOut,

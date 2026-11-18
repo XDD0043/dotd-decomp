@@ -34,6 +34,13 @@ struct RwV3d {
 };
 DOTD_ASSERT_SIZE(RwV3d, 0xc);
 
+// RwBBox: sup (the maxima) then inf (the minima).
+struct RwBBox {
+    RwV3d sup;
+    RwV3d inf;
+};
+DOTD_ASSERT_SIZE(RwBBox, 0x18);
+
 struct RwRGBA {
     RwUInt8 red;
     RwUInt8 green;

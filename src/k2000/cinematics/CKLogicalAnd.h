@@ -18,6 +18,11 @@ public:
     ~CKLogicalAnd() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x0016f128 CKLogicalAnd_Load
+    // vt+0x24 0x0016f208 CKLogicalAnd_RecursiveRegistration: registered with the saving manager (vt+0x24) unless the type is 4..7,
+    // then IKLogicalDoor_LevelReset 0x18fc20 (which registers it once more).
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x10 0x0016f3d0 CKLogicalAnd_Destroy: the received list freed (Mem_FreeAligned16 when set), the count 0.
+    void Destroy() override;
     void Start() override {}                            // vt+0x5c 0x0016ee48 CKLogicalAnd_Start (empty)
     void Activate(IKCinematicElement* source) override { ActivateInput(source); }  // vt+0x60 0x0016f528
     void Complete() override;                           // vt+0x64 0x0016ef40 CKLogicalAnd_Complete

@@ -5,28 +5,28 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x39190  CKGameLevel_Delete
-//   [ ] 0x391e0  CKGameLevel_GetGameManager_maybe
+//   [x] 0x391e0  CKGameLevel_GetGameManager_maybe
 //   [ ] 0x39200  RegisterCKGameLevelClass
 //   [ ] 0x39278  _GLOBAL__I_39278
-//   [ ] 0x39288  CKGameLevel_PlayLaunchScene
-//   [ ] 0x39310  CKGameLevel_ClearGameData_maybe
+//   [x] 0x39288  CKGameLevel_PlayLaunchScene  (ported in CDefaultGameManager.cpp next to its caller OnLevelStart)
+//   [x] 0x39310  CKGameLevel_ClearGameData_maybe
 //   [x] 0x39410  CKGameLevel_InitLevelData_maybe
 //   [x] 0x39458  CKGameLevel_InitGameData
 //   [x] 0x39558  CKGameLevel_IsCurrentLevel
-//   [ ] 0x39600  CKGameLevel_PostLoad
+//   [x] 0x39600  CKGameLevel_PostLoad  (= the inherited slot)
 //   [ ] 0x39628  CKGameLevel_Save
-//   [ ] 0x39650  CKGameLevel_Destroy
+//   [x] 0x39650  CKGameLevel_Destroy  (inherited: IKGameObject_Destroy)
 //   [ ] 0x39678  CKS08GameLevel_ConstructBase_2_maybe  [dead]
 //   [x] 0x39738  CKS08GameLevel_ConstructBase_maybe
 //   [x] 0x397f8  CKGameLevel_DeleteArray
-//   [ ] 0x398a0  CKGameLevel_RecursiveRegistration
+//   [x] 0x398a0  CKGameLevel_RecursiveRegistration
 //   [ ] 0x39aa8  CKGameLevel_CountModules_Arr48  [dead]
 //   [ ] 0x39b28  CKGameLevel_CountModules_Arr54  [dead]
 //   [x] 0x39ba8  CKGameLevel_CountModules
 //   [x] 0x39c28  CKGameLevel_MarkSekensSeen_maybe
 //   [ ] 0x39ca8  CKGameLevel_CountModules_Arr3c  [dead]
 //   [x] 0x39d28  CKGameLevel_vf68
-//   [ ] 0x39e90  CKGameLevel_CountTrackedActiveModules_maybe
+//   [x] 0x39e90  CKGameLevel_CountTrackedActiveModules_maybe
 //   [ ] 0x39f70  CKGameLevel_HasModuleById_Arr48_maybe  [dead]
 //   [ ] 0x39fd0  CKGameLevel_IsModuleFlag2SetById_Arr48_maybe  [dead]
 //   [ ] 0x3a030  CKGameLevel_IsModuleFlag2SetById_Arr54_maybe  [dead]
@@ -34,21 +34,21 @@
 //   [ ] 0x3a110  CKGameLevel_CountModules_Arr54_2  [dead]
 //   [x] 0x3a190  CKGameLevel_vf70
 //   [x] 0x3a2f8  CKGameLevel_MarkVideoSeen_maybe
-//   [ ] 0x3a378  CKGameLevel_CountTrackedModules_maybe
+//   [x] 0x3a378  CKGameLevel_CountTrackedModules_maybe
 //   [x] 0x3a3e0  CKGameLevel_ClearLevelData
 //   [x] 0x3a718  CKGameLevel_CreateArray
 //   [x] 0x3a898  CKGameLevel_Create
 //   [x] 0x3a970  CKGameLevel_Load
 //   [x] 0x3b410  CKGameModule_Delete
-//   [ ] 0x3b460  CKGameModule_IsCurrentLevel
+//   [x] 0x3b460  CKGameModule_IsCurrentLevel
 //   [ ] 0x3b4c8  FUN_0003b4c8  [dead]
 //   [ ] 0x3b4e8  FUN_0003b4e8  [dead]
 //
 //   [ ] 0x994ac8  CKGameLevel_IsKindOfClass  [inline]
 //   [x] 0x994af0  CKGameLevel_GetClassType  [inline]
 //   [x] 0x994af8  CKGameLevel_GetClassID  [inline]
-//   [ ] 0x994b00  CKGameLevel_Destructor  [inline]
-//   [ ] 0x994bf0  CKGameLevel_DeletingDestructor  [inline]
+//   [x] 0x994b00  CKGameLevel_Destructor  [inline]  (written out below (C2.8 port-all P12))
+//   [x] 0x994bf0  CKGameLevel_DeletingDestructor  [inline]  (the destructor; delete)
 #include "k2000/logic/CKGameLevel.h"
 
 #include "k2000/io/IKFile.h"
@@ -156,6 +156,29 @@ void CKGameLevel::DestroyLevelData() {
     IKGameObject::DestroyLevelData();  // 0x42d90
 }
 
+// 0x00039310 CKGameLevel_ClearGameData_maybe
+void CKGameLevel::DestroyGameData() {
+    auto freeList = [](auto* list) {
+        if (list->m_pBlock != nullptr) {
+            Mem_FreeAligned16(list->m_pBlock);
+            list->m_pBlock = nullptr;
+        }
+        list->m_ui32NbUsedElt = 0;
+        list->m_pBlock = nullptr;
+    };
+    freeList(&m_vpModules);
+    freeList(&m_vpSpawnPoints);
+    freeList(&m_vpUnk48);
+    freeList(&m_vpUnk54);
+    m_pUnk84 = nullptr;
+    IKGameObject::DestroyGameData();  // 0x42da0
+}
+
+// 0x000391e0 CKGameLevel_GetGameManager_maybe
+CDefaultGameManager* CKGameLevel::GetGameManager() const {
+    return m_pGameStructure != nullptr ? m_pGameStructure->m_pGameManager : nullptr;
+}
+
 // 0x00039458 CKGameLevel_InitGameData. The old blocks are not freed; the lengths are not reset.
 void CKGameLevel::InitializeGameData() {
     IKGameObject::InitializeGameData();
@@ -209,6 +232,34 @@ uint8_t CKGameLevel::GetMatchesThisLevel() {
 // ---- C1.6 gm: the game state applied to the level ----
 #include "k2000/logic/CKGameModule.h"
 
+// 0x00039e90 CKGameLevel_CountTrackedActiveModules_maybe
+uint32_t CKGameLevel::CountTrackedActiveModules() {
+    uint32_t count = 0;
+    for (uint32_t i = m_vpModules.m_ui32NbUsedElt; i != 0; --i) {
+        CKGameModule* module = m_vpModules.m_pBlock[i - 1];
+        if ((module->m_baFlags & 1u) == 0 || module->m_unk1c == 0) continue;
+        if (static_cast<uint8_t>(module->GetFlag2()) != 0) ++count;  // vt+0x84
+    }
+    return count;
+}
+
+// 0x0003a378 CKGameLevel_CountTrackedModules_maybe
+uint32_t CKGameLevel::CountTrackedModules() {
+    uint32_t count = 0;
+    for (uint32_t i = m_vpModules.m_ui32NbUsedElt; i != 0; --i) {
+        const CKGameModule* module = m_vpModules.m_pBlock[i - 1];
+        if ((module->m_baFlags & 1u) == 0) continue;
+        if (module->m_unk1c != 0) ++count;
+    }
+    return count;
+}
+
+// 0x0003b460 CKGameModule_IsCurrentLevel
+uint8_t CKGameModule::GetMatchesThisLevel() {
+    if (m_pGameStage == nullptr) return 0;
+    return m_pGameStage->GetMatchesThisLevel() != 0 ? 1 : 0;  // vt+0x54
+}
+
 // 0x00039d28 CKGameLevel_vf68 (XXL2 CKGameStage::ApplyGameStateToLevel)
 void CKGameLevel::ApplyGameStateToLevel() {
     for (uint32_t i = m_vpModules.m_ui32NbUsedElt; i != 0; --i) m_vpModules.m_pBlock[i - 1]->ApplyGameStateToLevel();
@@ -254,14 +305,44 @@ uint8_t CKGameLevel::SetModuleFlag2ById(const void* video) {
     return 0;
 }
 
-// 0x00039c28 CKGameLevel_MarkSekensSeen_maybe. The +0x54 entries (CKGameSekens, a placeholder class here) are IKGameObjects
-// whose +0x1c reference is the sekens; CKGameVideo has the same layout up to there.
+#include "k2000/logic/CKGameModule.h"
+#include "k2000/logic/CKGameSekens.h"
+#include "k2000/logic/CKGameSpawnPoint.h"
+
+// 0x00039c28 CKGameLevel_MarkSekensSeen_maybe. The +0x54 entries are CKGameSekens, whose +0x1c reference is the sekens.
 uint8_t CKGameLevel::MarkSekensSeen(const void* sekens) {
     for (uint32_t i = m_vpUnk54.m_ui32NbUsedElt; i != 0; --i) {
-        CKGameVideo* entry = static_cast<CKGameVideo*>(m_vpUnk54.m_pBlock[i - 1]);
+        CKGameSekens* entry = static_cast<CKGameSekens*>(m_vpUnk54.m_pBlock[i - 1]);
         if (entry->m_unk1c != sekens) continue;
         entry->m_baFlags = (entry->m_baFlags & 0xfffffffdu) | 2;
         return 1;
     }
     return 0;
+}
+
+// 0x000398a0 CKGameLevel_RecursiveRegistration
+void CKGameLevel::RecursiveRegistration(int32_t type) {
+    IKGameObject::RecursiveRegistration(type);
+    for (uint32_t i = m_vpModules.m_ui32NbUsedElt; i != 0; --i) m_vpModules.m_pBlock[i - 1]->RecursiveRegistration(type);
+    for (uint32_t i = m_vpSpawnPoints.m_ui32NbUsedElt; i != 0; --i)
+        m_vpSpawnPoints.m_pBlock[i - 1]->RecursiveRegistration(type);
+    for (uint32_t i = m_vpUnk48.m_ui32NbUsedElt; i != 0; --i) m_vpUnk48.m_pBlock[i - 1]->RecursiveRegistration(type);
+    for (uint32_t i = m_vpUnk54.m_ui32NbUsedElt; i != 0; --i) m_vpUnk54.m_pBlock[i - 1]->RecursiveRegistration(type);
+}
+
+// 0x00994b00 CKGameLevel_Destructor [inline] (written out in CKS08GameLevel_Destructor 0x507c38; C2.8 port-all P12):
+// the four vectors' blocks freed (+0x54, +0x48, +0x3c, +0x30), each length and block cleared.
+CKGameLevel::~CKGameLevel() {
+    TVector<IKSerializable*, 8>* const tail[2] = {&m_vpUnk54, &m_vpUnk48};
+    for (TVector<IKSerializable*, 8>* v : tail) {
+        if (v->m_pBlock != nullptr) Mem_FreeAligned16(v->m_pBlock);
+        v->m_ui32NbUsedElt = 0;
+        v->m_pBlock = nullptr;
+    }
+    if (m_vpSpawnPoints.m_pBlock != nullptr) Mem_FreeAligned16(m_vpSpawnPoints.m_pBlock);
+    m_vpSpawnPoints.m_ui32NbUsedElt = 0;
+    m_vpSpawnPoints.m_pBlock = nullptr;
+    if (m_vpModules.m_pBlock != nullptr) Mem_FreeAligned16(m_vpModules.m_pBlock);
+    m_vpModules.m_ui32NbUsedElt = 0;
+    m_vpModules.m_pBlock = nullptr;
 }

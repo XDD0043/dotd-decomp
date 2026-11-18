@@ -10,8 +10,8 @@
 //   [x] 0xd66a0  CKAACylinder_DeleteArray
 //   [x] 0xd6740  CKAACylinder_Create
 //   [x] 0xd67b0  CKAACylinder_CreateArray
-//   [ ] 0xd6898  CKAACylinder_Destroy
-//   [ ] 0xd68c0  CKAACylinder_RecursiveRegistration
+//   [x] 0xd6898  CKAACylinder_Destroy  (inherited: CSGLeaf_Destroy)
+//   [x] 0xd68c0  CKAACylinder_RecursiveRegistration  (CSGLeaf's (nothing))
 //   [x] 0xd68e8  CKAACylinder_Load
 //   [ ] 0xd6ab0  CKAACylinder_Save
 //

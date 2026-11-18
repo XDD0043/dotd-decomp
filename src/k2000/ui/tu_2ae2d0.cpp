@@ -5,6 +5,6 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x2ae2d0  StaticInitAndDestruction_2ae2d0
+//   [x] 0x2ae2d0  StaticInitAndDestruction_2ae2d0  (a file-static float pair (0xcead3c / 0xcead40) set to -1.0f; nothing reads it (only its TOC entry 0xc16d54, read only here; raw ELF scan): nothing to port)
 //   [ ] 0x2ae300  _GLOBAL__D_2ae300
 //   [ ] 0x2ae310  _GLOBAL__I_2ae310

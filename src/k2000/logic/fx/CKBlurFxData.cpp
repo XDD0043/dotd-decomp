@@ -3,11 +3,11 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x571348  CKBlurFxData_Destroy
-//   [ ] 0x5713c0  CKBlurFxData_PostLoad
-//   [ ] 0x5713e8  CKBlurFxData_RecursiveRegistration
-//   [ ] 0x571460  CKBlurFxData_MessageProc
-//   [ ] 0x5717d8  CKBlurFxData_GetInfo
+//   [x] 0x571348  CKBlurFxData_Destroy
+//   [x] 0x5713c0  CKBlurFxData_PostLoad  (= the inherited slot)
+//   [x] 0x5713e8  CKBlurFxData_RecursiveRegistration
+//   [x] 0x571460  CKBlurFxData_MessageProc
+//   [x] 0x5717d8  CKBlurFxData_GetInfo  (returns 1: the default slot)
 //   [x] 0x5717e0  CKBlurFxData_Load
 //   [ ] 0x5719e8  CKBlurFxData_Save
 //
@@ -19,6 +19,9 @@
 #include "k2000/logic/fx/CKBlurFxData.h"
 
 #include "k2000/io/IKFile.h"
+#include "k2000/fx/IKFx.h"
+#include "k2000/misc/Engine.h"
+#include "k2000/services/CKSrvFx.h"
 
 // 0x005717e0 CKBlurFxData_Load
 int32_t CKBlurFxData::Load(IKFile* file, int32_t type) {
@@ -33,4 +36,38 @@ int32_t CKBlurFxData::Load(IKFile* file, int32_t type) {
     }
     m_unk1c = 0;
     return 1;
+}
+
+// 0x00571348 CKBlurFxData_Destroy
+void CKBlurFxData::Destroy() {
+    m_unk08->Destroy();  // vt+0x10
+    if (m_unk14 != nullptr) {
+        delete[] m_unk14;  // TocBridge_OperatorDeleteArray(m_unk14 - 4): the count cookie
+        m_unk14 = nullptr;
+    }
+}
+
+// 0x005713e8 CKBlurFxData_RecursiveRegistration
+void CKBlurFxData::RecursiveRegistration(int32_t type) {
+    IKFxData::RecursiveRegistration(type);  // KStub_Return1_1d8340
+    if (type == 0) m_unk08->RecursiveRegistration(0);  // vt+0x24
+}
+
+// 0x00571460 CKBlurFxData_MessageProc
+int32_t CKBlurFxData::MessageProc(uint16_t message, void* /*data*/) {
+    if (message == 0x1b01) {
+        if (m_unk1c != nullptr) {
+            m_unk1c->StopAndRelease(this);  // vt+0x58
+            m_unk1c = nullptr;
+        }
+        return 0;
+    }
+    if (message == 0x1b03) return 0;
+    if (message != 0x1b00) return 1;
+    if (m_unk1c != nullptr) {
+        m_unk1c->StopAndRelease(this);  // vt+0x58
+        m_unk1c = nullptr;
+    }
+    m_unk1c = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(this, this);
+    return 0;
 }

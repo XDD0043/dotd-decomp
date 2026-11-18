@@ -10,6 +10,14 @@
 struct RwaVoice;
 class SoundInstance;
 
+class SoundInstance;
+
+// DOTD (replays): the PS3 plays the voices in real time, so the frame in which a voice ends is an input of the
+// recording rather than something the frames decide. A replay source answers SoundVoice::IsPlaying for a voice's
+// instance: 1 playing, 0 ended, -1 no answer (the mixer's state). nullptr = off.
+using VoiceReplaySource = int32_t (*)(const SoundInstance* instance);
+void SoundVoice_SetReplaySource(VoiceReplaySource source);
+
 class SoundVoice {
 public:
     SoundVoice();                               // 0x00121ec8 SoundVoice_Construct_maybe

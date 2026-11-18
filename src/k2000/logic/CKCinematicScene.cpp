@@ -28,7 +28,7 @@
 //   [x] 0x169ef8  CKCinematicScene_UpdateTransition_maybe
 //   [x] 0x16a5d0  CKCinematicScene_StartEntryTransition_maybe
 //   [x] 0x16acc8  CKCinematicScene_ReleaseSoundListener_maybe
-//   [ ] 0x16ad20  CKCinematicScene_RecursiveRegistration
+//   [x] 0x16ad20  CKCinematicScene_RecursiveRegistration
 //   [x] 0x16af58  CKCinematicScene_DeleteArray
 //   [x] 0x16aff8  CKCinematicScene_ResumeActiveNodes
 //   [ ] 0x16b080  CKCinematicScene_IsNodeActive_maybe  [dead]
@@ -38,13 +38,13 @@
 //   [x] 0x16b1a8  CKCinematicScene_SetGameState
 //   [x] 0x16b218  CKCinematicScene_InterruptForTransition_maybe
 //   [x] 0x16b3a8  CKCinematicScene_ClearFlag22Bit5_maybe
-//   [ ] 0x16b3c0  CKCinematicScene_GetInfo
+//   [x] 0x16b3c0  CKCinematicScene_GetInfo
 //   [x] 0x16b418  CKCinematicScene_PostLoad
-//   [ ] 0x16b4b8  CKCinematicScene_Destroy
+//   [x] 0x16b4b8  CKCinematicScene_Destroy
 //   [x] 0x16b560  CKCinematicScene_CreateArray
 //   [x] 0x16b618  CKCinematicScene_Create
 //   [x] 0x16b670  CKCinematicScene_SetChainedScenesFlag88_maybe
-//   [ ] 0x16b728  CKCinematicScene_PlaceActorAtBeacon_maybe
+//   [x] 0x16b728  CKCinematicScene_PlaceActorAtBeacon_maybe
 //   [x] 0x16baa8  CKCinematicScene_SetPlayingState_maybe
 //   [x] 0x16bdb0  CKCinematicScene_EndImmediate_maybe
 //   [x] 0x16bf28  CKCinematicScene_UpdateFadeStep_maybe
@@ -67,16 +67,20 @@
 //   [ ] 0x9a8cb8  CKCinematicScene_DeletingDestructor  [inline]
 //   [ ] 0x9a8cf8  CKCinematicScene_Destructor  [inline]
 #include "k2000/logic/CKCinematicScene.h"
+#include "k2000/core/IKInfo.h"
 
+#include <cmath>
 #include <cstring>
 
 #include "crt/ppc_ops.h"
+#include "Renderware/rwcore/RwCamera.h"
 #include "Renderware/rwcore/RwMatrix.h"
 #include "k2000/cameras/CKSrvCamera.h"
 #include "k2000/core/Stub.h"
 #include "k2000/graphical/fx/CBillboard2d.h"
 #include "k2000/graphical/ui/CameraContextUi.h"
 #include "k2000/groups/IKBaseGroup.h"
+#include "k2000/hooks/GroundContact.h"
 #include "k2000/hooks/IKHook.h"
 #include "k2000/hooks/IKLife.h"
 #include "k2000/io/IKFile.h"
@@ -85,15 +89,19 @@
 #include "k2000/logic/CKCoreManager.h"
 #include "k2000/logic/CKLevel.h"
 #include "k2000/managers/CKSoundManager.h"
+#include "k2000/logic/CKSavingManager.h"
 #include "k2000/misc/Engine.h"
 #include "k2000/misc/IKCinematicElement.h"
 #include "k2000/misc/Mat4.h"
 #include "k2000/scenegraph/CSGMovable.h"
 #include "k2000/services/CKSrvCinematic.h"
+#include "k2000/services/CKSrvCollision.h"
 #include "k2000/services/CKSrvDetect.h"
+#include "k2000/logic/ai/CKDetectedMovable.h"
 #include "k2000/sound/CKListener.h"
 #include "k2000/sound/SoundVoiceManager.h"
 #include "k2000/system/IKTime.h"
+#include "platform/fps.h"
 
 // 0x0016b618 CKCinematicScene_Create (the same stores as the dead CKCinematicScene_Construct 0x168e90)
 CKCinematicScene::CKCinematicScene() {
@@ -949,7 +957,10 @@ void CKCinematicScene::EndImmediate() {
 
 // 0x0016bf28 CKCinematicScene_UpdateFadeStep_maybe
 void CKCinematicScene::UpdateFadeStep(IKTime* time) {
-    const int32_t step = ppc::fctiwz(m_fAlphaSpeed * time->m_afDeltaTime[0]);
+    int32_t step = ppc::fctiwz(m_fAlphaSpeed * time->m_afDeltaTime[0]);
+    // --fps N (not in the original): the whole steps of this frame's 60 Hz frames. trunc(speed x dt) alone drops
+    // the fraction every update and is 0 once the frame rate passes the speed: the fade would never end the scene.
+    if (dotd::fps::Unlocked()) step = static_cast<int32_t>(dotd::fps::TruncSteps(m_fAlphaSpeed, time->m_afDeltaTime[0]));
     CKSrvCinematic* service = Service();
     CBillboard2d* quad = Band(service, 2);
     uint8_t* color = reinterpret_cast<uint8_t*>(&m_BandColor);
@@ -991,10 +1002,103 @@ void CKCinematicScene::UpdateFadeStep(IKTime* time) {
     SetBarColor(quad, &m_BandColor);
 }
 
-// 0x0016b728 CKCinematicScene_PlaceActorAtBeacon_maybe. STUB(C2.7): only a scene with interrupt beacons on its actors
-// (CKCinematicSceneData +0x10, not 0xffff) ends through here, and none of LVL010's does (not reached, so a port could not
-// be checked). The ground probe it uses (GroundProbePoints 0x196540, step 3) is ported; still missing are the beacon
-// getters 0x16dee0 / 0x16e4a8 (the beacon service's +0x18 table) and CKSrvDetect_SetDetectablePosition_maybe.
-void CKCinematicScene::PlaceActorAtBeacon(CKCinematicSceneData* /*data*/) {
-    DOTD_STUB_ONCE("CKCinematicScene_PlaceActorAtBeacon_maybe 0x16b728: the actor placed at its beacon (C2.7)");
+// 0x0016b728 CKCinematicScene_PlaceActorAtBeacon_maybe: an actor with an interrupt beacon (+0x10, not all 0xffff) is put
+// on the beacon's point (dropped on the ground below it when the probe finds one) facing its flat direction: the
+// detectors told the new position (CKSrvDetect_SetDetectablePosition_maybe), the node frame's modelling position, at,
+// up (the y axis 0x00c50d40) and right (up x at, normalised) set, each marked dirty.
+void CKCinematicScene::PlaceActorAtBeacon(CKCinematicSceneData* data) {
+    if (data->m_aUnk10[0] == 0xffff && data->m_aUnk10[1] == 0xffff && data->m_aUnk10[2] == 0xffff &&
+        data->m_aUnk10[3] == 0xffff) {
+        return;
+    }
+    IKSerializable* node = static_cast<IKHook*>(data->m_pHook)->m_pKGLObject;
+    CVector3 position;
+    data->GetBeaconPosition(&position.x);  // 0x0016dee0
+    CVector3 at;
+    data->GetBeaconDirection(&at.x);  // 0x0016e4a8
+    CGroundContactDatasIn in;
+    in.m_fDeltaMax = 0.5f;       // TOC1 -0x3670
+    in.m_fObjectHeight = 1.2f;   // TOC1 -0x361c
+    CGroundContactDatasInOut out;
+    out.m_pGround = nullptr;
+    out.m_i32FaceIndex = -1;
+    out.m_eContactStatus = 3;
+    out.m_ui8SectorNumber = 0;
+    static_cast<CKSrvCollision*>(g_pEngine->m_srvCollision)->GroundProbePoints(&in, &out, &position.x, 1);  // 0x00196540
+    if (out.m_eContactStatus != 3) position = out.m_ProjectionOnGround;
+    const float zero = 0.0f;  // TOC1 -0x3638
+    at.y = zero;
+    const float length = std::sqrt(ppc::fmadds(at.z, at.z, ppc::fmadds(at.x, at.x, zero)));  // Math_Sqrtf 0x10690
+    if (length != zero) {
+        const float k = 1.0f / length;  // TOC1 -0x3630
+        at.z = at.z * k;
+        at.x = at.x * k;
+        at.y = at.y * k;
+    }
+    const CVector3 up = {0.0f, 1.0f, 0.0f};  // TOC1 -0x3620: 0x00c50d40 (filled by a static initialiser)
+    CVector3 right;
+    right.y = ppc::fmsubs(up.z, at.x, at.z * up.x);
+    right.x = ppc::fmsubs(up.y, at.z, up.z * at.y);
+    right.z = ppc::fmsubs(at.y, up.x, up.y * at.x);
+    const float rightLength = std::sqrt(ppc::fmadds(right.z, right.z, ppc::fmadds(right.x, right.x, right.y * right.y)));
+    if (rightLength != zero) {
+        const float k = 1.0f / rightLength;
+        right.z = right.z * k;
+        right.x = right.x * k;
+        right.y = right.y * k;
+    }
+    CKSrvDetect* detect = static_cast<CKSrvDetect*>(g_pEngine->m_srvDetect);  // engine +0xa0
+    for (uint32_t i = 0; i < detect->m_ui32NbDetectedMovable; ++i) {
+        static_cast<CKDetectedMovable*>(detect->m_apDetectedMovable[i])->SetDetectablePosition(node, &position.x);  // 0x001ab008
+    }
+    RwFrame* frame = static_cast<CSGMovable*>(node)->m_pRwFrame;
+    frame->modelling.pos.z = position.z;
+    frame->modelling.pos.x = position.x;
+    frame->modelling.pos.y = position.y;
+    frame->modelling.flags &= 0xfffdffffu;
+    RwFrame_MarkDirty(frame);  // 0x00010698
+    frame->modelling.at.x = at.x;
+    frame->modelling.at.y = at.y;
+    frame->modelling.flags &= 0xfffdfffcu;
+    frame->modelling.at.z = at.z;
+    RwFrame_MarkDirty(frame);
+    frame->modelling.up.x = up.x;
+    frame->modelling.up.y = up.y;
+    frame->modelling.up.z = up.z;
+    frame->modelling.flags &= 0xfffdfffcu;
+    RwFrame_MarkDirty(frame);
+    frame->modelling.right.x = right.x;
+    frame->modelling.right.y = right.y;
+    frame->modelling.right.z = right.z;
+    frame->modelling.flags &= 0xfffdfffcu;
+    RwFrame_MarkDirty(frame);
+}
+
+// 0x0016b3c0 CKCinematicScene_GetInfo, with 0x009a8c88 CKCinematicScene_GetIsPlaying: 5 the scene plays (+0x20 bit 0).
+int32_t CKCinematicScene::GetInfo(IKInfo* info, int32_t request) {
+    if (request != kGetInfoValueAccessor || info->m_ui32Id != 5) return 1;
+    return AnswerInfo(info, [](IKSerializable* o, uint32_t) { return static_cast<uint32_t>(static_cast<CKCinematicScene*>(o)->m_baData & 1u); }, 0);
+}
+
+// 0x0016b4b8 CKCinematicScene_Destroy
+void CKCinematicScene::Destroy() {
+    for (IKCinematicElement* element = m_pActiveNodes; element != nullptr;) {
+        IKCinematicElement* next = element->m_pNext;
+        element->m_pNext = nullptr;
+        element = next;
+    }
+    m_pActiveNodes = nullptr;
+    if (m_pCinematicPointerList != nullptr) delete[] m_pCinematicPointerList;  // TocBridge_OperatorDeleteArray
+    if (m_apCinematicSceneData != nullptr) delete[] m_apCinematicSceneData;
+    if (m_apGroupToAsleep != nullptr) delete[] m_apGroupToAsleep;
+}
+
+// 0x0016ad20 CKCinematicScene_RecursiveRegistration (returns 1)
+void CKCinematicScene::RecursiveRegistration(int32_t type) {
+    if (type != 0) return;  // (the trigger starters' KStub_Return1_2361b0 with the type)
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    for (uint32_t i = 0; i < m_ui32CinematicPointerLength; ++i) m_pCinematicPointerList[i]->RecursiveRegistration(0);
+    for (uint32_t i = 0; i < m_ui32HookNumber; ++i) m_apCinematicSceneData[i]->RecursiveRegistration(0);
+    if (m_pFirstBloc != nullptr) m_pFirstBloc->RecursiveRegistration(0);
+    m_pSoundDico->RecursiveRegistration(0);
 }

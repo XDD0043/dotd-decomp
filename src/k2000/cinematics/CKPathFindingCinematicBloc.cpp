@@ -10,14 +10,14 @@
 //   [ ] 0x181790  RegisterCKPathFindingCinematicBlocClass
 //   [ ] 0x181808  _GLOBAL__I_181808
 //   [x] 0x181818  CKPathFindingCinematicBloc_Abort
-//   [ ] 0x181858  DirectionToYawAngle_maybe
-//   [ ] 0x181948  CKPathFindingCinematicBloc_AdvanceActorAnim_maybe
-//   [ ] 0x181970  CKPathFindingCinematicBloc_SnapActorToGround_maybe
+//   [x] 0x181858  DirectionToYawAngle_maybe  [dead: no pointer to its descriptor 0xb65c88, no call]  (DirectionToYawAngle: YawOf out of line)
+//   [x] 0x181948  CKPathFindingCinematicBloc_AdvanceActorAnim_maybe  [dead: no pointer to its descriptor 0xb65c90, no call]  (CKPathFindingCinematicBloc::AdvanceActorAnimBy)
+//   [x] 0x181970  CKPathFindingCinematicBloc_SnapActorToGround_maybe  [dead: no pointer to its descriptor 0xb65c98, no call]  (CKPathFindingCinematicBloc::SnapActorToGround)
 //   [x] 0x181a70  CKPathFindingCinematicBloc_Stop
 //   [ ] 0x181c50  CKPathFindingCinematicBloc_Save
-//   [ ] 0x181c78  CKPathFindingCinematicBloc_RecursiveRegistration
+//   [x] 0x181c78  CKPathFindingCinematicBloc_RecursiveRegistration
 //   [x] 0x181d08  CKPathFindingCinematicBloc_DeleteArray
-//   [ ] 0x181db0  CKPathFindingCinematicBloc_Destroy
+//   [x] 0x181db0  CKPathFindingCinematicBloc_Destroy  (empty: the default)
 //   [x] 0x181db8  CKPathFindingCinematicBloc_Create
 //   [x] 0x181f20  CKPathFindingCinematicBloc_Load
 //   [x] 0x1821c0  CKPathFindingCinematicBloc_CreateArray
@@ -39,6 +39,7 @@
 //   [ ] 0x9a9ba8  CKPathFindingCinematicBloc_DeletingDestructor  [inline]
 //   [ ] 0x9a9c18  CKPathFindingCinematicBloc_Destructor  [inline]
 #include "k2000/cinematics/CKPathFindingCinematicBloc.h"
+#include "k2000/logic/CKSavingManager.h"
 
 #include "k2000/io/IKFile.h"
 
@@ -185,19 +186,6 @@ void MarkFrame(RwFrame* frame, uint32_t keepMask) {
     RwFrame_MarkDirty(frame);
 }
 
-// STUB(C2.7): CKPathFindingCpnt_Update 0x1e2b28 (and RequestPathTo, TryDirectPath, the path queries) is not ported: the
-// path is the straight segment to the destination, as in the capture of the opening scene (no path query ever started
-// there, every IsDirectPathWalkable answered yes). The component's waypoint (+0x28) is the destination and its state
-// (+0x3c) 0x82 (waypoint valid, last one), what CKPathFindingCpnt_TryStraightElseContinue leaves.
-void DirectPathUpdate(CKPathFindingCpnt* component, const CVector3& position, const CPFPoint& target) {
-    DOTD_STUB_ONCE("CKPathFindingCpnt_Update 0x1e2b28: the path is the straight segment (C2.7)");
-    component->m_Destination.m_position = position;
-    std::memcpy(&component->m_vCurrentTarget.x, &target.m_position.x, 4);
-    std::memcpy(&component->m_vCurrentTarget.y, &target.m_position.y, 4);
-    std::memcpy(&component->m_vCurrentTarget.z, &target.m_position.z, 4);
-    component->m_unk3c = 0x82;
-}
-
 }  // namespace
 
 // 0x00183240 CKPathFindingCinematicBloc_Start
@@ -260,9 +248,8 @@ void CKPathFindingCinematicBloc::Start() {
             m_v3CurrentUp.x = inverse * up.x;
             m_v3CurrentUp.y = inverse * up.y;
         }
-        m_PathFindingCpnt.SetDestination(&m_v3CurrentPos);
-        // STUB(C2.7): CKPathFindingCpnt_SetTargetPosition 0x1e1520 (the destination's sector, its walkability).
-        DOTD_STUB_ONCE("CKPathFindingCpnt_SetTargetPosition 0x1e1520: the straight segment is the path (C2.7)");
+        m_PathFindingCpnt.SetDestination(&m_v3CurrentPos);   // 0x001e3a40
+        m_PathFindingCpnt.RequestPathTo(&m_Target.m_position, -1);  // 0x001e1520
         return;
     }
     Complete();  // vt+0x64
@@ -319,7 +306,7 @@ bool CKPathFindingCinematicBloc::TurnActorToTargetYaw(IKTime* time) {
 void CKPathFindingCinematicBloc::MoveActorAlongPath(IKTime* time) {
     const float dt = time->m_afDeltaTime[0];
     if ((m_bitarray & 4) == 0) {
-        DirectPathUpdate(&m_PathFindingCpnt, m_v3CurrentPos, m_Target);
+        m_PathFindingCpnt.Update(&m_v3CurrentPos);  // 0x001e2b28
         m_CurrentPFState = static_cast<uint32_t>(m_PathFindingCpnt.m_unk3c);
         if ((m_CurrentPFState & 2) == 0) return;
         CSGMovable* node = NodeOf(this);
@@ -454,4 +441,36 @@ void CKPathFindingCinematicBloc::Stop() {
 void CKPathFindingCinematicBloc::Abort() {
     m_DataFlags &= 0xfffffffeu;
     m_PathFindingCpnt.CancelPathRequest();
+}
+
+// 0x00181c78 CKPathFindingCinematicBloc_RecursiveRegistration
+void CKPathFindingCinematicBloc::RecursiveRegistration(int32_t type) {
+    if (static_cast<uint32_t>(type - 4) > 3u) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);
+    IKCinematicBloc::RecursiveRegistration(type);  // 0x0018e8d8
+}
+
+// 0x00181858 DirectionToYawAngle_maybe: the out-of-line copy of YawOf above for a vector (r3 is not read). Dead in the
+// original (no pointer to its descriptor 0xb65c88, no call).
+float DirectionToYawAngle(const CVector3* direction) { return YawOf(direction->x, direction->z); }
+
+// 0x00181948 CKPathFindingCinematicBloc_AdvanceActorAnim_maybe: CKCinematicBloc_AdvanceActorAnim 0x18f450 by the time's
+// scalable dt (+0x1c), as Update does inline. Dead in the original (no pointer to its descriptor 0xb65c90, no call).
+void CKPathFindingCinematicBloc::AdvanceActorAnimBy(IKTime* time) {
+    AdvanceActorAnim(static_cast<double>(time->m_afDeltaTime[IKTime::SCALABLE_GAME_TIME]));
+}
+
+// 0x00181970 CKPathFindingCinematicBloc_SnapActorToGround_maybe: the ground probe under the actor's position (one point,
+// GroundProbePoints_maybe 0x196540); unless the contact's status is 3 or it found no ground, the position becomes the
+// ground point (GroundContact_GetWorldPoint) and the actor's frame takes it (the identity bit 17 cleared, marked dirty),
+// as MoveActorAlongPath does inline. Dead in the original (no pointer to its descriptor 0xb65c98, no call).
+void CKPathFindingCinematicBloc::SnapActorToGround() {
+    static_cast<CKSrvCollision*>(g_pEngine->m_srvCollision)->GroundProbePoints(&m_DatasIn, &m_DatasInOut, &m_v3CurrentPos.x, 1);
+    if (m_DatasInOut.m_eContactStatus == 3) return;
+    if (m_DatasInOut.m_pGround == nullptr) return;
+    GroundContact_GetWorldPoint(reinterpret_cast<const CGroundContactDatasInOut*>(&m_DatasInOut), &m_v3CurrentPos);
+    RwFrame* frame = NodeOf(this)->m_pRwFrame;
+    frame->modelling.pos.z = m_v3CurrentPos.z;
+    frame->modelling.pos.x = m_v3CurrentPos.x;
+    frame->modelling.pos.y = m_v3CurrentPos.y;
+    MarkFrame(frame, 0xfffdffffu);
 }

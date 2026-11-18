@@ -8,11 +8,11 @@
 //   [ ] 0x1f2120  RegisterCKQuadTreeRootClass
 //   [ ] 0x1f2198  _GLOBAL__I_1f2198
 //   [ ] 0x1f21a8  CKQuadTreeRoot_Save
-//   [ ] 0x1f21d0  CKQuadTreeRoot_RecursiveRegistration
-//   [ ] 0x1f21f8  CKQuadTreeRoot_Destroy
-//   [ ] 0x1f2240  CKQuadTreeRoot_DeletingDestructor
-//   [ ] 0x1f2288  CKQuadTreeRoot_Destructor
-//   [ ] 0x1f22b8  CKQuadTreeRoot_BaseDestructor
+//   [x] 0x1f21d0  CKQuadTreeRoot_RecursiveRegistration  (inherited: CKQuadTreeBranch's, returns 1)
+//   [x] 0x1f21f8  CKQuadTreeRoot_Destroy  (header)
+//   [x] 0x1f2240  CKQuadTreeRoot_DeletingDestructor  (the destructor; delete)
+//   [x] 0x1f2288  CKQuadTreeRoot_Destructor  (C++ destructor chain: vtable stores only)
+//   [x] 0x1f22b8  CKQuadTreeRoot_BaseDestructor  (C++ destructor chain: vtable stores only)
 //   [x] 0x1f22e8  NavSectorQuadTree_Construct_maybe
 //   [x] 0x1f2338  CKQuadTreeRoot_Construct
 //   [x] 0x1f2388  CKQuadTreeRoot_DeleteArray

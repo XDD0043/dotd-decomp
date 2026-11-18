@@ -15,17 +15,18 @@
 //   [ ] 0x10e580  InputMapping_SelectMappingSet_maybe  [dead]
 //   [ ] 0x10e608  InputMapping_GetBoundButtonCode_maybe  [dead]
 //   [ ] 0x10e660  FUN_0010e660  [dead]
-//   [ ] 0x10e6c8  InputMapping_DeletingDestructor_maybe
-//   [ ] 0x10e730  InputMapping_Destructor_maybe
+//   [x] 0x10e6c8  InputMapping_DeletingDestructor_maybe
+//   [x] 0x10e730  InputMapping_Destructor_maybe
 //   [ ] 0x10e780  InputMapping_Destructor_2_maybe  [dead]
 //   [x] 0x10e7d0  InputMapping_GetButtonState
 //   [ ] 0x10e818  FUN_0010e818  [dead]
 //   [x] 0x10e898  InputMapping_Load_maybe
-//   [ ] 0x10ea68  InputMapping_Save_maybe
-//   [ ] 0x10eb00  InputMapping_QueryActionSourceVf14_maybe
+//   [x] 0x10ea68  InputMapping_Save_maybe
+//   [x] 0x10eb00  InputMapping_QueryActionSourceVf14_maybe  (CKInputDico::GetFilterThreshold)
 #include "k2000/input/CKInputDico.h"
 
 #include "k2000/input/CKAction.h"
+#include "k2000/input/IKFilter.h"
 #include "k2000/io/IKFile.h"
 #include "k2000/managers/CKInput.h"
 #include "k2000/misc/Engine.h"
@@ -36,6 +37,19 @@ CKInputDico::CKInputDico() {
     m_ui8NbCombo = 0;
     m_ui8NbAction = 0;
     m_aNumAction = nullptr;
+}
+
+// 0x0010eb00 InputMapping_QueryActionSourceVf14_maybe
+uint8_t CKInputDico::GetFilterThreshold(int32_t index) const {
+    CKAction* action = nullptr;
+    if (index < static_cast<int32_t>(m_ui8NbAction) + static_cast<int32_t>(m_ui8NbCombo)) {
+        action = m_pInput->GetAction(m_aNumAction[index]);  // 0x00105240
+    }
+    // BUG(original): beyond the entries the original reads the filter at address 8 (the null action's +0x08); the
+    // callers (CKS08GameManager_vf168) stay in range.
+    if (action == nullptr) return 0;
+    IKFilter* filter = action->m_pFilter;
+    return filter != nullptr ? filter->GetFilterThreshold() : 0;  // vt+0x14
 }
 
 // 0x0010e4e8 InputMapping_GetActionEntry
@@ -78,4 +92,12 @@ uint8_t CKInputDico::GetButtonState(int32_t index) const {
 // 0x0010e408 CKInputDico_GetActionTimePressed (XXL2 CKInputDico::GetActionTimePressed)
 float CKInputDico::GetActionTimePressed(int32_t index) const {
     return m_pInput->m_aActions[m_aNumAction[index]].m_fActionTimePressed;
+}
+
+// 0x0010ea68 InputMapping_Save_maybe (XXL2 CKInputDico::Save(IKFile*, ESerializationType)): the two counts
+// (IKFile vt+0x20); the type is not used and the action indices are not written. Returns 1.
+int32_t CKInputDico::Save(IKFile* file, int32_t /*type*/) {
+    file->Write(&m_ui8NbAction, 1);
+    file->Write(&m_ui8NbCombo, 1);
+    return 1;
 }

@@ -12,12 +12,20 @@ class IKFile;
 class CKCameraPathTrack : public IKCamera {
 public:
     DOTD_CLASS_KEY(kCategoryCamera, 0x4)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a7320
+        return key == 0x107 || key == 0x347 || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKCameraPathTrack)
 
     CKCameraPathTrack();  // 0x0013ba58 CKCameraPathTrack_Create (the same stores as CKCameraPathTrack_Construct 0x13b2b0)
     ~CKCameraPathTrack() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x0013bab8 CKCameraPathTrack_Load
+    // vt+0x24 0x0013b098 CKCameraPathTrack_RecursiveRegistration (P21): IKCamera's, then the path's when set.
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x10 0x0013b1b0 CKCameraPathTrack_Destroy (P21): the base's (empty), the roll points deleted (delete[]), their
+    // count and pointer cleared.
+    void Destroy() override;
     // vt+0x30 0x0013b070 CKCameraPathTrack_PostLoad: IKCamera's (KStub_Return1_144570), 1: the default.
 
     // The runtime slots (step 5, FX).

@@ -35,6 +35,7 @@
 #include <cmath>
 #include <cstring>
 
+#include "Renderware/rwcore/RwCamera.h"  // RwFrame
 #include "Renderware/rwcore/RwMatrix.h"
 #include "crt/ppc_ops.h"
 #include "k2000/logic/sound/CKSound.h"
@@ -260,8 +261,8 @@ CVector3* SoundInstance::GetWorldPosition(CVector3* out) {
         const CVector3* local = sound->GetPosition();
         RwFrame* frame = static_cast<CSGMovable*>(node)->m_pRwFrame;
         if (frame != nullptr) {
-            // the node's frame LTM (RwFrame +0x50)
-            const CMatrix34* ltm = reinterpret_cast<const CMatrix34*>(reinterpret_cast<const uint8_t*>(frame) + 0x50);
+            // the node's frame LTM (RwFrame +0x50 on the PS3; the member, which a 64-bit host moves)
+            const CMatrix34* ltm = reinterpret_cast<const CMatrix34*>(&frame->ltm);
             CVector3 p;
             Mat4_TransformPoints(ltm, &p, local, 1);
             *out = p;

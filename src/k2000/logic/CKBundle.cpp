@@ -5,16 +5,16 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1dcb28  CKBundle_Delete
-//   [ ] 0x1dcb78  InitializeCKBundleInstance
+//   [x] 0x1dcb78  InitializeCKBundleInstance  (CKBundle::CKBundle)
 //   [ ] 0x1dcba8  FUN_001dcba8  [dead]
 //   [ ] 0x1dcc30  FUN_001dcc30  [dead]
 //   [ ] 0x1dcd30  FUN_001dcd30  [dead]
-//   [ ] 0x1dcd40  CKBundle_vf94
+//   [x] 0x1dcd40  CKBundle_vf94
 //   [ ] 0x1dcd60  RegisterCKBundleClass
 //   [ ] 0x1dcde0  _GLOBAL__I_1dcde0
 //   [x] 0x1dcdf0  CKBundle_DeleteArray
 //   [ ] 0x1dce98  CKBundle_ContainsObject_maybe  [dead]
-//   [ ] 0x1dcf10  CKBundle_RecursiveRegistration
+//   [x] 0x1dcf10  CKBundle_RecursiveRegistration
 //   [x] 0x1dd030  CKBundle_Stop
 //   [x] 0x1dd120  CKBundle_Resume
 //   [x] 0x1dd210  CKBundle_Pause
@@ -22,15 +22,15 @@
 //   [x] 0x1dd3f0  CKBundle_Restart
 //   [x] 0x1dd4e0  CKBundle_InitHooks_maybe
 //   [x] 0x1dd5e8  CKBundle_Start
-//   [ ] 0x1dd6d8  CKBundle_AddHook_maybe
-//   [ ] 0x1dd788  CKBundle_ShutdownHooks_maybe
-//   [ ] 0x1dd890  ConstructCKBundle
-//   [ ] 0x1dd8c0  CKBundle_RemoveHook_maybe
+//   [x] 0x1dd6d8  CKBundle_AddHook_maybe
+//   [x] 0x1dd788  CKBundle_ShutdownHooks_maybe
+//   [x] 0x1dd890  ConstructCKBundle  (CKBundle::CKBundle)
+//   [x] 0x1dd8c0  CKBundle_RemoveHook_maybe
 //   [x] 0x1dd988  CKBundle_SectorLoaded
 //   [x] 0x1dda88  CKBundle_SectorUnload
-//   [ ] 0x1ddb88  CKBundle_PostLoad
+//   [x] 0x1ddb88  CKBundle_PostLoad  (returns 1: the root's default)
 //   [x] 0x1ddb90  CKBundle_SetDefaultState
-//   [ ] 0x1ddc90  CKBundle_Destroy
+//   [x] 0x1ddc90  CKBundle_Destroy
 //   [x] 0x1ddca0  CreateCKBundleArray
 //   [x] 0x1ddd70  CKBundle_Create
 //   [x] 0x1dddc8  ObjectList_MoveBetweenActiveLists_maybe
@@ -49,6 +49,8 @@
 #include "k2000/groups/IKBaseGroup.h"
 #include "k2000/hooks/IKLife.h"
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 
 namespace {
 
@@ -218,6 +220,22 @@ void CKBundle::MoveBetweenActiveLists(IKLife* life, uint32_t active) {
 }
 
 // Inlined in 0x001ddd70 CKBundle_Create.
+// 0x001dcd40 CKBundle_vf94
+uint8_t CKBundle::InitializeData(IKBaseGroup* group) {
+    group->m_pKBundle = this;
+    m_pGroup = group;
+    m_ui32Priority = group->m_ui32Priority;
+    return 1;
+}
+
+// 0x001dcf10 CKBundle_RecursiveRegistration (returns 1)
+void CKBundle::RecursiveRegistration(int32_t type) {
+    if (static_cast<uint32_t>(type) - 4u > 3u) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);
+    for (IKLife* life = m_lAwakeLifeList; life != nullptr; life = life->m_pNext) life->RecursiveRegistration(type);
+    for (IKLife* life = m_lAsleepLifeList; life != nullptr; life = life->m_pNext) life->RecursiveRegistration(type);
+}
+
+// 0x001dcb78 InitializeCKBundleInstance / 0x001dd890 ConstructCKBundle (the same body; inlined in CKBundle_Create)
 CKBundle::CKBundle() {
     m_pNext = nullptr;
     m_ui32Priority = 0x7fffffff;
@@ -269,8 +287,45 @@ int32_t CKBundle::Load(IKFile* file, int32_t /*type*/) {
     return 1;
 }
 
-// 0x001dd788 CKBundle_ShutdownHooks_maybe. STUB(C2.2): see CKBundle.h. A bundle holds hooks only after a
-// level is loaded and started; the front end (the only caller so far) has none.
+// 0x001dd788 CKBundle_ShutdownHooks_maybe (XXL2 the counterpart of AwakeOnStart): vt+0x98 on every life whose bit 0
+// is clear, the group first, then the awake list and the asleep list (InitHooks' walk).
 void CKBundle::ShutdownHooks() {
-    if (m_lAwakeLifeList != nullptr) DOTD_STUB_ONCE("CKBundle_ShutdownHooks_maybe 0x1dd788 (C2.2, hooks)");
+    WalkLives(this, [](IKLife* life) { life->Vf98(); }, true);
+}
+
+// 0x001dd6d8 CKBundle_AddHook_maybe (C2.7 enemy family: the squads take their enemies from the pools)
+void CKBundle::AddHook(IKLife* life) {
+    if ((life->m_bitArray & 1u) != 0) {
+        life->m_pNext = m_lAsleepLifeList;
+        m_lAsleepLifeList = life;
+        return;
+    }
+    IKLife* prev = m_lAwakeLifeList;
+    if (prev == nullptr || prev->m_ui32Priority <= life->m_ui32Priority) {
+        life->m_pNext = m_lAwakeLifeList;
+        m_lAwakeLifeList = life;
+        return;
+    }
+    for (IKLife* next = prev->m_pNext; next != nullptr && next->m_ui32Priority > life->m_ui32Priority; next = next->m_pNext) {
+        prev = next;
+    }
+    life->m_pNext = prev->m_pNext;
+    prev->m_pNext = life;
+}
+
+// 0x001dd8c0 CKBundle_RemoveHook_maybe (a life not in the list is left alone)
+void CKBundle::RemoveHook(IKLife* life) {
+    IKLife** head = (life->m_bitArray & 1u) != 0 ? &m_lAsleepLifeList : &m_lAwakeLifeList;
+    if (*head == nullptr) return;
+    if (*head == life) {
+        *head = life->m_pNext;
+    } else {
+        IKLife* prev = *head;
+        while (prev->m_pNext != life) {
+            if (prev->m_pNext == nullptr) return;
+            prev = prev->m_pNext;
+        }
+        prev->m_pNext = life->m_pNext;
+    }
+    life->m_pNext = nullptr;
 }

@@ -11,4 +11,8 @@ int CaptureCallers(int skip, void** out, int max);
 // The function name at `address` ("?" when unknown); cached, valid until the process ends.
 const char* FunctionName(void* address);
 
+// A crash (an unhandled exception) prints its code, the faulting function and the thread's stack to stderr before the
+// process ends (the test tools: a crash that only happens outside a debugger). Windows only.
+void InstallCrashReport();
+
 }  // namespace dotd::platform::debugsym

@@ -6,10 +6,10 @@
 //   [x] 0x10eba0  InputSource_Construct_maybe
 //   [x] 0x10ec30  InputSource_BindButtonFromBytes_maybe
 //   [x] 0x10ec80  InputSource_BindButton_maybe
-//   [ ] 0x10f118  InputSource_Destructor_maybe
+//   [x] 0x10f118  InputSource_Destructor_maybe  (the implicit destructor (vtable store only))
 //   [ ] 0x10f128  InputSource_Construct_2_maybe  [dead]
 //   [ ] 0x10f1b8  InputSource_Destructor_2_maybe  [dead]
-//   [ ] 0x10f1c8  InputSource_DeletingDestructor_maybe
+//   [x] 0x10f1c8  InputSource_DeletingDestructor_maybe  (the implicit destructor, delete)
 #include "k2000/input/CKMapping.h"
 
 #include "k2000/input/KeyboardDevice.h"

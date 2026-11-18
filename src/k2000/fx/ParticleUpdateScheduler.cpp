@@ -6,10 +6,10 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0xed0d0  InitializeParticleUpdateScheduler (the serial configuration)
 //   [x] 0xed328  ScheduleParticleNodeUpdates
-//   [ ] 0xed430  ParticleUpdateThreadMain
-//   [ ] 0xed590  InitializeParticleUpdateSchedulerAlternate
-//   [ ] 0xed7e8  ParticleUpdateScheduler_DestructBody_2_maybe
-//   [ ] 0xed978  ParticleUpdateScheduler_DestructBody_maybe
+//   [ ] 0xed430  ParticleUpdateThreadMain  [platform]  (the PPU worker thread's loop under the condition / mutex: natively the scheduler runs serially, concurrency 1)
+//   [ ] 0xed590  InitializeParticleUpdateSchedulerAlternate  [dead: no pointer to its descriptor 0xb53178, no call]
+//   [ ] 0xed7e8  ParticleUpdateScheduler_DestructBody_2_maybe  [dead: no pointer to its descriptor 0xb53180, no call]
+//   [x] 0xed978  ParticleUpdateScheduler_DestructBody_maybe
 #include "k2000/fx/ParticleUpdateScheduler.h"
 
 #include <cstdlib>
@@ -47,4 +47,21 @@ void ScheduleParticleNodeUpdates(ParticleUpdateScheduler* scheduler, IKTime* fra
     }
     scheduler->frameClock = frameClock;  // under the mutex, then the condition signalled (not modelled)
     scheduler->workerState = 1;
+}
+
+// 0x000ed978 ParticleUpdateScheduler_DestructBody_maybe. The worker's stop (state 2 under the mutex, the condition
+// signalled, the thread joined) and the thread reference's release (an atomic decrement, the last one deletes it) only
+// happen with a worker: natively there is none (concurrency 1). The arrays are InitializeParticleUpdateScheduler's.
+void ParticleUpdateScheduler_DestructBody(ParticleUpdateScheduler* scheduler) {
+    if (scheduler->shutdownRequested == 0) {
+        scheduler->shutdownRequested = 1;
+        if (scheduler->executionConcurrency > 1) scheduler->workerState = 2;
+    }
+    // LwMutex_Destroy(+0x60), CondVar_Destroy(+0x30): not modelled.
+    if (scheduler->activeNodes != nullptr) std::free(scheduler->activeNodes);  // Mem_FreeAligned16
+    scheduler->activeCount = 0;
+    scheduler->activeNodes = nullptr;
+    if (scheduler->workItems != nullptr) std::free(scheduler->workItems);
+    scheduler->workCount = 0;
+    scheduler->workItems = nullptr;
 }

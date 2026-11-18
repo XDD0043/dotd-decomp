@@ -7,37 +7,37 @@
 //   [ ] 0xa2cc0  CameraContext_ResetReferenceAspect_maybe  [dead]
 //   [ ] 0xa2cd8  CameraContext_UpdateAspectRatio_maybe  [dead]
 //   [ ] 0xa2d48  CameraContext_UpdateInverseAspect_maybe  [dead]
-//   [ ] 0xa2dc8  CameraContext_GetViewWindow_maybe
+//   [x] 0xa2dc8  CameraContext_GetViewWindow_maybe
 //   [ ] 0xa2de0  KStub_Nop_a2de0  [dead]
 //   [ ] 0xa2de8  KStub_Nop_a2de8  [dead]
 //   [ ] 0xa2df0  KStub_Nop_a2df0  [dead]
 //   [ ] 0xa2df8  KStub_Nop_a2df8  [dead]
 //   [ ] 0xa2e00  KStub_Nop_a2e00  [dead]
 //   [ ] 0xa2e08  KStub_Return0_a2e08  [dead]
-//   [ ] 0xa2e10  KStub_Return1_a2e10
+//   [x] 0xa2e10  KStub_Return1_a2e10  (the camera context's RecursiveRegistration: returns 1, registers nothing (CRenderer::RecursiveRegistration's note))
 //   [ ] 0xa2e18  KStub_Return1_a2e18  [dead]
 //   [ ] 0xa2e20  KStub_Return1_a2e20  [dead]
-//   [ ] 0xa2e28  WriteRasterImageToFile
+//   [ ] 0xa2e28  WriteRasterImageToFile  [dead: no pointer to its descriptor; its only calls are from the dead 0xa3ff0 CaptureScreenshotToFile]  [platform] (the screenshot export: RwImageWrite through the registered image-file writers, a PS3 debug tool writing files; no caller but the dead CaptureScreenshotToFile)
 //   [x] 0xa2fa8  CameraContext_SetClipPlanes_maybe
-//   [ ] 0xa30c0  ProjectWorldPointToScreen
+//   [x] 0xa30c0  ProjectWorldPointToScreen
 //   [x] 0xa31e8  DrawScreenColorQuad
-//   [ ] 0xa39a8  CameraContext_Destructor
-//   [ ] 0xa3a78  DrawUIFontTextRotatedScaled_maybe
+//   [x] 0xa39a8  CameraContext_Destructor
+//   [x] 0xa3a78  DrawUIFontTextRotatedScaled_maybe  [dead: no pointer to its descriptor 0xb48dd0, no call]  (DrawUIFontTextRotatedScaled, CameraContext.h)
 //   [ ] 0xa3c28  ConstructRendererCameraContext_2  [dead]
 //   [ ] 0xa3ce8  CameraContext_TransformPointToView_maybe  [dead]
-//   [ ] 0xa3d40  CameraContext_ScreenPointToWorldRay_maybe
-//   [ ] 0xa3ff0  CaptureScreenshotToFile
+//   [x] 0xa3d40  CameraContext_ScreenPointToWorldRay_maybe  (CameraContext::ScreenPointToWorldRay)
+//   [ ] 0xa3ff0  CaptureScreenshotToFile  [dead: no pointer to its descriptor 0xb48e08, no call]  [platform] (the screenshot capture to a file: temporary rasters, one GameLoop pass and WriteRasterImageToFile; a debug tool with no caller)
 //   [x] 0xa4278  ClearRendererCamera
-//   [ ] 0xa4350  CameraContext_DestroyCamerasAndRasters_maybe
-//   [ ] 0xa4578  CameraContext_ClearScreen_maybe
+//   [x] 0xa4350  CameraContext_DestroyCamerasAndRasters_maybe
+//   [ ] 0xa4578  CameraContext_ClearScreen_maybe  [platform]  (two cleared frames presented and a 21 ms sleep (CameraContext_Init's end, the heap's out-of-memory paths): the platform window presents its own frames, see CameraContext::Init's STUB(M2) note)
 //   [x] 0xa4668  ConstructRendererCameraContext
 //   [ ] 0xa4728  CameraContext_UpdateAspectFromRaster_maybe  [dead]
 //   [ ] 0xa4818  CameraContext_Destructor_2  [dead]
-//   [ ] 0xa48e8  CameraContext_DeletingDestructor
+//   [x] 0xa48e8  CameraContext_DeletingDestructor
 //   [x] 0xa49e0  CameraContext_SetFieldOfView_maybe
 //   [x] 0xa4be8  Camera_SetFovAndAspectFromRaster_maybe
 //   [x] 0xa4d18  CameraContext_RecreateFrameBuffers_maybe
-//   [ ] 0xa5160  CameraContext_RefreshFrameBuffersIfResized_maybe
+//   [x] 0xa5160  CameraContext_RefreshFrameBuffersIfResized_maybe  [dead: no pointer to its descriptor; its only call is from the dead 0x59f08 CKGraphic_RefreshFrameBuffersIfResized_maybe]  (CameraContext::RefreshFrameBuffersIfResized)
 //   [~] 0xa5270  CameraContext_Init_maybe (the UI camera, rasters and aspects; the 3D cameras' setup STUB)
 #include "k2000/cameras/CameraContext.h"
 
@@ -47,7 +47,11 @@
 #include "Renderware/rwcore/RwCamera.h"
 #include "Renderware/rwcore/RwIm2D.h"
 #include "Renderware/rwcore/RwIm3D.h"
+#include "Renderware/rwcore/RwMatrix.h"
+#include "crt/ppc_ops.h"
 #include "crt/xtanf.h"
+#include "Renderware/rwcore/RwRaster.h"
+#include "Renderware/rt2d/Rt2d.h"
 #include "k2000/graphical/ui/CManager2d.h"
 #include "k2000/managers/CKGraphic.h"
 #include "k2000/misc/ClassRegistry.h"
@@ -65,6 +69,7 @@ RwIm2DVertex s_screenQuad[5];
 RwCamera* s_uiCamera = nullptr;      // 0x00c5c9c4
 RwCamera* s_sceneCamera = nullptr;   // 0x00c5c9c8
 RwCamera* s_mainCamera = nullptr;    // 0x00c5c9cc
+IKSerializable* s_camera = nullptr;  // 0x00c5c9d0
 // 0x00c29718: the quad's triangle-strip indices, then the centred fan's.
 RwImVertexIndex s_quadIndices[10] = {1, 0, 2, 3, 4, 1, 0, 3, 2, 1};
 
@@ -76,6 +81,73 @@ RwRGBA ColorOfWord(uint32_t word) {
 }  // namespace
 
 CameraContext* Engine_GetCameraContext() { return static_cast<CameraContext*>(g_pEngine->m_cameraContext); }
+
+// 0x000a2dc8 CameraContext_GetViewWindow_maybe
+void CameraContext_GetViewWindow(const CameraContext* context, RwV2d* viewWindow) {
+    const RwCamera* camera = context->m_pMainCamera;
+    viewWindow->x = camera->viewWindow.x;
+    viewWindow->y = camera->viewWindow.y;
+}
+
+// 0x000a3d40 CameraContext_ScreenPointToWorldRay_maybe (P21). The frustum corners: near 0-3, far 4-7 (top right,
+// top left, bottom left, bottom right); u = x / width, v = y / height (fcfid + frsp); each lerp fused (fmadds).
+void CameraContext::ScreenPointToWorldRay(const float* point, float* ray) const {
+    if (m_pFinalColorRaster == nullptr || m_pDepthRaster == nullptr) {
+        ray[0] = 0.0f;  // 0x00c50d64 (TOC -0x6124): the null vector
+        ray[1] = 0.0f;
+        ray[2] = 0.0f;
+        ray[3] = 0.0f;  // 0x00c50d4c (TOC -0x6120): the z axis (a static initialiser fills it)
+        ray[4] = 0.0f;
+        ray[5] = 1.0f;
+        return;
+    }
+    const RwCamera* camera = m_pMainCamera;
+    const RwV3d* c = camera->frustumCorners;
+    const float u = point[0] / static_cast<float>(static_cast<double>(camera->frameBuffer->width));
+    const float v = point[1] / static_cast<float>(static_cast<double>(camera->frameBuffer->height));
+    auto lerp = [](float t, float a, float b) { return ppc::fmadds(t, b - a, a); };  // a + t (b - a)
+    const float nx = lerp(v, lerp(u, c[0].x, c[1].x), lerp(u, c[3].x, c[2].x));
+    const float ny = lerp(v, lerp(u, c[0].y, c[1].y), lerp(u, c[3].y, c[2].y));
+    const float nz = lerp(v, lerp(u, c[0].z, c[1].z), lerp(u, c[3].z, c[2].z));
+    const float fx = lerp(v, lerp(u, c[4].x, c[5].x), lerp(u, c[7].x, c[6].x));
+    const float fy = lerp(v, lerp(u, c[4].y, c[5].y), lerp(u, c[7].y, c[6].y));
+    const float fz = lerp(v, lerp(u, c[4].z, c[5].z), lerp(u, c[7].z, c[6].z));
+    ray[0] = nx;
+    ray[2] = nz;
+    ray[3] = fx - nx;
+    ray[5] = fz - nz;
+    ray[1] = ny;
+    ray[4] = fy - ny;
+}
+
+// 0x000a30c0 ProjectWorldPointToScreen
+void ProjectWorldPointToScreen(const CameraContext* context, const RwV3d* point, float* screen, int32_t inPixels) {
+    if (context->m_pFinalColorRaster == nullptr || context->m_pDepthRaster == nullptr) return;
+    RwV3d view;
+    RwV3dTransformPoints(&view, point, 1, &context->m_pMainCamera->viewMatrix);  // Mat4_TransformPoints 0x23f7e8
+    float recipZ;
+    if (view.z == 0.0f) {
+        // BUG(original): blt after the equality test (cr7 still says "equal"): always +1e-6 (TOC -0x6158; -0x615c unused).
+        view.z = 1.0e-6f + view.z;
+        recipZ = 1.0f / view.z;
+    } else {
+        recipZ = 1.0f / view.z;
+    }
+    float scaleX = 1.0f;
+    float scaleY = 1.0f;
+    if (inPixels != 0) {
+        scaleX = 0.0f;
+        scaleY = 0.0f;
+        const RwRaster* raster = context->m_pFinalColorRaster;
+        if (raster != nullptr) {
+            // lwz + fcfid: the words as unsigned 32-bit values.
+            scaleY = static_cast<float>(static_cast<int64_t>(static_cast<uint32_t>(raster->height)));
+            scaleX = static_cast<float>(static_cast<int64_t>(static_cast<uint32_t>(raster->width)));
+        }
+    }
+    screen[0] = scaleX * (recipZ * view.x);
+    screen[1] = scaleY * (recipZ * view.y);
+}
 
 // 0x000a4668 ConstructRendererCameraContext. The TOC constants: 4/3 (0x3faaaaab), 1.0, 0.75, 70.0.
 CameraContext::CameraContext() {
@@ -121,6 +193,7 @@ int32_t CameraContext::Init(AppConfig* config) {
     // ClassRegistry_CreateObjectByKey(0x14b): the CSGMovable whose frame (+4) the main and scene cameras share
     // (also stored at 0x00c5c9d0). CKSrvCamera moves the cameras through it.
     m_pCamera = static_cast<IKSerializable*>(ClassRegistry_CreateObjectByKey(0x14b));
+    s_camera = m_pCamera;
     m_unk38 = 1;
     m_unk3c = 0;
     m_fAppliedFieldOfView = 0.0f;
@@ -160,6 +233,72 @@ int32_t CameraContext::Init(AppConfig* config) {
     // STUB(M2): CameraContext_ClearScreen_maybe 0xa4578 (two cleared and presented frames, then a 21 ms
     // sleep).
     return 1;
+}
+
+// 0x000a39a8 CameraContext_Destructor (0x000a48e8 CameraContext_DeletingDestructor: the same, then the delete): the engine's
+// camera context cleared, the mutex destroyed (a PS3 system object: nothing here), the reference-counted object +0x54
+// released (the constructor's 0; nothing stores another).
+CameraContext::~CameraContext() { g_pEngine->m_cameraContext = nullptr; }
+
+// 0x000a4350 CameraContext_DestroyCamerasAndRasters_maybe (CRenderer_Shutdown_maybe): the UI camera (its own frame
+// destroyed), the scene and main cameras (their frame is the IKCamera's) without rasters and frames destroyed, the six
+// rasters destroyed, the IKCamera destroyed (vt+0x10, then the class manager).
+void CameraContext::DestroyCamerasAndRasters() {
+    if (m_pUICamera != nullptr) {
+        m_pUICamera->frameBuffer = nullptr;
+        m_pUICamera->zBuffer = nullptr;
+        RwFrameDestroy(RwCameraGetFrame(m_pUICamera));
+        RwCameraSetFrame(m_pUICamera, nullptr);  // RwObjectHasFrameSetFrame
+        RwCameraDestroy(m_pUICamera);
+        m_pUICamera = nullptr;
+        s_uiCamera = nullptr;  // g_AuxiliaryRenderCamera
+    }
+    if (m_pSceneCamera != nullptr) {
+        m_pSceneCamera->frameBuffer = nullptr;
+        m_pSceneCamera->zBuffer = nullptr;
+        RwCameraSetFrame(m_pSceneCamera, nullptr);
+        RwCameraDestroy(m_pSceneCamera);
+        m_pSceneCamera = nullptr;
+        s_sceneCamera = nullptr;
+    }
+    if (m_pMainCamera != nullptr) {
+        m_pMainCamera->frameBuffer = nullptr;
+        m_pMainCamera->zBuffer = nullptr;
+        RwCameraSetFrame(m_pMainCamera, nullptr);
+        RwCameraDestroy(m_pMainCamera);
+        s_mainCamera = nullptr;
+        m_pMainCamera = nullptr;
+    }
+    if (m_unk10 != nullptr) {
+        RwRasterDestroy(m_unk10);
+        m_unk10 = nullptr;
+    }
+    if (m_unk14 != nullptr) {
+        RwRasterDestroy(m_unk14);
+        m_unk14 = nullptr;
+    }
+    if (m_unk18 != nullptr) {
+        RwRasterDestroy(m_unk18);
+        m_unk18 = nullptr;
+    }
+    if (m_pSceneColorRaster != nullptr) {
+        RwRasterDestroy(m_pSceneColorRaster);
+        m_pSceneColorRaster = nullptr;
+    }
+    if (m_pFinalColorRaster != nullptr) {
+        RwRasterDestroy(m_pFinalColorRaster);
+        m_pFinalColorRaster = nullptr;
+    }
+    if (m_pDepthRaster != nullptr) {
+        RwRasterDestroy(m_pDepthRaster);
+        m_pDepthRaster = nullptr;
+    }
+    if (m_pCamera != nullptr) {
+        m_pCamera->Destroy();  // vt+0x10
+        ClassRegistry_DestroyObject(m_pCamera);
+        s_camera = nullptr;
+        m_pCamera = nullptr;
+    }
 }
 
 // 0x000a4d18 CameraContext_RecreateFrameBuffers_maybe. The raster sizes: the config's when its +0x14 byte
@@ -205,7 +344,7 @@ int32_t CameraContext::RecreateFrameBuffers() {
         m_unk14 = RwRasterCreate(width / 4, height / 4, depth, rwRASTERTYPECAMERATEXTURE);
         m_unk18 = RwRasterCreate(width, height, depth, rwRASTERTYPECAMERATEXTURE);
         m_pSceneColorRaster = RwRasterCreate(width, height, depth, rwRASTERTYPECAMERATEXTURE);
-        // With the graphic caps' 0x200 the alternative scene raster (+0x10). STUB(C2.7): its frame buffer's two colour
+        // With the graphic caps' 0x200 the alternative scene raster (+0x10). STUB(C2.9, depth of field: no game file has a CKDOFFxData): its frame buffer's two colour
         // attachments (RwPSGL_SetColorAttachmentTexture_maybe: 0 the scene colour raster, 1 itself), which only the
         // depth of field path (CPostRenderingFx 0x400, set by the DOF node of the FX service) draws through.
         if ((g_pEngine->m_graphic->m_baHardwareCaps & 0x200) != 0) {
@@ -447,4 +586,51 @@ void DrawScreenColorQuad(float centerX, float centerY, int32_t centered, int32_t
         RwIm2DRenderIndexedPrimitive(rwPRIMTYPETRIFAN, v, 5, s_quadIndices + 4, 6);
     }
     PopRenderStates(renderer);
+}
+
+// 0x000a3a78 DrawUIFontTextRotatedScaled_maybe: `text` in the UI manager's font `fontId` (nothing without the font)
+// at `position` (x times the manager's aspect +0x18), the matrix scaled by `scale`, the brush coloured `color` (all four
+// corners), turned `angleDeg` and squeezed by aspect * 0.75 in x; the character height the font's height / 512 (TOC
+// -0x6130 0x3b000000), the anchor the zero vector 0x00c50dc4. Dead in the original (no pointer to its descriptor
+// 0xb48dd0, no call).
+void DrawUIFontTextRotatedScaled(float angleDeg, const char* text, uint32_t fontId, RwRGBA* color, const float* position,
+                                 const float* scale) {
+    CManager2d* manager = g_pEngine->m_manager2d;
+    Rt2dFont* font = manager->GetFont(fontId);                       // 0x00061bf8
+    Rt2dBrush* brush = g_pEngine->m_manager2d->GetOrCreateBrush();   // 0x00062008
+    if (font == nullptr) return;
+    const float height = font->height * 0.001953125f;
+    const float squeeze = manager->m_fAspect * 0.75f;  // TOC -0x6174
+    RwV2d anchor = {0.0f, 0.0f};                       // 0x00c50dc4
+    const float x = position[0] * manager->m_fAspect;
+    const float y = position[1];
+    Rt2dCTMPush();
+    Rt2dCTMScale(scale[0], scale[1]);
+    Rt2dCTMTranslate(x, y);
+    Rt2dBrushSetRGBA(brush, color, color, color, color);
+    Rt2dCTMPush();
+    Rt2dCTMRotate(angleDeg);
+    Rt2dCTMScale(squeeze, 1.0f);
+    Rt2dFontShow(font, text, height, &anchor, brush);  // 0x00a3ce28 BridgeDispatchUIFontRenderCallback
+    Rt2dCTMPop();
+    Rt2dCTMPop();
+}
+
+// 0x000a5160 CameraContext_RefreshFrameBuffersIfResized_maybe: 1 when both rasters exist at the config's width, height
+// and depth; else the buffers made again (RecreateFrameBuffers) and, when that gives 1, the field of view applied again
+// (forced, reference window) and the UI manager moved to the main camera (ChangeCam); RecreateFrameBuffers' result. Dead
+// in the original (its only call is from the dead 0x59f08 CKGraphic_RefreshFrameBuffersIfResized_maybe).
+int32_t CameraContext::RefreshFrameBuffersIfResized() {
+    RwRaster* color = m_pFinalColorRaster;
+    if (color != nullptr && m_pDepthRaster != nullptr && color->width == m_pConfig->width &&
+        color->height == m_pConfig->height && color->depth == m_pConfig->bitsPerPixel) {
+        return 1;
+    }
+    const int32_t result = RecreateFrameBuffers();  // 0x000a4d18
+    if (result != 1) return result;
+    SetFieldOfView(m_fFieldOfView, 0, 1, 1);  // 0x000a49e0
+    CManager2d* manager = g_pEngine->m_manager2d;
+    if (manager == nullptr) return result;
+    manager->ChangeCam(m_pMainCamera);  // 0x00062b98
+    return result;
 }

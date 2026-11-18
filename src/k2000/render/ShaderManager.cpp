@@ -8,7 +8,7 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [ ] 0xfe2d0  FUN_000fe2d0  [dead]
-//   [ ] 0xfe2e0  KStub_Nop_fe2e0
-//   [ ] 0xfe2e8  ShaderManager_DestroyGlobalCgPrograms_maybe
-//   [ ] 0xfe378  Cg_BuildDefineArgs_maybe
-//   [ ] 0xfe518  ShaderGen_BuildCompilerArgs_maybe
+//   [ ] 0xfe2e0  KStub_Nop_fe2e0  [platform]  (an empty callee of the shader cache loader: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
+//   [ ] 0xfe2e8  ShaderManager_DestroyGlobalCgPrograms_maybe  [platform]  (the global Cg programs: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
+//   [ ] 0xfe378  Cg_BuildDefineArgs_maybe  [platform]  (the Cg compiler's defines: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
+//   [ ] 0xfe518  ShaderGen_BuildCompilerArgs_maybe  [platform]  (the Cg compiler's arguments: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)

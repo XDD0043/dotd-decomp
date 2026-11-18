@@ -4,7 +4,7 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x92e00  CBackgroundCopyRender_Delete
-//   [ ] 0x92e50  CBackgroundCopyRender_RecursiveRegistration
+//   [x] 0x92e50  CBackgroundCopyRender_RecursiveRegistration  (CBackgroundCopyRender::RecursiveRegistration)
 //   [ ] 0x92ee8  CBackgroundCopyRender_Save
 //   [ ] 0x92ef0  RegisterCBackgroundCopyRenderClass
 //   [ ] 0x92f68  _GLOBAL__I_92f68
@@ -14,7 +14,7 @@
 //   [x] 0x93118  CBackgroundCopyRender_CreateArray
 //   [x] 0x931d0  CBackgroundCopyRender_PostLoad
 //   [x] 0x931e0  CBackgroundCopyRender_Draw  (Render)
-//   [ ] 0x93410  CBackgroundCopyRender_Destroy
+//   [x] 0x93410  CBackgroundCopyRender_Destroy  (inherited: IRendableObject_Destroy)
 //   [x] 0x93438  CBackgroundCopyRender_Load
 //
 //   [x] 0x99c6a8  CBackgroundCopyRender_GetClassType  [inline]
@@ -26,9 +26,9 @@
 //   [x] 0x99c738  IScreenFx_vf70  [inline]  (CanBeUpdated, IScreenFx.h)
 //   [x] 0x99c758  CBackgroundCopyRender_IsKindOfClass  [inline]
 //   [ ] 0x99c790  IScreenFx_DeletingDestructor  [inline]
-//   [ ] 0x99c7d8  CBackgroundCopyRender_DeletingDestructor  [inline]
+//   [x] 0x99c7d8  CBackgroundCopyRender_DeletingDestructor  [inline]
 //   [ ] 0x99c820  IScreenFx_vf0  [inline]
-//   [ ] 0x99c840  CBackgroundCopyRender_Destructor  [inline]
+//   [x] 0x99c840  CBackgroundCopyRender_Destructor  [inline]
 #include "k2000/graphical/render/CBackgroundCopyRender.h"
 
 #include "Renderware/rwcore/RwCamera.h"
@@ -63,11 +63,11 @@ int32_t CBackgroundCopyRender::PostLoad(int32_t) {
 // group's picture copied by the CKPBuffer (vt+0x5c) into the full-size shared raster (on the depth of field path with the
 // main camera on the final colour meanwhile), the "backbuffer" texture (which shows that raster) bound on unit 6 for the
 // far-texture shading of the main group, a frame request done.
-void CBackgroundCopyRender::Render() {
+void CBackgroundCopyRender::Render(IKTime* frameClock) {
     if (m_unk21 == 0 || (g_pEngine->m_graphic->m_baHardwareCaps & 0x400) == 0 || m_unk20 == 0) return;
     const CPostRenderingFx* postFx = static_cast<const CPostRenderingFx*>(g_pEngine->m_coreManager->GetObjectByClassKey(0x38d));
     if (postFx == nullptr) {
-        m_unk18->Render();
+        m_unk18->Render(frameClock);
     } else {
         const bool depthOfField = (g_pEngine->m_graphic->m_baHardwareCaps & 0x200) != 0 && g_pShaderManager->m_bShadersEnabled != 0 &&
                                   g_pShaderManager->m_i32ProfileMode == 6 && (postFx->m_BitProperties & 0x400) != 0;
@@ -77,7 +77,7 @@ void CBackgroundCopyRender::Render() {
             context->m_pMainCamera->frameBuffer = context->m_pFinalColorRaster;
             BeginRenderCameraUpdate(context->m_pMainCamera);
         }
-        m_unk18->Render();
+        m_unk18->Render(frameClock);
         if ((g_pEngine->m_graphic->m_baHardwareCaps & 0x200) != 0 && g_pShaderManager->m_bShadersEnabled != 0 &&
             g_pShaderManager->m_i32ProfileMode == 6 && (postFx->m_BitProperties & 0x400) != 0) {
             RwCameraEndUpdate(context->m_pMainCamera);
@@ -112,3 +112,12 @@ int32_t CBackgroundCopyRender::Load(IKFile* file, int32_t type) {
 // 0x0099c738 IScreenFx_vf70 (IScreenFx::CanBeUpdated, the out-of-line copy listed above): not while the renderer skips
 // the world stages (its flags' bit 1).
 int32_t IScreenFx::CanBeUpdated() { return (g_pEngine->m_graphic->m_renderer->m_bitProperties & 2) == 0 ? 1 : 0; }
+
+#include "k2000/logic/CKSavingManager.h"
+
+// 0x00092e50 CBackgroundCopyRender_RecursiveRegistration
+void CBackgroundCopyRender::RecursiveRegistration(int32_t type) {
+    if (type != 0) return;
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    m_unk18->RecursiveRegistration(0);
+}

@@ -8,6 +8,10 @@
 
 class IKService : public IKUpdatable {
 public:
+    // 0x00992930 IKService_DeletingDestructor / 0x00992978 IKService_Destructor: the vtables only (implicit).
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x992908 IKService_IsKindOf
+        return key == 0x1 || key == 0x3fe || key == 0xc;
+    }
     // XXL2: IKService also derives from CSPriorityBaseNode<IKService*>, the services' update list.
     // Every service constructor stores these first (CKSrvTrigger_Construct 0x235368: 0, 0x7fffffff,
     // then its own priority 0x82).

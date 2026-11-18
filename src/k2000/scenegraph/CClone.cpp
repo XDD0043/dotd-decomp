@@ -9,12 +9,12 @@
 //   [x] 0xcb398  CClone_PostLoad
 //   [x] 0xcb3c0  CClone_Load
 //   [ ] 0xcb460  CClone_Save
-//   [ ] 0xcb488  CClone_RecursiveRegistration
+//   [x] 0xcb488  CClone_RecursiveRegistration  (CNode's (returns 1, registers nothing): CSGLeaf's)
 //   [x] 0xcb4b0  CClone_Enqueue
 //   [x] 0xcb710  CClone_Destroy
-//   [ ] 0xcb740  CClone_DeletingDestructor
-//   [ ] 0xcb788  CClone_Destructor
-//   [ ] 0xcb7b8  CClone_BaseDestructor
+//   [x] 0xcb740  CClone_DeletingDestructor  (C++ destructor chain + delete)
+//   [x] 0xcb788  CClone_Destructor  (C++ destructor chain: vtable stores only)
+//   [x] 0xcb7b8  CClone_BaseDestructor  (C++ destructor chain: vtable store, then CNode's)
 //   [x] 0xcb7e8  CClone_Construct  [dead]
 //   [ ] 0xcb830  CClone_Construct_2  [dead]
 //   [x] 0xcb878  CClone_DeleteArray
@@ -95,5 +95,6 @@ void CClone::UpdateAndExtract(float /*maxDistanceSquared*/, RenderQueue** stages
     for (CSGLeaf* child = m_lChildList; child != nullptr; child = child->m_pNext) {
         child->UpdateAndExtract(0.0f, stages, frameClock, camera, 0);
     }
-    m_pRwFrame->object.privateFlags = static_cast<uint8_t>(m_pRwFrame->object.privateFlags & 0xf0);
+    // rlwinm 28,1,31 then rlwinm 4,0,31 (0xcb670): only bit 3 cleared (the rotates keep bits 0-2).
+    m_pRwFrame->object.privateFlags = static_cast<uint8_t>(m_pRwFrame->object.privateFlags & 0xf7);
 }

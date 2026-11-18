@@ -9,9 +9,12 @@
 #include "Renderware/rwcore/RwIm3D.h"
 
 #include <cstring>
+#include <utility>
+#include <vector>
 
 #include "Renderware/rwcore/RwDevice.h"
 #include "crt/ppc_ops.h"
+#include "platform/gfx/device.h"
 
 namespace {
 
@@ -29,6 +32,32 @@ struct Im3DPool {
 Im3DPool g_pool;
 RwIm3DRenderStates g_states;
 std::vector<RwIm3DDraw> g_draws;
+// dotd perf: the vertex and index arrays of the draws recorded in earlier frames, emptied, their memory kept for the
+// next draws (RwIm3DBeginFrame gives them back), so a frame's draws do not allocate once the arrays have grown. They are
+// handed out in the order of the last frame's draws (its draw n's arrays to the next frame's draw n), which keeps the
+// large arrays with the large draws.
+std::vector<std::vector<RwIm3DVertex>> g_freeVertices;
+std::vector<std::vector<RwImVertexIndex>> g_freeIndices;
+
+template <typename T>
+std::vector<T> TakeFree(std::vector<std::vector<T>>& pool) {
+    if (pool.empty()) return std::vector<T>();
+    std::vector<T> v = std::move(pool.back());
+    pool.pop_back();
+    return v;
+}
+
+void RecycleDraws() {
+    for (auto it = g_draws.rbegin(); it != g_draws.rend(); ++it) {  // the last draw's arrays deepest
+        RwIm3DDraw& d = *it;
+        d.vertices.clear();
+        d.indices.clear();
+        // (only arrays that hold memory: a draw recorded without its geometry has none to give back)
+        if (d.vertices.capacity() != 0) g_freeVertices.push_back(std::move(d.vertices));
+        if (d.indices.capacity() != 0) g_freeIndices.push_back(std::move(d.indices));
+    }
+    g_draws.clear();
+}
 
 // What the render pipeline (OpenGLSubmitNoLight.csl, DrawPSGLImmediateGeometry 0x76b610) draws: the
 // pool's vertices through the LTM, glDrawRangeElements with numIndices 32-bit indices when the stash has
@@ -43,13 +72,20 @@ RwBool SubmitPool() {
     } else {
         std::memset(&draw.ltm, 0, sizeof draw.ltm);
     }
-    draw.vertices.assign(g_pool.elements, g_pool.elements + g_pool.numElements);
     draw.indexed = g_pool.indices != nullptr;
-    if (draw.indexed && g_pool.numIndices > 0) {
-        draw.indices.assign(g_pool.indices, g_pool.indices + g_pool.numIndices);
+    const RwUInt32 numIndices = draw.indexed && g_pool.numIndices > 0 ? static_cast<RwUInt32>(g_pool.numIndices) : 0;
+    draw.numVertices = g_pool.numElements;
+    draw.numIndices = numIndices;
+    // perf: the geometry is copied into the record only when no device draws it (RwIm3D.h).
+    if (!dotd::gfx::IsReady()) {
+        draw.vertices = TakeFree(g_freeVertices);
+        draw.indices = TakeFree(g_freeIndices);
+        draw.vertices.assign(g_pool.elements, g_pool.elements + g_pool.numElements);
+        if (numIndices != 0) draw.indices.assign(g_pool.indices, g_pool.indices + numIndices);
     }
     draw.states = g_states;
-    RwDevice_DrawIm3D(draw);  // C1.4: drawn now (the PS3 sends it to the GPU here); no-op without a device
+    // C1.4: drawn now, from the pool's arrays (the PS3 sends them to the GPU here); no-op without a device
+    RwDevice_DrawIm3D(draw, g_pool.elements, g_pool.numElements, numIndices != 0 ? g_pool.indices : nullptr, numIndices);
     g_draws.push_back(std::move(draw));
     return 1;
 }
@@ -262,12 +298,12 @@ RwBool RwRenderStateGet(RwRenderState state, void* value) {
 
 const std::vector<RwIm3DDraw>& RwIm3DFrameDraws() { return g_draws; }
 
-void RwIm3DBeginFrame() { g_draws.clear(); }
+void RwIm3DBeginFrame() { RecycleDraws(); }
 
 const RwIm3DRenderStates& RwIm3DCurrentStates() { return g_states; }
 
 void RwIm3DResetForTest() {
     g_pool = Im3DPool();
     g_states = RwIm3DRenderStates();
-    g_draws.clear();
+    RecycleDraws();
 }

@@ -4,10 +4,10 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1aa680  CMultiGeometry_Delete
-//   [ ] 0x1aa6d0  CMultiGeometry_RecursiveRegistration
+//   [x] 0x1aa6d0  CMultiGeometry_RecursiveRegistration  (the same body as CMultiGeometryBasic's 0x245088 (inherited, CMultiGeometryBasic.h))
 //   [ ] 0x1aa730  RegisterCMultiGeometryClass
 //   [ ] 0x1aa7a8  _GLOBAL__I_1aa7a8
-//   [ ] 0x1aa7b8  CMultiGeometry_Destroy
+//   [x] 0x1aa7b8  CMultiGeometry_Destroy  (inherited: CMultiGeometryBasic_Destroy)
 //   [x] 0x1aa7e0  CMultiGeometry_Load
 //   [ ] 0x1aa808  CMultiGeometry_Save
 //   [x] 0x1aa830  CMultiGeometry_DeleteArray

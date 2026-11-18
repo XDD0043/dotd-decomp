@@ -4,7 +4,7 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x4f6648  CKS08GameManager_Delete
+//   [x] 0x4f6648  CKS08GameManager_Delete  (CKS08GameManager::Delete, k2000/stubs/BootStubs.cpp)
 //   [x] 0x4f6698  CKS08GameManager_InitStateHandlerTable
 //   [ ] 0x4f6718  KStub_Return0_4f6718  [dead]
 //   [ ] 0x4f6720  KStub_Nop_4f6720  [dead]
@@ -12,89 +12,89 @@
 //   [x] 0x4f6838  CKS08GameManager_CallMember2E0Vf60Arg0_maybe
 //   [x] 0x4f6890  CKS08GameManager_CallMember2E0Vf78_maybe
 //   [x] 0x4f68e0  CKS08GameManager_vf158
-//   [ ] 0x4f6a20  CKS08GameManager_vf28C
+//   [x] 0x4f6a20  CKS08GameManager_vf28C  (empty; no call of the slot found, not declared)
 //   [ ] 0x4f6a28  CKS08GameManager_GetUpgradeLevelForPoints_maybe  [dead]
 //   [ ] 0x4f6ac0  FUN_004f6ac0  [dead]
 //   [ ] 0x4f6b08  KStub_Nop_4f6b08  [dead]
-//   [ ] 0x4f6b10  CKS08GameManager_GetBonusValue_maybe
+//   [x] 0x4f6b10  CKS08GameManager_GetBonusValue_maybe
 //   [ ] 0x4f6b40  KStub_Nop_4f6b40  [dead]
 //   [x] 0x4f6b48  CKS08GameManager_vf31C
-//   [ ] 0x4f6b78  CKS08GameManager_RequestStoredMusicTrack_maybe
+//   [x] 0x4f6b78  CKS08GameManager_RequestStoredMusicTrack_maybe
 //   [x] 0x4f6bc0  CKS08GameManager_vf1D4
 //   [x] 0x4f6be8  CKS08GameManager_GetDirectionActionState_maybe
-//   [ ] 0x4f6de0  CKS08GameManager_GetCurrentMainLevelIndex_maybe
-//   [ ] 0x4f6e18  CKS08GameManager_BuildSaveDetailText_maybe
+//   [x] 0x4f6de0  CKS08GameManager_GetCurrentMainLevelIndex_maybe  (local copy CurrentMainLevelIndex in ui/CKS08MenuStatsLevel.cpp, the only caller)
+//   [x] 0x4f6e18  CKS08GameManager_BuildSaveDetailText_maybe
 //   [x] 0x4f6e78  CKS08GameManager_GetFocusedHeroCamera_maybe
 //   [x] 0x4f6eb8  CKS08GameManager_vfAC
-//   [ ] 0x4f7080  CKS08GameManager_vf94
-//   [ ] 0x4f70a8  CKS08GameManager_vf98
-//   [ ] 0x4f70d0  CKS08GameManager_vfC0
+//   [x] 0x4f7080  CKS08GameManager_vf94
+//   [x] 0x4f70a8  CKS08GameManager_vf98
+//   [x] 0x4f70d0  CKS08GameManager_vfC0  (CKS08GameManager.h)
 //   [ ] 0x4f70f8  CKS08GameManager_IsPad1Connected_maybe  [dead]
 //   [x] 0x4f7130  CKS08GameManager_SetSaveRequestFlag_maybe
 //   [x] 0x4f7158  CKS08GameManager_vf240
 //   [x] 0x4f7180  CKS08GameManager_PostLoad
-//   [ ] 0x4f7280  CKS08GameManager_RecursiveRegistration
+//   [x] 0x4f7280  CKS08GameManager_RecursiveRegistration
 //   [x] 0x4f7c28  CKS08GameManager_Destroy
-//   [ ] 0x4f7c80  CKS08GameManager_DeleteArray
-//   [ ] 0x4f7d20  RegisterCKS08GameManagerType
+//   [ ] 0x4f7c80  CKS08GameManager_DeleteArray  [platform] by design: the engine makes the one game manager (CKS08GameManager::Create); no array factory is used
+//   [ ] 0x4f7d20  RegisterCKS08GameManagerType  [platform] the static registration (RegisterClass with the four factories): dotd registers its classes through gen_kp3_stubs.py
 //   [ ] 0x4f7da8  _GLOBAL__D_4f7da8
 //   [ ] 0x4f7db8  _GLOBAL__I_4f7db8
-//   [ ] 0x4f7dc8  CKS08GameManager_vfD0
-//   [ ] 0x4f7e90  CKS08GameManager_GetInfo
-//   [ ] 0x4f8090  CKS08GameManager_vf2EC
+//   [x] 0x4f7dc8  CKS08GameManager_vfD0
+//   [x] 0x4f7e90  CKS08GameManager_GetInfo
+//   [x] 0x4f8090  CKS08GameManager_vf2EC
 //   [x] 0x4f80f8  CKS08GameManager_ResetGameProgress_maybe
-//   [ ] 0x4f8208  CKS08GameManager_vfBC
-//   [ ] 0x4f8318  CKS08GameManager_OnSaveGameDone_maybe
-//   [ ] 0x4f85a8  CKS08GameManager_vf290
-//   [ ] 0x4f8618  CKS08GameManager_SpawnGemReward_maybe
-//   [ ] 0x4f8750  CKS08GameManager_StartDeathSequence_maybe
-//   [ ] 0x4f8858  CKS08GameManager_GetSaveSubtitleText_maybe
+//   [x] 0x4f8208  CKS08GameManager_vfBC
+//   [x] 0x4f8318  CKS08GameManager_OnSaveGameDone_maybe
+//   [x] 0x4f85a8  CKS08GameManager_vf290  (local copy GetHeroStartSlot in hooks/IKHkHero.cpp, the only caller)
+//   [x] 0x4f8618  CKS08GameManager_SpawnGemReward_maybe
+//   [x] 0x4f8750  CKS08GameManager_StartDeathSequence_maybe
+//   [x] 0x4f8858  CKS08GameManager_GetSaveSubtitleText_maybe
 //   [x] 0x4f88f8  CKS08GameManager_GetGroundSurfaceBit_maybe
-//   [ ] 0x4f8940  CKS08GameManager_SetOnlyMainPlayerActive_maybe
-//   [ ] 0x4f89d8  CKS08GameManager_IsAnyMenuButtonPressed_maybe
+//   [x] 0x4f8940  CKS08GameManager_SetOnlyMainPlayerActive_maybe
+//   [x] 0x4f89d8  CKS08GameManager_IsAnyMenuButtonPressed_maybe
 //   [x] 0x4f8b50  CKS08GameManager_vf320
-//   [ ] 0x4f8cc0  CKS08GameManager_PlayCollectibleMusic_maybe
+//   [x] 0x4f8cc0  CKS08GameManager_PlayCollectibleMusic_maybe
 //   [x] 0x4f8d08  CKS08GameManager_Start
-//   [ ] 0x4f8f18  CKS08GameManager_Save
+//   [x] 0x4f8f18  CKS08GameManager_Save
 //   [x] 0x4f8f78  CKS08GameManager_Update
 //   [x] 0x4f9408  CKS08GameManager_Construct
-//   [ ] 0x4f94b0  CKS08GameManager_Construct_2
-//   [ ] 0x4f9558  GetElementLevel
-//   [ ] 0x4f9628  CKS08GameManager_SpawnSurfaceFx
-//   [ ] 0x4f9988  CKS08GameManager_DeletingDestructor
-//   [ ] 0x4f9a60  CKS08GameManager_Destructor
-//   [ ] 0x4f9b30  CKS08GameManager_DestructBody_2
-//   [ ] 0x4f9c00  CKS08GameManager_vfF0
-//   [ ] 0x4f9d60  CKS08GameManager_vfCC
-//   [ ] 0x4fa0e8  CKS08GameManager_Restart
-//   [ ] 0x4fa238  CKS08GameManager_CreateArray
-//   [ ] 0x4fa370  CreateCKS08GameManager
+//   [x] 0x4f94b0  CKS08GameManager_Construct_2  (= 0x4f9408 CKS08GameManager_Construct)
+//   [x] 0x4f9558  GetElementLevel
+//   [x] 0x4f9628  CKS08GameManager_SpawnSurfaceFx
+//   [x] 0x4f9988  CKS08GameManager_DeletingDestructor
+//   [x] 0x4f9a60  CKS08GameManager_Destructor
+//   [x] 0x4f9b30  CKS08GameManager_DestructBody_2  (= 0x4f9a60 CKS08GameManager_Destructor (~CKS08GameManager))
+//   [x] 0x4f9c00  CKS08GameManager_vfF0
+//   [x] 0x4f9d60  CKS08GameManager_vfCC
+//   [x] 0x4fa0e8  CKS08GameManager_Restart
+//   [ ] 0x4fa238  CKS08GameManager_CreateArray  [platform] by design: the engine makes the one game manager (CKS08GameManager::Create); no array factory is used
+//   [x] 0x4fa370  CreateCKS08GameManager  (CKS08GameManager::Create, k2000/stubs/BootStubs.cpp)
 //   [x] 0x4fa438  CKS08GameManager_MessageProc
 //   [x] 0x4fb3d8  CKS08GameManager_HandlePauseInput_maybe
-//   [ ] 0x4fb848  SpawnElementGroundFx_maybe
-//   [ ] 0x4fbb08  CKS08GameManager_SpawnDefaultExplosionFx_maybe
-//   [ ] 0x4fbd70  CKS08GameManager_SpawnExplosionFx
+//   [x] 0x4fb848  SpawnElementGroundFx_maybe
+//   [x] 0x4fbb08  CKS08GameManager_SpawnDefaultExplosionFx_maybe
+//   [x] 0x4fbd70  CKS08GameManager_SpawnExplosionFx
 //   [x] 0x4fc010  CKS08GameManager_LoadRefTableE4C_maybe
 //   [x] 0x4fc228  CKS08GameManager_Load
-//   [ ] 0x4fd420  GetTotalFury_maybe
-//   [ ] 0x4fd438  IsFuryGaugeFull_2_maybe
-//   [ ] 0x4fd480  SetEquippedArmor_maybe
+//   [x] 0x4fd420  GetTotalFury_maybe  (CKS08GameManager_4.cpp)
+//   [x] 0x4fd438  IsFuryGaugeFull_2_maybe
+//   [x] 0x4fd480  SetEquippedArmor_maybe
 //   [ ] 0x4fd4b8  ClearEquippedArmors_maybe  [dead]
 //   [ ] 0x4fd508  KStub_Return0_4fd508  [dead]
 //   [ ] 0x4fd510  KStub_Nop_4fd510  [dead]
 //   [ ] 0x4fd518  KStub_Return0_4fd518  [dead]
 //   [ ] 0x4fd520  KStub_Nop_4fd520  [dead]
-//   [ ] 0x4fd528  AddDragonFury_maybe
+//   [x] 0x4fd528  AddDragonFury_maybe
 //   [ ] 0x4fd608  FUN_004fd608  [dead]
 //   [x] 0x4fd628  GetArmorMeshHiddenFlag_maybe
 //   [x] 0x4fd658  GetEquippedArmor_maybe
-//   [ ] 0x4fd680  GetDragonFury_maybe
+//   [x] 0x4fd680  GetDragonFury_maybe  (CKS08GameManager_4.cpp)
 //   [ ] 0x4fd6c0  ResetAllDragonFury_maybe  [dead]
-//   [ ] 0x4fd6d8  RefillAllDragonsMana
+//   [x] 0x4fd6d8  RefillAllDragonsMana
 //   [x] 0x4fd740  GetDragonManaCapacity
 //   [x] 0x4fd7c8  GetDragonMana
 //   [x] 0x4fd808  ConsumeDragonMana
-//   [ ] 0x4fd8d8  RefillAllDragonsHealth
+//   [x] 0x4fd8d8  RefillAllDragonsHealth
 //   [x] 0x4fd940  GetDragonHealthCapacity
 //   [x] 0x4fd9c8  GetDragonHealth
 //   [x] 0x4fda08  DamageDragon
@@ -186,12 +186,24 @@
 //   [ ] 0x9c6ff8  CKS08GameManager_vf218  [inline]
 //   [x] 0x9c7028  CKS08GameManager_vfC4  [inline]
 #include "Spyro2008/logic/CKS08GameManager.h"
+#include "k2000/core/IKInfo.h"
+#include "Spyro2008/logic/CKS08GameStructure.h"
+#include "k2000/logic/IKFxData.h"
 #include "Spyro2008/logic/CKS08InGameInterfaceBoss.h"
 #include "Spyro2008/logic/CKS08InGameInterfaceCenter.h"
 #include "Spyro2008/logic/CKS08ObjectiveList.h"
 #include "Spyro2008/logic/ui/CKS08MenuPauseInfo.h"
 #include "k2000/graphical/ui/CKFlashMessageOut.h"
 #include "k2000/services/CKSrvTrigger.h"
+#include "k2000/dictionaries/CKSoundDictionaryID.h"
+#include "k2000/fx/IKFx.h"
+#include "k2000/graphical/fx/CColorizedScreenFx.h"
+#include "k2000/logic/CKParticlesEffectFxData.h"
+#include "Renderware/rwcore/RwTypes.h"
+#include "k2000/logic/fx/CKExplosionFxData.h"
+#include "k2000/logic/fx/CKExplosionNodeFx.h"
+#include "k2000/logic/sound/CKSound.h"
+#include "k2000/services/CKSrvFx.h"
 #include "k2000/services/ICollisionMesh.h"
 #include "Spyro2008/groups/IKGrpHero.h"
 #include "Spyro2008/hooks/CKHkS08Hero.h"
@@ -227,6 +239,7 @@
 #include "k2000/logic/KBase60CC.h"
 #include "k2000/services/CKSrvInput.h"
 #include "k2000/system/CTimeManager.h"
+#include "k2000/services/KBase201.h"
 
 // 0x004f9408 CKS08GameManager_Construct, with the IKCommonGameManager part of 0x004edee0
 // CKS08GameManager_ConstructBase_maybe (CDefaultGameManager's constructor has the IKGameManager part).
@@ -271,6 +284,38 @@ CKS08GameManager::CKS08GameManager() {
     m_unkBC8.m_pBlock = static_cast<IKSerializable**>(Mem_AllocAligned16(5 * static_cast<uint32_t>(sizeof(IKSerializable*))));
 }
 
+// 0x004f9a60 CKS08GameManager_Destructor (0x004f9988 CKS08GameManager_DeletingDestructor: the same, then the delete).
+// The vector destructors are inlined: block freed, length and block cleared (+0xbb4's twice, the second time a no-op).
+CKS08GameManager::~CKS08GameManager() {
+    if (m_unkBB4.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_unkBB4.m_pBlock);
+        m_unkBB4.m_pBlock = nullptr;
+    }
+    m_unkBB4.m_pBlock = nullptr;
+    m_unkBB4.m_ui32NbUsedElt = 0;
+    if (m_unkBC8.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_unkBC8.m_pBlock);
+        m_unkBC8.m_pBlock = nullptr;
+    }
+    m_unkBC8.m_pBlock = nullptr;
+    m_unkBC8.m_ui32NbUsedElt = 0;
+    if (m_unkBB4.m_pBlock != nullptr) Mem_FreeAligned16(m_unkBB4.m_pBlock);
+    m_unkBB4.m_ui32NbUsedElt = 0;
+    m_unkBB4.m_pBlock = nullptr;
+    // 0x004f0ed8 IKCommonGameManager_DestructBody
+    if (m_unk474.m_pBlock != nullptr) Mem_FreeAligned16(m_unk474.m_pBlock);
+    m_unk474.m_ui32NbUsedElt = 0;
+    m_unk474.m_pBlock = nullptr;
+    m_ui32MenuStackDepth = 0;
+    if (m_unk2D0.m_pBlock != nullptr) Mem_FreeAligned16(m_unk2D0.m_pBlock);
+    m_unk2D0.m_ui32NbUsedElt = 0;
+    m_unk2D0.m_pBlock = nullptr;
+    if (m_unk2BC.m_pBlock != nullptr) Mem_FreeAligned16(m_unk2BC.m_pBlock);
+    m_unk2BC.m_ui32NbUsedElt = 0;
+    m_unk2BC.m_pBlock = nullptr;
+    // Then CDefaultGameManager's KMemBuffers (+0x200, +0x190, +0x16c, +0x1c): ~CDefaultGameManager's members.
+}
+
 // 0x004fc010 CKS08GameManager_LoadRefTableE4C_maybe: a level's table of references, rows of three
 // (a word the Load drops, the row count, the column count, then row by row).
 void CKS08GameManager::LoadRefTable(IKFile* stream, int32_t mode) {
@@ -297,18 +342,18 @@ int32_t CKS08GameManager::Load(IKFile* stream, int32_t mode) {
         IKFile_ReadRef(stream, &m_unkD88);
         IKFile_ReadObjectRefArray(stream, m_unkD9C, 2);
         IKFile_ReadRef(stream, &m_unkD98);
-        ReadU32LE(stream, &m_unkD94);
-        ReadU32LE(stream, &m_unkDA4);
+        ReadF32LE(stream, &m_fDeathSkipDelay);
+        ReadF32LE(stream, &m_fDeathDuration1);
         IKFile_ReadRef(stream, &m_unkDA8);
-        ReadU32LE(stream, &m_unkDC0);
-        ReadU32LE(stream, &m_unkDC4);
-        ReadU32LE(stream, &m_unkDC8);
+        ReadF32LE(stream, &m_fDeathCameraAccel);
+        ReadF32LE(stream, &m_fDeathCameraMaxSpeed);
+        ReadF32LE(stream, &m_fDeathCameraRollSpeed);
         IKFile_ReadRef(stream, &m_unkDAC);
         IKFile_ReadRef(stream, &m_unkDB0);
         IKFile_ReadRef(stream, &m_unkDB4);
-        ReadU32LE(stream, &m_unkDEC);
-        ReadU32LE(stream, &m_unkDE8);
-        ReadU32LE(stream, &m_unkDF0);
+        ReadF32LE(stream, &m_fDeathDuration2);
+        ReadF32LE(stream, &m_fDeathSinkHeight);
+        ReadF32LE(stream, &m_fDeathSinkAccel);
         IKFile_ReadRef(stream, &m_unkDDC);
         IKFile_ReadRef(stream, &m_unkDE0);
         IKFile_ReadRef(stream, &m_unkDE4);
@@ -417,6 +462,46 @@ int32_t CKS08GameManager::PostLoad(int32_t type) {
     return 1;
 }
 
+#include "k2000/scenegraph/CSGLeaf.h"
+
+// 0x004f8750 CKS08GameManager_StartDeathSequence_maybe (called through its OPD 0x00bd3270 by the hero's death)
+void CKS08GameManager::StartDeathSequence(uint8_t mode, uint8_t dragon) {
+    m_ui8DeathMode = mode;
+    m_ui8DeathDragon = dragon;
+    IKGrpHero* group = static_cast<IKGrpHero*>(m_unk04[1]);  // +0x08
+    if (dragon != 0) {
+        CSGLeaf* node = static_cast<CSGLeaf*>(static_cast<IKHkHero*>(group->m_apHeros[0])->m_pKGLObject);  // 0x2ca080
+        node->m_sgProperties = (node->m_sgProperties & ~4u) | 4u;
+        if (m_ui8DeathDragon == 1) {
+            RequestState(9);  // 0x4ec420
+            return;
+        }
+    }
+    CSGLeaf* node = static_cast<CSGLeaf*>(static_cast<IKHkHero*>(group->m_apHeros[1])->m_pKGLObject);
+    node->m_sgProperties = (node->m_sgProperties & ~4u) | 4u;
+    RequestState(9);
+}
+
+#include "k2000/services/CKSrvMusic.h"
+#include "k2000/logic/sound/CKMusicPlayList.h"
+
+// 0x004f8cc0 CKS08GameManager_PlayCollectibleMusic_maybe
+void CKS08GameManager::PlayCollectibleMusic() {
+    if (m_unkEFC != nullptr) static_cast<CKSrvMusic*>(g_pEngine->m_srvMusic)->RequestTrack(static_cast<CKMusicPlayList*>(m_unkEFC), 0);  // 0x210358
+}
+
+// 0x004f89d8 CKS08GameManager_IsAnyMenuButtonPressed_maybe
+uint8_t CKS08GameManager::IsAnyMenuButtonPressed() {
+    CKInput* input = g_pEngine->m_input;
+    const uint32_t project = static_cast<uint32_t>(input->FindMappingIndexByName("Flash Manager")) & 0xff;  // 0x106978, 0x00acadd8
+    // BUG(original): without the project the configuration is read at address 0x10.
+    const CKInputDico* dico = project != 0xff ? &input->m_aaInputDico[project][1] : nullptr;
+    for (uint32_t button = 10; button <= 0x12; ++button) {
+        if (dico->GetButtonState(button) != 0) return 1;  // 0x10e7d0
+    }
+    return 0;
+}
+
 // 0x004f8d08 CKS08GameManager_Start: IKGameManager_ResetRuntimeImpl, then Spyro's run state: the dragon
 // stat HUD, the four vectors (TOC1 +0x721c: the zero vector) and their bytes and words, the bonus data
 // (+0xec0), the counters, and the input service's blocks 0 and 1 activated (vt+0x50).
@@ -428,7 +513,7 @@ void CKS08GameManager::Start() {
     ResetDragonStatHud();
     for (uint32_t i = 1; i <= 0x10; ++i) m_unkDF4[i] = 0;  // +0xdf8..+0xe34 (the zero vectors, bytes and words)
     static_cast<CKBonusData*>(m_unkEC0)->ResetRuntime();
-    m_unkF1C = 0;
+    m_unkF1C = nullptr;
     m_unkAFC &= ~0x100u;
     m_unkEA0 = -0x1p+0f;  // TOC1 +0x7204: -1.0
     m_afUnkBAC[1] = 0.0f;
@@ -436,13 +521,48 @@ void CKS08GameManager::Start() {
     m_unkBB4.m_ui32NbUsedElt = 0;
     m_unkBC8.m_ui32NbUsedElt = 0;
     m_unkAFC &= 0xfffff9ffu;
-    m_unkDCC[0] = 0;
-    m_unkDCC[1] = 0;
-    m_unkDCC[2] = 0;
+    m_apDeathFx[0] = nullptr;
+    m_apDeathFx[1] = nullptr;
+    m_apDeathFx[2] = nullptr;
     CKSrvInput* service = static_cast<CKSrvInput*>(g_pEngine->m_srvInput);
     if (KBase60CC* block = service->GetInputBlock(0)) block->OnActivate();  // vt+0x50
     if (KBase60CC* block = service->GetInputBlock(1)) block->OnActivate();
     m_unkF28 &= 0x00ffffffu;  // the byte at +0xf28
+}
+
+// 0x004fa0e8 CKS08GameManager_Restart (vt+0x54, the level restart after the hero's death): IKGameManager_ReinitRuntimeImpl,
+// no sector notification, the game structure's checkpoint snapshot restored (health, mana, counters), the dragon stat
+// HUD refreshed, the bonus data reset, no save countdown, the three death effects released (vt+0x58 with this as
+// owner) and the death's screen tint (+0xde0) hidden (its +0x14 bit 8).
+void CKS08GameManager::Restart() {
+    ReinitRuntime();  // 0x004f27b0
+    m_unkEA4 &= 0x00ffffffu;  // the byte at +0xea4
+    static_cast<CKS08GameStructure*>(m_gameStructure)->RestoreCheckpointSnapshot();  // 0x0050eec0
+    ResetDragonStatHud2();  // 0x00502340
+    static_cast<CKBonusData*>(m_unkEC0)->ResetRuntime();  // 0x00126d90
+    m_unkEA0 = -0x1p+0f;  // TOC1 +0x7204: -1.0
+    for (IKSerializable*& fx : m_apDeathFx) {
+        if (fx != nullptr) {
+            static_cast<IKFx*>(fx)->StopAndRelease(this);  // vt+0x58
+            fx = nullptr;
+        }
+    }
+    CColorizedScreenFx* tint = static_cast<CColorizedScreenFx*>(m_unkDE0);
+    tint->m_BitProperties &= ~CColorizedScreenFx::kActive;  // +0x14 bit 8
+}
+
+// 0x004fb848 SpawnElementGroundFx_maybe
+void CKS08GameManager::SpawnElementGroundFx(const IKSerializable* owner, uint32_t type, const CVector3* position) {
+    CKSrvFx* fx = static_cast<CKSrvFx*>(g_pEngine->m_srvFx);
+    CKParticlesEffectFxData* data = static_cast<CKParticlesEffectFxData*>(m_unkE88[type + 1]);  // +0xe8c + 4 x type
+    RwMatrix* matrix = data->m_unk24;
+    matrix->pos.x = position->x;
+    matrix->pos.z = position->z;
+    matrix->pos.y = position->y;
+    matrix->flags &= 0xfffdffffu;
+    data->m_unk08 = static_cast<uint8_t>(data->m_unk08 & 0xefu);
+    IKFx* effect = fx->AcquireFx(data, owner);  // the inlined pooled lookup
+    if (effect != nullptr) effect->ReleaseReservation(owner);  // vt+0x54
 }
 
 // 0x004f8f78 CKS08GameManager_Update: IKGameManager_Update, then (game state 7, in game) the HUD, the effect
@@ -455,12 +575,12 @@ void CKS08GameManager::Update(IKTime* frameClock) {
     }
     if (m_gameState.m_ui8Current != 7) return;
     UpdateInGameHud(frameClock);
-    if ((m_unkAFC & 0x100) != 0 && m_unkF1C == 0) {
+    if ((m_unkAFC & 0x100) != 0 && m_unkF1C == nullptr) {
         // The FX data +0xf18 asks for its effect: the FX service's unique effects (or, for a shared one, the
         // first free node of its class and type) take it (IKFx vt+0x84 / +0x88 / +0x8c: the data and this as
-        // owner, then vt+0x64), and +0xf1c remembers the effect. STUB(C2.7, the FX service): the IKFx slots are not declared
-        // yet (k2000/fx/IKFx.h); the flag is cleared at the level start and no effect is running then.
-        DOTD_STUB_ONCE("CKS08GameManager_Update: start the effect of the FX data +0xf18 (flag 0x100)");
+        // owner, then vt+0x64), and +0xf1c remembers the effect (null without one): the inlined search is CKSrvFx's
+        // StartEffect.
+        m_unkF1C = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->StartEffect(static_cast<IKFxData*>(m_unkF00[6]), this);
     }
     // The save request's countdown (+0xea0, -1 off): at zero the request goes out (vt+0x104).
     if (m_unkEA0 >= 0.0f) {
@@ -520,6 +640,12 @@ uint8_t CKS08GameManager::GetDirectionActionState(uint8_t direction) {
     } while (m_unkAE9 > player);
     if ((held & 0xffu) == 0) return 0;
     return static_cast<uint8_t>(ppc::divw(static_cast<int32_t>(sum & 0xffffu), static_cast<int32_t>(held & 0xffu)));
+}
+
+// 0x004f8090 CKS08GameManager_vf2EC
+uint8_t CKS08GameManager::Vf2EC() {
+    static_cast<IKGameStructure*>(m_gameStructure)->ApplyPlayerGameState(static_cast<IKPlayer*>(m_players[0]));  // vt+0x60
+    return Vf2ECCommon();  // 0x4ec560
 }
 
 // 0x004f80f8 CKS08GameManager_ResetGameProgress_maybe (XXL2 NewGame)
@@ -775,6 +901,31 @@ uint8_t CKS08GameManager::GetArmorMeshHiddenFlag(int32_t dragon) {
     return DragonStats(this)->RtByte(dragon != 0 ? 0xba : 0xbb);
 }
 
+// 0x004fd480 SetEquippedArmor_maybe
+void CKS08GameManager::SetEquippedArmor(uint8_t dragon, uint8_t slot, uint32_t armor) {
+    if (armor > 3) return;
+    DragonStats(this)->RtByte(static_cast<uint32_t>(dragon * 3 + slot + 0xb4)) = static_cast<uint8_t>(armor);
+}
+
+// 0x004fd528 AddDragonFury_maybe
+void CKS08GameManager::AddDragonFury(int32_t dragon, uint32_t amount) {
+    CKS08GameStructure* structure = DragonStats(this);
+    if (dragon == 0) {
+        if (structure->m_unk74 + structure->m_unk78 + amount < structure->m_unk7c) {
+            structure->m_unk74 = amount + structure->m_unk74;
+        } else {
+            structure->m_unk74 = structure->m_unk7c - structure->m_unk78;
+        }
+    } else if (dragon == 1) {
+        if (structure->m_unk78 + structure->m_unk74 + amount < structure->m_unk7c) {
+            structure->m_unk78 = structure->m_unk78 + amount;
+        } else {
+            structure->m_unk78 = structure->m_unk7c - structure->m_unk74;
+        }
+    }
+    RefreshFuryGaugeHud();  // 0x004fec98
+}
+
 // 0x004fd658 GetEquippedArmor_maybe
 uint8_t CKS08GameManager::GetEquippedArmor(int32_t dragon, int32_t slot) {
     return DragonStats(this)->RtByte(static_cast<uint32_t>(dragon * 3 + slot + 0xb4));
@@ -834,4 +985,351 @@ void CKS08GameManager::DamageDragon(int32_t dragon, uint32_t amount) {
     CKS08GameStructure* stats = DragonStats(this);
     stats->m_unk54 = amount < stats->m_unk54 ? stats->m_unk54 - amount : 0;
     RefreshDragonStatDisplays(1, 1, 0);
+}
+
+// 0x004fd438 IsFuryGaugeFull_2_maybe
+uint8_t CKS08GameManager::IsFuryGaugeFull2() const {
+    if ((m_flags64 & 0x01000000u) != 0) return 1;
+    const CKS08GameStructure* stats = static_cast<const CKS08GameStructure*>(m_gameStructure);
+    return ((stats->m_unk74 + stats->m_unk78) ^ stats->m_unk7c) == 0 ? 1 : 0;
+}
+
+// 0x004f9628 CKS08GameManager_SpawnSurfaceFx (the pool lookup inlined)
+void CKS08GameManager::SpawnSurfaceFx(float volume, const IKSerializable* owner, uint32_t surface, uint32_t mode, const float* position) {
+    CKExplosionFxData* data = static_cast<CKExplosionFxData*>(m_aRefTable[surface][mode]);
+    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(data->m_pSoundDico);
+    for (uint32_t i = sounds->m_ui32NbKSound; i != 0;) {
+        --i;
+        CKSound* sound = sounds->GetSound(i);  // 0x00112bc0
+        if (sound != nullptr) sound->SetVolume(volume);  // 0x00110f10
+    }
+    IKFx* fx = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(data, owner);
+    if (fx == nullptr) return;
+    CKExplosionNodeFx* explosion = static_cast<CKExplosionNodeFx*>(fx);
+    const CVector3 p = {position[0], position[1], position[2]};
+    explosion->SetTranslation(&p, owner);  // 0x001b66e8
+    explosion->Trigger(owner, 0);          // 0x001b82a8
+    explosion->ReleaseReservation(owner);  // vt+0x54
+}
+
+// 0x004f9558 GetElementLevel: 3 while +0x64 bit 25 is set; else the dragon's experience in the element (the game
+// structure's run-time word +0x8c / +0xa0 + 4 x element) against the element's three thresholds (+0xc48 / +0xc84):
+// 3 past the third, 2 past the second, 1 past the first, else 0 (unsigned compares, a threshold reached counts).
+uint32_t CKS08GameManager::GetElementLevel(uint8_t dragon, uint8_t element) {
+    if ((m_flags64 & 0x02000000u) != 0) return 3;
+    // BUG(original): a dragon other than 0 and 1 reads its thresholds from address 0xa0 + 4 x element; LVL010 has two.
+    const uint32_t experience = DragonStats(this)->RtWord(static_cast<uint32_t>((dragon == 0 ? 0x8c : 0xa0) + 4 * element));
+    const SRecord& thresholds = dragon == 0 ? m_aUnkC48[element] : m_aUnkC84[element];
+    if (thresholds.m_unk8 <= experience) return 3;
+    if (thresholds.m_unk4 <= experience) return 2;
+    if (thresholds.m_unk0 <= experience) return 1;
+    return 0;
+}
+
+// 0x004f8618 CKS08GameManager_SpawnGemReward_maybe (divwu: a zero divisor gives 0).
+void CKS08GameManager::SpawnGemReward(uint32_t gems, const CVector3* pos, const CVector3* dir) {
+    const uint32_t small = m_unkEA8[2];   // +0xeb0
+    const uint32_t medium = m_unkEA8[3];  // +0xeb4
+    const uint32_t large = m_unkEA8[4];   // +0xeb8
+    const uint32_t nLarge = ppc::divwu(gems, large);
+    uint32_t rest = gems - nLarge * large;
+    const uint32_t nMedium = ppc::divwu(rest, medium);
+    rest = rest - nMedium * medium;
+    const uint32_t nSmall = ppc::divwu(rest, small);
+    const float half = static_cast<float>(static_cast<double>(small)) * 0.5f;
+    const uint32_t roundUp = half <= static_cast<float>(static_cast<double>(rest - nSmall * small)) ? 1u : 0u;
+    const uint32_t smallCount = nSmall + roundUp;
+    CKBonusData* table = static_cast<CKBonusData*>(m_unkEC0);
+    if (table->m_count != 3) return;
+    table->m_pEntries[0].m_unk04 = smallCount;
+    table->m_pEntries[0].m_unk08 = smallCount;
+    table->m_pEntries[1].m_unk04 = nMedium;
+    table->m_pEntries[1].m_unk08 = nMedium;
+    table->m_pEntries[2].m_unk04 = nLarge;
+    table->m_pEntries[2].m_unk08 = nLarge;
+    static_cast<KBase201*>(g_pEngine->m_srvBonus)->SpawnBonuses(table, pos, dir, pos, 0);  // 0x00126278
+}
+
+// 0x004f6b78 CKS08GameManager_RequestStoredMusicTrack_maybe
+void CKS08GameManager::RequestStoredMusicTrack() {
+    if (m_unkEF8 == nullptr) return;
+    static_cast<CKSrvMusic*>(g_pEngine->m_srvMusic)->RequestTrack(reinterpret_cast<CKMusicPlayList*>(m_unkEF8), 0);  // 0x00210358
+}
+
+
+// ==== C2.8 save-menu: the save ===================================================================================
+#include "Spyro2008/logic/ui/CKS08MenuSelectSlot.h"
+#include "Spyro2008/logic/ui/CKS08MenuStatsGame.h"
+#include "k2000/logic/CKGameSpawnPoint.h"
+#include "k2000/logic/CKGameState.h"
+#include "k2000/logic/IKPlayer.h"
+#include "k2000/logic/ui/CKLocText.h"
+#include "k2000/misc/IKGameStructure.h"
+
+// 0x004f7280 CKS08GameManager_RecursiveRegistration. IKCommonGameManager_RecursiveRegistration 0x4ed698 is
+// CDefaultGameManager_LevelResetImpl; the trigger starter's (KStub_Return1_2361b0) and 0x4fe2f8 (KStub_Return1) do
+// nothing.
+void CKS08GameManager::RecursiveRegistration(int32_t type) {
+    LevelResetImpl(type);
+    if (type == 0) {
+        if (m_unkEF8 != nullptr) m_unkEF8->RecursiveRegistration(0);
+        if (m_unkEFC != nullptr) m_unkEFC->RecursiveRegistration(0);
+        if (m_unkDAC != nullptr) {
+            IKSerializable* const deathObjects[] = {m_unkD9C[0], m_unkD9C[1], m_unkD98, m_unkDA8, m_unkDAC,
+                                                    m_unkDB0,    m_unkDB4,    m_unkDDC, m_unkDE0, m_unkDE4};
+            for (IKSerializable* object : deathObjects) {
+                if (object != nullptr) object->RecursiveRegistration(0);
+            }
+        }
+    }
+    m_unkEC4->RecursiveRegistration(type);
+    for (int32_t i = 11; i >= 0; --i) m_unkEC8[i]->RecursiveRegistration(type);  // +0xef4 down to +0xec8
+    m_unkBDC->RecursiveRegistration(type);
+    m_unkE38->RecursiveRegistration(type);
+    m_unkE44->RecursiveRegistration(type);
+    m_unkE40->RecursiveRegistration(type);
+    m_unkE3C->RecursiveRegistration(type);
+    m_unkE88[2]->RecursiveRegistration(type);  // +0xe90
+    m_unkE88[1]->RecursiveRegistration(type);  // +0xe8c
+    if (m_unkAEC != nullptr) m_unkAEC->RecursiveRegistration(type);
+    if (m_unkAF0 != nullptr) m_unkAF0->RecursiveRegistration(type);
+    for (int32_t row = 0; row < 5; ++row) {
+        m_aRefTable[row][0]->RecursiveRegistration(type);
+        m_aRefTable[row][1]->RecursiveRegistration(type);
+        m_aRefTable[row][2]->RecursiveRegistration(type);
+    }
+    m_unkE88[0]->RecursiveRegistration(type);  // +0xe88
+    m_unkEC0->RecursiveRegistration(type);
+    for (IKSerializable* object : m_unkF00) object->RecursiveRegistration(type);  // +0xf00..+0xf18
+    m_unkF20->RecursiveRegistration(type);
+    m_unkF24->RecursiveRegistration(type);
+}
+
+// 0x004f8f18 CKS08GameManager_Save: IKCommonGameManager_Save 0x4ed670 (CDefaultGameManager_SaveImpl), KStub_Nop_4fe300.
+int32_t CKS08GameManager::Save(IKFile* file, int32_t type) {
+    SaveImpl(file, type);
+    return 1;
+}
+
+// 0x004f6e18 CKS08GameManager_BuildSaveDetailText_maybe: the stats menu (menus +0x4c, vt+0x344) builds it.
+void CKS08GameManager::BuildSaveDetailText(uint16_t* text) {
+    static_cast<CKS08MenuStatsGame*>(Vf344()[0x4c / 4])->BuildSaveDetailText(text);  // TocBridge -> 0x00567048
+}
+
+// 0x004f8858 CKS08GameManager_GetSaveSubtitleText_maybe: the name (+0x34) of the structure's current spawn point, in
+// chapter mode (vt+0xc4) player 0's saved one.
+const uint16_t* CKS08GameManager::GetSaveSubtitleText() {
+    CKGameSpawnPoint* spawnPoint;
+    if (VfC4() == 0) {
+        spawnPoint = static_cast<IKGameStructure*>(m_gameStructure)->m_pCurrentSpawnPoint;
+    } else {
+        spawnPoint = static_cast<IKPlayer*>(m_players[0])->m_pGameState->m_pGameSpawnPoint;
+    }
+    return LocString_GetText(static_cast<const CKLocText*>(spawnPoint->m_pUnk34));  // 0x00035d28
+}
+
+// 0x004f8940 CKS08GameManager_SetOnlyMainPlayerActive_maybe: the pause player's pad active, the other not.
+void CKS08GameManager::Vf234() {
+    SetPlayerActive(0, static_cast<uint8_t>(m_ui8PausePlayer ^ 1));  // vt+0x184
+    SetPlayerActive(1, m_ui8PausePlayer);
+}
+
+// 0x004f8318 CKS08GameManager_OnSaveGameDone_maybe
+void CKS08GameManager::OnSaveGameDone(int32_t result) {
+    CKS08MenuSelectSlot* selectSlot = static_cast<CKS08MenuSelectSlot*>(Vf344()[0x48 / 4]);  // vt+0x344
+    if (m_requestedLevel != -1) m_unk294 = 1;
+    if (static_cast<uint32_t>(result) > 3u || ((1u << result) & 0xbu) == 0) return;  // 0, 1, 3
+    bool stopVideo = false;
+    if (m_interfaceState.m_ui8Current == 0x12) {
+        if ((m_unkAFC & 8u) != 0 || (m_unkAFC & 0x10u) != 0) {
+            if (VfC4() != 0) {
+                Vf2EC();  // vt+0x2ec
+                return;
+            }
+            selectSlot->OnSaveGameDone();  // TocBridge -> 0x00563720
+            if (m_gameState.m_ui8Current != 7) return;
+            selectSlot->QueueNextStateAfterSave();  // TocBridge -> 0x00562698
+            stopVideo = true;
+        } else {
+            uint8_t menu = 6;
+            if (m_unkE94[1] == 0xffffffffu) menu = MainMenuId();  // +0xe98; vt+0x2f8
+            m_aMenuStack[0] = menu;
+            m_ui32MenuStackDepth = 1;
+            return;
+        }
+    } else if (m_gameState.m_ui8Current == 6) {
+        m_aMenuStack[0] = 6;
+        m_ui32MenuStackDepth = 1;
+        return;
+    } else if (m_gameState.m_ui8Current == 7) {
+        if (VfC4() != 0) {
+            Vf2EC();
+            return;
+        }
+        stopVideo = true;
+    }
+    if (!stopVideo) return;
+    if (GetInterfaceVideo() == nullptr) return;  // vt+0xdc
+    GetInterfaceVideo()->Stop();                // vt+0x78
+}
+
+// ==== C2.8 port-all P12 ===================================================================================================
+
+// vt+0x94 0x004f7080 CKS08GameManager_vf94: IKCommonGameManager_vf94 0x4ec438 (1). No call of the slot found.
+uint8_t CKS08GameManager::Vf94Slot() { return 1; }
+
+// vt+0x98 0x004f70a8 CKS08GameManager_vf98: IKCommonGameManager_vf98 0x4ec440: +0x494 cleared, 1. No call of the slot
+// found.
+uint8_t CKS08GameManager::Vf98Slot() {
+    m_unk494 = 0;
+    return 1;
+}
+
+// 0x004fbd70 CKS08GameManager_SpawnExplosionFx: a free explosion of the data at +0xe88 + `index` (the pooled lookup the
+// effects inline: CKSrvFx::AcquireFx, reserved for `owner`) placed at `position` (SetTranslation 0x1b66e8), fired
+// (Trigger 0x1b82a8, no launch record) and its reservation released (vt+0x54); nothing without a free one.
+void CKS08GameManager::SpawnExplosionFx(IKSerializable* owner, int32_t index, const CVector3* position) {
+    IKFxData* data = static_cast<IKFxData*>(m_unkE88[index]);
+    CKSrvFx* service = static_cast<CKSrvFx*>(g_pEngine->m_srvFx);
+    CKExplosionNodeFx* fx = static_cast<CKExplosionNodeFx*>(service->AcquireFx(data, owner));
+    if (fx == nullptr) return;
+    fx->SetTranslation(position, owner);
+    fx->Trigger(owner, nullptr);
+    fx->ReleaseReservation(owner);  // vt+0x54
+}
+
+// 0x004fbb08 CKS08GameManager_SpawnDefaultExplosionFx_maybe: the same with the data at +0xe38, `owner` passed third (the
+// second argument is not read) and the reservation kept. No caller in the original besides its OPD.
+void CKS08GameManager::SpawnDefaultExplosionFx(uint32_t /*unused*/, IKSerializable* owner, const CVector3* position) {
+    IKFxData* data = static_cast<IKFxData*>(m_unkE38);
+    CKSrvFx* service = static_cast<CKSrvFx*>(g_pEngine->m_srvFx);
+    CKExplosionNodeFx* fx = static_cast<CKExplosionNodeFx*>(service->AcquireFx(data, owner));
+    if (fx == nullptr) return;
+    fx->SetTranslation(position, owner);
+    fx->Trigger(owner, nullptr);
+}
+
+namespace {
+// The trigger value accessors (the original's InfoAccessor slots: TOC +0x7244..+0x7258 and IKCommonGameManager's).
+CKS08GameStructure* InfoStructure(IKSerializable* self) {
+    return static_cast<CKS08GameStructure*>(static_cast<CKS08GameManager*>(self)->m_gameStructure);
+}
+uint32_t InfoFlag480Cleared(IKSerializable* self, uint32_t index) {  // 0x004ec798 (IKCommonGameManager 0x44c)
+    return static_cast<CKS08GameManager*>(self)->IsFlag480ClearedThisFrame(static_cast<int32_t>(index));
+}
+uint32_t InfoReturnM1(IKSerializable* /*self*/, uint32_t /*arg*/) { return 0xffffffffu; }  // 0x004ec7d0 (0x44d)
+uint32_t InfoSpyroMana(IKSerializable* self, uint32_t) { return InfoStructure(self)->m_unk64; }    // 0x009c6f70 (0x4b0)
+uint32_t InfoCynderMana(IKSerializable* self, uint32_t) { return InfoStructure(self)->m_unk6c; }   // 0x009c6d98 (0x4b1)
+uint32_t InfoSpyroManaCapacity(IKSerializable* self, uint32_t) {                                   // 0x009c6fb0 (0x4b2)
+    return static_cast<uint32_t>(ComputeSpyroManaCapacity(InfoStructure(self), 0));
+}
+uint32_t InfoCynderManaCapacity(IKSerializable* self, uint32_t) {                                  // 0x009c6f80 (0x4b3)
+    return static_cast<uint32_t>(ComputeCynderManaCapacity(InfoStructure(self), 0));
+}
+uint32_t InfoPlayerCount(IKSerializable* self, uint32_t) {                                         // 0x009c6d48 (0x4b4)
+    return static_cast<CKS08GameManager*>(self)->m_unkAE9;
+}
+uint32_t InfoVfC4(IKSerializable* self, uint32_t) { return static_cast<CKS08GameManager*>(self)->VfC4(); }  // 0x009c6ee8 (0x4b5)
+}  // namespace
+
+// vt+0x40 0x004f7e90 CKS08GameManager_GetInfo. IKCommonGameManager_ResolveTriggerProperty 0x4eed90 first (for the value
+// accessor: 0x44c the pad button released this frame (a byte), 0x44d -1 (an integer)); then, for the value accessor, the
+// ids 0x4b0..0x4b5 (the jump table at 0x4f7f4c): Spyro's and Cynder's mana, their mana capacities (integers), the player
+// count (+0xae9) and vt+0xc4 (bytes). 2 when the common part said 2; else 0 when either part knew the id, 1 otherwise.
+int32_t CKS08GameManager::GetInfo(IKInfo* info, int32_t request) {
+    int32_t common = 1;
+    if (request == kGetInfoValueAccessor) {
+        if (info->m_ui32Id == 0x44c) common = AnswerInfo(info, &InfoFlag480Cleared, 0);
+        else if (info->m_ui32Id == 0x44d) common = AnswerInfo(info, &InfoReturnM1, 1);
+    }
+    int32_t own = 1;
+    if (request == kGetInfoValueAccessor && info->m_ui32Id - 0x4b0u <= 5) {
+        switch (info->m_ui32Id) {
+        case 0x4b0: AnswerInfo(info, &InfoSpyroMana, 1); break;
+        case 0x4b1: AnswerInfo(info, &InfoCynderMana, 1); break;
+        case 0x4b2: AnswerInfo(info, &InfoSpyroManaCapacity, 1); break;
+        case 0x4b3: AnswerInfo(info, &InfoCynderManaCapacity, 1); break;
+        case 0x4b4: AnswerInfo(info, &InfoPlayerCount, 1); break;
+        default: AnswerInfo(info, &InfoVfC4, 0); break;
+        }
+        own = 0;
+    }
+    if (common == 2 || own == 2) return 2;
+    if (common == 0) return 0;
+    return own;
+}
+
+// 0x004fd6d8 RefillAllDragonsMana / 0x004fd8d8 RefillAllDragonsHealth: both dragons' mana (+0x64 / +0x6c) or health (+0x4c /
+// +0x54) set to their capacities (the flagged items only). No caller in the original besides their OPDs.
+void RefillAllDragonsMana(CKS08GameManager* manager) {
+    CKS08GameStructure* structure = static_cast<CKS08GameStructure*>(manager->m_gameStructure);
+    structure->m_unk64 = static_cast<uint32_t>(ComputeSpyroManaCapacity(structure, 0));
+    structure = static_cast<CKS08GameStructure*>(manager->m_gameStructure);
+    structure->m_unk6c = static_cast<uint32_t>(ComputeCynderManaCapacity(structure, 0));
+}
+void RefillAllDragonsHealth(CKS08GameManager* manager) {
+    CKS08GameStructure* structure = static_cast<CKS08GameStructure*>(manager->m_gameStructure);
+    structure->m_unk4c = static_cast<uint32_t>(ComputeSpyroHealthCapacity(structure, 0));
+    structure = static_cast<CKS08GameStructure*>(manager->m_gameStructure);
+    structure->m_unk54 = static_cast<uint32_t>(ComputeCynderHealthCapacity(structure, 0));
+}
+
+// vt+0xd0 0x004f7dc8 CKS08GameManager_vfD0: IKCommonGameManager's (0x4ec4a0, empty); in game (state 7) on the save-slot
+// interface (0x12) the save-slot menu (vt+0x344 [0x12]) is told the save is done (0x563720) and queues its next state
+// (0x562698). No call of the slot found in dotd.
+void CKS08GameManager::VfD0() {
+    if (m_gameState.m_ui8Current != 7 || m_interfaceState.m_ui8Current != 0x12) return;
+    CKS08MenuSelectSlot* selectSlot = static_cast<CKS08MenuSelectSlot*>(Vf344()[0x48 / 4]);
+    selectSlot->OnSaveGameDone();
+    selectSlot->QueueNextStateAfterSave();
+}
+
+// vt+0xcc 0x004f9d60 CKS08GameManager_vfCC (C2.8 port-rest R10): IKCommonGameManager's part (0x4ec458: the input frame),
+// then with a save-slot menu (vt+0x344 [0x12]) the interface machine's frame (inlined), the slot +0xe98 to slot[0], and
+// the menu's answer: +0x114 (slot[1] = 2) or +0x115 (slot[1] = 1) set: 0; neither nor +0x116: 1 when no slot is chosen
+// (+0xe98 == -1); +0x116: the slot cleared (+0xe98 and slot[0] = -1) and in game (state 7) +0x116 cleared, 0. The
+// `value` (1 from the save-check flow) is not read.
+uint8_t CKS08GameManager::VfCC(uint8_t /*value*/, int32_t* slot) {
+    VfCCCommon();
+    CKS08MenuSelectSlot* selectSlot = static_cast<CKS08MenuSelectSlot*>(Vf344()[0x48 / 4]);  // vt+0x344
+    if (selectSlot == nullptr) return 0;
+    m_interfaceState.Tick();
+    slot[0] = static_cast<int32_t>(m_unkE94[1]);  // +0xe98
+    if (selectSlot->m_unk114 != 0) {
+        slot[1] = 2;
+        return 0;
+    }
+    if (selectSlot->m_unk115 != 0) {
+        slot[1] = 1;
+        return 0;
+    }
+    if (selectSlot->m_unk116 == 0) return m_unkE94[1] == 0xffffffffu ? 1 : 0;
+    m_unkE94[1] = 0xffffffffu;
+    slot[0] = -1;
+    if (m_gameState.m_ui8Current != 7) return 0;
+    selectSlot->m_unk116 = 0;
+    return 0;
+}
+
+// vt+0xbc 0x004f8208 CKS08GameManager_vfBC: IKCommonGameManager's (0x4ec450, empty); the save-slot menu's byte +0x117 =
+// `value` ^ 1, +0xe98 = -1; off the save-slot interface (0x12) the stack holds it alone and the interface switches to it
+// (0x4eff30), else the menu's vt+0xd8 (1, 0x12). No call of the slot found in dotd.
+void CKS08GameManager::VfBC(uint8_t value) {
+    CKS08MenuSelectSlot* selectSlot = static_cast<CKS08MenuSelectSlot*>(Vf344()[0x48 / 4]);
+    selectSlot->m_unk117 = static_cast<uint8_t>(value ^ 1);
+    m_unkE94[1] = 0xffffffffu;  // +0xe98
+    if (m_interfaceState.m_ui8Current != 0x12) {
+        m_aMenuStack[0] = 0x12;
+        m_ui32MenuStackDepth = 1;
+        SwitchInterfaceStateToStackTop();
+        return;
+    }
+    selectSlot->HandleStatePhase(1, 0x12);  // vt+0xd8
+}
+
+// vt+0xf0 0x004f9c00 CKS08GameManager_vfF0: in the pause (state 8) the game state machine goes back to state 7 (in game;
+// the inlined switch). No call of the slot found in dotd.
+void CKS08GameManager::VfF0() {
+    if (m_gameState.m_ui8Current != 8) return;
+    m_gameState.Switch(7);
 }

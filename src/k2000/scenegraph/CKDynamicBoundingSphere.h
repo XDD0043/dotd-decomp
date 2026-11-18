@@ -4,6 +4,7 @@
 #pragma once
 #include <cstdint>
 
+#include "Renderware/rwcore/RwCamera.h"
 #include "k2000/core/Layout.h"
 #include "k2000/math/CMatrix34.h"
 #include "k2000/scenegraph/CKBoundingSphere.h"
@@ -11,6 +12,9 @@
 class CKDynamicBoundingSphere : public CKBoundingSphere {
 public:
     DOTD_CLASS_KEY(kCategoryNode, 0xf)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x993228
+        return key == 0x3cb || key == 0x38b || key == 0x34b || key == 0x20b || key == 0x14b || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKDynamicBoundingSphere)
 
     CKDynamicBoundingSphere() {}  // inlined in 0x000d7640 CKDynamicBoundingSphere_Create (no stores of its own)
@@ -41,11 +45,11 @@ inline int32_t CKDynamicBoundingSphere::Load(IKFile* file, int32_t type) {
     CKBoundingSphere::Load(file, type);  // inlined in the original
     static const CVector3 kNullVector = {0.0f, 0.0f, 0.0f};  // g_nullVector (0x00c50d64, XXL2 name)
     m_v3WorldMove = kNullVector;
-    // STUB(C1.4): the original copies RwFrame +0x80, the position of the frame's LTM, twice. There is no
-    // frame yet. At this point a frame has only been created (identity LTM) and given its modelling
-    // matrix (CSGMovable::Load marks the LTM dirty without computing it), so the position is (0, 0, 0).
-    const CVector3 ltmPosition = {0.0f, 0.0f, 0.0f};
-    m_v3OldPos = ltmPosition;
-    m_v3LastWorldPos = ltmPosition;
+    // The position of the frame's stored LTM (RwFrame +0x80), read twice without a sync (CSGMovable::Load marks
+    // the LTM dirty without computing it, so a freshly loaded node still has its identity LTM here).
+    const RwV3d& pos1 = FrameLtm(m_pRwFrame)->pos;
+    m_v3OldPos = CVector3{pos1.x, pos1.y, pos1.z};
+    const RwV3d& pos2 = FrameLtm(m_pRwFrame)->pos;
+    m_v3LastWorldPos = CVector3{pos2.x, pos2.y, pos2.z};
     return 1;
 }

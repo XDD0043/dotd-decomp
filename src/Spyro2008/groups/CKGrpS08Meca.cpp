@@ -4,25 +4,25 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x3f9128  CKGrpS08Meca_Delete
-//   [ ] 0x3f9178  CKGrpS08Meca_vfB8
+//   [x] 0x3f9178  CKGrpS08Meca_vfB8  (returns 1: undeclared slot, see CKGrpS08Meca.h)
 //   [ ] 0x3f9180  RegisterCKGrpS08MecaClass
 //   [ ] 0x3f91f8  _GLOBAL__I_3f91f8
-//   [ ] 0x3f9208  CKGrpS08Meca_Update
-//   [ ] 0x3f9230  CKGrpS08Meca_Resume
-//   [ ] 0x3f9258  CKGrpS08Meca_Pause
-//   [ ] 0x3f9280  CKGrpS08Meca_Stop
+//   [x] 0x3f9208  CKGrpS08Meca_Update
+//   [x] 0x3f9230  CKGrpS08Meca_Resume  (empty / no effect: inherited)
+//   [x] 0x3f9258  CKGrpS08Meca_Pause  (empty / no effect: inherited)
+//   [x] 0x3f9280  CKGrpS08Meca_Stop
 //   [x] 0x3f92b8  CKGrpS08Meca_Start
 //   [x] 0x3f92f0  CKGrpS08Meca_PostLoad
 //   [ ] 0x3f9318  CKGrpS08Meca_Save
-//   [ ] 0x3f9340  CKGrpS08Meca_RecursiveRegistration
-//   [ ] 0x3f9368  CKGrpS08Meca_Destroy
-//   [ ] 0x3f9390  CKGrpS08Meca_DeletingDestructor
-//   [ ] 0x3f93d8  CKGrpS08Meca_Destructor
-//   [ ] 0x3f9408  CKGrpS08Meca_DestructBody
+//   [x] 0x3f9340  CKGrpS08Meca_RecursiveRegistration  (CKGrpMeca's: inherited)
+//   [x] 0x3f9368  CKGrpS08Meca_Destroy  (inherited: CKGrpMeca_Destroy)
+//   [x] 0x3f9390  CKGrpS08Meca_DeletingDestructor  (the implicit destructor + delete)
+//   [x] 0x3f93d8  CKGrpS08Meca_Destructor  (C++ destructor chain: vtable stores only)
+//   [x] 0x3f9408  CKGrpS08Meca_DestructBody  (the implicit destructor)
 //   [x] 0x3f9438  CKGrpS08Meca_Construct
 //   [x] 0x3f9470  CKGrpS08Meca_Construct_2
 //   [x] 0x3f94a8  CKGrpS08Meca_DeleteArray
-//   [ ] 0x3f9550  CKGrpS08Meca_Restart
+//   [x] 0x3f9550  CKGrpS08Meca_Restart  (Restart, CKGrpS08Meca.h)
 //   [x] 0x3f9560  CKGrpS08Meca_CreateArray
 //   [x] 0x3f9618  CKGrpS08Meca_Create
 //   [x] 0x3f9670  CKGrpS08Meca_Load
@@ -53,11 +53,6 @@ int32_t CKGrpS08Meca::PostLoad(int32_t type) {
 
 // 0x003f92b8 CKGrpS08Meca_Start
 void CKGrpS08Meca::Start() {
-    // 0x003f81c0 CKGrpMeca_vf50 (k2000/misc/CKGrpMeca.cpp, family hooks; local copy): the halfword at +0x30 and
-    // the byte at +0x32 cleared (the first three bytes of the big-endian word), then every component's vt+0x58.
-    m_unk30 = m_unk30 & 0x000000ffu;
-    for (uint32_t i = 0; i < m_apMecaCpnts.m_ui32NbUsedElt; ++i) {
-        static_cast<IKMecaCpnt*>(m_apMecaCpnts.m_pBlock[i])->Vf58();
-    }
+    CKGrpMeca::Start();  // 0x003f81c0 CKGrpMeca_vf50: the active actor count +0x30 and the byte +0x32 cleared
     m_unk4c = m_unk4c & 0x00ffffffu;  // the byte at +0x4c
 }

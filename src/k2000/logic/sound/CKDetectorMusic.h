@@ -10,13 +10,21 @@
 class CKDetectorMusic : public CKDetectorBase {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0xbd)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9ab0a8
+        return key == 0x2f4c || key == 0x270c || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKDetectorMusic)
 
     CKDetectorMusic() {}  // inlined in 0x001aa3e0 CKDetectorMusic_Create: only the vtable
     ~CKDetectorMusic() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001aa418 CKDetectorMusic_Load
-    void Detect() override {}  // vt+0x50 0x1aa0f0 CKDetectorMusic_CheckAndTriggerMusic_maybe  STUB(C2.2)
+    // vt+0x50 0x001aa0f0 CKDetectorMusic_CheckAndTriggerMusic_maybe: the base's detection (called directly); while a
+    // movable is inside (GetDetectionType(1)) the music service gets the action (0: RequestTrack of play list
+    // m_ui32Index, 1: RequestPriorityPlaylist of priority m_ui32Index; m_bClear) and its detection flag (+0x2d).
+    // 0 when the base did not detect.
+    int32_t Detect() override;
+    // vt+0x58 0x001aa0c8 CKDetectorMusic_SetEnabled_maybe: the base's (CKDetectorBase_SetEnabled_maybe 0x1a8948).
 
     uint32_t m_eActionType;  // +0x14 XXL2 CKDetectorMusic::eActionType m_eActionType
     uint32_t m_ui32Index;    // +0x18 XXL2 m_ui32Index

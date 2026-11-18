@@ -4,8 +4,8 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x232f30  CKComparedData_Delete
-//   [ ] 0x232f80  CKComparedData_Destroy
-//   [ ] 0x232f88  CKComparedData_RecursiveRegistration
+//   [x] 0x232f80  CKComparedData_Destroy  (empty)
+//   [x] 0x232f88  CKComparedData_RecursiveRegistration
 //   [ ] 0x232fe8  RegisterCKComparedDataClass
 //   [ ] 0x233060  _GLOBAL__I_233060
 //   [x] 0x233070  CKComparedData_DeleteArray
@@ -28,6 +28,11 @@
 #include "k2000/logic/CKComparedData.h"
 
 #include "k2000/io/IKFile.h"
+#include "k2000/core/Stub.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
+
+#include <cstdlib>
 
 // 0x002331f0 CKComparedData_PostLoad (vt+0x30; type 0 = level load)
 int32_t CKComparedData::PostLoad(int32_t type) {
@@ -36,8 +41,14 @@ int32_t CKComparedData::PostLoad(int32_t type) {
         if (mode == 0) {
             // vt+0x40 of the object with a 40-byte stack buffer and 0; the buffer is dropped (the
             // native GetInfo takes no arguments).
-            m_pObject->GetInfo();
-            m_unk0c = 0;
+            if (std::getenv("DOTD_DBG_TRIG") != nullptr) {
+                DOTD_LOG("trig operand %p obj=%p key=%x arg=%08x id=%08x", static_cast<void*>(this), static_cast<void*>(m_pObject),
+                         (m_pObject->GetClassID() << 6) + m_pObject->GetClassType(), m_unk08, m_unk0c);
+            }
+            IKInfo info;
+            info.m_ui32Id = m_unk0c;
+            m_pObject->GetInfo(&info, kGetInfoValueAccessor);  // vt+0x40
+            m_pfnAccessor = info.m_pfnAccessor;
             m_unk10 = 0;
         } else if (mode == 2) {
             // The first memory byte (big-endian high byte) of +0x08: its bit 0 is cleared.
@@ -81,4 +92,9 @@ int32_t CKComparedData::Load(IKFile* file, int32_t type) {
         IKFile_ReadRef(file, &m_pObject);
     }
     return 1;
+}
+
+// 0x00232f88 CKComparedData_RecursiveRegistration (returns 1)
+void CKComparedData::RecursiveRegistration(int32_t type) {
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
 }

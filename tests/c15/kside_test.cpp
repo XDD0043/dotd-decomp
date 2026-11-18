@@ -107,7 +107,7 @@ int main() {
     manager2d->PreUpdate(clock);
     C15_CHECK(manager2d->m_ui32PendingEvents_maybe == 0);
     manager2d->UpdateAndExtract(0.0f, nullptr, nullptr, nullptr, 0);
-    manager2d->Render();
+    manager2d->Render(nullptr);
     C15_CHECK(manager2d->RenderMsgBox() == 1);
     for (int i = 0; i < 5; ++i) c15::RunFrame();
 

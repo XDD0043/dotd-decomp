@@ -7,13 +7,15 @@
 #include "k2000/core/IKSerializable.h"
 #include "k2000/core/Layout.h"
 
+class IKTime;
+
 class CMenuManager : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryGraphical, 0x11)
     DOTD_DECLARE_FACTORIES(CMenuManager)
 
     CMenuManager();                  // 0x00064618 CMenuManager_Create (inlined)
-    ~CMenuManager() override {}      // STUB(C1.6): 0x997cc0 / 0x997c80
+    ~CMenuManager() override {}      // 0x00997cc0 / 0x00997c80 CMenuManager_Destructor / _DeletingDestructor: the vtables only
     // vt+0x08 0x997c60
     int32_t IsKindOfClass(uint32_t key) override { return key == 0x44d || key == 0xc; }
     void Destroy() override { m_bEnabled = 0; }  // vt+0x10 0x64298 CMenuManager_Destroy
@@ -21,7 +23,7 @@ public:
     int32_t Load(IKFile* file, int32_t type) override;
     // vt+0x50 0x000642c8 DrawActiveUIMenu (the class's only slot past the root): the menu scene (+0x04)
     // rendered (its vt+0x5c; the original passes the frame context along) when enabled (+0x0c).
-    virtual uint8_t DrawActiveUIMenu();
+    virtual uint8_t DrawActiveUIMenu(IKTime* frameClock);
 
     // 0x00064538 CMenuManager_BroadcastEvent_maybe: the menu scene's nodes get the event.
     void BroadcastEvent(uint8_t event, void* data);

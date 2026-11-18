@@ -15,32 +15,32 @@
 //   [ ] 0xf5698  FUN_000f5698  [dead]
 //   [x] 0xf5748  ShaderUniform_ComputeGaussianBlurTaps_maybe
 //   [ ] 0xf5e08  ShaderPassState_FillGaussianBlurTapsUniform_maybe  [dead]
-//   [ ] 0xf5e30  ShaderPassStateBase_maybe_DeletingDestructor
-//   [ ] 0xf5e60  ShaderPassStateBase_maybe_Destructor
-//   [ ] 0xf5e70  ShaderPassStateBase_Destruct_maybe
+//   [x] 0xf5e30  ShaderPassStateBase_maybe_DeletingDestructor  (implicit: ~ShaderPassState (the vtable only), then delete)
+//   [x] 0xf5e60  ShaderPassStateBase_maybe_Destructor  (implicit: ~ShaderPassState, the vtable only)
+//   [x] 0xf5e70  ShaderPassStateBase_Destruct_maybe  (implicit: ~ShaderPassState, the vtable only)
 //   [ ] 0xf5e80  ShaderPassState_FillSkinWeightMaskUniform_maybe  [dead]
-//   [ ] 0xf5f50  Mat4_SetIdentity44_maybe
-//   [ ] 0xf5fa0  GetCurrentTransposedWorldViewProjectionMatrix
+//   [x] 0xf5f50  Mat4_SetIdentity44_maybe  (the identity: inline in its only caller MeshShaderPassState::FillWorld)
+//   [ ] 0xf5fa0  GetCurrentTransposedWorldViewProjectionMatrix  [dead: no pointer to its descriptor 0xb554a0, no call]
 //   [x] 0xf5fd0  ShaderPassState_ApplyUniformEnableFlags0And1_maybe
-//   [ ] 0xf6060  ShaderUniform_FillViewportScaleOffset_maybe
-//   [ ] 0xf6208  ShaderUniform_FillShadowEntryParams_maybe
-//   [ ] 0xf62e8  ShaderUniform_FillShadowEntryProjection_maybe
-//   [ ] 0xf63b8  ShaderPassState_FillPointLightUniforms_maybe
-//   [ ] 0xf6528  ShaderUniform_FillPointLightPositionsObjectSpace_maybe
-//   [ ] 0xf6670  ShaderUniform_FillLightDirectionsObjectSpace_maybe
-//   [ ] 0xf6788  ShaderUniform_FillFogParams_maybe
-//   [ ] 0xf68d8  ShaderPassStateBase_maybe_vf90_FillVec4Ones_maybe
+//   [ ] 0xf6060  ShaderUniform_FillViewportScaleOffset_maybe  [dead: no pointer to its descriptor 0xb554b0, no call (inlined in FillShaderUniformFromPassState's case 0x1f)]
+//   [x] 0xf6208  ShaderUniform_FillShadowEntryParams_maybe
+//   [x] 0xf62e8  ShaderUniform_FillShadowEntryProjection_maybe
+//   [x] 0xf63b8  ShaderPassState_FillPointLightUniforms_maybe  (FillPointLightColors, the dispatcher's cases 7 / 0x16)
+//   [ ] 0xf6528  ShaderUniform_FillPointLightPositionsObjectSpace_maybe  [dead: no pointer to its descriptor 0xb554d0, no call (the dispatcher's cases 6 / 0x15: FillPointLightPositions)]
+//   [ ] 0xf6670  ShaderUniform_FillLightDirectionsObjectSpace_maybe  [dead: no pointer to its descriptor 0xb554d8, no call (the dispatcher's cases 4 / 0x12: FillDirLightDirections)]
+//   [ ] 0xf6788  ShaderUniform_FillFogParams_maybe  [dead: no pointer to its descriptor 0xb554e0, no call (the dispatcher's case 0: FillFogParams)]
+//   [x] 0xf68d8  ShaderPassStateBase_maybe_vf90_FillVec4Ones_maybe  (Immediate2DShaderPassState::FillMaterialColor)
 //   [ ] 0xf6908  ShaderUniform_FillManagerColorScaledUniform_maybe  [dead]
-//   [ ] 0xf69c8  MeshShaderPassState_BindFallbackTextureUnit7_maybe
-//   [ ] 0xf6a00  ShaderPassState_FillDirLightColorUniforms_maybe
+//   [x] 0xf69c8  MeshShaderPassState_BindFallbackTextureUnit7_maybe  (BindFallbackTextureUnit7, MeshShaderPassState.cpp)
+//   [x] 0xf6a00  ShaderPassState_FillDirLightColorUniforms_maybe
 //   [ ] 0xf6b48  FUN_000f6b48  [dead]
-//   [ ] 0xf6c50  ShaderUniform_FillAxisPlaneUniform_maybe
-//   [ ] 0xf6e60  FillWorldViewProjectionUniformOrIdentity
+//   [x] 0xf6c50  ShaderUniform_FillAxisPlaneUniform_maybe  (FillAxisPlane, the dispatcher's cases 0xc / 0x1d)
+//   [ ] 0xf6e60  FillWorldViewProjectionUniformOrIdentity  [dead: no pointer to its descriptor 0xb55578, no call (the dispatcher's cases 1 / 0x25)]
 //   [ ] 0xf6f30  FUN_000f6f30  [dead]
 //   [x] 0xf7008  FillShaderUniformFromPassState
-//   [ ] 0xf7e58  KStub_Nop_f7e58
-//   [ ] 0xf7e60  KStub_Nop_f7e60
-//   [ ] 0xf7e68  CShaderManager_InvalidateProfileCapabilities_maybe
+//   [x] 0xf7e58  KStub_Nop_f7e58  (empty: CKGraphic_Update's call does nothing)
+//   [x] 0xf7e60  KStub_Nop_f7e60  (empty: the shader manager slot CShaderManagerPSGL_ResetRuntime_maybe calls)
+//   [x] 0xf7e68  CShaderManager_InvalidateProfileCapabilities_maybe  (m_bShadersEnabled = 0: inline in ConstructShaderManagerPSGL)
 //   [ ] 0xf7e78  FUN_000f7e78  [dead]
 //   [ ] 0xf7ea0  KStub_Nop_f7ea0  [dead]
 //   [ ] 0xf7ea8  KStub_Return1024_f7ea8  [dead]
@@ -465,7 +465,7 @@ void FillShaderUniformFromPassState(ShaderPassState* pass, int32_t id, float* ds
             break;
         case kPscDofParam: {  // 0x1e: the DOF data's four words (+0x50 -> +4..+0x10) on the depth of field path
             const CPostRenderingFx* postFx = PostRenderingFx();
-            if (postFx != nullptr && DepthOfFieldPath(postFx)) std::memcpy(dst, &static_cast<const CDOFData*>(postFx->m_pDOFData)->m_unk04, 16);
+            if (postFx != nullptr && DepthOfFieldPath(postFx)) std::memcpy(dst, &static_cast<const CDOFData*>(postFx->m_pDOFData)->m_fFocusDistance, 16);
             break;
         }
         case kPscDofAdjustTex: {  // 0x1f: the alternative scene raster's rectangle in its parent (scale, offset)

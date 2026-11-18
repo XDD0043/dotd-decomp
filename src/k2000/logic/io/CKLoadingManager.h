@@ -76,11 +76,15 @@ class CKLoadingManager : public IKLoadingInterfaces {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 7)
 
-    CKLoadingManager();                              // 0x000293c0 CKLoadingManager_Create (inlined constructor)
+    CKLoadingManager();                              // 0x000286a0 CKLoadingManager_Construct (inlined in Create)
     ~CKLoadingManager() override;                    // 0x00028e30
 
     static IKBaseClass* Create();                       // 0x000293c0 CKLoadingManager_Create
     static void Delete(IKBaseClass* object);
+    // 0x00029280 CKLoadingManager_CreateArray: new[] of `count` managers (the element size 0x23c into *elementSize; each
+    // constructor makes itself the engine's loading manager); 0x00028308 CKLoadingManager_DeleteArray: delete[].
+    static IKBaseClass* CreateArray(uint32_t count, uint16_t* elementSize);
+    static void DeleteArray(IKBaseClass* first);
 
     int32_t IsKindOfClass(uint32_t key) override { return key == 0x1cc || key == 0x93e; }  // vt+0x08 0x993b58
     uint32_t ReadHandle(IKFile* stream, IKSerializable** object) override;                // vt+0x24 0x295d8
@@ -107,11 +111,19 @@ public:
     // 0x00027e68: an encoded object id -> the object (the original overwrites the 4-byte id with the
     // pointer in place; host pointers can be wider, so the port returns it).
     IKSerializable* DecodeObjectId(uint32_t id);
+    // 0x00028820 CKLoadingManager_GetObjectRefId (C2.8 save-menu): the object's encoded id (DecodeObjectId's inverse),
+    // -3 for an object of a UUID class, -1 when the class table does not hold it.
+    int32_t GetObjectRefId(IKSerializable* object);
     uint8_t UnloadLevel();                           // 0x00028678 UnloadSector(-1) (Cleanup)
     uint8_t UnloadGameObjects();                     // 0x00028b70 GAME.KP3's objects (Cleanup)
     // 0x000283a8: one stream's objects destroyed, or (-1) the current stream's, then the level's, then the
     // class table freed. Returns 1.
     uint8_t UnloadSector(int8_t sector);
+    // 0x0002a558 CKLoadingManager_LoadObjectList (C2.8 menus-load): a saved object list (CKSavingManager::WriteObjectList's
+    // layout) loaded in `mode` (4 a level's save state, 5 SYS-DATA, 6 USR-DATA), then PostLoad. Returns 1.
+    int32_t LoadObjectList(IKFile* stream, int32_t mode);
+    // 0x0002a7c8 CKLoadingManager_LoadSavedObjects_maybe: LoadObjectList between two Tells. Returns 1.
+    int32_t LoadSavedObjects(IKFile* stream, int32_t mode);
 
     CKTypeBundleLoad* m_pTypeBundleLoad;          // +0x04 15 groups (new[] with a count cookie)
     CKIDBundleLoad* m_pIdBundleLoad;      // +0x08 every class of the class table, in file order
@@ -177,6 +189,9 @@ const KLoadReport* Kp3_LoadReports(uint32_t* count);
 void Kp3_ForEachSkippedTotal(void (*visit)(const char* className, uint32_t count, void* context), void* context);
 // DEV: objects about to be destroyed by an unload leave the Kp3_DumpObjects list (they are freed).
 void Kp3_ForgetLoadedObjects(const void* begin, const void* end);
+// DEV: a sector stream's objects are staged while it loads (on the load worker) and join the loaded list afterwards.
+void Kp3_BeginStagedLoad();
+void Kp3_EndStagedLoad();
 void Kp3_CheckObjectEnd(IKFile* stream, uint32_t end, IKSerializable* object);
 // DEV: every placeholder's Load calls it (Kp3Stubs.h). A ported object whose Load ran placeholder Loads
 // and then misses its end is counted as skipped "via placeholders", not as a ported-class mismatch.

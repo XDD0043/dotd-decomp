@@ -40,6 +40,8 @@ public:
     // vt+0x20 0x1cfb8 CKCoreManager_FindNonRecreableInstances: the globals of categories 2, 4 and 12.
     uint8_t FindNonRecreableInstances(int32_t category, uint32_t id, uint32_t count, void* out) override;
     void Destroy() override;  // vt+0x10 0x0001c238 CKCoreManager_Destroy
+    // vt+0x24 0x0001c408 CKCoreManager_RecursiveRegistration (C2.8 save-menu): type 0 only, itself and the group root.
+    void RecursiveRegistration(int32_t type) override;
     // vt+0x2c 0x0001c4a8 CKCoreManager_Load: the two references +0x10/+0x14 as one contiguous array.
     int32_t Load(IKFile* file, int32_t type) override;
 
@@ -68,6 +70,9 @@ void Engine_ChangeLanguage(CKCoreManager* core, int32_t language, uint8_t reload
 // (active 1) or put to sleep (0) through the life service, when it is not already in that state (its bit 0 is
 // "asleep"). Nothing without a context.
 void SetObjectActiveInContext(CKCoreManager* core, IKLife* object, uint32_t active, IKBaseGroup* context);
+// 0x0001d1c0 SetObjectActive_maybe (CKCoreManager.cpp): `group` is woken (active 1) or put to sleep (0) in its own bundle
+// (+0x24) through the life service, when it is not already in that state (its bit 0 is "asleep").
+void SetObjectActive(CKCoreManager* core, IKBaseGroup* group, uint32_t active);
 // 0x0001c250 SetObjectLocked (CKCoreManager.cpp): OnLock / OnUnlock on the object and bit 1 of its bit array
 // follows `locked` (0 or 1).
 void SetObjectLocked(CKCoreManager* core, IKLife* object, uint32_t locked);

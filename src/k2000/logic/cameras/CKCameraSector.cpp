@@ -5,22 +5,22 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x128e18  CKCameraSector_Delete
-//   [ ] 0x128e68  CKCameraSector_SetDefaultState
+//   [x] 0x128e68  CKCameraSector_SetDefaultState
 //   [x] 0x128e90  CKCameraSector_TestCandidateByMode_maybe
 //   [ ] 0x1290b8  RegisterCKCameraSectorClass
 //   [ ] 0x129130  _GLOBAL__I_129130
 //   [x] 0x129140  CKCameraSector_QueueActivateSignals_maybe
-//   [ ] 0x129178  CKCameraSector_RecursiveRegistration
+//   [x] 0x129178  CKCameraSector_RecursiveRegistration
 //   [x] 0x129268  CKCameraSector_DeleteArray
 //   [x] 0x129308  CKCameraSector_Create
 //   [x] 0x129358  CKCameraSector_FlushTriggerSignals_maybe
-//   [ ] 0x1293d8  CKCameraSector_SetGameState
+//   [x] 0x1293d8  CKCameraSector_SetGameState
 //   [x] 0x129438  CKCameraSector_IsEnabledForFocusedHero_maybe
 //   [x] 0x1294a0  CKCameraSector_CreateArray
 //   [x] 0x129550  CKCameraSector_ContainsPoint_maybe
-//   [ ] 0x129670  CKCameraSector_MessageProc
-//   [ ] 0x1296e8  CKCameraSector_PostLoad
-//   [ ] 0x129748  CKCameraSector_Destroy
+//   [x] 0x129670  CKCameraSector_MessageProc
+//   [x] 0x1296e8  CKCameraSector_PostLoad  (empty / no effect: inherited)
+//   [x] 0x129748  CKCameraSector_Destroy
 //   [x] 0x1297e8  CKCameraSector_ScoreCandidateAlignment_maybe
 //   [x] 0x129aa8  CKCameraSector_FindValidCamera_maybe
 //   [x] 0x129da8  CKCameraSector_Load
@@ -29,8 +29,8 @@
 //   [ ] 0x9915b8  CKCameraSector_GetClassType  [inline]
 //   [ ] 0x9915c0  CKCameraSector_GetClassID  [inline]
 //   [ ] 0x9917e0  CKCameraSector_IsKindOfClass  [inline]
-//   [ ] 0x992010  CKCameraSector_DeletingDestructor  [inline]
-//   [ ] 0x992090  CKCameraSector_Destructor  [inline]
+//   [x] 0x992010  CKCameraSector_DeletingDestructor  [inline]  (the destructor; delete)
+//   [x] 0x992090  CKCameraSector_Destructor  [inline]  (frees the camera vector +0x1c left by a missing Destroy)
 #include "k2000/logic/cameras/CKCameraSector.h"
 
 #include <cfloat>
@@ -43,6 +43,7 @@
 #include "k2000/io/IKFile.h"
 #include "k2000/logic/CDefaultGameManager.h"
 #include "k2000/logic/CKLevel.h"
+#include "k2000/logic/CKSavingManager.h"
 #include "k2000/memory/Mem.h"
 #include "k2000/misc/CKGameLoop.h"
 #include "k2000/misc/Engine.h"
@@ -53,6 +54,12 @@ namespace {
 inline float Sqrtf(float x) { return std::sqrt(x); }
 
 }  // namespace
+
+// 0x00128e68 CKCameraSector_SetDefaultState
+void CKCameraSector::SetDefaultState(int32_t flag) {
+    if (flag != 0) return;
+    m_unk2d = static_cast<uint8_t>((m_unk2d & 0xfdu) | ((m_unk2d & 1u) << 1));
+}
 
 // 0x00129438 CKCameraSector_IsEnabledForFocusedHero_maybe
 bool CKCameraSector::IsEnabledForFocusedHero() const {
@@ -294,3 +301,53 @@ void CKCameraSector::FlushTriggerSignals() {
 
 // 0x00129140 CKCameraSector_QueueActivateSignals_maybe
 void CKCameraSector::QueueActivateSignals() { QueueTriggerSignals(&m_tsUnk4c); }
+
+// 0x00129178 CKCameraSector_RecursiveRegistration
+void CKCameraSector::RecursiveRegistration(int32_t type) {
+    if (type != 0) return;
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    if (m_unk28 != nullptr) m_unk28->RecursiveRegistration(0);                // vt+0x24
+}
+
+// 0x001293d8 CKCameraSector_SetGameState (the rlwimi keeps bit 0 and replaces bit 1)
+int32_t CKCameraSector::SetGameState(const SApplyGameState* state) {
+    if (state->m_ui32GameStateId == 0) {
+        m_unk2d = static_cast<uint8_t>((m_unk2d & 0xfcu) | (m_unk2d & 1u) | 2u);
+    } else if (state->m_ui32GameStateId == 1) {
+        m_unk2d = static_cast<uint8_t>((m_unk2d & 0xfcu) | (m_unk2d & 1u));
+    }
+    return 1;
+}
+
+// 0x00129670 CKCameraSector_MessageProc
+int32_t CKCameraSector::MessageProc(uint16_t message, void* /*data*/) {
+    if (message == 0x700) {
+        m_unk2d = static_cast<uint8_t>((m_unk2d & 0xfcu) | (m_unk2d & 1u) | 2u);
+        return 0;
+    }
+    if (message != 0x701) return 1;
+    m_unk2d = static_cast<uint8_t>((m_unk2d & 0xfcu) | (m_unk2d & 1u));
+    return 0;
+}
+
+// 0x00992090 CKCameraSector_Destructor: the camera vector's block freed when Destroy has not (Mem_FreeAligned16), its
+// count and block cleared.
+CKCameraSector::~CKCameraSector() {
+    if (m_vpCamera != nullptr) Mem_FreeAligned16(m_vpCamera);
+    m_vpCameraCount = 0;
+    m_vpCamera = nullptr;
+}
+
+// 0x00129748 CKCameraSector_Destroy
+void CKCameraSector::Destroy() {
+    if (m_unk28 != nullptr) {
+        m_unk28->Destroy();  // vt+0x10
+        m_unk28 = nullptr;
+    }
+    if (m_vpCamera != nullptr) {
+        Mem_FreeAligned16(m_vpCamera);
+        m_vpCamera = nullptr;
+    }
+    m_vpCameraCount = 0;
+    m_vpCamera = nullptr;
+}

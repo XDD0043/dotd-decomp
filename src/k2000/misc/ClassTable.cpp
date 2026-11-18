@@ -92,17 +92,25 @@ const Factories kNotPorted[] = {
     {key, &TracedCreate<key, &Class::Create>, &Class::Delete, &NotPortedCreateArray<key>, &NotPortedDeleteArray<key>}
 const Factories kImplemented[] = {
     {0x4c, &TracedCreate<0x4c, &CKGameLoop::Create>, &CKGameLoop::Delete, &CKGameLoop::CreateArray, &CKGameLoop::DeleteArray},
-    DOTD_IMPLEMENTED(CKGraphic, 0x80),
-    DOTD_IMPLEMENTED(CRenderer, 0x4d),
-    DOTD_IMPLEMENTED(CKInput, 0x100),
-    DOTD_IMPLEMENTED(CKSoundManager, 0xc0),
-    DOTD_IMPLEMENTED(CKServiceManager, 0x40),
-    DOTD_IMPLEMENTED(CKLoadingManager, 0x1cc),
-    DOTD_IMPLEMENTED(CKSavingManager, 0x18c),
-    DOTD_IMPLEMENTED(CKLevel, 0x14c),
-    DOTD_IMPLEMENTED(CLocManager, 0xecc),
+        // C2.8 port-all P21: CKGraphic / CKInput / CKSoundManager / CKServiceManager's own CreateArray / DeleteArray.
+    {0x80, &TracedCreate<0x80, &CKGraphic::Create>, &CKGraphic::Delete, &CKGraphic::CreateArray, &CKGraphic::DeleteArray},
+        // C2.8 port-all P18: CRenderer's own CreateArray / DeleteArray (0x9fe90 / 0x9f208).
+    {0x4d, &TracedCreate<0x4d, &CRenderer::Create>, &CRenderer::Delete, &CRenderer::CreateArray, &CRenderer::DeleteArray},
+    {0x100, &TracedCreate<0x100, &CKInput::Create>, &CKInput::Delete, &CKInput::CreateArray, &CKInput::DeleteArray},
+    {0xc0, &TracedCreate<0xc0, &CKSoundManager::Create>, &CKSoundManager::Delete, &CKSoundManager::CreateArray,
+     &CKSoundManager::DeleteArray},
+    {0x40, &TracedCreate<0x40, &CKServiceManager::Create>, &CKServiceManager::Delete, &CKServiceManager::CreateArray,
+     &CKServiceManager::DeleteArray},
+    {0x1cc, &TracedCreate<0x1cc, &CKLoadingManager::Create>, &CKLoadingManager::Delete, &CKLoadingManager::CreateArray, &CKLoadingManager::DeleteArray},
+        // C2.8 port-all P04: CKSavingManager's own CreateArray / DeleteArray (0x2c000 / 0x2bef8).
+    {0x18c, &TracedCreate<0x18c, &CKSavingManager::Create>, &CKSavingManager::Delete, &CKSavingManager::CreateArray,
+     &CKSavingManager::DeleteArray},
+    {0x14c, &TracedCreate<0x14c, &CKLevel::Create>, &CKLevel::Delete, &CKLevel::CreateArray, &CKLevel::DeleteArray},
+    {0xecc, &TracedCreate<0xecc, &CLocManager::Create>, &CLocManager::Delete, &CLocManager::CreateArray, &CLocManager::DeleteArray},
     DOTD_IMPLEMENTED(CVideoManager, 0x9cd),
-    DOTD_IMPLEMENTED(CShaderManagerPSGL, 0x124d),
+        // C2.8 port-all P18: CShaderManagerPSGL's own CreateArray / DeleteArray (0x100978 / 0xffca0).
+    {0x124d, &TracedCreate<0x124d, &CShaderManagerPSGL::Create>, &CShaderManagerPSGL::Delete, &CShaderManagerPSGL::CreateArray,
+     &CShaderManagerPSGL::DeleteArray},
     DOTD_IMPLEMENTED(CKS08GameManager, 0x784c),
     DOTD_IMPLEMENTED(CManager2d, 0x40d),
     DOTD_IMPLEMENTED(CKSrvCollision, 0x81),

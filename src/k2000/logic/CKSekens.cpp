@@ -10,11 +10,11 @@
 //   [ ] 0x1f3e98  CKSekens_SetSubtitleElement_maybe  [dead]
 //   [ ] 0x1f3ea8  KStub_Nop_1f3ea8  [dead]
 //   [x] 0x1f3eb0  CKSekens_GetCurrentLineIndex_maybe
-//   [ ] 0x1f3ec0  CKSekens_SetDefaultState
+//   [x] 0x1f3ec0  CKSekens_SetDefaultState
 //   [ ] 0x1f3f18  CKSekens_AdvanceVideoSubtitleLine_maybe  [dead]
-//   [ ] 0x1f40a8  CKSekens_CallCurrentLineVf5C_maybe
+//   [x] 0x1f40a8  CKSekens_CallCurrentLineVf5C_maybe
 //   [x] 0x1f4118  CKSekens_SetFlag14Bit3_maybe
-//   [ ] 0x1f4148  CKSekens_SetStreamStartPaused_maybe
+//   [x] 0x1f4148  CKSekens_SetStreamStartPaused_maybe
 //   [ ] 0x1f4158  CKSekens_GetStreamStartPaused_maybe  [dead]
 //   [ ] 0x1f4168  CKSekens_GetLineVolume_maybe  [dead]
 //   [ ] 0x1f4188  CKSekens_CurrentLineHasStartOffset_maybe  [dead]
@@ -25,28 +25,28 @@
 //   [ ] 0x1f43e0  CKSekens_AdvanceSkippingMarkers_maybe  [dead]
 //   [ ] 0x1f44d0  RegisterCKSekensClass
 //   [ ] 0x1f4548  _GLOBAL__I_1f4548
-//   [ ] 0x1f4558  CKSekens_PollStreamPlaybackPosition_maybe
-//   [ ] 0x1f45a0  CKSekens_PauseSound_maybe
-//   [ ] 0x1f45d8  CKSekens_StopSpeechStream_maybe
+//   [x] 0x1f4558  CKSekens_PollStreamPlaybackPosition_maybe
+//   [x] 0x1f45a0  CKSekens_PauseSound_maybe  (no caller in the original)
+//   [x] 0x1f45d8  CKSekens_StopSpeechStream_maybe  (no caller in the original)
 //   [ ] 0x1f4630  FUN_001f4630  [dead]
-//   [ ] 0x1f4660  CKSekens_PlaySpeechStream_maybe
+//   [x] 0x1f4660  CKSekens_PlaySpeechStream_maybe  (no caller in the original)
 //   [ ] 0x1f46e0  CKSekens_CreateDataBuffers_maybe  [dead]
-//   [ ] 0x1f4728  CKSrvSekensor_IsSekensDone_maybe
-//   [ ] 0x1f47a0  CKSekens_RecursiveRegistration
-//   [ ] 0x1f4800  CKSekens_Destroy
+//   [x] 0x1f4728  CKSrvSekensor_IsSekensDone_maybe (CKSrvSekensor::IsSekensDone, CKSrvSekensor.h)
+//   [x] 0x1f47a0  CKSekens_RecursiveRegistration  (the starters' KStub_Return1_2361b0: registers nothing; the default slot)
+//   [x] 0x1f4800  CKSekens_Destroy
 //   [x] 0x1f48c0  CKSekens_DeleteArray
-//   [ ] 0x1f4960  CKSekens_IsCurrentLineFinished_maybe
-//   [ ] 0x1f4a30  Sekensor_IsCurrentSekens_maybe
+//   [x] 0x1f4960  CKSekens_IsCurrentLineFinished_maybe (CKSekensLauncherCpnt.cpp, its one caller's unit)
+//   [x] 0x1f4a30  Sekensor_IsCurrentSekens_maybe  (the GetInfo accessor of value 4)
 //   [x] 0x1f4a88  CKSekens_GetSekensorDelayByIndex54_maybe
-//   [ ] 0x1f4ac0  CKSekens_ForEachLineCallVf54_maybe
-//   [ ] 0x1f4b70  CKSekens_ResumeSound_maybe
-//   [ ] 0x1f4ba8  CKSekens_IsStreamVoiceActive_maybe
-//   [ ] 0x1f4c00  CKSekens_StartPausedStream_maybe
-//   [ ] 0x1f4c58  KStub_Nop_1f4c58
+//   [x] 0x1f4ac0  CKSekens_ForEachLineCallVf54_maybe  (its caller CKSrvSekensor_vfA8 is P12's)
+//   [x] 0x1f4b70  CKSekens_ResumeSound_maybe  (no caller in the original)
+//   [x] 0x1f4ba8  CKSekens_IsStreamVoiceActive_maybe
+//   [x] 0x1f4c00  CKSekens_StartPausedStream_maybe
+//   [x] 0x1f4c58  KStub_Nop_1f4c58  (CKSekens::LocalizedDataChanged, CKSekens.h)
 //   [x] 0x1f4c60  CKSekens_PostLoad
 //   [ ] 0x1f4e28  CKSekens_Construct_2  [dead]
-//   [ ] 0x1f4ed0  CKSekens_MessageProc
-//   [ ] 0x1f4f80  CKSekens_GetInfo
+//   [x] 0x1f4ed0  CKSekens_MessageProc
+//   [x] 0x1f4f80  CKSekens_GetInfo
 //   [x] 0x1f4fd8  CKSekens_ShouldShowSubtitles_maybe
 //   [x] 0x1f50b0  CKSekens_Load
 //   [x] 0x1f56b0  CKSekens_Stop_maybe
@@ -71,6 +71,7 @@
 #include <cstring>
 #include <new>
 
+#include "k2000/core/IKInfo.h"
 #include "k2000/core/Stub.h"
 #include "k2000/graphical/ui/CText2d.h"
 #include "k2000/logic/CDefaultGameManager.h"
@@ -83,6 +84,7 @@
 #include "k2000/logic/CKSekensBlock.h"
 #include "k2000/services/CKSrvSekensor.h"
 #include "k2000/sound/CKSoundStreamManager.h"
+#include "k2000/sound/SoundStream.h"
 #include "k2000/sound/SoundStreamType.h"
 #include "k2000/system/CTimeManager.h"
 #include "k2000/system/IKTime.h"
@@ -185,8 +187,38 @@ float UnscaledTime() { return g_pEngine->m_timeManager->m_pTime->m_afCurrentTime
 // 0x001f41e0 CKSekens_UsesSpeechStream_maybe
 uint8_t CKSekens::UsesSpeechStream() const { return m_pDataBuffers->m_unk05 != 0 ? 1 : 0; }
 
+// 0x001f4148 CKSekens_SetStreamStartPaused_maybe
+void CKSekens::SetStreamStartPaused(uint8_t paused) { m_pStreamObject->m_unk3a = paused; }
+
+// 0x001f4558 CKSekens_PollStreamPlaybackPosition_maybe
+float CKSekens::PollStreamPlaybackPosition() const {
+    float position = 0.0f;
+    int32_t item = -1;
+    m_pStreamObject->GetPlaybackPosition(&item, &position);  // 0x0011a2e8
+    return position;
+}
+
+// 0x001f4ba8 CKSekens_IsStreamVoiceActive_maybe
+uint8_t CKSekens::IsStreamVoiceActive() const {
+    if (m_pStreamObject == nullptr || m_pStreamObject->m_pStream == nullptr) return 0;
+    return m_pStreamObject->m_pStream->IsInRequestedState2() != 0 ? 1 : 0;  // 0x0011c178
+}
+
+// 0x001f4c00 CKSekens_StartPausedStream_maybe
+void CKSekens::StartPausedStream() {
+    if (m_pStreamObject->m_pStream == nullptr) return;
+    m_fLineStartTime = g_pEngine->m_timeManager->m_pTime->m_afCurrentTime[IKTime::FIXED_GAME_TIME];
+    m_pStreamObject->Unpause();  // 0x0011a350
+}
+
 // 0x001f4a88 CKSekens_GetSekensorDelayByIndex54_maybe
 float CKSekens::GetSekensorDelay() const { return Sekensor()->GetSekensTypeDelay(m_ui32DelayIndex); }
+
+// 0x001f3ec0 CKSekens_SetDefaultState
+void CKSekens::SetDefaultState(int32_t /*flag*/) {
+    m_fEarliestStart = -1.0f;  // TOC -0x13dc
+    if (m_pText != nullptr) m_pText->Disable();  // vt+0x68
+}
 
 // 0x001f4c60 CKSekens_PostLoad
 int32_t CKSekens::PostLoad(int32_t type) {
@@ -321,7 +353,7 @@ void CKSekens::StartLine(int32_t lineIndex, int32_t first) {
     } else if ((m_flags & 1) == 0) {
         if (first != 0) {
             // The first line starts the speech stream: the "Speech" type, the line's volume, the item (the sekens' base
-            // plus the line's byte) from the data buffers. (STUB(C2.3 audio): the stream plays as a clock.)
+            // plus the line's byte) from the data buffers; the type's player opens and plays it (SoundStream).
             const uint8_t item = m_pDataBuffers->m_aBytes[lineIndex];
             float volume;
             std::memcpy(&volume, &m_pDataBuffers->m_aWords1[lineIndex], 4);
@@ -602,4 +634,83 @@ label_64a0:
         }
     }
     return 0;
+}
+
+// 0x001f4ed0 CKSekens_MessageProc
+int32_t CKSekens::MessageProc(uint16_t message, void* /*data*/) {
+    CKSrvSekensor* sekensor = static_cast<CKSrvSekensor*>(g_pEngine->m_srvSekensor);  // engine +0x84
+    if (message == 0x2701) {
+        sekensor->RequestSekens(this);  // 0x001f89b0
+        return 0;
+    }
+    if (message == 0x2702) {
+        sekensor->StopSekens(this);  // 0x001f8ce0
+        return 0;
+    }
+    return 1;
+}
+
+// 0x001f4f80 CKSekens_GetInfo
+int32_t CKSekens::GetInfo(IKInfo* info, int32_t request) {
+    if (request != kGetInfoValueAccessor || info->m_ui32Id != 4) return 1;
+    return AnswerInfo(info, [](IKSerializable* o, uint32_t) {
+        const CKSrvSekensor* sekensor = static_cast<const CKSrvSekensor*>(g_pEngine->m_srvSekensor);
+        return sekensor->GetCurrentSekens() == static_cast<CKSekens*>(o) ? 1u : 0u;  // 0x001f8588
+    }, 0);
+}
+
+// 0x001f40a8 CKSekens_CallCurrentLineVf5C_maybe
+IKSerializable* CKSekens::CallCurrentLineVf5C() const {
+    if (m_i32CurrentLine < 0) return nullptr;
+    return static_cast<CKSekensElement*>(m_vBlocks.m_pBlock[m_i32CurrentLine])->Vf5C();  // vt+0x5c
+}
+
+// 0x001f45a0 CKSekens_PauseSound_maybe
+void CKSekens::PauseSound() {
+    if (m_pStreamObject->m_pStream != nullptr) m_pStreamObject->Pause();  // 0x0011a3c0
+}
+
+// 0x001f4b70 CKSekens_ResumeSound_maybe
+void CKSekens::ResumeSound() {
+    if (m_pStreamObject->m_pStream != nullptr) m_pStreamObject->Resume();  // 0x0011a380
+}
+
+// 0x001f45d8 CKSekens_StopSpeechStream_maybe
+void CKSekens::StopSpeechStream() {
+    StreamType(kSpeech);  // PtrList_FindByNameHash_maybe, the result unused
+    m_pStreamObject->Stop(1);
+}
+
+// 0x001f4660 CKSekens_PlaySpeechStream_maybe: no loop, the volume asked.
+void CKSekens::PlaySpeechStream(float volume) {
+    SoundStreamType* type = StreamType(kSpeech);
+    m_pStreamObject->m_unk24 = 0;
+    m_pStreamObject->m_unk28 = volume;
+    m_pStreamObject->Play(type, 0);  // 0x0011a728
+}
+
+// 0x001f4ac0 CKSekens_ForEachLineCallVf54_maybe: vt+0x54 of every line (empty in both line classes, which do not
+// read the two arguments).
+void CKSekens::ForEachLineCallVf54(uint8_t /*a*/, uint32_t /*b*/) {
+    const uint32_t count = m_vBlocks.m_ui32NbUsedElt;
+    for (uint32_t i = 0; i != count; ++i) Line(this, i)->Vf54();
+}
+
+// 0x001f4800 CKSekens_Destroy: the line list freed, the text and the current line dropped, the data buffers deleted
+// and the stream object destroyed (its pointer kept, as in the original). The unplayed-lines block stays.
+void CKSekens::Destroy() {
+    if (m_vBlocks.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_vBlocks.m_pBlock);  // 0x00052fb8
+        m_vBlocks.m_pBlock = nullptr;
+    }
+    m_vBlocks.m_ui32NbUsedElt = 0;
+    m_vBlocks.m_pBlock = nullptr;
+    m_pText = nullptr;
+    m_i32CurrentLine = -1;
+    if (m_pDataBuffers != nullptr) {
+        m_pDataBuffers->Free();  // 0x0011adc0
+        if (m_pDataBuffers != nullptr) ::operator delete(m_pDataBuffers);
+        m_pDataBuffers = nullptr;
+    }
+    if (m_pStreamObject != nullptr) ClassRegistry_DestroyObject(m_pStreamObject);  // 0x00011420
 }

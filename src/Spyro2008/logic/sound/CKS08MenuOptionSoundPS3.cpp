@@ -9,8 +9,8 @@
 //   [x] 0x55c6f0  CKS08MenuOptionSoundPS3_vf9C
 //   [x] 0x55c718  CKS08MenuOptionSoundPS3_Load
 //   [ ] 0x55c740  CKS08MenuOptionSoundPS3_Save
-//   [ ] 0x55c768  CKS08MenuOptionSoundPS3_RecursiveRegistration
-//   [ ] 0x55c790  CKS08MenuOptionSoundPS3_Destroy
+//   [x] 0x55c768  CKS08MenuOptionSoundPS3_RecursiveRegistration  (inherited: CKMenuBase114c::RecursiveRegistration)
+//   [x] 0x55c790  CKS08MenuOptionSoundPS3_Destroy  (inherited: TocBridge_CKMenuBase_114c_maybe_Destroy)
 //   [x] 0x55c7b8  CKS08MenuOptionSoundPS3_DeleteArray
 //   [ ] 0x55c858  RegisterCKS08MenuOptionSoundPS3Class
 //   [ ] 0x55c8e0  _GLOBAL__D_55c8e0
@@ -19,9 +19,9 @@
 //   [ ] 0x55c9a8  CKS08MenuOptionSoundPS3_Construct_2  [dead]
 //   [x] 0x55ca50  CKS08MenuOptionSoundPS3_Create
 //   [x] 0x55cb38  CKS08MenuOptionSoundPS3_CreateArray
-//   [ ] 0x55cc78  CKS08MenuOptionSoundPS3_Destructor_2
-//   [ ] 0x55cdb0  CKS08MenuOptionSoundPS3_DeletingDestructor
-//   [ ] 0x55cee8  CKS08MenuOptionSoundPS3_Destructor
+//   [x] 0x55cc78  CKS08MenuOptionSoundPS3_Destructor_2  (implicit destructor: CKMenuBase114c's inlined)
+//   [x] 0x55cdb0  CKS08MenuOptionSoundPS3_DeletingDestructor  (implicit destructor: CKMenuBase114c's inlined)
+//   [x] 0x55cee8  CKS08MenuOptionSoundPS3_Destructor  (~CKMenuBase114c inlined (the same frees, checked against 0x556498))
 //
 //   [x] 0x9c9f40  CKS08MenuOptionSoundPS3_IsKindOfClass  [inline]
 //   [x] 0x9c9f80  CKS08MenuOptionSoundPS3_GetClassType  [inline]

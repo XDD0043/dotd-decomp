@@ -2,8 +2,8 @@
 // XXL2: K/KModules/KIL/CKInput.h; the members up to m_aProjectName are XXL2's in the same order (DotD adds
 // m_aaMappings' CKMapping array type, a byte at +0x38 and the sequence vector at +0x14c).
 // The Load builds the input subsystem: devices, configurations, filters, mappings, actions, sequences.
-// PreUpdate polls the pads, drives the vibrations, updates the actions (C1.4), detects the button activity;
-// STUB(C1.6): combos.
+// PreUpdate polls the pads (and the mice and keyboards), drives the vibrations, updates the actions and the
+// combos (CKComboManager::Update), detects the button activity.
 #pragma once
 #include <cstdint>
 
@@ -68,21 +68,61 @@ struct InputSequenceData {
 class CKInput : public IKModule {
 public:
     DOTD_CLASS_KEY(kCategoryManager, 4)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a64c8
+        return key == 0x100 || key == 0x33e || key == 0x3fe || key == 0xc;
+    }
 
     CKInput();
     ~CKInput() override;
 
     static IKBaseClass* Create();                       // 0x00108340 CKInput_Create
-    static void Delete(IKBaseClass* object);
+    static void Delete(IKBaseClass* object);            // 0x00103770 CKInput_Delete (CKILError.cpp's unit)
+    // 0x00108420 CKInput_CreateArray / 0x00105e38 CKInput_DeleteArray: new[] / delete[] (P21).
+    static IKBaseClass* CreateArray(uint32_t count, uint16_t* elementSize) {
+        if (elementSize != nullptr) *elementSize = static_cast<uint16_t>(sizeof(CKInput));
+        return new CKInput[count];
+    }
+    static void DeleteArray(IKBaseClass* first) { delete[] static_cast<CKInput*>(first); }
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x0010c398 CKInput_Load
+    // vt+0x24 0x00103a70 CKInput_RecursiveRegistration (C2.8 save-menu): types 0 and 1 register the input with the saving
+    // manager; the save types nothing.
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x30 0x00107ac0 CKInput_PostLoad: every pad's two vibration motors back to state 1, values 0.
+    int32_t PostLoad(int32_t /*type*/) override {
+        for (uint32_t pad = 0; pad < m_ui8NbPads; ++pad) {
+            for (int motor = 0; motor < 2; ++motor) {
+                m_ppPadVibrationMotor[pad][motor].m_eState = 1;
+                m_ppPadVibrationMotor[pad][motor].m_ui8Value = 0;
+                m_ppPadVibrationMotor[pad][motor].m_ui8OldValue = 0;
+            }
+        }
+        return 1;
+    }
     void Start() override;                           // vt+0x50 0x00108568 CKInput_Start
+    void Restart() override;                         // vt+0x54 0x0010d4c8 CKInput_Restart
     void Stop() override;                            // vt+0x68 0x0010d3e0 CKInput_Stop
     void Pause() override;                           // vt+0x70 0x00108998 CKInput_Pause
     void Resume() override;                          // vt+0x78 0x00107f50 CKInput_Resume
     void Update(IKTime* frameClock) override;        // vt+0x7c 0x103a60
     int32_t InitializeModule(void* params) override;     // vt+0x94 0x106fc8 CKInput_InitializeModule (fields only, no pad call)
-    void DestroyModule() override {}                      // vt+0x98 0x10c450
+    // vt+0x98 0x0010c450 CKInput_DestroyModule (CKGameLoop_ShutdownSubsystems_maybe): the pads ended, the combo manager,
+    // the actions, the configuration tables, the combos and the sequence data freed (the devices, filters and mappings
+    // are not: the original leaves them).
+    void DestroyModule() override;
+    // vt+0x0c 0x0010cdc0 CKInput_DestroyGame (P21): the mappings and the three filter arrays deleted, the pads
+    // (DestroyPadDevices), mice and keyboards ended (their vt+0x0c) and deleted, the running vibrations back to the
+    // waiting list, every action unbound, the sequence data freed.
+    void DestroyGame() override;
+    void Destroy() override {}  // vt+0x10 0x00107c98 CKInput_Destroy (empty)
+    // vt+0xb0 0x001058c0 CKInput_vfB0 (P21): every pad's vt+0x64 (KStub_Nop_9a67e8).
+    void VfB0() override;
+    // 0x00105c20 CKInput_DestroyPadDevices_maybe (P21): each pad ended (vt+0x0c) and its motor pair deleted, then the
+    // pad array and the motor table deleted, the pad count 0. 1.
+    int32_t DestroyPadDevices();
+    // 0x00105300 KStub_Return44_105300: the pad buttons' first glyph offset, 0x2c (KBase608C::GetButtonGlyph,
+    // CKInputBlockSequential use the constant).
+    uint32_t GetPadGlyphBase() const { return 0x2c; }
     void PreUpdate(IKTime* frameClock) override;     // vt+0x9c 0x108b78 CKInput_PreUpdate
     void PostUpdate(IKTime* frameClock) override;    // vt+0xa0 0x103a68
 
@@ -146,7 +186,8 @@ public:
     // driven from their state (0 running, 1 stopped) through the pad's actuator slots.
     void UpdateVibrations();
     // 0x001053f8 CKInput_DetectButtonActivity_maybe: +0x148 bit 0 and the game manager's vt+0x21c when a pad button's
-    // value is above 100 this frame (the last such button per pad); the keyboards' and mice's parts are not ported.
+    // value is above 100 this frame (the last such button per pad); bits 0..2 = 4 and device 2 for a keyboard key above
+    // 100 or a mouse button above 10.
     void DetectButtonActivity();
     // 0x00107d38 CKInput_StartPadVibration (XXL2 CKInput::StartPadVibration(CKVibrationData*)): a vibration node
     // started from `data` (pad 0xfe: none, 1); untimed: not when (owner, index) runs already; timed: the running ones of

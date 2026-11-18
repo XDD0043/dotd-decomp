@@ -7,35 +7,35 @@
 //   [x] 0x65e50  CText2d_Delete
 //   [ ] 0x65ea0  CText2d_GetPixelRect_maybe  [dead]
 //   [x] 0x65f48  CText2d_OnEvent_maybe
-//   [ ] 0x65f88  CText2d_Destroy
-//   [ ] 0x65fd0  CText2d_RecursiveRegistration
+//   [x] 0x65f88  CText2d_Destroy  (CText2d::Destroy)
+//   [x] 0x65fd0  CText2d_RecursiveRegistration  (CText2d::RecursiveRegistration)
 //   [ ] 0x66028  CText2d_Save
-//   [ ] 0x66090  CText2d_GetBoundingRect
-//   [ ] 0x660f8  RegisterCText2dType
+//   [x] 0x66090  CText2d_GetBoundingRect  (CText2d::GetBoundingBox)
+//   [x] 0x660f8  RegisterCText2dType  (RegisterAllClasses: ClassTable.inc)
 //   [ ] 0x66170  _GLOBAL__I_66170
 //   [x] 0x66180  CText2d_DeleteArray
 //   [x] 0x66220  CText2d_Create
 //   [x] 0x66290  DrawUITextWidget
 //   [x] 0x66300  CText2d_SetTextAscii
-//   [ ] 0x66398  CText2d_SetTextWide_maybe
+//   [x] 0x66398  CText2d_SetTextWide_maybe
 //   [x] 0x66440  CText2d_SetTextById
 //   [x] 0x664e8  CText2d_InitDefaults_maybe
-//   [ ] 0x665f8  CText2d_MessageProc
+//   [x] 0x665f8  CText2d_MessageProc  (MessageProc: the text part's KStub_Return1_6a0b8, then 1: the default slot)
 //   [x] 0x66628  CText2d_PostLoad
 //   [x] 0x666b0  CText2d_Show
-//   [ ] 0x66810  CText2d_Hide
+//   [x] 0x66810  CText2d_Hide  (CText2d::Disable)
 //   [x] 0x66878  CText2d_CreateArray
 //   [x] 0x66958  CText2d_vf80
 //   [x] 0x669c8  CText2d_Load
 //   [ ] 0x66b38  CText2d_HitTestPoint_maybe  [dead]
-//   [ ] 0x66c18  BillboardBrush_ClearReferences_maybe
-//   [ ] 0x66c58  KStub_Return1_66c58
-//   [ ] 0x66c60  BillboardBrush_GetTexture
+//   [x] 0x66c18  BillboardBrush_ClearReferences_maybe  (IKBillboard2d::DestroyBillboard, IKBillboard2d.h)
+//   [x] 0x66c58  KStub_Return1_66c58  (IKBillboard2d RecursiveRegistration slot: returns 1, nothing to port)
+//   [x] 0x66c60  BillboardBrush_GetTexture  (IKBillboard2d::GetTexture)
 //   [x] 0x66c70  BillboardBrush_ApplyUV (in CBillboard2d_2.cpp with IKBillboard2d)
 //   [x] 0x66cb8  BillboardBrush_SetTexture (in CBillboard2d_2.cpp with IKBillboard2d)
-//   [ ] 0x66d20  BillboardBrush_SetAlpha_maybe
+//   [x] 0x66d20  BillboardBrush_SetAlpha_maybe  (IKBillboard2d::SetAlpha)
 //   [x] 0x66d68  Element2dBrush_SetColor_maybe
-//   [ ] 0x66db0  Rt2dShape_Release_maybe
+//   [x] 0x66db0  Rt2dShape_Release_maybe  (IKBillboard2d::FreeMemoryBillboard2D)
 //
 //   [ ] 0x9972d0  BillboardBrush_SetSize_maybe  [inline]
 //   [ ] 0x997310  BillboardBrush_SetUVs_maybe  [inline]
@@ -206,4 +206,56 @@ void CText2d::SetTextAscii(const char* text) {
         }
     }
     IKText2d::SetTextAscii(text);
+}
+
+#include "k2000/components/CKLocTextAccessor.h"
+
+// 0x00065f88 CText2d_Destroy
+void CText2d::Destroy() {
+    IKNode2d::Destroy();
+    FreeMemoryText2D();  // 0x0006a0c0 -> text part vt+0x14
+}
+
+// 0x00065fd0 CText2d_RecursiveRegistration
+void CText2d::RecursiveRegistration(int32_t type) {
+    IKNode2d::RecursiveRegistration(type);
+    m_pTextAccessor->RecursiveRegistration(type);  // 0x0006a148: vt+0x24
+}
+
+// 0x00066090 CText2d_GetBoundingRect
+void CText2d::GetBoundingBox(CBox2D* box) const {
+    ComputeAlignedRect(box, &m_vPosition, m_ui8CenterWAlign, m_ui8CenterHAlign);  // 0x009985c8
+    IKNode2d::GetBoundingBox(box);                                              // 0x000698a8 (empty)
+}
+
+// 0x00066810 CText2d_Hide: (flags >> 2 << 2) | bit 0, i.e. bit 1 cleared.
+void CText2d::Disable() {
+    m_baFlags = static_cast<uint8_t>(m_baFlags & 0xfd);
+    if (m_unk740 != nullptr) static_cast<IKNode2d*>(m_unk740)->Disable();  // vt+0x68
+}
+
+// 0x00066db0 Rt2dShape_Release_maybe (IKBillboard2d vt+0x00), in its store order.
+void IKBillboard2d::FreeMemoryBillboard2D() {
+    if (m_pBillboard != nullptr) {
+        Rt2dPathDestroy(static_cast<Rt2dPath*>(m_pBillboard));
+        m_pBillboard = nullptr;
+    }
+    if (m_pBrush != nullptr) {
+        Rt2dBrushDestroy(m_pBrush);
+        m_pBrush = nullptr;
+    }
+    m_bStretchToAspectRatio = 0;
+    m_vBillboardSize.m_fX = 0.0f;
+    m_Color = 0;
+    m_vBillboardSize.m_fY = 0.0f;
+}
+
+// 0x00066c60 BillboardBrush_GetTexture
+RwTexture* IKBillboard2d::GetTexture() const { return m_pBrush->texture; }
+
+// 0x00066d20 BillboardBrush_SetAlpha_maybe
+void IKBillboard2d::SetAlpha(uint8_t alpha) {
+    reinterpret_cast<uint8_t*>(&m_Color)[3] = alpha;
+    RwRGBA* rgba = reinterpret_cast<RwRGBA*>(&m_Color);
+    Rt2dBrushSetRGBA(m_pBrush, rgba, rgba, rgba, rgba);
 }

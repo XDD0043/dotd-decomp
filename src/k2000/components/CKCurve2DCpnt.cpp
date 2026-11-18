@@ -11,16 +11,16 @@
 //   [ ] 0x249778  CKCurve2DCpnt_Construct_2  [dead]
 //   [ ] 0x249798  RegisterCKCurve2DCpntClass
 //   [ ] 0x249810  _GLOBAL__I_249810
-//   [ ] 0x249820  CKCurve2DCpnt_Destructor
+//   [x] 0x249820  CKCurve2DCpnt_Destructor
 //   [x] 0x249878  CKCurve2DCpnt_DeleteArray
 //   [x] 0x249920  CKCurve2DCpnt_CreateArray
 //   [x] 0x2499e8  CKCurve2DCpnt_Create
 //   [ ] 0x249a38  CKCurve2DCpnt_Save
-//   [ ] 0x249a40  CKCurve2DCpnt_RecursiveRegistration
-//   [ ] 0x249a48  CKCurve2DCpnt_Destroy
+//   [x] 0x249a40  CKCurve2DCpnt_RecursiveRegistration  (returns 1, registers nothing: the default)
+//   [x] 0x249a48  CKCurve2DCpnt_Destroy
 //   [x] 0x249a98  CKCurve2DCpnt_Load
-//   [ ] 0x249c78  CKCurve2DCpnt_Destructor_2
-//   [ ] 0x249cd0  CKCurve2DCpnt_DeletingDestructor
+//   [x] 0x249c78  CKCurve2DCpnt_Destructor_2  (the same code as 0x249820 CKCurve2DCpnt_Destructor)
+//   [x] 0x249cd0  CKCurve2DCpnt_DeletingDestructor  (the deleting form of the destructor)
 //   [x] 0x249d30  CKCurve_EvaluateKeys_maybe
 //   [x] 0x249ea8  CKCurve_Evaluate_maybe
 //
@@ -56,6 +56,18 @@ CKCurve2DCpnt::CKCurve2DCpnt() {
     m_points.m_pBlock = nullptr;
     m_points.m_ui32NbElt = 20;
     m_points.m_ui32NbUsedElt = 0;
+}
+
+// 0x00249820 CKCurve2DCpnt_Destructor (0x249cd0 CKCurve2DCpnt_DeletingDestructor, 0x249c78 CKCurve2DCpnt_Destructor_2)
+CKCurve2DCpnt::~CKCurve2DCpnt() {
+    if (m_points.m_pBlock != nullptr) Mem_FreeAligned16(m_points.m_pBlock);
+}
+
+// 0x00249a48 CKCurve2DCpnt_Destroy
+void CKCurve2DCpnt::Destroy() {
+    if (m_points.m_pBlock != nullptr) Mem_FreeAligned16(m_points.m_pBlock);
+    m_points.m_ui32NbUsedElt = 0;
+    m_points.m_pBlock = nullptr;
 }
 
 // 0x00249a98 CKCurve2DCpnt_Load

@@ -6,20 +6,20 @@
 //   [x] 0x112b18  CKSoundDictionaryID_Delete
 //   [ ] 0x112b68  CKSoundDictionaryID_Construct  [dead]
 //   [ ] 0x112b88  CKSoundDictionaryID_Construct_2  [dead]
-//   [ ] 0x112ba8  CKSoundDictionaryID_RecursiveRegistration
+//   [x] 0x112ba8  CKSoundDictionaryID_RecursiveRegistration  (returns 1, registers nothing: IKSerializable's default RecursiveRegistration)
 //   [ ] 0x112bb0  CKSoundDictionaryID_Save
-//   [ ] 0x112bb8  CKSoundDictionaryID_PostLoad
+//   [x] 0x112bb8  CKSoundDictionaryID_PostLoad  (IKSerializable's default PostLoad: 1)
 //   [x] 0x112bc0  CKSoundDictionaryID_GetSound
 //   [x] 0x112bd8  CKSoundDictionaryID_GetSound_2
 //   [ ] 0x112bf0  RegisterCKSoundDictionaryIDClass
 //   [ ] 0x112c68  _GLOBAL__I_112c68
 //   [x] 0x112c78  CKSoundDictionaryID_Load
-//   [ ] 0x112e30  CKSoundDictionaryID_Destroy
+//   [x] 0x112e30  CKSoundDictionaryID_Destroy
 //   [x] 0x112e80  CKSoundDictionaryID_DeleteArray
 //   [x] 0x112f20  CKSoundDictionaryID_Create
 //   [x] 0x112f68  CKSoundDictionaryID_CreateArray
-//   [ ] 0x113010  CKSoundDictionaryID_DeletingDestructor
-//   [ ] 0x113050  CKSoundDictionaryID_Destructor
+//   [x] 0x113010  CKSoundDictionaryID_DeletingDestructor
+//   [x] 0x113050  CKSoundDictionaryID_Destructor
 //   [ ] 0x113068  CKSoundDictionaryID_Destructor_2  [dead]
 //
 //   [ ] 0x9a6b98  CKSoundDictionaryID_GetClassType  [inline]

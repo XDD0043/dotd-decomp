@@ -16,21 +16,21 @@
 //   [x] 0xedc70  MeshShaderPassState_GetTexCoordSetCount_maybe
 //   [x] 0xedcd8  MeshShaderPassState_GetFogFlag_maybe
 //   [x] 0xedd30  MeshShaderPassState_HasPrelitColors_maybe
-//   [ ] 0xedd48  MeshShaderPassState_GetVertexModulateFlag_maybe
+//   [x] 0xedd48  MeshShaderPassState_GetVertexModulateFlag_maybe  (vt+0x4c: the constant 0 ShaderPassState_EnableFlag answers for slot 0 (ShaderUniform.cpp); every pass state's slot is 0)
 //   [x] 0xedd50  MeshShaderPassState_FillMaterialColorUniform_maybe
 //   [x] 0xedde8  MeshShaderPassState_GetRemainingSpecialLights_maybe
 //   [x] 0xede50  MeshShaderPassState_AllocateSlots_vf10_To0C_maybe
 //   [x] 0xeded0  MeshShaderPassState_GetMaterialShaderMode_maybe
 //   [ ] 0xedf28  MeshShaderPassState_ComputeLightCountSum_maybe  [dead]
 //   [x] 0xedfe8  MeshShaderPassState_GetRemainingDirLights_maybe
-//   [ ] 0xee068  MeshShaderPassState_vf38
+//   [x] 0xee068  MeshShaderPassState_vf38  (MeshShaderPassState::ModulateMaterialColor)
 //   [x] 0xee138  MeshShaderPassState_GetMaxSkinWeightsPerVertex_maybe
 //   [x] 0xee188  GetMeshPassWorldMatrix
-//   [ ] 0xee208  MeshShaderPassState_DeletingDestructor
-//   [ ] 0xee250  MeshShaderPassState_Destruct
-//   [ ] 0xee280  MeshShaderPassState_Destruct_2
-//   [ ] 0xee2b0  MeshShaderPassState_ConstructEmpty_maybe
-//   [ ] 0xee2e8  MeshShaderPassState_ConstructEmpty_2_maybe
+//   [x] 0xee208  MeshShaderPassState_DeletingDestructor  (the implicit destructor: ShaderPassStateBase_Destruct_maybe 0xf5e70 stores the vtable only)
+//   [x] 0xee250  MeshShaderPassState_Destruct  (the implicit destructor)
+//   [ ] 0xee280  MeshShaderPassState_Destruct_2  [dead: no pointer to its descriptor 0xb53558, no call]
+//   [ ] 0xee2b0  MeshShaderPassState_ConstructEmpty_maybe  [platform]  (the static mesh pass state 0xc685c0 (StaticInitAndDestruction 0xf7f30): CShaderManagerPSGL_2.cpp's g_pass)
+//   [ ] 0xee2e8  MeshShaderPassState_ConstructEmpty_2_maybe  [dead: no pointer to its descriptor 0xb53568, no call]
 //   [x] 0xee320  MeshShaderPassState_UsesUvTransform_maybe
 //   [x] 0xee3c0  MeshShaderPassState_vf8C
 //   [x] 0xee418  MeshShaderPassState_vf88
@@ -320,6 +320,14 @@ uint32_t MeshShaderPassState::UseNormalInfluence() {
 // 0x000edd30 MeshShaderPassState_HasPrelitColors_maybe (vt+0x44): the geometry has prelit colours (rpGEOMETRYPRELIT 8).
 uint32_t MeshShaderPassState::VertexColor() { return (m_renderable->geometry->flags >> 3) & 1; }
 
+// C2.8 port-all P18.
+// 0x000ee068 MeshShaderPassState_vf38
+uint32_t MeshShaderPassState::ModulateMaterialColor() {
+    if ((m_renderable->geometry->flags & 0x40u) != 0 && m_material != nullptr) return 1;  // rpGEOMETRYMODULATEMATERIALCOLOR
+    if (RpAtomicIsPTank(m_renderable) == 0) return 0;  // TocBridge_RpAtomicIsPTank
+    return (VertexColor() & 0xffu) == 0 ? 1u : 0u;  // vt+0x44; neg / rldicl / cntlzw >> 5
+}
+
 // 0x000eef48 MeshShaderPassState_IsShadowEnabled_maybe (vt+0x54): the main camera is drawing, the shadow service is active (+0x14, +0x15), the
 // shader manager's flag 1 is set (the geometry's shader flag byte) and the level's current sector has a shadow texture.
 uint32_t MeshShaderPassState::ShadowEnabled() {
@@ -436,29 +444,41 @@ float WordAsFloat(uint32_t word) {
 }
 
 // BindTextureOnUnit_maybe 0x598c0: the texture on a texture unit with the sampler state its filter / addressing word
-// gives; null clears the unit.
+// gives; null clears the unit. The active texture unit is saved first (RwPSGL_GetActiveTextureUnit_maybe) and set back
+// last (RwPSGL_SetActiveTextureUnit_maybe): left on the unit, the next texture the driver creates or updates would be
+// bound there instead (C2.8 lvl020 lighting: the shadow map that UpdateActiveSectorShadowTexture binds on unit 5 once
+// per sector was replaced by the next texture the device created, and every shadowed draw of LVL020 was multiplied by it).
 void BindUnit(RwTexture* texture, int unit) {
+    const int active = dotd::gfx::ActiveTextureUnit();
     if (texture == nullptr || texture->raster == nullptr) {
         dotd::gfx::BindTextureUnit(unit, 0, dotd::gfx::DrawState());
+    } else {
+        dotd::gfx::BindTextureUnit(unit, RwDevice_GetRasterTexture(texture->raster), RwDevice_TextureState(texture));
+    }
+    dotd::gfx::SetActiveTextureUnit(active);
+}
+
+// CKGraphic +0x20 on a texture unit: the 16x16 blank texture ("Null Texture": Rw_CreateBlankNamedTexture_maybe 0xa5bc8
+// clears it to (0, 0, 0, 0)). CKGraphic_InitializeModule, which creates it, is a stand-in here (+0x20 stays null): a clear
+// 1x1 texture samples the same.
+void BindBlankTextureUnit(int unit) {
+    CKGraphic* graphic = g_pEngine->m_graphic;
+    if (graphic->m_unk20 != nullptr) {
+        BindUnit(static_cast<RwTexture*>(graphic->m_unk20), unit);
         return;
     }
-    dotd::gfx::BindTextureUnit(unit, RwDevice_GetRasterTexture(texture->raster), RwDevice_TextureState(texture));
+    static uint32_t s_blankTexture = 0;
+    if (s_blankTexture == 0) {
+        const uint8_t clear[4] = {0, 0, 0, 0};
+        s_blankTexture = dotd::gfx::CreateTextureRGBA8(1, 1, clear, false);
+    }
+    const int active = dotd::gfx::ActiveTextureUnit();
+    dotd::gfx::BindTextureUnit(unit, s_blankTexture, dotd::gfx::DrawState());
+    dotd::gfx::SetActiveTextureUnit(active);
 }
 
 // 0x000f69c8 MeshShaderPassState_BindFallbackTextureUnit7_maybe: CKGraphic +0x20 (the 16x16 blank texture) on unit 7.
-void BindFallbackUnit7() {
-    CKGraphic* graphic = g_pEngine->m_graphic;
-    if (graphic->m_unk20 != nullptr) {
-        BindUnit(static_cast<RwTexture*>(graphic->m_unk20), 7);
-        return;
-    }
-    static uint32_t s_noFogTexture = 0;
-    if (s_noFogTexture == 0) {
-        const uint8_t clear[4] = {0, 0, 0, 0};
-        s_noFogTexture = dotd::gfx::CreateTextureRGBA8(1, 1, clear, false);
-    }
-    dotd::gfx::BindTextureUnit(7, s_noFogTexture, dotd::gfx::DrawState());
-}
+void BindFallbackUnit7() { BindBlankTextureUnit(7); }
 
 // The fog texture (or the dummy texture) of texture unit 7: with fog on (vt+0x34) the level's fog texture (CKGraphic +0x1c)
 // whose filter / addressing word is set to clamp / clamp and filter 5 first (the word's other bits stay), else the 16x16
@@ -677,7 +697,14 @@ void MeshShaderPassState::BindMaterialTextures() {
                 if (material->HasAuxLayerTexture()) {
                     BindUnit(material->GetAuxLayerTexture(), 1);
                     if (material->HasSecondaryEffectTexture() != 0) BindUnit(material->GetEnvMapTexture(), 2);
-                    BindUnit(material->m_pAuxTexture8C, 4);  // (a dummy texture when there is none)
+                    // The second environment map (EnvMap2, s4): the material's +0x8c texture, or without one (0xef2ac
+                    // CMaterial_HasAuxTexture8C -> 0xef3c0) the graphic module's blank texture (+0x20), so the term adds
+                    // nothing (a null bind is the device's white texture here).
+                    if (material->m_pAuxTexture8C != nullptr) {
+                        BindUnit(material->m_pAuxTexture8C, 4);
+                    } else {
+                        BindBlankTextureUnit(4);
+                    }
                 } else {
                     if (material->HasAuxTexture88OrLayerTexture()) BindUnit(material->m_pAuxTexture88, 3);
                     if (material->HasSecondaryEffectTexture() != 0) {

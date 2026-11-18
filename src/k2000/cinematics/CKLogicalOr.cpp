@@ -11,10 +11,10 @@
 //   [x] 0x16f840  CKLogicalOr_Complete
 //   [x] 0x16fa10  CKLogicalOr_Load
 //   [ ] 0x16fa38  CKLogicalOr_Save
-//   [ ] 0x16fa60  CKLogicalOr_RecursiveRegistration
+//   [x] 0x16fa60  CKLogicalOr_RecursiveRegistration
 //   [x] 0x16faf0  CKLogicalOr_DeleteArray
 //   [x] 0x16fb98  CKLogicalOr_CreateArray
-//   [ ] 0x16fc70  CKLogicalOr_Destroy
+//   [x] 0x16fc70  CKLogicalOr_Destroy  (empty: the default)
 //   [x] 0x16fc78  CKLogicalOr_Create
 //   [x] 0x16fcd8  CKLogicalOr_Start
 //   [x] 0x16fdc8  CKLogicalOr_Update
@@ -25,6 +25,8 @@
 //   [ ] 0x9a9110  CKLogicalOr_DeletingDestructor  [inline]
 //   [ ] 0x9a9158  CKLogicalOr_Destructor  [inline]
 #include "k2000/cinematics/CKLogicalOr.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 
 #include "k2000/logic/CKCinematicScene.h"
 
@@ -52,4 +54,10 @@ void CKLogicalOr::Update(IKTime*) {
 void CKLogicalOr::Abort() {
     m_DataFlags &= 0xfffffffeu;
     m_ui32CurrentIncomingNumber = 0;
+}
+
+// 0x0016fa60 CKLogicalOr_RecursiveRegistration
+void CKLogicalOr::RecursiveRegistration(int32_t type) {
+    if (static_cast<uint32_t>(type - 4) > 3u) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);
+    IKLogicalDoor::RecursiveRegistration(type);  // 0x0018fc20
 }

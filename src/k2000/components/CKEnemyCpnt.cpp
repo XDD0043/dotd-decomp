@@ -4,8 +4,8 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x2b2d08  CKEnemyCpnt_Delete
-//   [ ] 0x2b2d58  CKEnemyCpnt_Destroy
-//   [ ] 0x2b2d60  CKEnemyCpnt_RecursiveRegistration
+//   [x] 0x2b2d58  CKEnemyCpnt_Destroy  (empty, the default)
+//   [x] 0x2b2d60  CKEnemyCpnt_RecursiveRegistration  (returns 1, registers nothing: the default)
 //   [ ] 0x2b2d68  RegisterCKEnemyCpntClass
 //   [ ] 0x2b2de0  _GLOBAL__I_2b2de0
 //   [x] 0x2b2df0  CKEnemyCpnt_DeleteArray

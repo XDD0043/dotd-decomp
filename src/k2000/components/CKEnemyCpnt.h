@@ -11,6 +11,9 @@
 class CKEnemyCpnt : public IKComponent {
 public:
     DOTD_CLASS_KEY(kCategoryComponent, 0x6)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9bcb60
+        return key == 0x186 || key == 0x6 || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKEnemyCpnt)
 
     CKEnemyCpnt() {}  // 0x002b2e90 CKEnemyCpnt_Create: the vtables and m_MoveCpnt's constructor (inlined)

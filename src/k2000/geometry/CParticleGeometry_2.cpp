@@ -4,16 +4,16 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x89a70  CParticleGeometry_Destroy
-//   [ ] 0x89ad0  ParticlePTank_UpdateBoundingSphere_maybe
-//   [ ] 0x89d60  CParticleGeometry_vf84
-//   [ ] 0x89f20  CParticleGeometry_DeleteArray
+//   [x] 0x89a70  CParticleGeometry_Destroy  (CGeometry::Destroy inherited; the render mutex is not needed natively)
+//   [ ] 0x89ad0  ParticlePTank_UpdateBoundingSphere_maybe  [dead: no pointer to its descriptor 0xb461e0]
+//   [x] 0x89d60  CParticleGeometry_vf84
+//   [x] 0x89f20  CParticleGeometry_DeleteArray  (DOTD_DECLARE_FACTORIES)
 //   [x] 0x89fc0  CParticleGeometry_Create
-//   [ ] 0x8a028  CParticleGeometry_GetMaterialRenderInfo
+//   [x] 0x8a028  CParticleGeometry_GetMaterialRenderInfo
 //   [x] 0x8a050  CParticleGeometry_PostLoad
-//   [ ] 0x8a0e8  CParticleGeometry_ComputeRenderStage
-//   [ ] 0x8a290  CParticleGeometry_UpdateAtomicBoundingSphere_maybe
-//   [ ] 0x8a460  CParticleGeometry_CreateArray
+//   [x] 0x8a0e8  CParticleGeometry_ComputeRenderStage
+//   [x] 0x8a290  CParticleGeometry_UpdateAtomicBoundingSphere_maybe
+//   [x] 0x8a460  CParticleGeometry_CreateArray  (DOTD_DECLARE_FACTORIES: the constructors' zeroed fields)
 //   [x] 0x8a520  CParticleGeometry_HasParticlesToDraw_maybe
 //   [x] 0x8a590  CParticleGeometry_Load
 //
@@ -24,9 +24,16 @@
 //   [ ] 0x99c390  CParticleGeometry_Destructor  [inline]
 #include "k2000/geometry/CGeometry.h"
 
+#include <cmath>
 #include <cstring>
 
+#include "crt/vmx_ops.h"
+
+#include "Renderware/rpprtstd/RpPrtStd.h"
+#include "Renderware/rpprtstd/RpPrtStdRuntime.h"
 #include "Renderware/rpworld/RpAtomic.h"
+#include "Renderware/rpworld/RpGeometry.h"
+#include "Renderware/rwcore/RwCamera.h"
 #include "Renderware/rwcore/RwTexture.h"
 #include "k2000/io/IKFile.h"
 #include "k2000/math/CMatrix34.h"
@@ -60,7 +67,11 @@ int32_t CParticleGeometry::Load(IKFile* file, int32_t type) {
     if (type != K_LEVEL_PLATEFORMS) return 1;
     ReadU32LE(file, &m_baParticleGeometry);
     if ((m_BitProperties & 0x4000) == 0) {
-        // Under the render lock: vt EnqueueOwnGeometry (the render queues). STUB(C1.4).
+        // A streamed (RpPrtStd) atomic: under the render lock vt+0x84 (FindRpGeometry), which makes its
+        // emitters' PTanks now.
+        RenderLock_Lock();
+        FindRpGeometry();
+        RenderLock_Unlock();
         return 1;
     }
     uint32_t header[3];
@@ -72,7 +83,7 @@ int32_t CParticleGeometry::Load(IKFile* file, int32_t type) {
     ReadSwapped(file, m_pRpAtomic->boundingSphere, 4);
     std::memcpy(m_pRpAtomic->worldSphere, m_pRpAtomic->boundingSphere, sizeof(m_pRpAtomic->worldSphere));
     m_pRpAtomic->flags &= ~2u;
-    m_pRpAtomic->objectFlags &= 0xfe;
+    m_pRpAtomic->privateFlags &= 0xfe;
     const uint32_t flags = m_baParticleGeometry;
     if ((flags & 0x1ffff) != 0) {
         const uint32_t n = ptank->maxParticles;
@@ -106,7 +117,7 @@ int32_t CParticleGeometry::Load(IKFile* file, int32_t type) {
     if (RpAtomicIsPTank(m_pRpAtomic) != 0) {
         void* texture = nullptr;
         IKFile_ReadTextureRef(file, &texture, 0);
-        m_pRpAtomic->texture = static_cast<RwTexture*>(texture);  // RpMaterialSetTexture on its material
+        RpMaterialSetTexture(m_pRpAtomic->geometry->matList.materials[0], static_cast<RwTexture*>(texture));
     }
     const uint32_t mode = (m_BitProperties >> 8) & 3;
     ptank->renderB4 = mode != 0 ? 1 : 0;  // -(mode) >> 31: vertex alpha
@@ -114,6 +125,44 @@ int32_t CParticleGeometry::Load(IKFile* file, int32_t type) {
     ptank->renderB0 = kDestBlend[mode];
     ptank->flags40 |= 0x10000000;
     return 1;
+}
+
+// 0x00089d60 CParticleGeometry_FindRpGeometry (vt+0x84): a PTank atomic's own geometry; for an RpPrtStd atomic the
+// geometry of its (last) emitter's PTank, the PTank made first when there is none: the atomic updated and emitting
+// once (RW_UpdateParticleAtomic_2, time 0) with the emitter's flags reduced to active (the update, particle update,
+// render and emit flags 0x78 off; put back afterwards), on a temporary frame when the atomic has none. Null without
+// an atomic, an emitter or a PTank property. A PTank's geometry is its quad geometry (one material, RpAtomic.cpp).
+void* CParticleGeometry::FindRpGeometry() {
+    RpAtomic* atomic = m_pRpAtomic;
+    if (atomic == nullptr) return nullptr;
+    if (RpAtomicIsPTank(atomic) != 0) return m_pRpAtomic->geometry;
+    RpPrtStdEmitter* emitter = RpPrtStdAtomicGetEmitter(m_pRpAtomic);
+    if (emitter == nullptr) return nullptr;
+    const int32_t offset = RpPrtStdPropTabGetPropOffset(emitter->emtClass->propTab, rpPRTSTDPROPERTYCODEEMITTERPTANK);
+    if (offset == -1) return nullptr;
+    RpPrtStdEmitterPTank* ptank = reinterpret_cast<RpPrtStdEmitterPTank*>(reinterpret_cast<uint8_t*>(emitter) + offset);
+    if (ptank->pTank == nullptr) {
+        if (m_pRpAtomic->frame != nullptr) {
+            const uint32_t flags = emitter->flag;
+            emitter->flag = (flags | 2u) & ~0x78u;
+            float time = 0.0f;  // stw 0
+            RpPrtStdAtomicUpdateAndEmit(m_pRpAtomic, &time);
+            emitter->flag = flags;
+        } else {
+            RwFrame* frame = RwFrameCreate();
+            RpAtomicSetFrame(m_pRpAtomic, frame);
+            const uint32_t flags = emitter->flag;
+            emitter->flag = (flags | 2u) & ~0x78u;
+            float time = 0.0f;
+            RpPrtStdAtomicUpdateAndEmit(m_pRpAtomic, &time);
+            emitter->flag = flags;
+            if (frame != nullptr) {
+                RpAtomicSetFrame(m_pRpAtomic, nullptr);
+                RwFrameDestroy(frame);
+            }
+        }
+    }
+    return ptank->pTank->geometry;
 }
 
 // 0x0008a520 CParticleGeometry_HasParticlesToDraw_maybe: a PTank atomic only with particles (+4 > 0); any
@@ -131,4 +180,94 @@ int32_t CParticleGeometry::PostLoad(int32_t type) {
     if (((m_BitProperties >> 8) & 3) == 2) m_BitProperties &= 0xfdffffffu;
     Vf80(1);
     return 1;
+}
+
+// 0x0008a028 CParticleGeometry_GetRenderingProperties
+void CParticleGeometry::GetRenderingProperties(uint8_t* first, uint8_t* second, uint8_t* third, uint32_t* blendMode) {
+    *first = 1;
+    *second = 0xff;
+    *third = 0;
+    *blendMode = (m_BitProperties >> 8) & 3;
+}
+
+// 0x0008a0e8 CParticleGeometry_UpdateProperties: the particle geometry's own vt+0x60 (CGeometry's ran in its place, so a
+// blend mode set after the Load (CGeometry_SetBlendMode: the fog boxes, the sparks) left the PTank's blend states).
+void CParticleGeometry::UpdateProperties() {
+    // g_RenderStageLookupTable 0x00c296b8 (TOC -0x6684), the same as CGeometry's.
+    static const uint32_t kStages[32] = {5, 6, 7, 8, 9, 12, 13, 14, 19, 20, 20, 20, 21, 21, 21, 21,
+                                         1, 2, 3, 3, 4, 4, 4, 4, 1, 0, 2, 3, 4, 1, 0, 3};
+    const uint32_t cur = m_BitProperties;
+    const uint32_t mode = (cur >> 8) & 3;
+    if ((cur & 0x20) == 0) {
+        const uint32_t layer = (cur >> 17) & 3;
+        m_BitProperties = kStages[layer * 8 + (mode == 2 ? 7u : 6u)] | (m_BitProperties & 0xffffffe0u);
+    }
+    const uint32_t src = kSrcBlend[mode];
+    const uint32_t dst = kDestBlend[mode];
+    RpAtomic* tankAtomic = nullptr;
+    if (m_pRpAtomic == nullptr) return;  // (as below: the original would fault)
+    RpPrtStdEmitter* emitter = RpPrtStdAtomicGetEmitter(m_pRpAtomic);  // 0x0098e110 (TocBridge)
+    if (emitter == nullptr) {
+        tankAtomic = m_pRpAtomic;
+        if (tankAtomic->ptank == nullptr) return;
+        tankAtomic->ptank->renderB4 = mode != 0 ? 1u : 0u;  // -(mode) >> 31: vertex alpha
+        m_BitProperties = (m_BitProperties & 0xffdfffffu) | 0x200000u;
+    } else {
+        m_BitProperties &= 0xffdfffffu;
+        const int32_t offset = RpPrtStdPropTabGetPropOffset(emitter->emtClass->propTab, rpPRTSTDPROPERTYCODEEMITTERPTANK);
+        // BUG(original): without the PTank property the PTank pointer stays null and the stores below go through it.
+        if (offset != -1) {
+            RpPrtStdEmitterPTank* property =
+                reinterpret_cast<RpPrtStdEmitterPTank*>(reinterpret_cast<uint8_t*>(emitter) + offset);
+            tankAtomic = property->pTank;
+            property->strDstBlend = dst;
+            property->strSrcBlend = src;
+        }
+    }
+    // (The original dereferences the PTank unconditionally; a null one would fault there.)
+    if (tankAtomic == nullptr || tankAtomic->ptank == nullptr) return;
+    RpPTankData* tank = tankAtomic->ptank;
+    tank->renderAC = src;
+    tank->renderB0 = dst;
+    tank->flags40 |= 0x10000000u;
+}
+
+// 0x0008a290 CParticleGeometry_UpdateAtomicBoundingSphere_maybe: without particles the zero sphere; else the
+// box around the particles' positions (AltiVec min / max), its centre ((max + min) * 0.5) and the radius
+// ((|half extent| + 1) * 1.1, or 1.1); the PTank unlocked, the atomic's sphere-dirty flag (2) cleared.
+void CParticleGeometry::UpdateAtomicBoundingSphere() {
+    RpAtomic* atomic = m_pRpAtomic;
+    const RpPTankData* ptank = atomic->ptank;
+    const uint32_t count = ptank->numPrt;
+    if (count == 0) {
+        atomic->boundingSphere[0] = 0.0f;  // 0x00c50d64
+        atomic->boundingSphere[1] = 0.0f;
+        atomic->boundingSphere[2] = 0.0f;
+        atomic->boundingSphere[3] = 0.0f;
+        return;
+    }
+    RpPTankLockStruct lock = {nullptr, 0};
+    RpPTankAtomicLock(atomic, &lock, 1, 0x80000000u);  // rpPTANKLFLAGREAD
+    const float* p = reinterpret_cast<const float*>(lock.data);
+    float maxV[3] = {p[0], p[1], p[2]};
+    float minV[3] = {p[0], p[1], p[2]};
+    for (uint32_t i = 1; i < count; ++i) {
+        p += 4;
+        for (int32_t k = 0; k < 3; ++k) {
+            if (p[k] >= maxV[k]) maxV[k] = p[k];  // vcmpgefp / vsel
+            if (!(p[k] >= minV[k])) minV[k] = p[k];
+        }
+    }
+    // vaddfp / vsubfp, then vmaddfp by the 0.5 splat (+0); the squared half extent fused lane by lane (z, y, x) and its
+    // length d * vrsqrtefp(d) (crt/vmx_ops.h: RPCS3's exact estimate, results with a zero exponent flushed).
+    float half[3];
+    for (int32_t k = 0; k < 3; ++k) {
+        atomic->boundingSphere[k] = vmx::Madd(vmx::Add(maxV[k], minV[k]), 0.5f, 0.0f);
+        half[k] = vmx::Madd(vmx::Sub(maxV[k], minV[k]), 0.5f, 0.0f);
+    }
+    const float lengthSquared = vmx::Madd(half[0], half[0], vmx::Madd(half[1], half[1], vmx::Madd(half[2], half[2], 0.0f)));
+    const float length = vmx::Madd(lengthSquared, vmx::Rsqrtefp(lengthSquared), 0.0f);
+    atomic->boundingSphere[3] = length > 0.0f ? (length + 1.0f) * 1.10000002f : 1.10000002f;
+    RpPTankAtomicUnlock(atomic);
+    atomic->flags &= 0xfffffffdu;
 }

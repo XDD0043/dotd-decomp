@@ -98,7 +98,10 @@ public:
     };
 
     CKSrvCamera();  // 0x0012c930 CKSrvCamera_Construct (= 0x12ce08)
-    ~CKSrvCamera() override {}
+    ~CKSrvCamera() override;  // 0x00131530 CKSrvCamera_Destructor (0x12f0c0 the deleting one)
+    // vt+0x24 0x0012c2f0 CKSrvCamera_LevelReset (RecursiveRegistration).
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x40 0x0012b0a8 CKSrvCamera_vf40 (GetInfo): 1, IKSerializable's default.
 
     void Destroy() override;                            // vt+0x10 0x0012d5a0 CKSrvCamera_Destroy
     // vt+0x1c 0x00130200 CKSrvCamera_HandleMessage (XXL2 MessageProc; FX): 0x300 the camera's collisions from
@@ -107,6 +110,9 @@ public:
     int32_t MessageProc(uint16_t message, void* data) override;
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001316d0 CKSrvCamera_Load
     int32_t PostLoad(int32_t type) override;            // vt+0x30 0x130ad8 CKSrvCamera_PostLoad
+    // vt+0x38 0x0012c1b0 CKSrvCamera_SetDefaultState: every object of the sector-mode lists, then every constraint
+    // zone, gets SetDefaultState(flag & 0xff).
+    void SetDefaultState(int32_t flag) override;
     void Start() override {}                            // vt+0x50 0x12a8e0 CKSrvCamera_vf50 (empty)
     void Restart() override;                            // vt+0x54 0x130a00 CKSrvCamera_Restart
     void Stop() override;                               // vt+0x68 0x1308f0 CKSrvCamera_StopAll_maybe
@@ -260,6 +266,16 @@ public:
     // 0x0012c830 CKSrvCamera_TestSphereAgainstFrustum: `sphere` = (x, y, z, radius) against the frustum planes lastPlane down to
     // 0 (the renderers pass 5): 0 outside one of them, 1 touching one, 2 inside; 2 for lastPlane -1.
     uint32_t TestSphereAgainstFrustum(const float sphere[4], int32_t lastPlane) const;
+    // The frustum helpers nothing reachable calls (C2.8 port-rest R01; see CKSrvCamera.cpp).
+    // 0x0012c560 CKSrvCamera_ComputeFrustumOutcode_maybe: per plane 5..0, in front (0x41 << k) / crossing (1 << k).
+    uint32_t ComputeFrustumOutcode(const CVector3* point, float radius) const;
+    // 0x0012fa38 CKSrvCamera_IsPointInFrustumScaled_maybe / 0x0012fbe8 CKSrvCamera_IsExtentInsideFrustum_maybe (dead).
+    uint8_t IsPointInFrustumScaled(const CVector3* point, float fovDeg, float far, const CMatrix34* matrix, float right,
+                                   float left, float up, float down) const;
+    uint8_t IsExtentInsideFrustum(const CVector3* point, float fovDeg, float far, const CMatrix34* matrix, float right,
+                                  float left, float up, float down) const;
+    // 0x00132cd8 CKSrvCamera_GetFrustumPlaneNormal_maybe: plane `index`'s normal (flattened and normalised but plane 4's).
+    CVector3 GetFrustumPlaneNormal(int32_t index) const;
 
     // The fog of the current camera (its parameter block +0x38, a CKCameraFogDatas), or while a camera transition runs
     // (m_baTemporaryFlags bit 3) the blended values kept in the service (C2.4 step 6). The defaults without a current

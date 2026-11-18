@@ -5,37 +5,39 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0xba598  CLightComponent_Delete
-//   [ ] 0xba5e8  CLightComponent_RecursiveRegistration
+//   [x] 0xba5e8  CLightComponent_RecursiveRegistration
 //   [ ] 0xba648  RegisterCLightComponentClass
 //   [ ] 0xba6c0  _GLOBAL__I_ba6c0
-//   [ ] 0xba6d0  CLightComponent_FreeLightList_maybe
+//   [x] 0xba6d0  CLightComponent_FreeLightList_maybe  (XXL2 FreeBlinkData: the same body as Destroy 0xbb278 (no bl caller))
 //   [ ] 0xba740  LightColorAnim_AdvanceAndEvaluate_maybe  [dead]
-//   [ ] 0xba7f0  CLightComponent_AllocLightList_maybe
+//   [x] 0xba7f0  CLightComponent_AllocLightList_maybe  (XXL2 AllocateBlinkData: inlined in Load 0xbafe8 (no bl caller))
 //   [x] 0xba8b8  CLightComponent_Create
 //   [x] 0xba930  CLightComponent_DeleteArray
 //   [x] 0xba9d0  CLightComponent_CreateArray
-//   [ ] 0xbaad0  CLightComponent_PostLoad
+//   [x] 0xbaad0  CLightComponent_PostLoad  (IKSerializable's: returns 1)
 //   [ ] 0xbaad8  FUN_000baad8  [dead]
 //   [ ] 0xbaba0  LightColorAnim_Load_maybe  [dead]
 //   [ ] 0xbac38  LightColorAnim_Save_maybe  [dead]
 //   [x] 0xbacd8  LightData_UpdateColorAnimation_maybe
 //   [ ] 0xbad70  CLightComponent_Save
 //   [x] 0xbafe8  CLightComponent_Load
-//   [ ] 0xbb278  CLightComponent_Destroy
-//   [ ] 0xbb2e8  CMaterial_Delete
+//   [x] 0xbb278  CLightComponent_Destroy
+//   [x] 0xbb2e8  CMaterial_Delete  (the registry factory: DOTD_DECLARE_FACTORIES(CMaterial))
 //   [ ] 0xbb338  FUN_000bb338  [dead]
-//   [ ] 0xbb398  GetMaterialTexture_maybe
+//   [x] 0xbb398  GetMaterialTexture_maybe  (ported in CKSrvShadow.cpp (GetMaterialTexture))
 //
 //   [x] 0x9a10d8  CLightComponent_GetClassType  [inline]
 //   [x] 0x9a10e0  CLightComponent_GetClassID  [inline]
 //   [x] 0x9a10e8  CLightComponent_IsKindOfClass  [inline]
-//   [ ] 0x9a1108  CLightComponent_DeletingDestructor  [inline]
-//   [ ] 0x9a1148  CLightComponent_Destructor  [inline]
+//   [x] 0x9a1108  CLightComponent_DeletingDestructor  [inline]
+//   [x] 0x9a1148  CLightComponent_Destructor  [inline]
 #include "k2000/logic/render/CLightComponent.h"
 
 #include <cstring>
 
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 #include "k2000/math/CurveKeys.h"
 #include "k2000/memory/Mem.h"
 #include "k2000/system/IKTime.h"
@@ -102,4 +104,18 @@ void CLightComponent::UpdateColorAnimation(const IKTime* frameClock) {
         time = blink->m_fCurTime;
     }
     ColorCurve_Evaluate(time / blink->m_fBlinkLength, m_cLightColor, &blink->m_ColorLine);
+}
+
+// 0x000bb278 CLightComponent_Destroy
+void CLightComponent::Destroy() {
+    CBlinkData* blink = m_pBlinkColorData;
+    if (blink == nullptr) return;
+    if (blink->m_ColorLine.m_pBlock != nullptr) Mem_FreeAligned16(blink->m_ColorLine.m_pBlock);
+    delete blink;  // OperatorDelete
+    m_pBlinkColorData = nullptr;
+}
+
+// 0x000ba5e8 CLightComponent_RecursiveRegistration
+void CLightComponent::RecursiveRegistration(int32_t type) {
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
 }

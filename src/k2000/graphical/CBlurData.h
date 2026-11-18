@@ -10,10 +10,14 @@
 class CBlurData : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryGraphical, 0xa)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x28d || key == 0xc; }  // vt+0x08 0x9a0e98
     DOTD_DECLARE_FACTORIES(CBlurData)
 
     CBlurData() {}  // 0x000b6360 CBlurData_Create: only the vtable
     ~CBlurData() override {}
+
+    void Destroy() override {}                           // vt+0x10 0x000b5cc0 CBlurData_Destroy (blr)
+    void RecursiveRegistration(int32_t type) override;  // vt+0x24 0x000b5cc8 CBlurData_RecursiveRegistration (CDOFData.cpp)
 
     // vt+0x2c 0x000b6798 CBlurData_Load (type 0 only)
     int32_t Load(IKFile* file, int32_t type) override;

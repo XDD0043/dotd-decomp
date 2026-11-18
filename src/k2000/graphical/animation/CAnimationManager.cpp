@@ -4,9 +4,9 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x92830  CAnimationManager_Delete
-//   [ ] 0x92880  CAnimationManager_RecursiveRegistration
+//   [x] 0x92880  CAnimationManager_RecursiveRegistration
 //   [ ] 0x928d8  CAnimationManager_Save
-//   [ ] 0x928e0  CAnimationManager_PostLoad
+//   [x] 0x928e0  CAnimationManager_PostLoad  (CAnimationManager.h)
 //   [ ] 0x928e8  RegisterCAnimationManagerClass
 //   [ ] 0x92960  _GLOBAL__I_92960
 //   [x] 0x92970  CAnimationManager_Load
@@ -29,8 +29,8 @@
 //   [ ] 0x9968a0  HashTableStr_InitNode_2  [inline]
 //   [ ] 0x996940  HashTableStr_KeysEqual  [inline]
 //   [x] 0x996988  CAnimationManager_IsKindOfClass  [inline]
-//   [ ] 0x997278  CAnimationManager_DeletingDestructor  [inline]
-//   [ ] 0x9972b8  CAnimationManager_Destructor  [inline]
+//   [x] 0x997278  CAnimationManager_DeletingDestructor  [inline]
+//   [x] 0x9972b8  CAnimationManager_Destructor  [inline]
 #include "k2000/graphical/animation/CAnimationManager.h"
 
 #include "Renderware/rtanim/RtAnim.h"
@@ -38,6 +38,7 @@
 #include "k2000/graphical/animation/CSectorAnimation.h"
 #include "k2000/memory/Mem.h"
 #include "k2000/misc/Engine.h"
+#include "k2000/logic/CKSavingManager.h"
 
 // 0x00092d80 CAnimationManager_Create (the constructor inlined)
 CAnimationManager::CAnimationManager() {
@@ -83,10 +84,17 @@ uint32_t CAnimationManager_GetAnimationWord(const RtAnimAnimation* animation) {
     CAnimationManager* manager = g_pEngine->m_animationManager;
     for (uint32_t s = 0; s < manager->m_ui32NbAnimations; ++s) {
         const CSectorAnimation* sector = static_cast<const CSectorAnimation*>(manager->m_apAnimations[s]);
-        if (sector == nullptr) continue;
+        // A destroyed sector (CSectorAnimation_Destroy 0xa55c8-style loop) keeps the count at -1 with no array.
+        if (sector == nullptr || sector->m_apAnimations == nullptr) continue;
         for (uint32_t i = 0; i < sector->m_ui32NbAnimations; ++i) {
             if (sector->m_apAnimations[i] == animation) return (s << 24) | i;
         }
     }
     return 0xffffffffu;
+}
+
+// C2.8 port-all P08.
+// 0x00092880 CAnimationManager_RecursiveRegistration: no type test.
+void CAnimationManager::RecursiveRegistration(int32_t /*type*/) {
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
 }

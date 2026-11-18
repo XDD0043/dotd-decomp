@@ -24,7 +24,22 @@ public:
     uint8_t VfC4() override { return 6; }                                                // vt+0xc4 0x9c9770
     IKSerializable** VfC8() override { return m_apMessageIns; }                          // vt+0xc8 0x9c9778
     uint8_t* VfCC() override { return m_abMessageInFlags; }                              // vt+0xcc 0x9c9788
+    // vt+0xdc 0x00548180 CKS08MenuChapter_OnMenuState_maybe: update: the texts of the focused chapter's level (m_unk6c[0]
+    // mapped to the main level index); enter: the main menu's loop and enter sounds, the eleven chapters' buttons disabled
+    // from the game structure's unlock bytes (+0x23f..+0x24a, from the last).
+    uint8_t OnMenuState(int32_t phase, uint8_t other) override;
     int32_t GetMenuId() override { return 0x3; }                                         // vt+0xe0 0x9c9750
+    // vt+0xe8 0x00547398 CKS08MenuChapter_vfE8: a chapter validated (state 4, after; not the back item 11): the game state
+    // whose spawn point (+0x1c) is the button's state-4 reference made current (vt+0x70, the manager's +0xafc bit 5), then
+    // menu 0x20 requested.
+    void OnItemState(uint8_t item, uint8_t state, uint8_t phase) override;
+    // 0x00547950 CKS08MenuChapter_RefreshChapterTexts_maybe: per collectible type 1, 2, 3, 0, 4 the remaining count in main
+    // level `level` into its text variable (GetCounterTextVarTable +0x38..+0x58); widget k's billboard (0..4) and text
+    // (5..9) coloured m_unk108 / m_unk10c when none is left, else white (the text's variable colour too).
+    void RefreshChapterTexts(uint8_t level);
+    uint8_t GetSelection(uint8_t /*player*/) override { return 0; }                      // vt+0xe4 0x9c97c0
+    uint8_t VfF0() override { return 1; }                                                // vt+0xf0 0x9c97b0
+    uint8_t VfF4() override { return 11; }                                               // vt+0xf4 0x9c97b8 the back item
 
     WidgetSlot m_aWidgetSlots[10];               // +0x94
     IKSerializable* m_apMessageIns[6];           // +0xe4

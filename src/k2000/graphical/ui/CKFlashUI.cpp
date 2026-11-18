@@ -9,7 +9,7 @@
 //   [ ] 0x6d4b8  FUN_0006d4b8  [dead]
 //   [x] 0x6d508  KStub_Nop_6d508
 //   [x] 0x6d510  CKFlashUI_SetPaused_maybe
-//   [ ] 0x6d528  FlashUI_FindMatchingAnimCB_maybe
+//   [x] 0x6d528  FlashUI_FindMatchingAnimCB_maybe
 //   [ ] 0x6d540  CKFlashUI_SendMessageInToObjects14_maybe  [dead]
 //   [x] 0x6d5e0  CKFlashUI_ResetElements_maybe
 //   [x] 0x6d7a0  CKFlashUI_GetScreenScaleAndRect_maybe
@@ -18,10 +18,10 @@
 //   [ ] 0x6d808  CKFlashUI_SetAlphaMultiplier_maybe  [dead]
 //   [x] 0x6d820  CKFlashUI_QueueMessageIn_maybe
 //   [ ] 0x6d8b0  CKFlashUI_ClearQueuedMessagesIn_maybe  [dead]
-//   [ ] 0x6d8c0  RegisterCKFlashUIType
+//   [x] 0x6d8c0  RegisterCKFlashUIType  (RegisterAllClasses: ClassTable.inc)
 //   [ ] 0x6d938  _GLOBAL__I_6d938
 //   [ ] 0x6d948  CKFlashUI_FindWidgetBindingByElement2d_maybe  [dead]
-//   [ ] 0x6da18  Rt2dScene_ApplyColorMultiplierToChildren_maybe
+//   [x] 0x6da18  Rt2dScene_ApplyColorMultiplierToChildren_maybe  (Rt2dScene_ApplyColorMultiplierToChildren)
 //   [ ] 0x6da50  Rt2dScene_ApplyColorMultiplierRGBA_maybe  [dead]
 //   [x] 0x6daa0  CKFlashUI_IsSceneVisible_maybe
 //   [x] 0x6db28  Rt2dObject_SetColorMultiplierRecursiveCB_maybe
@@ -39,7 +39,7 @@
 //   [x] 0x6dff0  CKFlashUI_HideLinkedWidgets_maybe
 //   [x] 0x6e088  CKFlashUI_CollectNamedStrings_cb_maybe
 //   [x] 0x6e230  CKFlashUI_DeleteArray
-//   [ ] 0x6e2d0  CKFlashUI_Construct_2
+//   [x] 0x6e2d0  CKFlashUI_Construct_2  (the stores of 0x6e820 CKFlashUI_Construct: CKFlashUI(); no reference to it)
 //   [x] 0x6e3a8  FlashUI_ReapplyTextFonts_maybe
 //   [x] 0x6e418  CKFlashUI_SetPlaying_maybe
 //   [ ] 0x6e430  CKFlashUI_CopyTextIdToSameNamedTexts_maybe  [dead]
@@ -68,7 +68,7 @@
 //   [x] 0x6fc48  CKFlashUI_Load
 //   [x] 0x70478  CKFlashUI_DeletingDestructor
 //   [x] 0x705b8  CKFlashUI_Destructor
-//   [ ] 0x706f0  CKFlashUI_Destructor_2_maybe
+//   [x] 0x706f0  CKFlashUI_Destructor_2_maybe  (the body of 0x705b8 CKFlashUI_Destructor: ~CKFlashUI; no reference to it)
 //   [ ] 0x70828  FUN_00070828  [dead]
 //   [x] 0x70ac0  CKFlashUI_RegisterObjectOwnerInHashTable_maybe
 //   [x] 0x70cc0  CKFlashUI_RefreshVisibilityCache_maybe
@@ -76,7 +76,7 @@
 //   [x] 0x71470  CKFlashUI_IndexSceneObject_cb_maybe
 //   [x] 0x71720  CKFlashUI_ResolveElementsAndIndexScene_maybe
 //   [x] 0x71f48  CKFlashUI_PostLoad
-//   [ ] 0x72088  CFlashHotSpot_Delete
+//   [x] 0x72088  CFlashHotSpot_Delete  (the registry factory: DOTD_DECLARE_FACTORIES(CFlashHotSpot))
 //   [ ] 0x720d8  FlashWidgetBinding_FindElement2dIndex_maybe  [dead]
 //   [ ] 0x72130  FlashWidgetBinding_FindAtomicIndex_maybe  [dead]
 //   [x] 0x72198  FlashWidgetBinding_UpdateAnchor_maybe
@@ -98,6 +98,7 @@
 #include "Renderware/rwcore/RwStream.h"
 #include "crt/ppc_ops.h"
 #include "k2000/geometry/CGeometry.h"
+#include "k2000/graphical/animation/CKFlashAnimation.h"
 #include "k2000/graphical/ui/CFlashHotSpot.h"
 #include "k2000/graphical/ui/CKFlashManager.h"
 #include "k2000/graphical/ui/CKFlashMessageIn.h"
@@ -110,6 +111,7 @@
 #include "k2000/misc/Engine.h"
 #include "k2000/system/IKTime.h"
 #include "k2000/ui/IKFlashObject.h"
+#include "platform/fps.h"
 
 namespace {
 
@@ -334,15 +336,36 @@ int32_t CKFlashUI::Load(IKFile* file, int32_t type) {
     return 1;
 }
 
+// 0x0006d528 FlashUI_FindMatchingAnimCB_maybe (Rt2dMaestroForAllAnimations callback): the props of the
+// entry's animation (data: a CKFlashAnimEntry).
+static Rt2dMaestro* FindMatchingAnimCB(Rt2dMaestro* maestro, Rt2dAnim* anim, Rt2dAnimProps* props, void* data) {
+    CKFlashAnimEntry* entry = static_cast<CKFlashAnimEntry*>(data);
+    if (entry->m_pAnim == anim) entry->m_pProps = props;
+    return maestro;
+}
+
 Rt2dObject* CKFlashUI::GetMaestroScene() { return m_pMaestro != nullptr ? Rt2dMaestroGetScene(m_pMaestro) : nullptr; }
 
 // 0x0006e608 CKFlashUI_BindSceneObjects_maybe (XXL2 CheckAndInitializeAllFlashObjects): the label ids of
-// the messages (in: URL labels, type 6; out: button labels, type 3) and the texts' string objects.
-// STUB(C1.6): CKFlashAnimation (0x78d) is not ported and no front-end interface has one; the original
-// first binds each animation instance (its +0x24 array, 0x110 bytes each, count +0x2c) to its anim label
-// (type 1): Rt2dMaestroFindStringLabel, Rt2dMaestroGetAnimationsByIndex, then
-// Rt2dMaestroForAllAnimations(0x6d528 FlashUI_FindMatchingAnimCB_maybe) for its props.
+// the animations' entries (anim labels, type 1: the label index, the animation of the label's entity and
+// its props), the messages (in: URL labels, type 6; out: button labels, type 3) and the texts' string
+// objects. (No KP3 file holds a CKFlashAnimation, so the first loop never runs with the game's data.)
 void CKFlashUI::BindSceneObjects() {
+    for (uint32_t i = 0; i < m_ui32FlashAnimNb; ++i) {
+        CKFlashAnimation* animation = static_cast<CKFlashAnimation*>(AsFlashObject(m_apFlashAnimation[i]));
+        for (uint32_t j = 0; j < animation->m_vEntries.m_ui32NbUsedElt; ++j) {
+            CKFlashAnimEntry* entry = &animation->m_vEntries.m_pBlock[j];
+            RwInt32 index = 0;
+            const Rt2dStringLabel* label =
+                Rt2dMaestroFindStringLabel(m_pMaestro, rt2dANIMLABELTYPEANIM, entry->m_szLabelName, &index);
+            if (label == nullptr) continue;
+            entry->m_i32LabelIndex = index;
+            // +0x08: the stream word, an index until resolved (extsw).
+            const int32_t entity = static_cast<int32_t>(reinterpret_cast<intptr_t>(label->internalData));
+            entry->m_pAnim = Rt2dMaestroGetAnimationsByIndex(m_pMaestro, entity);
+            Rt2dMaestroForAllAnimations(m_pMaestro, FindMatchingAnimCB, entry);
+        }
+    }
     for (uint32_t i = 0; i < m_ui32FlashMessageInNb; ++i) {
         IKFlashObject* message = AsFlashObject(m_apFlashMessageIn[i]);
         RwInt32 index = 0;
@@ -752,6 +775,8 @@ void CKFlashUI::Update(IKTime* time) {
         deltaTime = time->m_afDeltaTime[1];  // IKTime +0x20
     } else {
         deltaTime = 0x1.47ae14p-6f;  // 0x000aa948 KStub_ReturnFloat0p02_aa948 (TOC1 -0x5f9c: 0x3ca3d70a)
+        // --fps N (not in the original): 0.02 per 60 Hz frame, so the movie keeps its 60 fps speed.
+        if (dotd::fps::Unlocked()) deltaTime = deltaTime * dotd::fps::Scale();
     }
     for (uint32_t i = 0; i < m_ui32HotSpotNb; ++i) AsHotSpot(m_apHotSpot[i])->Update3dAttachedObject(this);
     m_baFlags &= ~kHotSpotsHidden;
@@ -782,4 +807,10 @@ void CKFlashUI::Update(IKTime* time) {
 // 0x00072198 FlashWidgetBinding_UpdateAnchor_maybe: the flash object's anchor (vt+0x60) into the hot spot.
 void CFlashHotSpot::UpdateAnchor() {
     m_bVisibilityTest = m_pFlashHotSpot->GetScreenAnchor(&m_v2Pos, &m_v2Size_maybe, m_aColor_maybe);
+}
+
+// 0x0006da18 Rt2dScene_ApplyColorMultiplierToChildren_maybe
+void Rt2dScene_ApplyColorMultiplierToChildren(CKFlashUI* ui, Rt2dObject* scene, RwRGBAReal* multiply) {
+    ColorMultiplierData data{ui, multiply};
+    Rt2dSceneForAllChildren(scene, SetColorMultiplierCB, &data);  // TOC1 -0x6d94 -> 0x6db28
 }

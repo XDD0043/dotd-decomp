@@ -1,8 +1,10 @@
 // RwFrameList.cpp - see RwFrameList.h.
 #include "Renderware/rwcore/RwFrameList.h"
+#include <cstddef>
 
 #include <cstdint>
 #include <cstring>
+#include <mutex>
 
 #include "Renderware/rphanim/RpHAnim.h"
 #include "Renderware/rwcore/RwCamera.h"
@@ -44,6 +46,9 @@ uint32_t Native32(const uint8_t* b) {
 // frame).
 constexpr RwUInt8 kHierarchySync = 0x3;
 constexpr RwUInt8 kSubtreeSync = 0xc;
+constexpr RwUInt8 kHierarchySyncLtm = 0x1;
+constexpr RwUInt8 kSubtreeSyncLtm = 0x4;
+constexpr RwUInt8 kSubtreeSyncObj = 0x8;
 
 // RwFrameRemoveChild (baframe.c; PS3 inlined in 0x74c6a0 RwFrameAddChild).
 RwFrame* RwFrameRemoveChild(RwFrame* child) {
@@ -61,6 +66,95 @@ RwFrame* RwFrameRemoveChild(RwFrame* child) {
     return RwFrameUpdateObjects(child);
 }
 
+namespace {
+RwLLLink g_dirtyFrames = {&g_dirtyFrames, &g_dirtyFrames};  // RWSRCGLOBAL(dirtyFrameList)
+// DOTD: the dirty list is shared by the load worker (CKLoadingManager::LoadLevel on keCThreadPool: RwFrameAddChild in
+// IKFile_ReadBoneFrameList, RwFrameTransform in the Flash scenes' Rt2d shapes) and the main thread (_rwFrameSyncDirty in
+// RwCameraBeginUpdate while a sector streams in); unlocked, a link changed during the walk crashed the render (G replays,
+// one run in three, +15952 / +24944). Not in the original (RW keeps the list unlocked).
+std::mutex g_dirtyFramesLock;
+
+void DirtyListAdd(RwFrame* root) {
+    std::lock_guard<std::mutex> lock(g_dirtyFramesLock);
+    RwLLLink* link = &root->inDirtyListLink;
+    if (link->next != nullptr) return;  // DOTD: game code clears the marks itself (CSGLeaf), the link stays
+    link->next = g_dirtyFrames.next;
+    link->prev = &g_dirtyFrames;
+    g_dirtyFrames.next->prev = link;
+    g_dirtyFrames.next = link;
+}
+
+// FrameSyncHierarchyRecurse (the LTM part).
+void SyncHierarchyRecurse(RwFrame* frame, RwUInt8 flags) {
+    for (; frame != nullptr; frame = frame->next) {
+        const RwUInt8 accumulated = static_cast<RwUInt8>(flags | frame->object.privateFlags);
+        if ((accumulated & kSubtreeSyncLtm) != 0) {
+            RwMatrixMultiply(&frame->ltm, &frame->modelling, &static_cast<RwFrame*>(frame->object.parent)->ltm);
+        }
+        frame->object.privateFlags = static_cast<RwUInt8>(frame->object.privateFlags & ~kSubtreeSync);
+        SyncHierarchyRecurse(frame->child, accumulated);
+    }
+}
+
+// FrameSyncHierarchyLTMRecurse: only the LTM mark cleared.
+void SyncHierarchyLtmRecurse(RwFrame* frame, RwUInt8 flags) {
+    for (; frame != nullptr; frame = frame->next) {
+        const RwUInt8 accumulated = static_cast<RwUInt8>(flags | frame->object.privateFlags);
+        if ((accumulated & kSubtreeSyncLtm) != 0) {
+            RwMatrixMultiply(&frame->ltm, &frame->modelling, &static_cast<RwFrame*>(frame->object.parent)->ltm);
+            frame->object.privateFlags = static_cast<RwUInt8>(frame->object.privateFlags & ~kSubtreeSyncLtm);
+        }
+        SyncHierarchyLtmRecurse(frame->child, accumulated);
+    }
+}
+
+// FrameSyncHierarchy (the LTM part; FrameSyncHierarchyRecurseNoLTM only syncs objects and clears the object marks).
+void SyncHierarchy(RwFrame* root) {
+    const RwUInt8 flags = root->object.privateFlags;
+    if ((flags & kHierarchySyncLtm) != 0) {
+        if ((flags & kSubtreeSyncLtm) != 0) root->ltm = root->modelling;
+        SyncHierarchyRecurse(root->child, static_cast<RwUInt8>(flags & kSubtreeSyncLtm));
+    } else {
+        for (RwFrame* child = root->child; child != nullptr; child = child->next) {
+            child->object.privateFlags = static_cast<RwUInt8>(child->object.privateFlags & ~kSubtreeSyncObj);
+        }
+    }
+    root->object.privateFlags = static_cast<RwUInt8>(flags & ~(kHierarchySync | kSubtreeSync));
+}
+}  // namespace
+
+void _rwFrameSyncHierarchyLTM(RwFrame* root) {
+    const RwUInt8 flags = root->object.privateFlags;
+    if ((flags & kSubtreeSyncLtm) != 0) root->ltm = root->modelling;
+    SyncHierarchyLtmRecurse(root->child, flags);
+    root->object.privateFlags = static_cast<RwUInt8>(flags & ~(kHierarchySyncLtm | kSubtreeSyncLtm));
+}
+
+void RwFrameDirtyListRemove(RwFrame* frame) {
+    std::lock_guard<std::mutex> lock(g_dirtyFramesLock);
+    RwLLLink* link = &frame->inDirtyListLink;
+    if (link->next == nullptr) return;
+    link->prev->next = link->next;
+    link->next->prev = link->prev;
+    link->next = nullptr;
+    link->prev = nullptr;
+}
+
+// _rwFrameSyncDirty
+void _rwFrameSyncDirty() {
+    std::lock_guard<std::mutex> lock(g_dirtyFramesLock);
+    for (RwLLLink* link = g_dirtyFrames.next; link != &g_dirtyFrames;) {
+        RwLLLink* const next = link->next;
+        RwFrame* root = reinterpret_cast<RwFrame*>(reinterpret_cast<uint8_t*>(link) - offsetof(RwFrame, inDirtyListLink));
+        SyncHierarchy(root);
+        link->next = nullptr;
+        link->prev = nullptr;
+        link = next;
+    }
+    g_dirtyFrames.next = &g_dirtyFrames;
+    g_dirtyFrames.prev = &g_dirtyFrames;
+}
+
 // 0x0074bc80 RwFrameDestroyHierarchy
 RwBool RwFrameDestroyHierarchy(RwFrame* frame) {
     if (frame == nullptr) return 1;
@@ -69,12 +163,14 @@ RwBool RwFrameDestroyHierarchy(RwFrame* frame) {
         RwFrameDestroyHierarchy(child);
         child = next;
     }
-    return RwFrameDestroy(frame);
+    _rwFrameDestroyLeaf(frame);  // FrameDestroyRecurseDeInitLeaf: no parent unlink, no RwFrameDestroy
+    return 1;
 }
 
 // 0x0074a438 RwFrameUpdateObjects
 RwFrame* RwFrameUpdateObjects(RwFrame* frame) {
-    frame->root->object.privateFlags |= kHierarchySync;  // PS3: also the dirty frame list (see the header)
+    if ((frame->root->object.privateFlags & kHierarchySync) == 0) DirtyListAdd(frame->root);
+    frame->root->object.privateFlags |= kHierarchySync;
     frame->object.privateFlags |= kSubtreeSync;
     return frame;
 }
@@ -99,10 +195,10 @@ RwFrame* RwFrameAddChild(RwFrame* parent, RwFrame* child) {
     child->object.parent = parent;
     rwSetHierarchyRoot(child, parent->root);
     if ((child->object.privateFlags & kHierarchySync) != 0) {
+        RwFrameDirtyListRemove(child);
         child->object.privateFlags = static_cast<RwUInt8>(child->object.privateFlags & 0xfc);  // off the dirty list
     }
-    child->root->object.privateFlags |= kHierarchySync;
-    child->object.privateFlags |= kSubtreeSync;
+    RwFrameUpdateObjects(child);
     return parent;
 }
 
@@ -151,7 +247,7 @@ rwFrameList* _rwFrameListStreamRead(RwStream* stream, rwFrameList* frameList) {
     for (RwInt32 i = 0; i < numFrames; ++i) {
         RwFrame* frame = frameList->frames[i];
         if (FramePluginReadDataChunks(stream, frame) == 0) {
-            // RwFrameDestroyHierarchy(frames[0]). STUB(C2.2): the frames are left (no failure in the data).
+            RwFrameDestroyHierarchy(frameList->frames[0]);
             RwFree(frameList->frames);
             return nullptr;
         }

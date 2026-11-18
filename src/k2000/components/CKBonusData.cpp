@@ -11,14 +11,14 @@
 //   [ ] 0x126dd8  RegisterCKBonusDataClass
 //   [ ] 0x126e50  _GLOBAL__I_126e50
 //   [x] 0x126e60  CKBonusData_DeleteArray
-//   [ ] 0x126f08  CKBonusData_Destructor
-//   [ ] 0x126f38  CKBonusData_BaseDestructor
-//   [ ] 0x126f68  CKBonusData_DeletingDestructor
+//   [x] 0x126f08  CKBonusData_Destructor  (C++ destructor chain: vtable stores only)
+//   [x] 0x126f38  CKBonusData_BaseDestructor  (C++ destructor chain: vtable stores only)
+//   [x] 0x126f68  CKBonusData_DeletingDestructor  (the deleting form of the implicit destructor)
 //   [x] 0x126fb0  CKBonusData_CreateArray
 //   [x] 0x127048  CKBonusData_Create
 //   [ ] 0x127080  CKBonusData_Save
-//   [ ] 0x127088  CKBonusData_RecursiveRegistration
-//   [ ] 0x127090  CKBonusData_Destroy
+//   [x] 0x127088  CKBonusData_RecursiveRegistration  (returns 1, registers nothing: the default)
+//   [x] 0x127090  CKBonusData_Destroy
 //   [x] 0x1270d8  CKBonusData_LoadEntry
 //   [x] 0x1272c8  CKBonusData_Load
 //
@@ -34,7 +34,7 @@ static void CKBonusData_LoadEntry(CKBonusData::Entry* entry, IKFile* file) {
     ReadU32LE(file, &entry->m_unk00);
     ReadU32LE(file, &entry->m_unk04);
     ReadU32LE(file, &entry->m_unk08);
-    ReadF32LE(file, &entry->m_unk0c);
+    ReadU32LE(file, &entry->m_unk0c);
     ReadU32LE(file, &entry->m_unk10);
     ReadU32LE(file, &entry->m_unk1c);
 }
@@ -70,4 +70,12 @@ void CKBonusData::ResetRuntime() {
         m_pEntries[i].m_unk18 = 0xffffffffu;
         ++i;
     } while (i < static_cast<int32_t>(m_count));
+}
+
+// 0x00127090 CKBonusData_Destroy
+void CKBonusData::Destroy() {
+    if (m_pEntries != nullptr) {
+        delete[] m_pEntries;  // OperatorDeleteArray
+        m_pEntries = nullptr;
+    }
 }

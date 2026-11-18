@@ -11,10 +11,10 @@
 //   [x] 0x16ff10  CKStartDoor_Start
 //   [x] 0x170030  CKStartDoor_Load
 //   [ ] 0x170058  CKStartDoor_Save
-//   [ ] 0x170080  CKStartDoor_RecursiveRegistration
+//   [x] 0x170080  CKStartDoor_RecursiveRegistration
 //   [x] 0x170110  CKStartDoor_DeleteArray
 //   [x] 0x1701b8  CKStartDoor_Create
-//   [ ] 0x170218  CKStartDoor_Destroy
+//   [x] 0x170218  CKStartDoor_Destroy  (empty: the default)
 //   [x] 0x170220  CKStartDoor_CreateArray
 //
 //   [ ] 0x9a9178  CKStartDoor_GetClassType  [inline]
@@ -28,6 +28,8 @@
 //   [ ] 0x9a9240  KStub_Return0_9a9240  [inline]
 //   [ ] 0x9a9248  KStub_Return-1_9a9248  [inline]
 #include "k2000/cinematics/CKStartDoor.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 
 #include "k2000/logic/CKCinematicScene.h"
 
@@ -43,4 +45,10 @@ void CKStartDoor::Start() {
         outputs[i]->Activate(this);  // vt+0x60
     }
     Complete();  // vt+0x64
+}
+
+// 0x00170080 CKStartDoor_RecursiveRegistration
+void CKStartDoor::RecursiveRegistration(int32_t type) {
+    if (static_cast<uint32_t>(type - 4) > 3u) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);
+    IKLogicalDoor::RecursiveRegistration(type);  // 0x0018fc20
 }

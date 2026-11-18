@@ -11,7 +11,7 @@
 //   [ ] 0x642a8  CMenuManager_Enable  [dead]
 //   [ ] 0x642b8  CMenuManager_Disable  [dead]
 //   [x] 0x642c8  DrawActiveUIMenu
-//   [ ] 0x64328  RegisterCMenuManagerType
+//   [x] 0x64328  RegisterCMenuManagerType  (RegisterAllClasses: ClassTable.inc)
 //   [ ] 0x643a0  _GLOBAL__I_643a0
 //   [ ] 0x643b0  CMenuManager_RemoveChildAt_maybe  [dead]
 //   [ ] 0x643e0  CMenuManager_RemoveChild_maybe  [dead]
@@ -29,8 +29,8 @@
 //   [x] 0x997b58  CMenuManager_GetClassID  [inline]
 //   [ ] 0x997b60  CMenuManager_RecursiveRegistration  [inline]
 //   [x] 0x997c60  CMenuManager_IsKindOfClass  [inline]
-//   [ ] 0x997c80  CMenuManager_DeletingDestructor  [inline]
-//   [ ] 0x997cc0  CMenuManager_Destructor  [inline]
+//   [x] 0x997c80  CMenuManager_DeletingDestructor  [inline]
+//   [x] 0x997cc0  CMenuManager_Destructor  [inline]
 //   [ ] 0x997cd8  KStub_Return2_997cd8  [inline]
 #include "k2000/graphical/ui/CMenuManager.h"
 
@@ -53,9 +53,9 @@ int32_t CMenuManager::Load(IKFile* file, int32_t /*type*/) {
 }
 
 // 0x000642c8 DrawActiveUIMenu
-uint8_t CMenuManager::DrawActiveUIMenu() {
+uint8_t CMenuManager::DrawActiveUIMenu(IKTime* frameClock) {
     const bool enabled = m_bEnabled != 0;
-    if (enabled) static_cast<CScene2d*>(m_pMenuSceneContainers)->Render();  // vt+0x5c
+    if (enabled) static_cast<CScene2d*>(m_pMenuSceneContainers)->Render(frameClock);  // vt+0x5c
     return enabled ? 1 : 0;
 }
 

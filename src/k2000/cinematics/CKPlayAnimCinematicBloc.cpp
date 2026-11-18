@@ -12,10 +12,10 @@
 //   [ ] 0x184f68  CKPlayAnimCinematicBloc_SnapToGround_maybe  [dead]
 //   [ ] 0x1850e8  FUN_001850e8  [dead]
 //   [x] 0x185250  CKPlayAnimCinematicBloc_Stop
-//   [ ] 0x185430  CKPlayAnimCinematicBloc_RecursiveRegistration
+//   [x] 0x185430  CKPlayAnimCinematicBloc_RecursiveRegistration
 //   [x] 0x1854c0  CKPlayAnimCinematicBloc_DeleteArray
 //   [x] 0x185560  CKPlayAnimCinematicBloc_Create
-//   [ ] 0x1855f0  CKPlayAnimCinematicBloc_Destroy
+//   [x] 0x1855f0  CKPlayAnimCinematicBloc_Destroy  (empty: the default)
 //   [x] 0x1855f8  CKPlayAnimCinematicBloc_CreateArray
 //   [x] 0x185710  CKPlayAnimCinematicBloc_Start
 //   [x] 0x185ad8  CKPlayAnimCinematicBloc_Load
@@ -33,6 +33,7 @@
 //   [ ] 0x9a9d98  CKPlayAnimCinematicBloc_DeletingDestructor  [inline]
 //   [ ] 0x9a9de0  CKPlayAnimCinematicBloc_Destructor  [inline]
 #include "k2000/cinematics/CKPlayAnimCinematicBloc.h"
+#include "k2000/logic/CKSavingManager.h"
 
 #include "Renderware/rwcore/RwCamera.h"
 #include "k2000/core/Stub.h"
@@ -224,4 +225,10 @@ void CKPlayAnimCinematicBloc::Stop() {
 void CKPlayAnimCinematicBloc::Abort() {
     m_DataFlags &= 0xfffffffeu;
     m_fStartTime = -1.0f;
+}
+
+// 0x00185430 CKPlayAnimCinematicBloc_RecursiveRegistration
+void CKPlayAnimCinematicBloc::RecursiveRegistration(int32_t type) {
+    if (static_cast<uint32_t>(type - 4) > 3u) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);
+    IKCinematicBloc::RecursiveRegistration(type);  // 0x0018e8d8
 }

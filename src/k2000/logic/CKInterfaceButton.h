@@ -85,6 +85,11 @@ public:
         return key == 0x630c || key == 0x63cc || key == 0xc;
     }
     void Destroy() override;  // vt+0x10 0x0051e1b8 CKInterfaceButton_Destroy
+    // vt+0x24 0x0051cdc0 CKInterfaceButton_RecursiveRegistration: the base's, then per state from the last down its text
+    // accessor, its +0x64 references, its videos, its texts (the accessor unchecked), its billboards and its particles;
+    // then the label, billboards 2, 1, 0 and the sound dictionary (unchecked). Null references are skipped unless
+    // said otherwise.
+    void RecursiveRegistration(int32_t type) override;
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x0051f638 CKInterfaceButton_Load
     int32_t PostLoad(int32_t /*type*/) override { return 1; }  // vt+0x30 0x0051e1b0 CKInterfaceButton_PostLoad
 

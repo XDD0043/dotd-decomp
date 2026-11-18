@@ -11,13 +11,13 @@
 //   [ ] 0x13afe8  RegisterCKCameraPathTrackClass
 //   [ ] 0x13b060  _GLOBAL__I_13b060
 //   [x] 0x13b070  CKCameraPathTrack_PostLoad
-//   [ ] 0x13b098  CKCameraPathTrack_RecursiveRegistration
+//   [x] 0x13b098  CKCameraPathTrack_RecursiveRegistration  (CKCameraPathTrack::RecursiveRegistration)
 //   [x] 0x13b110  CKCameraPathTrack_Deactivate_maybe
 //   [x] 0x13b138  CKCameraPathTrack_Activate_maybe
-//   [ ] 0x13b1b0  CKCameraPathTrack_Destroy
+//   [x] 0x13b1b0  CKCameraPathTrack_Destroy  (CKCameraPathTrack::Destroy)
 //   [x] 0x13b208  CKCameraPathTrack_DeleteArray
 //   [x] 0x13b2b0  CKCameraPathTrack_Construct
-//   [ ] 0x13b2f0  CKCameraPathTrack_Construct_2
+//   [x] 0x13b2f0  CKCameraPathTrack_Construct_2  [dead: no pointer to its descriptor 0xb5bd18, no call]  (the constructor: the same stores as 0x13b2b0 CKCameraPathTrack_Construct)
 //   [x] 0x13b330  CKCameraPathTrack_Update_maybe
 //   [x] 0x13b990  CKCameraPathTrack_CreateArray
 //   [x] 0x13ba58  CKCameraPathTrack_Create
@@ -43,6 +43,22 @@
 
 // 0x0013ba58 CKCameraPathTrack_Create
 CKCameraPathTrack::CKCameraPathTrack() { m_av2RollAlongTime = nullptr; }
+
+// 0x0013b098 CKCameraPathTrack_RecursiveRegistration
+void CKCameraPathTrack::RecursiveRegistration(int32_t type) {
+    IKCamera::RecursiveRegistration(type);  // 0x00144108
+    if (m_pPath != nullptr) m_pPath->RecursiveRegistration(type);
+}
+
+// 0x0013b1b0 CKCameraPathTrack_Destroy
+void CKCameraPathTrack::Destroy() {
+    IKCamera::Destroy();  // CKCameraTrack_ClearReferences_BaseNop_maybe 0x144578 (empty)
+    if (m_av2RollAlongTime != nullptr) {
+        delete[] m_av2RollAlongTime;  // OperatorDeleteArray (the count cookie)
+        m_ui32NbRollPoint = 0;
+        m_av2RollAlongTime = nullptr;
+    }
+}
 
 // 0x0013bab8 CKCameraPathTrack_Load
 int32_t CKCameraPathTrack::Load(IKFile* file, int32_t type) {
@@ -87,8 +103,7 @@ float WrapDistance(float distance, float length) {
 
 // 0x0013b138 CKCameraPathTrack_Activate_maybe
 void CKCameraPathTrack::Start(const CVector3* /*startPosition*/) {
-    // 0x001441e8 CKCamera_StartAttachedFx_maybe. STUB(C2.7): the attached fx (+0x50; no LVL010 camera has one).
-    if (m_unk50 != nullptr) DOTD_STUB_ONCE("CKCamera_StartAttachedFx_maybe: CKSrvFx_StartCameraFx_maybe 0x1afaf8 (C2.7)");
+    StartAttachedFx();  // 0x001441e8 CKCamera_StartAttachedFx_maybe
     if (m_pPath == nullptr) return;
     m_fPosOnPath = 0.0f;
     m_fTimeSinceStart = 0.0f;
@@ -97,8 +112,7 @@ void CKCameraPathTrack::Start(const CVector3* /*startPosition*/) {
 
 // 0x0013b110 CKCameraPathTrack_Deactivate_maybe
 void CKCameraPathTrack::Stop() {
-    // 0x00144238 CKCamera_StopAttachedFx_maybe. STUB(C2.7): the attached fx.
-    if (m_unk50 != nullptr) DOTD_STUB_ONCE("CKCamera_StopAttachedFx_maybe: CKSrvFx_StopCameraFx_maybe 0x1affd8 (C2.7)");
+    StopAttachedFx();  // 0x00144238 CKCamera_StopAttachedFx_maybe
 }
 
 // 0x0013b330 CKCameraPathTrack_Update_maybe

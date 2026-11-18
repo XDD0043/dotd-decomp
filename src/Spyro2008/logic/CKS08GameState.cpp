@@ -6,38 +6,38 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x5094c8  CKS08GameState_Delete
 //   [x] 0x509518  CKS08GameState_vfC4
-//   [ ] 0x509520  CKS08GameState_vfD0
+//   [x] 0x509520  CKS08GameState_vfD0
 //   [ ] 0x509528  CKS08GameState_FindObjectEntryIndex_maybe  [dead]
 //   [ ] 0x509580  KStub_Nop_509580  [dead]
 //   [ ] 0x509588  KStub_Nop_509588  [dead]
 //   [ ] 0x509590  CKS08GameState_QueryGameManagerVfC4_maybe  [dead]
-//   [ ] 0x5095e0  CKS08GameState_RemoveObjectEntryAt_maybe
-//   [ ] 0x509638  CKS08GameState_AddObjectEntry_maybe
-//   [ ] 0x5096f0  CKS08GameState_vf8C
+//   [x] 0x5095e0  CKS08GameState_RemoveObjectEntryAt_maybe
+//   [x] 0x509638  CKS08GameState_AddObjectEntry_maybe
+//   [x] 0x5096f0  CKS08GameState_vf8C
 //   [x] 0x509718  CKS08GameState_AddModuleValue_maybe
 //   [x] 0x509740  CKS08GameState_AddStageValue_maybe
 //   [x] 0x509768  CKS08GameState_vfAC
-//   [ ] 0x509790  CKS08GameState_vfA8
+//   [x] 0x509790  CKS08GameState_vfA8
 //   [x] 0x5097b8  CKS08GameState_vfA4
-//   [ ] 0x5097e0  CKS08GameState_SaveStateByte_maybe
-//   [ ] 0x509808  CKS08GameState_ClearGameData_maybe
-//   [ ] 0x509a70  CKS08GameState_ClearLevelData
+//   [x] 0x5097e0  CKS08GameState_SaveStateByte_maybe
+//   [x] 0x509808  CKS08GameState_ClearGameData_maybe
+//   [x] 0x509a70  CKS08GameState_ClearLevelData
 //   [x] 0x509a98  CKS08GameState_InitLevelData
 //   [x] 0x509ac0  CKS08GameState_vf58
-//   [ ] 0x509db0  CKS08GameState_PostLoad
-//   [ ] 0x509e78  CKS08GameState_RecursiveRegistration
-//   [ ] 0x509ea0  CKS08GameState_Destroy
-//   [ ] 0x509ec8  CKS08GameState_Construct_2
+//   [x] 0x509db0  CKS08GameState_PostLoad  (= the inherited slot)
+//   [x] 0x509e78  CKS08GameState_RecursiveRegistration  (inherited: CKGameState_RecursiveRegistration)
+//   [x] 0x509ea0  CKS08GameState_Destroy
+//   [x] 0x509ec8  CKS08GameState_Construct_2  (= 0x50b458 CKS08GameState_Construct)
 //   [x] 0x50a128  CKS08GameState_DeleteArray
 //   [ ] 0x50a1d0  CKS08GameState_CountFlaggedObjectEntries_maybe  [dead]
 //   [ ] 0x50a220  RegisterCKS08GameStateClass
 //   [ ] 0x50a2a8  _GLOBAL__D_50a2a8
 //   [ ] 0x50a2b8  _GLOBAL__I_50a2b8
-//   [ ] 0x50a2c8  CKS08GameState_vf84
+//   [x] 0x50a2c8  CKS08GameState_vf84
 //   [x] 0x50a388  CKS08GameState_CopyFrom_maybe
-//   [ ] 0x50a710  CKS08GameState_ResetStateFlags_maybe
-//   [ ] 0x50a8e0  CKS08GameState_vfC8
-//   [ ] 0x50a930  CKS08GameState_vfCC
+//   [x] 0x50a710  CKS08GameState_ResetStateFlags_maybe
+//   [x] 0x50a8e0  CKS08GameState_vfC8
+//   [x] 0x50a930  CKS08GameState_vfCC
 //   [ ] 0x50a980  CKS08GameState_CountFlaggedObjectEntriesByCategory_maybe  [dead]
 //   [x] 0x50a9f0  CKS08GameState_ApplyToGame_maybe
 //   [x] 0x50af70  CKS08GameState_vfC0
@@ -45,23 +45,23 @@
 //   [x] 0x50b458  CKS08GameState_Construct
 //   [x] 0x50b6b8  CKS08GameState_CreateArray
 //   [x] 0x50b9d8  CKS08GameState_Create
-//   [ ] 0x50bc78  CKS08GameState_Save
-//   [ ] 0x50cc90  CKS08GameState_Destructor_2
+//   [x] 0x50bc78  CKS08GameState_Save
+//   [x] 0x50cc90  CKS08GameState_Destructor_2  (= 0x50e928)
 //   [x] 0x50d050  CKS08GameState_Load
-//   [ ] 0x50e560  CKS08GameState_DeletingDestructor
-//   [ ] 0x50e928  CKS08GameState_Destructor
+//   [x] 0x50e560  CKS08GameState_DeletingDestructor  (the destructor; delete)
+//   [x] 0x50e928  CKS08GameState_Destructor  (its own vectors here, then ~CKGameState (CKGameState.cpp))
 //   [x] 0x50ece8  CKS08GameStructure_Delete
 //   [ ] 0x50ed38  FUN_0050ed38  [dead]
-//   [ ] 0x50ed40  CKS08GameStructure_InvalidateCategoryCount_maybe
+//   [x] 0x50ed40  CKS08GameStructure_InvalidateCategoryCount_maybe
 //   [x] 0x50ed60  CKS08GameStructure_SaveCheckpointSnapshot_maybe
-//   [ ] 0x50eec0  CKS08GameStructure_RestoreCheckpointSnapshot_maybe
+//   [x] 0x50eec0  CKS08GameStructure_RestoreCheckpointSnapshot_maybe
 //   [x] 0x50f050  GetDragonTotalUpgradePoints_maybe
-//   [ ] 0x50f0b8  CKS08GameStructure_GetEnemyKills_maybe
-//   [ ] 0x50f0d0  CKS08GameStructure_GetBestCombo_maybe
-//   [ ] 0x50f0e8  CKS08GameStructure_GetMostUsedElement_maybe
-//   [ ] 0x50f200  CKS08GameStructure_GetDragonPlayTime_maybe
-//   [ ] 0x50f218  CKS08GameStructure_AddEnemyKill_maybe
-//   [ ] 0x50f238  AddElementManaSpent_maybe
+//   [x] 0x50f0b8  CKS08GameStructure_GetEnemyKills_maybe
+//   [x] 0x50f0d0  CKS08GameStructure_GetBestCombo_maybe
+//   [x] 0x50f0e8  CKS08GameStructure_GetMostUsedElement_maybe
+//   [x] 0x50f200  CKS08GameStructure_GetDragonPlayTime_maybe
+//   [x] 0x50f218  CKS08GameStructure_AddEnemyKill_maybe  (inline, CKS08GameStructure.h)
+//   [x] 0x50f238  AddElementManaSpent_maybe
 //   [x] 0x50f288  AddDragonPlayTime_maybe
 //   [x] 0x50f2a8  AddPlayerSlotPlayTime_maybe
 //
@@ -73,6 +73,7 @@
 #include <cstring>
 #include <initializer_list>
 
+#include "Spyro2008/logic/CKS08GameLevel.h"
 #include "Spyro2008/logic/CKS08GameLevelCollectible.h"
 #include "Spyro2008/logic/CKS08GameStructure.h"
 #include "k2000/io/IKFile.h"
@@ -421,6 +422,107 @@ void CKS08GameState::CopyFromState(const CKGameState* otherState) {
 // 0x0050af70 CKS08GameState_vfC0
 uint8_t CKS08GameState::SavesSpawnPoint() { return g_pEngine->m_gameManager->VfC4() == 0 ? 1 : 0; }
 
+// 0x00509ea0 CKS08GameState_Destroy
+void CKS08GameState::Destroy() { CKGameState::Destroy(); }
+
+// 0x00509a70 CKS08GameState_ClearLevelData
+void CKS08GameState::DestroyLevelData() { CKGameState::DestroyLevelData(); }
+
+namespace {
+template <class T>
+void FreeStateList(TVector<T, 8>* list) {
+    if (list->m_pBlock != nullptr) {
+        Mem_FreeAligned16(list->m_pBlock);
+        list->m_pBlock = nullptr;
+    }
+    list->m_ui32NbUsedElt = 0;
+    list->m_pBlock = nullptr;
+}
+}  // namespace
+
+// 0x00509808 CKS08GameState_ClearGameData_maybe
+void CKS08GameState::DestroyGameData() {
+    CKGameState::DestroyGameData();  // 0x3f458
+    FreeStateList(&m_vObjectStates);
+    for (TVector<uint8_t, 8>& list : m_avbUnk134) FreeStateList(&list);
+}
+
+// 0x0050a710 CKS08GameState_ResetStateFlags_maybe
+void CKS08GameState::Vf6C() {
+    CKGameState::Vf6C();  // 0x3e300
+    m_aUnk90[3] = 300;
+    m_afUnk124[2] = 0.0f;
+    m_aUnk90[0] = 300;
+    m_aUnk90[1] = 300;
+    m_aUnk90[2] = 300;
+    for (int i = 4; i < 8; ++i) m_aUnk90[i] = 0;
+    for (int i = 4; i >= 0; --i) m_aUnkB0[i] = 0;
+    for (int i = 4; i >= 0; --i) m_aUnkC4[i] = 0;
+    m_aUnkEC[1] = 0;
+    m_aUnkF4[1] = 0;
+    m_afUnk124[1] = 0.0f;
+    m_aUnkEC[0] = 0;
+    m_aUnkF4[0] = 0;
+    m_afUnk124[0] = 0.0f;
+    m_unk130 = 0;
+    for (int i = 4; i >= 0; --i) m_aUnkFC[i] = 0;
+    m_aUnk110[4] = 0;
+    m_aUnk110[3] = 0;
+    m_aUnk110[2] = 0;
+    m_aUnk110[0] = 0;
+    m_aUnk110[1] = 0;
+    for (TVector<uint8_t, 8>& list : m_avbUnk134) {
+        for (uint32_t i = 0; i < list.m_ui32NbUsedElt; ++i) list.m_pBlock[i] = 0;
+    }
+    for (int i = 1; i >= 0; --i) {
+        m_aUnkE4[i][2] = 3;
+        m_aUnkE4[i][1] = 3;
+        m_aUnkE4[i][0] = 3;
+    }
+    m_aUnk1CA[18] = 0;  // +0x1dc
+    m_aUnk1CA[0] = 1;   // +0x1ca
+    m_unkEA = 0;
+    m_unkEB = 0;
+    for (int i = 1; i < 18; ++i) m_aUnk1CA[i] = 0;  // +0x1cb..+0x1db
+}
+
+// 0x0050a2c8 CKS08GameState_vf84: the stage is read before the scan; an entry swapped in is not tested again.
+void CKS08GameState::RemoveGameStage(uint32_t index) {
+    const CKGameLevel* stage = m_vpStages.m_pBlock[index];
+    for (uint32_t i = m_vObjectStates.m_ui32NbUsedElt; i != 0; --i) {
+        ObjectState& entry = m_vObjectStates.m_pBlock[i - 1];
+        if (static_cast<const CKGameLevel*>(static_cast<KBase1D0C*>(entry.m_pObject)->m_pLevel) != stage) continue;
+        const uint32_t last = --m_vObjectStates.m_ui32NbUsedElt;
+        if (i - 1 == last) continue;
+        entry.m_pObject = m_vObjectStates.m_pBlock[last].m_pObject;
+        entry.m_ui8State = m_vObjectStates.m_pBlock[last].m_ui8State;
+    }
+    CKGameState::RemoveGameStage(index);  // 0x3dae8
+}
+
+// 0x005096f0 CKS08GameState_vf8C
+void CKS08GameState::RemoveGameModule(uint32_t index) { CKGameState::RemoveGameModule(index); }
+
+// 0x005097e0 CKS08GameState_SaveStateByte_maybe
+void CKS08GameState::WriteStageData(IKFile* file, int32_t type, uint32_t index) { CKGameState::WriteStageData(file, type, index); }
+
+// 0x00509790 CKS08GameState_vfA8
+void CKS08GameState::WriteModuleData(IKFile* file, int32_t type, uint32_t index) { CKGameState::WriteModuleData(file, type, index); }
+
+// 0x0050a8e0 CKS08GameState_vfC8
+void CKS08GameState::ApplyCollectibleStates() {
+    for (uint32_t i = m_vObjectStates.m_ui32NbUsedElt; i != 0; --i) {
+        ObjectState& entry = m_vObjectStates.m_pBlock[i - 1];
+        static_cast<CKS08GameLevelCollectible*>(entry.m_pObject)->m_unk1c = entry.m_ui8State;
+    }
+}
+
+// 0x0050a930 CKS08GameState_vfCC
+void CKS08GameState::ClearCollectibleStates() {
+    for (uint32_t i = m_vObjectStates.m_ui32NbUsedElt; i != 0; --i)
+        static_cast<CKS08GameLevelCollectible*>(m_vObjectStates.m_pBlock[i - 1].m_pObject)->m_unk1c = 0;
+}
+
 // 0x0050ed60 CKS08GameStructure_SaveCheckpointSnapshot_maybe
 void CKS08GameStructure::SaveCheckpointSnapshot() {
     SetRtWord(0x1f0, m_unk4c);
@@ -445,6 +547,35 @@ void CKS08GameStructure::SaveCheckpointSnapshot() {
         RtByte(0x23a + i * 3) = RtByte(0xb6 + i * 3);
         RtByte(0x239 + i * 3) = RtByte(0xb5 + i * 3);
         RtByte(0x238 + i * 3) = RtByte(0xb4 + i * 3);
+    }
+}
+
+// 0x0050eec0 CKS08GameStructure_RestoreCheckpointSnapshot_maybe (CKS08GameManager_Restart): SaveCheckpointSnapshot's
+// copies put back; the two healths come back at least at +0x1ec (cmplw / bge: the larger of the two).
+void CKS08GameStructure::RestoreCheckpointSnapshot() {
+    const uint32_t minimum = m_unk1ec;
+    m_unk4c = minimum < RtWord(0x1f0) ? RtWord(0x1f0) : minimum;
+    m_unk54 = minimum < RtWord(0x1f4) ? RtWord(0x1f4) : minimum;
+    SetRtWord(0xa0, RtWord(0x224));
+    m_unk64 = RtWord(0x1f8);
+    m_unk6c = RtWord(0x1fc);
+    m_unk74 = RtWord(0x200);
+    m_unk78 = RtWord(0x204);
+    SetRtWord(0x84, RtWord(0x208));
+    SetRtWord(0x88, RtWord(0x20c));
+    SetRtWord(0x9c, RtWord(0x220));
+    SetRtWord(0x98, RtWord(0x21c));
+    SetRtWord(0x94, RtWord(0x218));
+    SetRtWord(0x90, RtWord(0x214));
+    SetRtWord(0x8c, RtWord(0x210));
+    SetRtWord(0xb0, RtWord(0x234));
+    SetRtWord(0xac, RtWord(0x230));
+    SetRtWord(0xa8, RtWord(0x22c));
+    SetRtWord(0xa4, RtWord(0x228));
+    for (int32_t i = 1; i >= 0; --i) {
+        RtByte(0xb6 + i * 3) = RtByte(0x23a + i * 3);
+        RtByte(0xb5 + i * 3) = RtByte(0x239 + i * 3);
+        RtByte(0xb4 + i * 3) = RtByte(0x238 + i * 3);
     }
 }
 
@@ -473,10 +604,118 @@ float AddRtFloat(IKSerializable* structure, uint32_t offset, float dt) {
 }
 }  // namespace
 
+// 0x0050f238 AddElementManaSpent_maybe
+void AddElementManaSpent(IKSerializable* structure, uint32_t dragon, uint32_t element, uint32_t amount) {
+    CKS08GameStructure* game = static_cast<CKS08GameStructure*>(structure);
+    const uint32_t offset = (dragon == 0 ? 0x11cu : 0x130u) + element * 4u;
+    game->SetRtWord(offset, game->RtWord(offset) + amount);
+}
+
 // 0x0050f288 AddDragonPlayTime_maybe
 void AddDragonPlayTime(IKSerializable* structure, uint32_t index, float dt) { AddRtFloat(structure, 0x144u + index * 4u, dt); }
 
 // 0x0050f2a8 AddPlayerSlotPlayTime_maybe
 void AddPlayerSlotPlayTime(IKSerializable* structure, uint32_t index, float dt) {
     AddRtFloat(structure, 0x14cu + index * 4u, dt);
+}
+
+// 0x0050bc78 CKS08GameState_Save (C2.8 save-menu): Load's K_GAME_MEMCARD layout written back, word by word (little-endian)
+// and byte by byte.
+int32_t CKS08GameState::Save(IKFile* file, int32_t type) {
+    CKGameState::Save(file, type);
+    if (type != K_GAME_MEMCARD) return 1;
+    for (const uint32_t value : m_aUnk90) WriteU32LE(file, value);
+    for (const uint32_t value : m_aUnkB0) WriteU32LE(file, value);
+    for (const uint32_t value : m_aUnkC4) WriteU32LE(file, value);
+    for (uint32_t i = 0; i < m_vObjectStates.m_ui32NbUsedElt; ++i) file->Write(&m_vObjectStates.m_pBlock[i].m_ui8State, 1);
+    for (const uint32_t value : m_aUnkEC) WriteU32LE(file, value);
+    for (const uint32_t value : m_aUnkF4) WriteU32LE(file, value);
+    for (const uint32_t value : m_aUnkFC) WriteU32LE(file, value);
+    for (const uint32_t value : m_aUnk110) WriteU32LE(file, value);
+    uint32_t bits[3];
+    std::memcpy(bits, m_afUnk124, sizeof(bits));  // lfs / stfs: the words' bits
+    for (const uint32_t value : bits) WriteU32LE(file, value);
+    WriteU32LE(file, m_unk130);
+    for (const TVector<uint8_t, 8>& list : m_avbUnk134) {
+        for (uint32_t j = 0; j < list.m_ui32NbUsedElt; ++j) file->Write(&list.m_pBlock[j], 1);
+    }
+    for (const uint8_t& value : m_aUnk1C4) file->Write(&value, 1);
+    for (int i = 1; i >= 0; --i) {
+        file->Write(&m_aUnkE4[i][2], 1);
+        file->Write(&m_aUnkE4[i][1], 1);
+        file->Write(&m_aUnkE4[i][0], 1);
+    }
+    file->Write(&m_unkEA, 1);
+    file->Write(&m_unkEB, 1);
+    for (const uint8_t& value : m_aUnk1CA) file->Write(&value, 1);
+    return 1;
+}
+
+// 0x005095e0 CKS08GameState_RemoveObjectEntryAt_maybe: entry `index` of the +0xd8 list removed, the later ones moved
+// down (memmove; no caller in the original besides its OPD).
+void CKS08GameState::RemoveObjectEntryAt(uint32_t index) {
+    const uint32_t count = --m_vObjectStates.m_ui32NbUsedElt;
+    ObjectState* entry = &m_vObjectStates.m_pBlock[index];
+    std::memmove(entry, entry + 1, (count - index) * sizeof(ObjectState));
+}
+
+// 0x00509638 CKS08GameState_AddObjectEntry_maybe: `object` appended to the +0xd8 list with state 0 (TVector growth by
+// 8); its index. No caller in the original besides its OPD.
+uint32_t CKS08GameState::AddObjectEntry(IKSerializable* object) {
+    if (m_vObjectStates.m_ui32NbElt == m_vObjectStates.m_ui32NbUsedElt) {
+        uint32_t capacity = m_vObjectStates.m_ui32NbUsedElt + 8;
+        if (capacity == 0) capacity = 8;
+        m_vObjectStates.m_pBlock = static_cast<ObjectState*>(
+            Mem_ReallocAligned16(m_vObjectStates.m_pBlock, capacity * static_cast<uint32_t>(sizeof(ObjectState))));
+        m_vObjectStates.m_ui32NbElt = capacity;
+    }
+    ObjectState* entry = &m_vObjectStates.m_pBlock[m_vObjectStates.m_ui32NbUsedElt];
+    ++m_vObjectStates.m_ui32NbUsedElt;
+    entry->m_ui8State = 0;
+    entry->m_pObject = object;
+    return m_vObjectStates.m_ui32NbUsedElt - 1;
+}
+
+// 0x0050e928 CKS08GameState_Destructor (0x50cc90 _Destructor_2 the same, 0x50e560 _DeletingDestructor then the delete):
+// the twelve byte lists (last to first), then the +0xd8 list freed, each block and length cleared; CKGameState's
+// destructor (inlined there) follows.
+CKS08GameState::~CKS08GameState() {
+    for (uint32_t i = 12; i != 0; --i) {
+        TVector<uint8_t, 8>& list = m_avbUnk134[i - 1];
+        if (list.m_pBlock != nullptr) Mem_FreeAligned16(list.m_pBlock);
+        list.m_pBlock = nullptr;
+        list.m_ui32NbUsedElt = 0;
+    }
+    if (m_vObjectStates.m_pBlock != nullptr) Mem_FreeAligned16(m_vObjectStates.m_pBlock);
+    m_vObjectStates.m_ui32NbUsedElt = 0;
+    m_vObjectStates.m_pBlock = nullptr;
+}
+
+// 0x0050f0b8 CKS08GameStructure_GetEnemyKills_maybe / 0x0050f0d0 _GetBestCombo_maybe / 0x0050f200
+// _GetDragonPlayTime_maybe: the words at +0x10c / +0x114 / the float at +0x144, + index * 4.
+uint32_t CKS08GameStructure::GetEnemyKills(uint32_t index) const { return RtWord(0x10cu + index * 4u); }
+uint32_t CKS08GameStructure::GetBestCombo(uint32_t index) const { return RtWord(0x114u + index * 4u); }
+float CKS08GameStructure::GetDragonPlayTime(uint32_t index) const {
+    const uint32_t bits = RtWord(0x144u + index * 4u);
+    float value;
+    std::memcpy(&value, &bits, sizeof(value));
+    return value;
+}
+
+// 0x0050f0e8 CKS08GameStructure_GetMostUsedElement_maybe: of dragon `dragon`'s (0 Spyro +0x11c, else Cynder +0x130) five
+// element counters, the index of the largest (unsigned): element 4 when its counter is not 0 (else 0) to start, then
+// 3, 2, 1 each taking over when strictly larger; 0 when element 0's counter is larger than that maximum.
+uint32_t CKS08GameStructure::GetMostUsedElement(int32_t dragon) const {
+    const uint32_t base = dragon != 0 ? 0x130u : 0x11cu;
+    uint32_t best = RtWord(base + 0x10);
+    uint32_t index = best != 0 ? 4u : 0u;
+    for (uint32_t i = 3; i != 0; --i) {
+        const uint32_t value = RtWord(base + i * 4u);
+        if (best < value) {
+            best = value;
+            index = i;
+        }
+    }
+    if (RtWord(base) > best) return 0;
+    return index;
 }

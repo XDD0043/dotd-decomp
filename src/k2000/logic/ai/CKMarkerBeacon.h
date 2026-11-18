@@ -11,12 +11,15 @@
 class CKMarkerBeacon : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0xd6)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x358c || key == 0xc; }  // vt+0x08 0x9a6f98
     DOTD_DECLARE_FACTORIES(CKMarkerBeacon)
 
     CKMarkerBeacon() {}  // inlined in 0x00126060 CKMarkerBeacon_Create: only the vtable
     ~CKMarkerBeacon() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00126128 CKMarkerBeacon_Load
+    // vt+0x24 0x00125ec8 CKMarkerBeacon_RecursiveRegistration: type 0 registers it with the saving manager.
+    void RecursiveRegistration(int32_t type) override;
 
     CVector3 m_v3Position;       // +0x04 XXL2 m_v3Position
     float m_qOrientation[4];     // +0x10 XXL2 CQuaternion m_qOrientation (x, y, z, w _maybe)

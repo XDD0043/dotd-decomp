@@ -19,7 +19,13 @@ public:
     CKWeatherPreset() {}  // 0x005ae8a8 CKWeatherPreset_Create: stores the vtable only
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x005ae8e8 CKWeatherPreset_Load
-    // vt+0x30 PostLoad 0x5ae810 returns 1 (the default).
+    // vt+0x30 PostLoad 0x5ae810 returns 1 (the default). vt+0x24 0x5ae808 (RecursiveRegistration) returns 1 and
+    // registers nothing, vt+0x10 0x5ae8e0 (Destroy) is empty: the defaults. 0x5ae6b0 / 0x5ae6e0 / 0x5ae728: the vtable,
+    // then IKComponent's destructor (implicit).
+
+    // 0x005ae758 WeatherPreset_CopyFrom_maybe: every field of `other` but +0x40 / +0x44 (CKHkWeatherCenter's
+    // ApplyPreset copies those two itself).
+    void CopyFrom(const CKWeatherPreset* other);
 
     float m_unk04[8];      // +0x04 eight byte-swapped words read in one 32-byte block (LVL040: floats)
     uint32_t m_unk24[3];   // +0x24 three byte-swapped words read in one 12-byte block (LVL040: 20, 10, 5)

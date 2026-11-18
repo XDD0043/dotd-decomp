@@ -5,17 +5,17 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [ ] 0x41714  FUN_00041714  [dead]
-//   [ ] 0x41888  CKDefaultGameStructure_DestroyGame
+//   [x] 0x41888  CKDefaultGameStructure_DestroyGame
 //   [x] 0x41910  IKGameStructure_ClearReferences
 //   [x] 0x41aa0  CKDefaultGameStructure_PostLoad
 //   [ ] 0x41ca8  CKDefaultGameStructure_IsModuleFlag2SetOrAbsentById_Arr48_maybe  [dead]
 //   [ ] 0x41d70  FUN_00041d70  [dead]
 //   [ ] 0x41d94  FUN_00041d94  [dead]
-//   [ ] 0x41da8  CKDefaultGameStructure_MarkSekensSeenInCurrentLevel_maybe
+//   [x] 0x41da8  CKDefaultGameStructure_MarkSekensSeenInCurrentLevel_maybe  (ported in CKGameState.cpp)
 //   [ ] 0x41db4  CKDefaultGameStructure_MarkSekensSeenInCurrentLevel_maybe_Body  [dead]
 //   [ ] 0x41e80  CKDefaultGameStructure_IsSekensSeenInCurrentLevel_maybe  [dead]
 //   [x] 0x41f90  CKDefaultGameStructure_LoadImpl
-//   [ ] 0x41ff4  KStub_Nop_41ff4
+//   [x] 0x41ff4  KStub_Nop_41ff4  (empty; no live reference: Ghidra's are stray computed calls)
 #include "k2000/misc/IKGameStructure.h"
 
 #include "Spyro2008/logic/IKGameObject.h"
@@ -26,6 +26,9 @@
 #include "k2000/logic/CKGameModule.h"
 #include "k2000/logic/CKTriggerSynchro.h"
 #include "k2000/logic/GameVector.h"
+#include "k2000/logic/CKGameLevel.h"
+#include "k2000/logic/CKGameSpawnPoint.h"
+#include "k2000/misc/CoreSingletons.h"
 
 namespace {
 template <class T>
@@ -94,9 +97,49 @@ int32_t IKGameStructure::Load(IKFile* file, int32_t type) {
     return 1;
 }
 
-// 0x00041aa0 CKDefaultGameStructure_PostLoad. STUB(C2.3): type 1 (GAME.KP3) is not ported, see IKGameStructure.h.
+// 0x00041888 CKDefaultGameStructure_DestroyGame
+void IKGameStructure::DestroyGame() {
+    if (m_vpStates.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_vpStates.m_pBlock);
+        m_vpStates.m_pBlock = nullptr;
+    }
+    m_vpStates.m_ui32NbUsedElt = 0;
+    m_vpStates.m_pBlock = nullptr;
+    if (m_vpStages.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_vpStages.m_pBlock);
+        m_vpStages.m_ui32NbUsedElt = 0;
+        m_vpStages.m_pBlock = nullptr;
+    }
+}
+
+// 0x00041aa0 CKDefaultGameStructure_PostLoad
 int32_t IKGameStructure::PostLoad(int32_t type) {
-    if (type == 0 && m_vpUnk24.m_ui32NbUsedElt != 0) {
+    if (type == 1) {
+        AppConfig* config = Engine_GetBootConfigStruct();  // 0x252a90
+        if (config != nullptr) {
+            const uint32_t* uuid = reinterpret_cast<const uint32_t*>(config->gameStateUuid);  // +0x9c
+            if (!Uuid_IsNull(uuid)) {
+                for (uint32_t i = 0; i < m_vpStates.m_ui32NbUsedElt; ++i) {
+                    if (Uuid_Equals(m_vpStates.m_pBlock[i]->m_guidIdentifier, uuid)) {
+                        m_pStartGameState = m_vpStates.m_pBlock[i];
+                        break;
+                    }
+                }
+            } else if (static_cast<uint32_t>(config->unkAc) < m_vpStates.m_ui32NbUsedElt) {
+                m_pStartGameState = m_vpStates.m_pBlock[static_cast<uint32_t>(config->unkAc)];
+            }
+        }
+        if (m_pStartGameState == nullptr) {
+            m_pCurrentSpawnPoint = nullptr;
+        } else {
+            m_pStartGameState->ApplyToStructure();  // vt+0x70
+            // BUG(original): a start state without a spawn point leaves none current, and this reads through null.
+            CDefaultGameManager* manager = m_pGameManager;
+            const int32_t level = m_pCurrentSpawnPoint->m_pGameStage->m_i32StageIndex;
+            manager->m_requestedSector = m_pCurrentSpawnPoint->m_iSectorIndex;
+            manager->m_requestedLevel = level;
+        }
+    } else if (type == 0 && m_vpUnk24.m_ui32NbUsedElt != 0) {
         for (uint32_t i = 0; i < m_vpUnk24.m_ui32NbUsedElt; ++i) {
             CKTriggerSynchro* synchro = reinterpret_cast<CKTriggerSynchro*>(m_vpUnk24.m_pBlock[i]);
             static_cast<CKGameModule*>(synchro->m_unk10)->m_pTriggerSynchro = synchro;  // CKGameModule_SetField2C_maybe 0x3b4f0

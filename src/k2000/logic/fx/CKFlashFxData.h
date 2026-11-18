@@ -12,6 +12,9 @@
 class CKFlashFxData : public IKFxData {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x5c)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9ac198
+        return key == 0x170c || key == 0x304c || key == 0x6 || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKFlashFxData)
 
     CKFlashFxData() {}  // 0x001ae070 CKFlashFxData_Create: IKFxData, then the vtable
@@ -19,8 +22,10 @@ public:
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001bb870 CKFlashFxData_Load
     // vt+0x30 PostLoad 0x1bb820 calls IKFxData's (returns 1).
     uint32_t GetAssociatedFxClassIdentifier() override { return 0x15cc; }  // vt+0x54 0x1bb408
+    void Destroy() override;                                        // vt+0x10 0x001bb7d8 CKFlashFxData_Destroy
+    int32_t MessageProc(uint16_t message, void* data) override;     // vt+0x1c 0x001bb418 CKFlashFxData_MessageProc
 
-    void* m_pTexture;      // +0x08 IKFile_ReadTextureRef (the texture registry is STUB(C1.3))
+    void* m_pTexture;      // +0x08 an RwTexture (IKFile_ReadTextureRef, a reference taken)
     uint8_t m_Color[4];    // +0x0c XXL2 CColor, read without a swap: the file's bytes
     uint8_t m_unk10;       // +0x10
     uint8_t m_unk11;       // +0x11

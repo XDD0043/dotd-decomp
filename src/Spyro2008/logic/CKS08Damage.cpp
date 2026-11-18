@@ -7,38 +7,39 @@
 //   [x] 0x4eb8c8  CKS08Damage_Delete
 //   [ ] 0x4eb918  RegisterCKS08DamageClass
 //   [ ] 0x4eb990  _GLOBAL__I_4eb990
-//   [ ] 0x4eb9a0  CKS08Damage_Destroy
-//   [ ] 0x4eb9c8  CKS08Damage_PostLoad
-//   [ ] 0x4eb9f0  CKS08Damage_RecursiveRegistration
-//   [ ] 0x4eba18  CKS08Damage_Assign
-//   [ ] 0x4ebab8  CKS08Damage_DeletingDestructor
-//   [ ] 0x4ebb00  CKS08Damage_Destructor
-//   [ ] 0x4ebb30  CKS08Damage_BaseDestructor
-//   [ ] 0x4ebb60  CKS08Damage_Construct_3
-//   [ ] 0x4ebbe8  CKS08Damage_Construct_4
+//   [x] 0x4eb9a0  CKS08Damage_Destroy  (inherited: CKDamage_Destroy)
+//   [x] 0x4eb9c8  CKS08Damage_PostLoad  (= the inherited slot)
+//   [x] 0x4eb9f0  CKS08Damage_RecursiveRegistration  (CKDamage's (returns 1, nothing registered), then 1)
+//   [x] 0x4eba18  CKS08Damage_Assign
+//   [x] 0x4ebab8  CKS08Damage_DeletingDestructor  (the destructor; delete)
+//   [x] 0x4ebb00  CKS08Damage_Destructor  (C++ destructor chain: vtable stores, then CKDamage_BaseDestructor)
+//   [x] 0x4ebb30  CKS08Damage_BaseDestructor  (C++ destructor chain: vtable stores only)
+//   [x] 0x4ebb60  CKS08Damage_Construct_3  (the copy constructor, CKS08Damage.h)
+//   [x] 0x4ebbe8  CKS08Damage_Construct_4  (= 0x4ebb60)
 //   [x] 0x4ebc70  CKS08Damage_Construct
-//   [ ] 0x4ebce0  CKS08Damage_Construct_2
+//   [x] 0x4ebce0  CKS08Damage_Construct_2  (the constructor's second C++ variant)
 //   [x] 0x4ebd50  CKS08Damage_DeleteArray
 //   [x] 0x4ebdf8  CKS08Damage_Load
 //   [ ] 0x4ec040  CKS08Damage_Save
 //   [x] 0x4ec260  CKS08Damage_Create
 //   [x] 0x4ec2f0  CKS08Damage_CreateArray
 //   [x] 0x4ec420  CKS08GameManager_RequestState_maybe
-//   [ ] 0x4ec438  IKCommonGameManager_vf94
-//   [ ] 0x4ec440  IKCommonGameManager_vf98
-//   [ ] 0x4ec450  IKCommonGameManager_vfBC
-//   [ ] 0x4ec458  IKCommonGameManager_vfCC
-//   [ ] 0x4ec4a0  IKCommonGameManager_vfD0
+//   [x] 0x4ec438  IKCommonGameManager_vf94  (IKCommonGameManager's: 1; written out in CKS08GameManager::Vf94Slot, CKS08GameManager_3.cpp)
+//   [x] 0x4ec440  IKCommonGameManager_vf98  (IKCommonGameManager's: +0x494 = 0, 1; written out in CKS08GameManager::Vf98Slot, CKS08GameManager_3.cpp)
+//   [x] 0x4ec450  IKCommonGameManager_vfBC  (IKCommonGameManager's empty part of CKS08GameManager::VfBC (CKS08GameManager_3.cpp))
+//   [x] 0x4ec458  IKCommonGameManager_vfCC  (CKS08GameManager::VfCCCommon, called first by CKS08GameManager::VfCC)
+//   [x] 0x4ec4a0  IKCommonGameManager_vfD0  (IKCommonGameManager's empty part of CKS08GameManager::VfD0 (CKS08GameManager_3.cpp))
 //   [ ] 0x4ec4a8  FUN_004ec4a8  [dead]
 //   [x] 0x4ec540  CKS08GameManager_RequestLevelChange_maybe
-//   [ ] 0x4ec560  IKCommonGameManager_vf2EC
-//   [ ] 0x4ec5b8  CKS08GameManager_vf13C
+//   [x] 0x4ec560  IKCommonGameManager_vf2EC
+//   [x] 0x4ec5b8  CKS08GameManager_vf13C  (local copy GameManagerAcceptsTarget in CKLightningBoltNodeFx.cpp, the only caller)
 //   [ ] 0x4ec658  FUN_004ec658  [dead]
 //
 //   [ ] 0x9c67c8  CKS08Damage_IsKindOfClass  [inline]
 //   [ ] 0x9c6800  CKS08Damage_GetClassType  [inline]
 //   [ ] 0x9c6808  CKS08Damage_GetClassID  [inline]
 #include "Spyro2008/logic/CKS08GameManager.h"
+#include "k2000/logic/CKGameLevel.h"
 
 // 0x004ec420 CKS08GameManager_RequestState_maybe: a game state other than the current one requested (+0x2fa;
 // IKGameManager_Update switches before the frame's update).
@@ -53,6 +54,18 @@ uint8_t CKS08GameManager::RequestLevelChange(int32_t level, int32_t sector) {
     m_requestedSector = sector;
     m_requestedLevel = level;
     return 1;
+}
+
+// 0x004ec560 IKCommonGameManager_vf2EC: the front-end level (+0x2cc) requested, sector 0 (vt+0x2e4).
+uint8_t CKS08GameManager::Vf2ECCommon() {
+    return RequestLevelChange(static_cast<CKGameLevel*>(m_unk2CC)->m_i32StageIndex, 0);
+}
+
+// 0x004ec458 IKCommonGameManager_vfCC: the input frame (vt+0x320), then 0 (no slot chosen). CKS08GameManager::VfCC
+// (CKS08GameManager_3.cpp) calls it first.
+uint8_t CKS08GameManager::VfCCCommon() {
+    Vf320();  // vt+0x320
+    return 0;
 }
 #include "Spyro2008/logic/CKS08Damage.h"
 
@@ -86,4 +99,18 @@ int32_t CKS08Damage::Load(IKFile* file, int32_t type) {
     ReadU8(file, &m_unk25);
     ReadU8(file, &m_unk26);
     return 1;
+}
+
+// 0x004ebb60 CKS08Damage_Construct_3 (0x4ebbe8 _Construct_4 the same): the copy constructor. CKDamage's constructor
+// (the vtable only: BUG(original)? CKDamage's three members are not copied), then +0x10..+0x26 copied. No caller in the
+// original (only their OPDs; the derived copy constructors call the default constructor 0x4ebce0).
+CKS08Damage::CKS08Damage(const CKS08Damage& other) : CKDamage() {
+    m_unk26 = other.m_unk26;
+    m_unk10 = other.m_unk10;
+    m_unk14 = other.m_unk14;
+    m_unk18 = other.m_unk18;
+    m_unk1c = other.m_unk1c;
+    m_unk20 = other.m_unk20;
+    m_unk24 = other.m_unk24;
+    m_unk25 = other.m_unk25;
 }

@@ -5,11 +5,11 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1aa998  CKDetectedMovable_Delete
-//   [ ] 0x1aa9e8  CKDetectedMovable_RecursiveRegistration
+//   [x] 0x1aa9e8  CKDetectedMovable_RecursiveRegistration
 //   [ ] 0x1aaa48  FUN_001aaa48  [dead]
 //   [x] 0x1aab70  CKDetectedMovable_LoadMovable
 //   [ ] 0x1aac98  CKDetectedMovable_Save
-//   [ ] 0x1aaca0  CKDetectedMovable_Destroy
+//   [x] 0x1aaca0  CKDetectedMovable_Destroy
 //   [ ] 0x1aace0  RegisterCKDetectedMovableClass
 //   [ ] 0x1aad58  _GLOBAL__I_1aad58
 //   [x] 0x1aad68  CKDetectedMovable_Load
@@ -33,6 +33,8 @@
 #include "Renderware/rwcore/RwCamera.h"
 #include "Renderware/rwcore/RwMatrix.h"
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 #include "k2000/scenegraph/CSGMovable.h"
 
 // 0x001aab70 CKDetectedMovable_LoadMovable
@@ -75,7 +77,7 @@ void CKDetectedMovable::ActivateSector(int32_t sector) {
     for (Entry* entry = m_lMovables; entry != nullptr; entry = entry->m_pNext) {
         if (static_cast<int32_t>(entry->m_ui32SectorNum) != sector) continue;
         entry->m_bIsLoaded = 1;
-        const RwV3d& position = RwFrameGetLTM(static_cast<CSGMovable*>(entry->m_pMovable)->m_pRwFrame)->pos;
+        const RwV3d& position = FrameLtm(static_cast<CSGMovable*>(entry->m_pMovable)->m_pRwFrame)->pos;
         entry->m_v3OldPos = {position.x, position.y, position.z};
     }
 }
@@ -93,7 +95,7 @@ void CKDetectedMovable::SetDetectablePosition(const IKSerializable* movable, con
 void CKDetectedMovable::RefreshDetectablePositions() {
     for (Entry* entry = m_lMovables; entry != nullptr; entry = entry->m_pNext) {
         if (entry->m_bIsLoaded != 0 && entry->m_unk15 != 0) {
-            const RwV3d& position = RwFrameGetLTM(static_cast<CSGMovable*>(entry->m_pMovable)->m_pRwFrame)->pos;
+            const RwV3d& position = FrameLtm(static_cast<CSGMovable*>(entry->m_pMovable)->m_pRwFrame)->pos;
             entry->m_v3OldPos = {position.x, position.y, position.z};
         }
     }
@@ -115,8 +117,24 @@ void CKDetectedMovable::ActivateDetectableNode(IKSerializable* movable) {
         if (entry->m_bIsLoaded == 0 || entry->m_pMovable != movable || entry->m_unk15 != 0) continue;
         entry->m_unk15 = 1;
         const RwFrame* frame = static_cast<CSGMovable*>(movable)->m_pRwFrame;
-        entry->m_v3OldPos.z = frame->ltm.pos.z;
-        entry->m_v3OldPos.x = frame->ltm.pos.x;
-        entry->m_v3OldPos.y = frame->ltm.pos.y;
+        entry->m_v3OldPos.z = FrameLtm(frame)->pos.z;
+        entry->m_v3OldPos.x = FrameLtm(frame)->pos.x;
+        entry->m_v3OldPos.y = FrameLtm(frame)->pos.y;
     }
+}
+
+// 0x001aa9e8 CKDetectedMovable_RecursiveRegistration
+void CKDetectedMovable::RecursiveRegistration(int32_t type) {
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+}
+
+// 0x001aaca0 CKDetectedMovable_Destroy: the original pushes each entry on the pool's free list.
+void CKDetectedMovable::Destroy() {
+    Entry* entry = m_lMovables;
+    while (entry != nullptr) {
+        Entry* next = entry->m_pNext;
+        delete entry;
+        entry = next;
+    }
+    m_lMovables = nullptr;
 }

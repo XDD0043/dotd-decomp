@@ -5,19 +5,19 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x125e70  CKMarkerBeacon_Delete
-//   [ ] 0x125ec0  CKMarkerBeacon_Destroy
-//   [ ] 0x125ec8  CKMarkerBeacon_RecursiveRegistration
+//   [x] 0x125ec0  CKMarkerBeacon_Destroy  (empty: the default slot)
+//   [x] 0x125ec8  CKMarkerBeacon_RecursiveRegistration  (CKMarkerBeacon.h)
 //   [ ] 0x125f28  CKMarkerBeacon_Save
-//   [ ] 0x125f30  CKMarkerBeacon_PostLoad
+//   [x] 0x125f30  CKMarkerBeacon_PostLoad  (returns 1: the default slot)
 //   [ ] 0x125f38  RegisterCKMarkerBeaconClass
 //   [ ] 0x125fb0  _GLOBAL__I_125fb0
 //   [x] 0x125fc0  CKMarkerBeacon_DeleteArray
 //   [x] 0x126060  CKMarkerBeacon_Create
 //   [x] 0x126098  CKMarkerBeacon_CreateArray
 //   [x] 0x126128  CKMarkerBeacon_Load
-//   [ ] 0x126248  KBase201_vf50
-//   [ ] 0x126258  CKSrvBonus_BasePause_maybe
-//   [ ] 0x126260  CKSrvBonus_BaseResume_maybe
+//   [x] 0x126248  KBase201_vf50  (KBase201::Start, KBase201.h)
+//   [x] 0x126258  CKSrvBonus_BasePause_maybe  (KBase201::Pause, KBase201.h)
+//   [x] 0x126260  CKSrvBonus_BaseResume_maybe  (KBase201::Resume, KBase201.h)
 //
 //   [ ] 0x9a6f70  CKMarkerBeacon_GetClassType  [inline]
 //   [ ] 0x9a6f78  CKMarkerBeacon_GetClassID  [inline]
@@ -27,10 +27,17 @@
 #include "k2000/logic/ai/CKMarkerBeacon.h"
 
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/misc/Engine.h"
 
 // 0x00126128 CKMarkerBeacon_Load: no type test; a 12-byte and a 16-byte read, each word then swapped.
 int32_t CKMarkerBeacon::Load(IKFile* file, int32_t /*type*/) {
     ReadU32LEWords(file, reinterpret_cast<uint32_t*>(&m_v3Position), 3);
     ReadU32LEWords(file, reinterpret_cast<uint32_t*>(m_qOrientation), 4);
     return 1;
+}
+
+// 0x00125ec8 CKMarkerBeacon_RecursiveRegistration
+void CKMarkerBeacon::RecursiveRegistration(int32_t type) {
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
 }

@@ -14,8 +14,8 @@
 //   [ ] 0x117c68  FUN_00117c68  [dead]
 //   [ ] 0x117d20  SoundVoiceManager_ApplyAllVoiceParameters_maybe  [dead]
 //   [x] 0x117db8  SoundEngine_InsertByPriority_maybe
-//   [ ] 0x117f90  SoundInstance_IsOutOfListenerRange_maybe
-//   [ ] 0x1180f8  SoundEngine_GetSharedVoiceCount_maybe
+//   [ ] 0x117f90  SoundInstance_IsOutOfListenerRange_maybe  [dead: no pointer to its descriptor 0xb591d8, no call]
+//   [ ] 0x1180f8  SoundEngine_GetSharedVoiceCount_maybe  [dead: no pointer to its descriptor 0xb591e0, no call]
 //   [ ] 0x118150  SoundVoiceManager_DestroyVoicePool_maybe  [dead]
 //   [ ] 0x118250  SoundVoiceManager_CreateChannelPool_maybe  [dead]
 //   [x] 0x118340  SoundChannelSet_PauseAll_maybe
@@ -30,11 +30,11 @@
 //   [x] 0x118cf8  SoundEngine_Update_maybe
 //   [x] 0x119000  SoundBank_PlaySectorAutoSounds_maybe
 //   [x] 0x119120  SoundVoiceManager_StopAll_maybe
-//   [ ] 0x119298  SoundChannelSet_ReleaseAllVoices_maybe
-//   [ ] 0x119510  CKSoundManager_ReleaseVoicePool_maybe
+//   [x] 0x119298  SoundChannelSet_ReleaseAllVoices_maybe
+//   [x] 0x119510  CKSoundManager_ReleaseVoicePool_maybe
 //   [x] 0x1196a0  SoundVoiceManager_Init_maybe
-//   [ ] 0x1198e8  SoundBackend_ReleaseVoices_maybe
-//   [ ] 0x119b48  SoundVoiceManager_RebuildVoicePool_maybe
+//   [x] 0x1198e8  SoundBackend_ReleaseVoices_maybe
+//   [x] 0x119b48  SoundVoiceManager_RebuildVoicePool_maybe
 //   [x] 0x119d10  SoundBackend_StopSound_maybe
 //   [x] 0x119e50  SoundBackend_PlaySound_maybe
 #include "k2000/sound/SoundVoiceManager.h"
@@ -46,6 +46,8 @@
 #include "k2000/core/IKSerializable.h"
 #include "k2000/dictionaries/CKSoundDictionaryID.h"
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/CKLevel.h"
+#include "k2000/logic/CKSector.h"
 #include "k2000/logic/sound/CKSound.h"
 #include "k2000/logic/sound/CKWave.h"
 #include "k2000/managers/CKSoundManager.h"
@@ -99,6 +101,84 @@ SoundVoiceManager::SoundVoiceManager() {
     m_vpSounds.m_ui32NbUsedElt = 0;
     m_pActiveInstances = nullptr;
     m_pFreeInstances = nullptr;
+}
+
+namespace {
+// A node list back to its pool (FreeListPool at TOC -0x449c +0x14 in the original; SoundNode_Free here).
+void FreeNodes(SoundNode*& list) {
+    SoundNode* node = list;
+    while (node != nullptr) {
+        SoundNode* next = node->m_pNext;
+        SoundNode_Free(node);
+        node = next;
+    }
+    list = nullptr;
+}
+}  // namespace
+
+// Inlined in 0x001137b8 CKSoundManager_DestroyModule (0x113820..0x1138dc).
+SoundVoiceManager::~SoundVoiceManager() {
+    FreeNodes(m_pActiveInstances);
+    FreeNodes(m_pFreeInstances);
+    if (m_vpSounds.m_pBlock != nullptr) Mem_FreeAligned16(m_vpSounds.m_pBlock);
+    m_vpSounds.m_ui32NbUsedElt = 0;
+    m_vpSounds.m_pBlock = nullptr;
+}
+
+// 0x001198e8 SoundBackend_ReleaseVoices_maybe. The pool is destroyed as the original's array delete does it: every
+// voice's SoundVoice_Destroy_maybe from the last to the first (the array cookie's count, Init's m_ui32NbVoices), then
+// the block (OperatorDeleteArray). The stream buffer's pointer is left.
+void SoundVoiceManager::ReleaseVoices() {
+    for (uint32_t i = 0; i < m_ui32NbVoices; ++i) {
+        if (m_aVoices[i].m_pInstance != nullptr) m_aVoices[i].Release();
+    }
+    if (m_aVoices != nullptr) {
+        for (uint32_t i = m_ui32NbVoices; i != 0; --i) m_aVoices[i - 1].Destroy();
+        delete[] m_aVoices;
+    }
+    m_aVoices = nullptr;
+    for (SoundNode* node = m_pFreeInstances; node != nullptr; node = node->m_pNext) {
+        if (node->m_pInstance != nullptr) delete node->m_pInstance;
+    }
+    FreeNodes(m_pFreeInstances);
+    for (SoundNode* node = m_pActiveInstances; node != nullptr; node = node->m_pNext) {
+        if (node->m_pInstance != nullptr) delete node->m_pInstance;
+    }
+    FreeNodes(m_pActiveInstances);
+    m_pListener->Release();
+    if (m_pListener != nullptr) delete m_pListener;  // vt+0x04
+    m_pListener = nullptr;
+    Mem_FreeAligned16(m_pStreamBuffer);
+}
+
+// 0x00119b48 SoundVoiceManager_RebuildVoicePool_maybe (SoundStreamType_SetStreamCount_maybe): the voices released
+// (those with an instance) and destroyed (the array's destructor loop, last first), then the pool built again from the
+// output's voices minus the stream players.
+void SoundVoiceManager::RebuildVoicePool() {
+    for (uint32_t i = 0; i < m_ui32NbVoices; ++i) {
+        if (m_aVoices[i].m_pInstance != nullptr) m_aVoices[i].Release();
+    }
+    if (m_aVoices != nullptr) {
+        for (uint32_t i = m_ui32NbVoices; i != 0;) {  // the array's count word (OperatorNewArray)
+            --i;
+            m_aVoices[i].Destroy();
+        }
+        delete[] m_aVoices;  // OperatorDeleteArray
+    }
+    m_aVoices = nullptr;
+    CKSoundManager* manager = g_pEngine->m_soundManager;
+    const uint32_t outputVoices = manager->m_pOutput->m_unk04;
+    const uint32_t streamVoices = manager->m_pSoundStreamManager->SumVoiceCounts();
+    if (streamVoices < outputVoices) {
+        m_ui32NbVoices = outputVoices - streamVoices;
+        if (m_ui32NbVoices != 0) {
+            m_aVoices = new SoundVoice[m_ui32NbVoices];  // OperatorNewArray(count * 0xc + 4), SoundVoice_Construct_maybe each
+            return;
+        }
+    } else {
+        m_ui32NbVoices = 0;
+    }
+    m_aVoices = nullptr;
 }
 
 // 0x001196a0 SoundVoiceManager_Init_maybe
@@ -320,6 +400,53 @@ void SoundVoiceManager::StopAll() {
         PushFree(this, instance);
     }
     m_pListener->Reset();
+}
+
+// 0x00119510 CKSoundManager_ReleaseVoicePool_maybe
+void SoundVoiceManager::ReleaseVoicePool() {
+    for (uint32_t v = m_ui32NbVoices; v != 0; --v) {
+        if (m_aVoices[v - 1].m_pInstance != nullptr) m_aVoices[v - 1].Release();
+    }
+    for (SoundInstance* it = m_pPriorityList; it != nullptr;) {
+        SoundInstance* next = it->m_pNextPriority;
+        it->m_pNextPriority = nullptr;
+        it = next;
+    }
+    m_pPriorityList = nullptr;
+    while (m_pActiveInstances != nullptr) {
+        SoundInstance* instance = m_pActiveInstances->m_pInstance;
+        instance->Detach();
+        UnlinkActive(this, nullptr, m_pActiveInstances);
+        PushFree(this, instance);
+    }
+    if (m_apSoundDictionary != nullptr) {
+        delete[] m_apSoundDictionary;  // OperatorDeleteArray
+        m_apSoundDictionary = nullptr;
+    }
+}
+
+// 0x00119298 SoundChannelSet_ReleaseAllVoices_maybe (CKSoundManager_Restart): StopAll without the listener reset,
+// then the auto-play sounds of every active sector (the current one, then sector 0) played again.
+void SoundVoiceManager::ReleaseAllVoices() {
+    for (uint32_t v = m_ui32NbVoices; v != 0; --v) {
+        if (m_aVoices[v - 1].m_pInstance != nullptr) m_aVoices[v - 1].Release();
+    }
+    for (SoundInstance* it = m_pPriorityList; it != nullptr;) {
+        SoundInstance* next = it->m_pNextPriority;
+        it->m_pNextPriority = nullptr;
+        it = next;
+    }
+    m_pPriorityList = nullptr;
+    while (m_pActiveInstances != nullptr) {
+        SoundInstance* instance = m_pActiveInstances->m_pInstance;
+        instance->Detach();
+        UnlinkActive(this, nullptr, m_pActiveInstances);
+        PushFree(this, instance);
+    }
+    CKLevel* level = g_pEngine->m_level;
+    for (CKSector* sector = level->IterateActiveSectors(nullptr); sector != nullptr; sector = level->IterateActiveSectors(sector)) {
+        PlaySectorAutoSounds(sector->m_ui16NumSector);  // inlined (the same loop, TOC1 -0x4494 0.0)
+    }
 }
 
 // 0x00119d10 SoundBackend_StopSound_maybe: each instance fades out over the sound's fade-out time

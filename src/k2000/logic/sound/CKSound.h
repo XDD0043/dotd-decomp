@@ -21,6 +21,7 @@ struct SoundNode;
 class CKSound : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0xab)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x2acc || key == 0xc; }  // vt+0x08 0x9a6988
     DOTD_DECLARE_FACTORIES(CKSound)
 
     // m_SoundFlags bits (the readers in CKSound.cpp, SoundVoiceManager.cpp, SoundInstance.cpp)
@@ -35,7 +36,11 @@ public:
     };
 
     CKSound();                                          // 0x00111310 CKSound_Create (inlined)
-    ~CKSound() override {}                              // STUB(C1.6): 0x9a6a28
+    // 0x009a6a28 / 0x009a69a8 CKSound_Destructor / _DeletingDestructor: the instance list's nodes back to their pool
+    // (FreeListPool 0x00ceaa34 in the original; SoundNode_Free), the list cleared. The instances stay with the voice manager.
+    ~CKSound() override;
+    // vt+0x10 0x00111610 CKSound_Destroy: the sound leaves the voice manager's sound list (SoundList_Remove 0x1173c8).
+    void Destroy() override;
     int32_t MessageProc(uint16_t message, void* data) override;  // vt+0x1c 0x00111728 CKSound_MessageProc
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00111d08 CKSound_Load
     int32_t PostLoad(int32_t type) override;            // vt+0x30 0x00111ae0 CKSound_PostLoad

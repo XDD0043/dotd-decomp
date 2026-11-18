@@ -9,19 +9,19 @@
 //   [ ] 0xe4f30  RegisterCKSparkParamClass
 //   [ ] 0xe4fa8  _GLOBAL__I_e4fa8
 //   [x] 0xe4fb8  CKSparkParam_DeleteArray
-//   [ ] 0xe5058  CKSparkParam_Copy_maybe
+//   [x] 0xe5058  CKSparkParam_Copy_maybe  [inline]
 //   [ ] 0xe51e0  CKSparkParam_Construct_2  [dead]
 //   [x] 0xe51f0  CKSparkParam_CreateArray
 //   [x] 0xe5280  CKSparkParam_Create
 //   [ ] 0xe52b8  CKSparkParam_Save
-//   [ ] 0xe52c0  CKSparkParam_RecursiveRegistration
-//   [ ] 0xe52c8  CKSparkParam_PostLoad
-//   [ ] 0xe52d0  CKSparkParam_Destroy
-//   [ ] 0xe5318  CKSparkParam_Destructor
+//   [x] 0xe52c0  CKSparkParam_RecursiveRegistration  (returns 1, registers nothing: the default)
+//   [x] 0xe52c8  CKSparkParam_PostLoad  (returns 1: the default)
+//   [x] 0xe52d0  CKSparkParam_Destroy
+//   [x] 0xe5318  CKSparkParam_Destructor  (C++ destructor chain: vtable stores only)
 //   [ ] 0xe5330  CKSparkParam_Destructor_2  [dead]
-//   [ ] 0xe5348  CKSparkParam_DeletingDestructor
+//   [x] 0xe5348  CKSparkParam_DeletingDestructor  (C++ destructor chain + delete)
 //   [x] 0xe5388  CKSparkParam_Load
-//   [ ] 0xe5b38  CParticlesNodeFx_Delete
+//   [x] 0xe5b38  CParticlesNodeFx_Delete  (DOTD_DECLARE_FACTORIES(CParticlesNodeFx))
 //   [ ] 0xe5b88  FUN_000e5b88  [dead]
 //   [ ] 0xe5b98  FUN_000e5b98  [dead]
 //
@@ -32,6 +32,7 @@
 
 #include <cstring>
 
+#include "Renderware/rwcore/RwTexture.h"
 #include "k2000/io/IKFile.h"
 
 namespace {
@@ -65,4 +66,14 @@ int32_t CKSparkParam::Load(IKFile* file, int32_t type) {
     ReadRaw(file, &m_aUnk98[1], 1);
     ReadRaw(file, &m_aUnk98[2], 1);
     return 1;
+}
+
+// C2.8 port-all P11.
+
+// 0x000e52d0 CKSparkParam_Destroy
+void CKSparkParam::Destroy() {
+    if (m_pTexture94 != nullptr) {
+        RwTextureDestroy(static_cast<RwTexture*>(m_pTexture94));
+        m_pTexture94 = nullptr;
+    }
 }

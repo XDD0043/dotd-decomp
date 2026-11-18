@@ -5,16 +5,16 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1d4890  CKTargetCursorFxData_Delete
 //   [x] 0x1d48e0  CKTargetCursorFxData_GetNodeClassKey
-//   [ ] 0x1d48e8  CKTargetCursorFxData_PostLoad
+//   [x] 0x1d48e8  CKTargetCursorFxData_PostLoad  (returns 1)
 //   [ ] 0x1d48f0  RegisterCKTargetCursorFxDataClass
 //   [ ] 0x1d4968  _GLOBAL__I_1d4968
-//   [ ] 0x1d4978  CKTargetCursorFxData_RecursiveRegistration
+//   [x] 0x1d4978  CKTargetCursorFxData_RecursiveRegistration  (IKFxData's, nothing)
 //   [x] 0x1d49a0  CKTargetCursorFxData_DeleteArray
 //   [x] 0x1d4a48  CKTargetCursorFxData_CreateArray
 //   [x] 0x1d4af0  CKTargetCursorFxData_Create
-//   [ ] 0x1d4b38  CKTargetCursorFxData_GetInfo
-//   [ ] 0x1d4b40  CKTargetCursorFxData_MessageProc
-//   [ ] 0x1d4b70  CKTargetCursorFxData_Destroy
+//   [x] 0x1d4b38  CKTargetCursorFxData_GetInfo  (the default)
+//   [x] 0x1d4b40  CKTargetCursorFxData_MessageProc  (inline in the header)
+//   [x] 0x1d4b70  CKTargetCursorFxData_Destroy  (empty)
 //   [x] 0x1d4b78  CKTargetCursorFxData_Load
 //   [ ] 0x1d51d0  CKTargetCursorFxData_Save
 //
@@ -48,7 +48,7 @@ int32_t CKTargetCursorFxData::Load(IKFile* file, int32_t type) {
     ReadU8(file, &m_unk35);
     ReadF32LE(file, &m_unk38);
     ReadF32LE(file, &m_unk3c);
-    ReadU32LEWords(file, &m_unk40, 3);  // one 12-byte read: +0x40, +0x44, +0x48
+    ReadU32LEWords(file, reinterpret_cast<uint32_t*>(&m_unk40), 3);  // one 12-byte read: +0x40, +0x44, +0x48
     ReadF32LE(file, &m_unk4c);
     ReadF32LE(file, &m_unk50);
     ReadF32LE(file, &m_unk54);

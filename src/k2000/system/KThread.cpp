@@ -6,9 +6,9 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x534f0  StaticInitAndDestruction_534f0
+//   [ ] 0x534f0  StaticInitAndDestruction_534f0  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
 //   [ ] 0x535c0  _GLOBAL__D_535c0
 //   [ ] 0x535d0  _GLOBAL__I_535d0
-//   [ ] 0x535e0  KThread_ReleaseMainThread_maybe
-//   [ ] 0x53680  KThread_IsCurrentMainThread_maybe
-//   [ ] 0x537b0  KThread_InitMainThread_maybe
+//   [ ] 0x535e0  KThread_ReleaseMainThread_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x53680  KThread_IsCurrentMainThread_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x537b0  KThread_InitMainThread_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))

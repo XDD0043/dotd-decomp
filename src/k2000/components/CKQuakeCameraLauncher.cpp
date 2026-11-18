@@ -5,11 +5,11 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1531c8  CKQuakeCameraLauncher_Delete
-//   [ ] 0x153218  CKQuakeCameraLauncher_RecursiveRegistration
+//   [x] 0x153218  CKQuakeCameraLauncher_RecursiveRegistration
 //   [x] 0x153278  CKQuakeCameraLauncher_vf50
 //   [x] 0x153280  CKQuakeCameraLauncher_vf54
-//   [ ] 0x153288  CameraShakeData_CallVf54_maybe
-//   [ ] 0x1532c8  CameraShakeData_SetPosition_maybe
+//   [x] 0x153288  CameraShakeData_CallVf54_maybe  (inlined at its caller CKProjectileTypeBallisticPFX (m_pQuake->Vf54))
+//   [x] 0x1532c8  CameraShakeData_SetPosition_maybe (inline in the header)
 //   [ ] 0x1532e8  CameraShakeData_SetAttachedObject_maybe  [dead]
 //   [ ] 0x1532f0  CameraShakeData_ClearAttachedObject_maybe  [dead]
 //   [ ] 0x153300  CameraShakeData_GetStaticPositionPtr_maybe  [dead]
@@ -18,7 +18,7 @@
 //   [ ] 0x1533b0  _GLOBAL__I_1533b0
 //   [x] 0x1533c0  CKQuakeCameraLauncher_Trigger
 //   [ ] 0x153408  CKQuakeCameraLauncher_Save
-//   [ ] 0x153430  CKQuakeCameraLauncher_Destroy
+//   [x] 0x153430  CKQuakeCameraLauncher_Destroy  (inherited: KStub_Nop_1a5a8)
 //   [x] 0x153458  CKQuakeCameraLauncher_DeleteArray
 //   [x] 0x153500  CKQuakeCameraLauncher_CreateArray
 //   [x] 0x1535b8  CKQuakeCameraLauncher_PostLoad
@@ -42,6 +42,7 @@
 #include "k2000/cameras/IKCamera.h"
 #include "crt/ppc_ops.h"
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/CKSavingManager.h"
 #include "k2000/misc/Engine.h"
 #include "k2000/scenegraph/CSGMovable.h"
 
@@ -92,7 +93,7 @@ float CKQuakeCameraLauncher::GetDistanceAttenuation() const {
     const IKCamera* camera = static_cast<CKSrvCamera*>(g_pEngine->m_srvCamera)->m_pCurrentCamera;
     if (m_unk24 != 0) return 1.0f;
     const float* source = &m_unk10.x;
-    if (m_unk0c != nullptr) source = &static_cast<const CSGMovable*>(m_unk0c)->m_pRwFrame->ltm.pos.x;
+    if (m_unk0c != nullptr) source = &FrameLtm(static_cast<const CSGMovable*>(m_unk0c)->m_pRwFrame)->pos.x;
     const float dy = source[1] - camera->m_WorldPosition.y;
     const float dx = source[0] - camera->m_WorldPosition.x;
     const float dz = source[2] - camera->m_WorldPosition.z;
@@ -100,4 +101,11 @@ float CKQuakeCameraLauncher::GetDistanceAttenuation() const {
     if (distance < m_unk1c) return 1.0f;
     if (distance > m_unk20) return 0.0f;
     return (m_unk20 - distance) / (m_unk20 - m_unk1c);
+}
+
+// C2.8 port-all P11.
+
+// 0x00153218 CKQuakeCameraLauncher_RecursiveRegistration
+void CKQuakeCameraLauncher::RecursiveRegistration(int32_t type) {
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
 }

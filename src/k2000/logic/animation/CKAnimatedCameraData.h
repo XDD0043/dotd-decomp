@@ -11,6 +11,7 @@ class IKFile;
 class CKAnimatedCameraData : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x27a)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x9e8c || key == 0xc; }  // vt+0x08 0x9cd2f8
     DOTD_DECLARE_FACTORIES(CKAnimatedCameraData)
 
     // 0x005c0a58 CKAnimatedCameraData_Create: the vtable only (as the dead CKAnimatedCameraData_Construct 0x5c0698).
@@ -29,6 +30,12 @@ public:
     virtual float GetSpeed(uint32_t index) const { return index < 12 ? m_aUnk44[index] : 1.0f; }
     virtual float GetUnk74(uint32_t index) const { return index > 11 ? 0.0f : m_aUnk74[index]; }
     virtual uint8_t GetAlignToCamera(uint32_t index) const { return index < 12 ? m_aUnkA4[index] : 0; }
+    virtual void Vf60() {}  // vt+0x60 0x005c06b8 CKAnimatedCameraData_vf60 (empty)
+    // vt+0x30 0x005c0b28 CKAnimatedCameraData_PostLoad: vt+0x60, then 1.
+    int32_t PostLoad(int32_t /*type*/) override {
+        Vf60();
+        return 1;
+    }
 
     float m_unk04;         // +0x04 100.0 in LVL010
     uint8_t m_aUnk08[12];  // +0x08 read with m_aUnk14, one byte and one word per entry

@@ -9,6 +9,9 @@
 class CMultiGeometry : public CMultiGeometryBasic {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x9e)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9ab148
+        return key == 0x278c || key == 0x314c || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CMultiGeometry)
 
     CMultiGeometry() {}  // 0x001aa960 CMultiGeometry_Create: only the vtable

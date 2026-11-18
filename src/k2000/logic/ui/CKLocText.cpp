@@ -8,7 +8,7 @@
 //   [ ] 0x2cce0  CKLocText_ConstructBase_2_maybe  [dead]
 //   [x] 0x2cd18  CKLocText_ConstructBase_maybe
 //   [x] 0x2cd50  CKTextBase_700c_maybe_vf0
-//   [ ] 0x2cd70  CKTextBase_700c_maybe_BaseDestructor
+//   [x] 0x2cd70  CKTextBase_700c_maybe_BaseDestructor  (the same as 0x2cd50: ~KBase700C)
 //   [x] 0x2cd90  CKTextBase_700c_maybe_DeletingDestructor
 // KBase700C's constructor (0x2cd18), destructors (0x2cd50, 0x2cd90) and Destroy (0x2ccb8, IKGameObject's)
 // are inline in k2000/ui/KBase700C.h.

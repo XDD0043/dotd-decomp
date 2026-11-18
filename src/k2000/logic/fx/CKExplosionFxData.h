@@ -13,6 +13,7 @@
 #pragma once
 #include <cstdint>
 
+#include "k2000/components/CKParticlesCpnt.h"
 #include "k2000/components/CKQuakeCameraLauncher.h"
 #include "k2000/core/Layout.h"
 #include "k2000/logic/IKFxData.h"
@@ -23,6 +24,9 @@
 class CKExplosionFxData : public IKFxData {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x6a)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9aba20
+        return key == 0x1a8c || key == 0x304c || key == 0x6 || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKExplosionFxData)
 
     // vtable 0xb1c9f0 (names ours). +0x08 is read last by Load for every part.
@@ -32,26 +36,14 @@ public:
         uint32_t m_type;     // +0x04
         float m_unk08;       // +0x08 (type 0 stores 0.0f, the others integer 0)
     };
-    // Type 0, vtable 0xb1ca08, 0x70 bytes.
+    // Type 0, vtable 0xb1ca08, 0x70 bytes: a particle emission (CKExplosionNodeFx_FireSubEffect queues it on the
+    // sub-effect's particle component with these overrides, QueueParticleComponentEmission 0x1da840).
     struct PartType0 : Part {
         PartType0();         // inlined in CreatePart
-        uint32_t m_unk0c;    // +0x0c
-        uint32_t m_unk10;    // +0x10
-        CVector3 m_unk14;    // +0x14 (1, 1, 1)
-        CVector3 m_unk20;    // +0x20
-        CVector3 m_unk2c;    // +0x2c
-        CVector3 m_unk38;    // +0x38
-        float m_unk44;       // +0x44 5.0
-        float m_unk48;       // +0x48 1.0
-        float m_unk4c;       // +0x4c 1.0
-        float m_unk50;       // +0x50 1.0
-        float m_unk54;       // +0x54
-        float m_unk58;       // +0x58
-        float m_unk5c;       // +0x5c 1.0
-        float m_unk60;       // +0x60 1.0
-        float m_unk64;       // +0x64
-        float m_unk68;       // +0x68
-        uint32_t m_unk6c;    // +0x6c 0x1ff; not read
+        // +0x0c: emtPrtEmit 0, bias 0, emitter size (1, 1, 1), force 0, direction 0, direction bias 0, velocity 5.0,
+        // velocity bias 1.0, sizes (1, 1, 0, 0, 1, 1, 0, 0); the mask (+0x6c) 0x1ff (every value), not read from
+        // the file.
+        ParticleEmitOverrides m_overrides;
     };
     // Type 1, vtable 0xb1ca20, 0x40 bytes.
     struct PartType1 : Part {
@@ -73,9 +65,21 @@ public:
     CKExplosionFxData();  // 0x001ae948 CKExplosionFxData_Create (the constructor is inlined there)
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001b4328 CKExplosionFxData_Load
-    // vt+0x30 PostLoad 0x1b36f0 (stays the default in C1.3): counts the sound dictionary's loaded sounds
-    // into +0x20.
+    // vt+0x10 0x001b39e8 CKExplosionFxData_Destroy: every part deleted (vt+0x04), the list shrinking by 10 as it empties
+    // (the first removed each time), then emptied with a ten-element block.
+    void Destroy() override;
+    // vt+0x24 0x001b37a0 CKExplosionFxData_RecursiveRegistration (C2.8 save-menu): the FX data base's (KStub_Return1
+    // 0x1d8340: nothing), type 0 the sounds, the vibration and the quake launcher; then the objects of the parts of type
+    // 1 and above with `type`.
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x30 0x001b36f0 CKExplosionFxData_PostLoad: the sound dictionary's sounds that have a sample, counted into
+    // +0x20 (Trigger picks one of the first that many).
+    int32_t PostLoad(int32_t type) override;
     uint32_t GetAssociatedFxClassIdentifier() override { return 0x1a4c; }  // vt+0x54 0x1b3500
+    // vt+0x1c 0x001b3c78 CKExplosionFxData_MessageProc: 0x1b00 (data: the address of a placement, a CKMarkerBeacon in
+    // LVL010: +0x04 the position, +0x10 the rotation quaternion) and 0x1b02 (data: the address of a hook, its node's world matrix; the identity
+    // without a node) set off one of the data's explosions there.
+    int32_t MessageProc(uint16_t message, void* data) override;
 
     // 0x001b3510 CKExplosionFxData_CreateElementByType_maybe
     Part* CreatePart(uint32_t type);
@@ -97,10 +101,7 @@ DOTD_ASSERT_SIZE(CKExplosionFxData::Part, 0xc);
 DOTD_ASSERT_SIZE(CKExplosionFxData::PartType0, 0x70);
 DOTD_ASSERT_SIZE(CKExplosionFxData::PartType1, 0x40);
 DOTD_ASSERT_SIZE(CKExplosionFxData::PartObject, 0x10);
-DOTD_ASSERT_OFFSET(CKExplosionFxData::PartType0, m_unk0c, 0x0c);
-DOTD_ASSERT_OFFSET(CKExplosionFxData::PartType0, m_unk14, 0x14);
-DOTD_ASSERT_OFFSET(CKExplosionFxData::PartType0, m_unk44, 0x44);
-DOTD_ASSERT_OFFSET(CKExplosionFxData::PartType0, m_unk6c, 0x6c);
+DOTD_ASSERT_OFFSET(CKExplosionFxData::PartType0, m_overrides, 0x0c);
 DOTD_ASSERT_OFFSET(CKExplosionFxData::PartType1, m_pObject, 0x0c);
 DOTD_ASSERT_OFFSET(CKExplosionFxData::PartType1, m_unk1c, 0x1c);
 DOTD_ASSERT_OFFSET(CKExplosionFxData::PartType1, m_unk34, 0x34);

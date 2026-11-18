@@ -11,6 +11,9 @@
 class CKSrvCounter : public IKService {
 public:
     DOTD_CLASS_KEY(kCategoryService, 0x11)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9b1438
+        return key == 0x441 || key == 0x1 || key == 0x3fe || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKSrvCounter)
 
     CKSrvCounter();  // 0x00201558 CKSrvCounter_Construct
@@ -18,11 +21,12 @@ public:
 
     void Destroy() override;  // vt+0x10 0x002014c0 CKSrvCounter_Destroy
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00201ad8 CKSrvCounter_Load
-    void Start() override {}                            // vt+0x50 0x201a20  STUB(C1.6)
-    void Stop() override {}                             // vt+0x68 0x2013e8  STUB(C1.6)
-    void Pause() override {}                            // vt+0x70 0x2013f0  STUB(C1.6)
-    void Resume() override {}                           // vt+0x78 0x2013f8  STUB(C1.6)
-    void Update(IKTime*) override {}                    // vt+0x7c 0x201838 UpdateCKSrvCounter  STUB(C1.6)
+    void Start() override;                              // vt+0x50 0x00201a20 CKSrvCounter_Start
+    void Restart() override;                            // vt+0x54 0x00201730 CKSrvCounter_Restart
+    void Stop() override {}                             // vt+0x68 0x2013e8 CKSrvCounter_Stop (empty)
+    void Pause() override {}                            // vt+0x70 0x2013f0 CKSrvCounter_Pause (empty)
+    void Resume() override {}                           // vt+0x78 0x2013f8 CKSrvCounter_Resume (empty)
+    void Update(IKTime* clock) override;                // vt+0x7c 0x00201838 UpdateCKSrvCounter
     int32_t InitializeService() override { return 1; }  // vt+0x94 0x201400
     void DestroyService() override {}                   // vt+0x98 0x201408 (empty)
 

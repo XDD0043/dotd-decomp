@@ -9,10 +9,10 @@
 //   [ ] 0x18d518  RegisterCKTeleportCinematicBlocClass
 //   [ ] 0x18d590  _GLOBAL__I_18d590
 //   [x] 0x18d5a0  CKTeleportCinematicBloc_Stop
-//   [ ] 0x18d780  CKTeleportCinematicBloc_RecursiveRegistration
+//   [x] 0x18d780  CKTeleportCinematicBloc_RecursiveRegistration  (inherited: IKCinematicBloc_LevelReset, a tail call)
 //   [x] 0x18d7a8  CKTeleportCinematicBloc_DeleteArray
 //   [x] 0x18d858  CKTeleportCinematicBloc_Create
-//   [ ] 0x18d8f8  CKTeleportCinematicBloc_Destroy
+//   [x] 0x18d8f8  CKTeleportCinematicBloc_Destroy  (empty: the default)
 //   [x] 0x18d900  CKTeleportCinematicBloc_Load
 //   [x] 0x18da78  CKTeleportCinematicBloc_CreateArray
 //   [ ] 0x18dbb8  CKTeleportCinematicBloc_Save

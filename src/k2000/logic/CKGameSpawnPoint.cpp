@@ -3,37 +3,44 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x3cb70  CKGameSpawnPoint_IsCurrentLevel
-//   [ ] 0x3cbd8  CKGameSpawnPoint_GetBeaconPosition_maybe
-//   [ ] 0x3ccf8  CKGameSpawnPoint_vf78
+//   [x] 0x3cb70  CKGameSpawnPoint_IsCurrentLevel
+//   [x] 0x3cbd8  CKGameSpawnPoint_GetBeaconPosition_maybe
+//   [x] 0x3ccf8  CKGameSpawnPoint_vf78
 //   [ ] 0x3cd00  RegisterCKGameSpawnPointClass
 //   [ ] 0x3cd78  _GLOBAL__I_3cd78
 //   [x] 0x3cd88  CKGameSpawnPoint_Activate_maybe
-//   [ ] 0x3d1f8  CKGameSpawnPoint_ClearGameData_maybe
+//   [x] 0x3d1f8  CKGameSpawnPoint_ClearGameData_maybe
 //   [x] 0x3d220  CKGameSpawnPoint_ClearLevelData_maybe
 //   [x] 0x3d258  CKGameSpawnPoint_InitLevelData_maybe
 //   [x] 0x3d2b8  CKGameSpawnPoint_InitGameData
-//   [ ] 0x3d300  CKGameSpawnPoint_PostLoad
+//   [x] 0x3d300  CKGameSpawnPoint_PostLoad  (empty / no effect: inherited)
 //   [ ] 0x3d368  CKGameSpawnPoint_Save
-//   [ ] 0x3d390  CKGameSpawnPoint_RecursiveRegistration
-//   [ ] 0x3d3b8  CKGameSpawnPoint_Destroy
+//   [x] 0x3d390  CKGameSpawnPoint_RecursiveRegistration  (inherited: IKGameObject_vf24, nothing)
+//   [x] 0x3d3b8  CKGameSpawnPoint_Destroy  (inherited: IKGameObject_Destroy)
 //   [x] 0x3d3e0  CKGameSpawnPoint_DeleteArray
 //   [x] 0x3d490  CKGameSpawnPoint_Create
-//   [ ] 0x3d508  CKGameSpawnPoint_GetInfo
-//   [ ] 0x3d560  CKGameSpawnPoint_MessageProc
+//   [x] 0x3d508  CKGameSpawnPoint_GetInfo
+//   [x] 0x3d560  CKGameSpawnPoint_MessageProc
 //   [x] 0x3d700  CKGameSpawnPoint_CreateArray
 //   [x] 0x3d7f0  CKGameSpawnPoint_Load
 //
 //   [ ] 0x994f58  CKGameSpawnPoint_IsKindOfClass  [inline]
 //   [x] 0x994f80  CKGameSpawnPoint_GetClassType  [inline]
 //   [x] 0x994f88  CKGameSpawnPoint_GetClassID  [inline]
-//   [ ] 0x994f90  CKGameSpawnPoint_vf74  [inline]
-//   [ ] 0x994fe8  CKGameSpawnPoint_IsCurrentSpawnPoint_maybe  [inline]
+//   [x] 0x994f90  CKGameSpawnPoint_vf74  [inline]
+//   [x] 0x994fe8  CKGameSpawnPoint_IsCurrentSpawnPoint_maybe  [inline]
 //   [ ] 0x995018  CKGameSpawnPoint_DeletingDestructor  [inline]
 //   [ ] 0x995068  CKGameSpawnPoint_Destructor  [inline]
 #include "k2000/logic/CKGameSpawnPoint.h"
 
+#include <cstring>
+
+#include "k2000/core/IKInfo.h"
 #include "k2000/core/Stub.h"
+#include "k2000/logic/CDefaultGameManager.h"
+#include "k2000/logic/ai/CKBeaconKluster.h"
+#include "k2000/misc/IKGameStructure.h"
+#include "k2000/services/CKSrvBeacon.h"
 #include "k2000/graphical/CHDRData.h"
 #include "k2000/io/IKFile.h"
 #include "k2000/logic/CKGameLevel.h"
@@ -76,6 +83,74 @@ void CKGameSpawnPoint::InitializeGameData() {
 void CKGameSpawnPoint::DestroyLevelData() {
     IKGameObject::DestroyLevelData();  // 0x42d90
     m_pHDRFxData = nullptr;
+}
+
+// 0x0003d1f8 CKGameSpawnPoint_ClearGameData_maybe
+void CKGameSpawnPoint::DestroyGameData() { IKGameObject::DestroyGameData(); }
+
+// 0x0003cb70 CKGameSpawnPoint_IsCurrentLevel
+uint8_t CKGameSpawnPoint::GetMatchesThisLevel() {
+    if (m_pGameStage == nullptr) return 0;
+    return m_pGameStage->GetMatchesThisLevel() != 0 ? 1 : 0;  // vt+0x54
+}
+
+// 0x0003d560 CKGameSpawnPoint_MessageProc
+int32_t CKGameSpawnPoint::MessageProc(uint16_t message, void*) {
+    if (message == 0x203) {
+        m_pGameStage->m_pGameStructure->SetCurrentSpawnPoint(this);  // vt+0x6c
+        CDefaultGameManager* manager = m_pGameStage->GetGameManager();  // 0x391e0
+        const int32_t level = m_pGameStage->m_i32StageIndex;
+        manager->m_requestedSector = m_iSectorIndex;
+        manager->m_requestedLevel = level;
+        return 0;
+    }
+    if (message == 0x204) {
+        m_pGameStage->m_pGameStructure->SetCurrentSpawnPoint(this);  // vt+0x6c
+        g_pEngine->m_gameManager->RequestSave(1, 0);                 // vt+0x104
+        return 0;
+    }
+    if (message != 0x202) return 1;
+    m_pGameStage->m_pGameStructure->SetCurrentSpawnPoint(this);  // vt+0x6c
+    return 0;
+}
+
+// 0x0003d508 CKGameSpawnPoint_GetInfo
+int32_t CKGameSpawnPoint::GetInfo(IKInfo* info, int32_t request) {
+    if (request != kGetInfoValueAccessor || info->m_ui32Id != 3) return 1;
+    // 0x00994fe8 CKGameSpawnPoint_IsCurrentSpawnPoint_maybe: its stage's structure's current spawn point is it.
+    return AnswerInfo(info, [](IKSerializable* o, uint32_t) -> uint32_t {
+        CKGameSpawnPoint* point = static_cast<CKGameSpawnPoint*>(o);
+        return point->m_pGameStage->m_pGameStructure->m_pCurrentSpawnPoint == point ? 1u : 0u;
+    }, 0);
+}
+
+// 0x0003cbd8 CKGameSpawnPoint_GetBeaconPosition_maybe: the beacon service's sector (accessor half 0), kluster (1),
+// the kluster's set of the id (2) and the set's beacon (3).
+void CKGameSpawnPoint::GetBeaconPosition(float* position) {
+    // BUG(original): a sector without klusters reads the half-words at addresses 0, 2 and 4; an id without a set
+    // (0xff) reads the set at address 0.
+    const uint8_t* beacon = nullptr;
+    CKSrvBeacon* service = static_cast<CKSrvBeacon*>(g_pEngine->m_srvBeacon);
+    CKSrvBeacon::CKBeaconSector& sector = service->m_aBeaconSectors[m_baCameraPosition[0]];
+    if (sector.m_apBeaconKlusters != nullptr) {
+        CKBeaconKluster* kluster = reinterpret_cast<CKBeaconKluster**>(sector.m_apBeaconKlusters)[m_baCameraPosition[1]];
+        const uint8_t setIndex = static_cast<uint8_t>(kluster->m_ai8IdToBeaconSet[m_baCameraPosition[2]]);
+        CKSrvBeacon::CKBeaconSet* set = nullptr;
+        if (setIndex != 0xff) set = kluster->m_aBeaconSets + static_cast<int8_t>(setIndex);
+        beacon = static_cast<const uint8_t*>(set->m_aBeacons) + static_cast<uint32_t>(m_baCameraPosition[3]) * set->m_ui8VolatileSizeBytes;
+    }
+    int16_t halves[3];
+    std::memcpy(halves, beacon, 6);
+    position[0] = static_cast<float>(halves[0]) * 0.1f;  // TOC1 -0x7688
+    position[1] = static_cast<float>(halves[1]) * 0.1f;
+    position[2] = static_cast<float>(halves[2]) * 0.1f;
+}
+
+// 0x00994f90 CKGameSpawnPoint_vf74
+uint8_t CKGameSpawnPoint::HasCameraBeacon() {
+    const bool none = m_baCameraPosition[0] == 0xffff && m_baCameraPosition[1] == 0xffff && m_baCameraPosition[2] == 0xffff &&
+                      m_baCameraPosition[3] == 0xffff;
+    return none ? 0 : 1;
 }
 
 // 0x0003d7f0 CKGameSpawnPoint_Load

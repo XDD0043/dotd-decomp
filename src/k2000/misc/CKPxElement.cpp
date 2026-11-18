@@ -6,13 +6,13 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x218040  CKPxElement_468c_maybe_ConstructBase
 //   [ ] 0x218050  CKPxElement_468c_maybe_ConstructBase_2  [dead]
-//   [ ] 0x218060  CKPxElement_468c_maybe_vf28
-//   [ ] 0x218068  CKPxElement_468c_maybe_vf24
-//   [ ] 0x218070  CKPxObject_ClearReferences_BaseNop_maybe
+//   [x] 0x218060  CKPxElement_468c_maybe_vf28  (Save: returns 1, the default slot)
+//   [x] 0x218068  CKPxElement_468c_maybe_vf24  (RecursiveRegistration: returns 1, the default slot)
+//   [x] 0x218070  CKPxObject_ClearReferences_BaseNop_maybe  (empty)
 //   [x] 0x218078  CKPxElement_468c_maybe_Load
-//   [ ] 0x218260  CKPxElement_468c_maybe_DeletingDestructor
-//   [ ] 0x2182a0  CKPxElement_468c_maybe_vf0
-//   [ ] 0x2182b8  CKPxElement_468c_maybe_BaseDestructor
+//   [x] 0x218260  CKPxElement_468c_maybe_DeletingDestructor  (the destructor; delete)
+//   [x] 0x2182a0  CKPxElement_468c_maybe_vf0  (C++ destructor chain: vtable stores only)
+//   [x] 0x2182b8  CKPxElement_468c_maybe_BaseDestructor  (C++ destructor chain: vtable stores only)
 //
 //   [ ] 0x9b2b30  CKPxElement_468c_maybe_vf14  [inline]
 //   [ ] 0x9b2b38  CKPxElement_468c_maybe_vf18  [inline]

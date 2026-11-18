@@ -9,8 +9,8 @@
 //   [x] 0x564778  CKS08MenuStartPlayer_vfDC
 //   [x] 0x5647c0  CKS08MenuStartPlayer_Load
 //   [ ] 0x5647e8  CKS08MenuStartPlayer_Save
-//   [ ] 0x564810  CKS08MenuStartPlayer_RecursiveRegistration
-//   [ ] 0x564838  CKS08MenuStartPlayer_Destroy
+//   [x] 0x564810  CKS08MenuStartPlayer_RecursiveRegistration  (inherited: CKMenuBase114c's (0x513c38, KBase730C's))
+//   [x] 0x564838  CKS08MenuStartPlayer_Destroy  (inherited: TocBridge_CKMenuBase_114c_maybe_Destroy)
 //   [x] 0x564860  CKS08MenuStartPlayer_DeleteArray
 //   [ ] 0x564900  RegisterCKS08MenuStartPlayerClass
 //   [ ] 0x564988  _GLOBAL__D_564988
@@ -19,10 +19,10 @@
 //   [ ] 0x564af8  CKS08MenuStartPlayer_Construct_2  [dead]
 //   [x] 0x564ba0  CKS08MenuStartPlayer_CreateArray
 //   [x] 0x564ce0  CKS08MenuStartPlayer_Create
-//   [ ] 0x564dc8  CKS08MenuStartPlayer_Destructor_2
-//   [ ] 0x564f00  CKS08MenuStartPlayer_DeletingDestructor
-//   [ ] 0x565038  CKS08MenuStartPlayer_Destructor
-//   [ ] 0x565170  CKS08MenuStatsGame_Delete
+//   [x] 0x564dc8  CKS08MenuStartPlayer_Destructor_2  (the same as 0x565038 CKS08MenuStartPlayer_Destructor)
+//   [x] 0x564f00  CKS08MenuStartPlayer_DeletingDestructor  (the deleting form of 0x565038 CKS08MenuStartPlayer_Destructor)
+//   [x] 0x565038  CKS08MenuStartPlayer_Destructor  (~CKMenuBase114c inlined (the same frees as 0x5642d8, checked))
+//   [x] 0x565170  CKS08MenuStatsGame_Delete  (DOTD_DECLARE_FACTORIES(CKS08MenuStatsGame))
 //   [ ] 0x5651c0  Time_SplitSecondsToHMS  [dead]
 //
 //   [x] 0x9ca3a8  CKS08MenuStartPlayer_IsKindOfClass  [inline]

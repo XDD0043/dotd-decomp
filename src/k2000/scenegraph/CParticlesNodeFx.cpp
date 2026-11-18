@@ -8,4 +8,4 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [ ] 0xe5ba8  RegisterCParticlesNodeFxClass
 //   [ ] 0xe5c20  _GLOBAL__I_e5c20
-//   [ ] 0xe5c30  CParticlesNodeFx_GetInfo
+//   [x] 0xe5c30  CParticlesNodeFx_GetInfo  (INodeFx's 1 mapped to 1: the default)

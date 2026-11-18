@@ -11,13 +11,22 @@
 class CKDetectorEvent : public CKDetectorBase {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0xa0)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9ab008
+        return key == 0x280c || key == 0x270c || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKDetectorEvent)
 
     CKDetectorEvent() {}  // inlined in 0x001a9fb8 CKDetectorEvent_Create: only the vtable
     ~CKDetectorEvent() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001a9ca8 CKDetectorEvent_Load
-    void Detect() override {}  // vt+0x50 0x1a99b0 CKDetectorEvent_FireDetectionEvents_maybe  STUB(C2.2)
+    // vt+0x50 0x001a99b0 CKDetectorEvent_FireDetectionEvents_maybe: the base's detection (called directly), then the
+    // trigger starters of what happened: [0] entered (GetDetectionType(0)), [1] inside (1), [2] left (2). 0 when the
+    // base did not detect.
+    int32_t Detect() override;
+    // vt+0x40 0x001a9b20 CKDetectorEvent_GetInfo: the base's values, then 100 (GetDetectionType(1), a byte: accessor
+    // 0x1a98e0 CKDetectorEvent_QueryVf54Mode1_maybe); the answers merged (2 wins, then the base's 0).
+    int32_t GetInfo(IKInfo* info, int32_t request) override;
 
     CTriggerStarter m_tsDetectTrigger[3];  // +0x14 XXL2 m_tsDetectTrigger
 };

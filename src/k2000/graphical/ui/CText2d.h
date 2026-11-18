@@ -42,6 +42,17 @@ public:
     // 0x000664e8 CText2d_InitDefaults_maybe: the defaults of a text made by code (CManager2d_Init_maybe's
     // system text): node and text fields, the engine's loc manager and a new brush.
     void InitDefaults();
+    // vt+0x10 0x00065f88 CText2d_Destroy: IKNode2d's (FreeMemory), then the text part's (Text2dBlock_ClearReferences
+    // 0x6a0c0: FreeMemoryText2D through its vt+0x14).
+    void Destroy() override;
+    // vt+0x24 0x00065fd0 CText2d_RecursiveRegistration: IKNode2d's, then the text accessor's (CText2d_RetokenizeText_maybe
+    // 0x6a148: the text part's +0x714 vt+0x24, no null test).
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x78 0x00066090 CText2d_GetBoundingRect: the text part's aligned rect at the node's position, then IKNode2d's
+    // (empty).
+    void GetBoundingBox(CBox2D* box) const override;
+    // vt+0x68 0x00066810 CText2d_Hide (IKNode2d Disable): the enabled bit cleared, then the linked node's (+0x740) Disable.
+    void Disable() override;
 
     // +0x740 a reference; PostLoad (0x66628, K_LEVEL_PLATEFORMS) calls its vt+0x68 (IKNode2d::Disable_maybe).
     IKSerializable* m_unk740;  // an IKNode2d

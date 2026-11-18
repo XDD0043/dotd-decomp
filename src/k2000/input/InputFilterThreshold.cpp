@@ -7,10 +7,10 @@
 //   [x] 0x103040  InputFilterThreshold_Filter_maybe
 //   [x] 0x1030b0  InputFilterThreshold_Filter_2_maybe
 //   [x] 0x103120  InputFilterThreshold_Init_maybe
-//   [ ] 0x1031f0  InputFilterThreshold_Destructor_maybe
+//   [x] 0x1031f0  InputFilterThreshold_Destructor_maybe  (the implicit destructor (~IKFilter: vtable store only))
 //   [ ] 0x103200  InputFilterThreshold_Construct_2_maybe  [dead]
 //   [ ] 0x103248  InputFilterThreshold_Destructor_2_maybe  [dead]
-//   [ ] 0x103258  InputFilterThreshold_DeletingDestructor_maybe
+//   [x] 0x103258  InputFilterThreshold_DeletingDestructor_maybe  (the implicit destructor, delete)
 //
 //   [x] 0x9a6378  InputFilterThreshold_GetByte5_maybe  [inline]
 //   [x] 0x9a6380  KStub_Return1_9a6380  [inline]

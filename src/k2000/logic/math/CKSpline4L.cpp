@@ -4,7 +4,7 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0xc6410  CKSpline4L_Delete
-//   [ ] 0xc6460  CKSpline4L_RecursiveRegistration
+//   [x] 0xc6460  CKSpline4L_RecursiveRegistration  (IKSerializable's: returns 1)
 //   [ ] 0xc6468  CKSpline4L_Save
 //   [ ] 0xc6470  CKSpline4L_Construct  [dead]
 //   [ ] 0xc64b8  CKSpline4L_SetSampleCount_maybe  [dead]
@@ -12,9 +12,9 @@
 //   [ ] 0xc6528  RegisterCKSpline4LClass
 //   [ ] 0xc65a0  _GLOBAL__I_c65a0
 //   [x] 0xc65b0  CKSpline4L_DeleteArray
-//   [ ] 0xc6650  CKSpline4L_vf50
+//   [x] 0xc6650  CKSpline4L_vf50  (IKPath::GetPointAt in CKLine.cpp: the same body)
 //   [x] 0xc66a8  CKSpline4L_GetClosestDistanceAlong
-//   [ ] 0xc6df0  CKSpline4L_Destroy
+//   [x] 0xc6df0  CKSpline4L_Destroy  (empty: IKSerializable's)
 //   [x] 0xc6df8  CKSpline4L_CreateArray
 //   [x] 0xc6ed0  CKSpline4L_Create
 //   [x] 0xc6f40  CKSpline4L_Load
@@ -55,8 +55,7 @@ int32_t CKSpline4L::Load(IKFile* file, int32_t /*type*/) {
     return 1;
 }
 
-// IKPath's slots vt+0x54 / +0x58 / +0x5c are pure in the original; CKLine has its own (CKLine.cpp, step 6) and
-// CKSpline4's are not ported (LVL010 has no CKSpline4).
+// IKPath's slots vt+0x54 / +0x58 / +0x5c are pure in the original; CKLine, CKSpline4L and CKSpline4 have their own.
 void IKPath::GetPointAtDistance(float /*distance*/, CVector3* /*point*/, CVector3* /*direction*/) {
     DOTD_STUB_ONCE("IKPath vt+0x54: GetPointAtDistance of a path other than CKSpline4L (step 5)");
 }

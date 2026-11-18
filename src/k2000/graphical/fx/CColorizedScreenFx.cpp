@@ -5,36 +5,36 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0xb01f0  CColorizedScreenFx_Delete
-//   [ ] 0xb0240  CColorizedScreenFx_RecursiveRegistration
-//   [ ] 0xb02a0  CColorizedScreenFx_vf78
-//   [ ] 0xb02a8  CColorizedScreenData_Destroy
+//   [x] 0xb0240  CColorizedScreenFx_RecursiveRegistration
+//   [x] 0xb02a0  CColorizedScreenFx_vf78  (Clear, CColorizedScreenFx.h)
+//   [x] 0xb02a8  CColorizedScreenData_Destroy  (CColorizedScreenData.h)
 //   [ ] 0xb02b0  RegisterCColorizedScreenDataAndFxClasses
 //   [ ] 0xb0368  _GLOBAL__I_b0368
 //   [x] 0xb0378  CColorizedScreenFx_StartColorFade_maybe
 //   [ ] 0xb0570  CColorizedScreenFx_DrawQuad_maybe  [dead]
 //   [x] 0xb05e8  CColorizedScreenFx_Load
 //   [ ] 0xb0610  CColorizedScreenFx_Save
-//   [ ] 0xb0638  CColorizedScreenFx_Destroy
+//   [x] 0xb0638  CColorizedScreenFx_Destroy  (inherited: IRendableObject_Destroy)
 //   [x] 0xb0660  CColorizedScreenFx_DeleteArray
 //   [x] 0xb0700  CColorizedScreenData_DeleteArray
 //   [x] 0xb07a8  CColorizedScreenFx_Create
 //   [x] 0xb0800  CColorizedScreenData_Create
-//   [ ] 0xb0838  CColorizedScreenData_PostLoad
+//   [x] 0xb0838  CColorizedScreenData_PostLoad  (CColorizedScreenData.h)
 //   [x] 0xb0840  CColorizedScreenFx_PostLoad
 //   [x] 0xb0870  ScreenFade_Start_maybe
 //   [x] 0xb0a68  CColorizedScreenData_CreateArray
 //   [x] 0xb0b00  CColorizedScreenFx_ApplyData_maybe
 //   [x] 0xb0bd0  CColorizedScreenFx_CreateArray
 //   [x] 0xb0c80  CColorizedScreenFx_vf74
-//   [ ] 0xb0ce0  CColorizedScreenData_RecursiveRegistration
+//   [x] 0xb0ce0  CColorizedScreenData_RecursiveRegistration
 //   [x] 0xb0d40  CColorizedScreenData_Load
 //   [ ] 0xb0f18  CColorizedScreenData_Save
 //   [x] 0xb10e8  CColorizedScreenFx_Draw (Render)
 //   [x] 0xb1170  CColorizedScreenFx_UpdateAndEnqueue
-//   [ ] 0xb14d0  CDistortionScreenFx_Delete
-//   [ ] 0xb1520  CDistortionScreenData_Delete
-//   [ ] 0xb1570  CDistortionScreenFx_vf58
-//   [ ] 0xb1578  CDistortionScreenFx_vf78
+//   [x] 0xb14d0  CDistortionScreenFx_Delete  (DOTD_DECLARE_FACTORIES(CDistortionScreenFx))
+//   [x] 0xb1520  CDistortionScreenData_Delete  (DOTD_DECLARE_FACTORIES(CDistortionScreenData))
+//   [x] 0xb1570  CDistortionScreenFx_vf58  (CDistortionScreenFx::UpdateAndExtract, CDistortionScreenFx.h)
+//   [x] 0xb1578  CDistortionScreenFx_vf78  (CDistortionScreenFx::Clear, CDistortionScreenFx.h)
 //
 //   [x] 0x9a07e0  CColorizedScreenFx_IsKindOfClass  [inline]
 //   [x] 0x9a0808  CColorizedScreenFx_GetClassType  [inline]
@@ -45,8 +45,8 @@
 //   [x] 0x9a0880  CColorizedScreenData_GetClassID  [inline]
 //   [ ] 0x9a0888  CColorizedScreenData_Destructor  [inline]
 //   [ ] 0x9a08b8  CColorizedScreenData_DeletingDestructor  [inline]
-//   [ ] 0x9a0900  CColorizedScreenFx_DeletingDestructor  [inline]
-//   [ ] 0x9a0948  CColorizedScreenFx_Destructor  [inline]
+//   [x] 0x9a0900  CColorizedScreenFx_DeletingDestructor  [inline]
+//   [x] 0x9a0948  CColorizedScreenFx_Destructor  [inline]
 #include "k2000/graphical/fx/CColorizedScreenFx.h"
 
 #include <cmath>
@@ -79,7 +79,7 @@ int32_t CColorizedScreenFx::Load(IKFile* file, int32_t type) {
 
 // 0x000b10e8 CColorizedScreenFx_Render: the current colour (+0x24, the smoothed colour's value) over the
 // screen with the blend table's entry +0x3c; the centre colour is the shared white (0x00c50dfc).
-void CColorizedScreenFx::Render() {
+void CColorizedScreenFx::Render(IKTime* /*frameClock*/) {
     if ((m_BitProperties & 0x100u) == 0) return;
     static const uint8_t kWhite[4] = {0xff, 0xff, 0xff, 0xff};
     DrawScreenColorQuad(0.0f, 0.0f, 0, kBlendTableSrc[m_eBlendMod], kBlendTableDest[m_eBlendMod], m_scColor.m_cCurrent, kWhite,
@@ -90,6 +90,7 @@ void CColorizedScreenFx::Render() {
 #include "k2000/graphical/fx/CColorizedScreenData.h"
 
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/CKSavingManager.h"
 
 // 0x000b0d40 CColorizedScreenData_Load
 int32_t CColorizedScreenData::Load(IKFile* file, int32_t type) {
@@ -242,4 +243,16 @@ void CColorizedScreenFx::UpdateAndExtract(float /*maxDistanceSquared*/, RenderQu
     if (sortMode == 2) renderer->GetStage(17)->Add(this);
     else if (sortMode < 3) renderer->GetStage(16)->Add(this);
     else renderer->GetStage(21)->Add(this);
+}
+
+// C2.8 port-all P08.
+
+// 0x000b0240 CColorizedScreenFx_RecursiveRegistration
+void CColorizedScreenFx::RecursiveRegistration(int32_t type) {
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+}
+
+// 0x000b0ce0 CColorizedScreenData_RecursiveRegistration
+void CColorizedScreenData::RecursiveRegistration(int32_t type) {
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
 }

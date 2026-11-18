@@ -6,7 +6,7 @@
 //   [x] 0x1e9ee0  CPFPathSlot_Initialize
 //   [x] 0x1e9fe0  PFPathQuery_Construct_maybe
 //   [ ] 0x1ea040  PFPathQuery_Construct_2_maybe  [dead]
-//   [ ] 0x1ea0a0  KStub_Return1_1ea0a0
+//   [x] 0x1ea0a0  KStub_Return1_1ea0a0  (CPFPortal::Save, vt+0x00 (CKPFGraphTransition.h))
 #include "k2000/ai/CKSrvPathFinding.h"
 
 // 0x001e9ee0 CPFPathSlot_Initialize. The character's bits are copied in four fields (3-10, 11, 12, 0-2), the bits

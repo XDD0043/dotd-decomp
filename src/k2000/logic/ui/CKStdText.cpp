@@ -6,18 +6,18 @@
 //   [x] 0x36500  CKStdText_Delete
 //   [ ] 0x36550  RegisterCKStdTextClass
 //   [ ] 0x365c8  _GLOBAL__I_365c8
-//   [ ] 0x365d8  CKStdText_PostLoad
+//   [x] 0x365d8  CKStdText_PostLoad  (CKLocText's PostLoad, inherited)
 //   [x] 0x36600  CKStdText_Load
 //   [ ] 0x366e0  CKStdText_Save
-//   [ ] 0x36708  CKStdText_RecursiveRegistration
+//   [x] 0x36708  CKStdText_RecursiveRegistration  (CKLocText's RecursiveRegistration, inherited)
 //   [x] 0x36730  CKStdText_ClearGameData_maybe
 //   [x] 0x36758  CKStdText_InitGameData
-//   [ ] 0x36790  CKStdText_Destructor
+//   [x] 0x36790  CKStdText_Destructor  (the vtable, +0x1c cleared, then ~CKLocText: ~CKStdText)
 //   [ ] 0x367c8  CKStdText_Construct  [dead]
 //   [ ] 0x36808  CKStdText_Construct_2  [dead]
 //   [x] 0x36848  CKStdText_DeleteArray
 //   [ ] 0x368e8  CKStdText_Destructor_2  [dead]
-//   [ ] 0x36920  CKStdText_DeletingDestructor
+//   [x] 0x36920  CKStdText_DeletingDestructor  (the deleting form of 0x36790)
 //   [x] 0x36970  CKStdText_CreateArray
 //   [x] 0x36a30  CKStdText_Create
 //

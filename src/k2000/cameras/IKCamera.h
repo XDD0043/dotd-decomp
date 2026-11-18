@@ -17,7 +17,13 @@ class IKFile;
 class IKCamera : public IKSerializable {
 public:
     IKCamera();  // 0x001444a8 IKCamera_ConstructBase
-    ~IKCamera() override {}
+    ~IKCamera() override {}  // 0x00146db8 IKCamera_Destructor / 0x00146d78 IKCamera_DeletingDestructor: the vtable stores
+
+    // vt+0x24 0x00144108 IKCamera_LevelReset (IKCamera.cpp).
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x30 0x00144570 KStub_Return1_144570: PostLoad, 1 (IKSerializable's default).
+    // vt+0x40 0x001444f0 IKCamera_GetInfo (IKCamera.cpp): value id 0, is the camera the current one.
+    int32_t GetInfo(struct IKInfo* info, int32_t request) override;
 
     // The cameras' runtime slots (XXL2 CKCamera: Start(const CVector3*), Pause, Stop, Resume, Update(float);
     // the tracks implement them, DotD's Start ignores the argument in CKCamera). The base defaults are empty:
@@ -66,14 +72,24 @@ public:
 
     // 0x00144580 CKCameraBase_Load (non-virtual; the cameras' Loads call it first).
     int32_t BaseLoad(IKFile* file, int32_t type);
-    // 0x00144398 IKCamera_UpdateTrackBase_maybe (non-virtual; the tracks' Updates call it first): the attached fx.
+    // 0x00144398 IKCamera_UpdateTrackBase_maybe (non-virtual; the tracks' Updates call it first): the attached fx's
+    // focus distance (the position-target distance, and that clamped to +0x54) and the fx started again.
     void UpdateTrackBase();
+    // 0x001441e8 CKCamera_StartAttachedFx_maybe: with an attached fx, +0x54 from its CDOFData's +0x08 and the fx
+    // started (CKSrvFx_StartCameraFx_maybe, time -1).
+    void StartAttachedFx();
+    // 0x00144238 CKCamera_StopAttachedFx_maybe: with an attached fx, CKSrvFx_StopCameraFx_maybe (time -1).
+    void StopAttachedFx();
     // 0x00144278 IKCamera_GetHalfExtentsAtDistance_maybe (non-virtual; r3 the camera, f1 the distance, r5 / r6 the
     // outputs): tan(m_unk18 / 2) * distance and that times the screen's height / width.
     void GetHalfExtentsAtDistance(float distance, float* halfWidth, float* halfHeight) const;
     // 0x00144330 IKCamera_GetEffectiveProfileIndex_maybe (non-virtual): the camera's avoiding-system index (+0x12), or
     // while the service holds a camera beacon (CKSrvCamera +0x915 / +0x920) the beacon's (+0x23). step 5 FRAME.
     uint8_t GetEffectiveProfileIndex() const;
+    // 0x00145ee0 CameraTrack_OrientMatrixToTarget_maybe (CKCameraClassicTrack2 / CKCameraPassivePathTrack): `m`'s at axis
+    // toward `target` from its position (nothing when they coincide), the right and up axes from (0, up.y, 0) unless at
+    // is within 1 degree of it (then from the matrix's current right); the flags' bits 0, 1 and 17 cleared.
+    static void OrientMatrixToTarget(const CVector3* target, const CVector3* up, CMatrix34* m);
 
     IKSerializable* m_unk04;                  // +0x04 a reference; 0 in the constructor
     uint32_t m_Flags;                         // +0x08 XXL2 CBitArray
@@ -96,8 +112,9 @@ public:
     uint32_t m_unk44;                         // +0x44 0 in the constructor
     uint32_t m_unk48;                         // +0x48 0 in the constructor
     uint32_t m_unk4c;                         // +0x4c 0 in the constructor
-    IKSerializable* m_unk50;                  // +0x50 a reference (DotD)
-    uint32_t m_unk54;                         // +0x54 not set by the constructor nor the Load
+    IKSerializable* m_unk50;                  // +0x50 a reference (DotD): the attached fx, a CKDOFFxData (none in the files)
+    float m_unk54;                            // +0x54 not set by the constructor nor the Load: the attached fx's
+                                              // CDOFData +0x08 at the start (the focus distance's clamp)
 };
 DOTD_ASSERT_SIZE(IKCamera, 0x58);
 DOTD_ASSERT_OFFSET(IKCamera, m_unk04, 0x04);

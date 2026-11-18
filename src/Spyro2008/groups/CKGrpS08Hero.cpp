@@ -7,29 +7,29 @@
 //   [x] 0x2c8f78  CKGrpS08Hero_ReinitRuntime
 //   [x] 0x2c8fb0  IKGrpHero_Load
 //   [ ] 0x2c9838  IKGrpHero_Save
-//   [ ] 0x2ca038  CKGrpS08Hero_GetHeroCount
-//   [ ] 0x2ca080  GetHeroByDragonIndex
+//   [x] 0x2ca038  CKGrpS08Hero_GetHeroCount  (inlined at the callers: GetHeroCount, vt+0xf4)
+//   [x] 0x2ca080  GetHeroByDragonIndex  (inlined at the callers: m_apHeros[index])
 //   [ ] 0x2ca098  CKGrpS08Hero_vfF8_Thunk_maybe  [dead]
-//   [ ] 0x2ca0e0  GetControlledHeroArray
-//   [ ] 0x2ca0e8  GetCompanionHeroArray
+//   [x] 0x2ca0e0  GetControlledHeroArray  (inlined at the callers: m_apControlledHeroes)
+//   [x] 0x2ca0e8  GetCompanionHeroArray  (inlined at the callers: m_apCompanionHeroes)
 //   [x] 0x2ca0f0  CKGrpS08Hero_GetHeroList  (IKGrpHero::m_apHeroesCopy, read directly)
-//   [ ] 0x2ca0f8  CKGrpS08Hero_GetFocusedHero
-//   [ ] 0x2ca128  CKGrpS08Hero_GetFocusedHeroNode_maybe
+//   [x] 0x2ca0f8  CKGrpS08Hero_GetFocusedHero  (inlined at the callers: m_apHeros[(int8_t)m_unk66], null for 0xff)
+//   [x] 0x2ca128  CKGrpS08Hero_GetFocusedHeroNode_maybe  (inlined at the callers: m_apUnk44[(int8_t)m_unk66], null for 0xff)
 //   [ ] 0x2ca158  CKGrpS08Hero_GetHeroNodeByIndex_maybe  [dead]
 //   [ ] 0x2ca170  KStub_Return2_2ca170  [dead]
 //   [ ] 0x2ca178  KStub_Return17_2ca178  [dead]
 //   [ ] 0x2ca180  FUN_002ca180  [dead]
-//   [ ] 0x2ca188  CKGrpS08Hero_IsDragonSwitchPending_maybe
+//   [x] 0x2ca188  CKGrpS08Hero_IsDragonSwitchPending_maybe  (inline in the header: IsDragonSwitchPending)
 //   [ ] 0x2ca198  CKGrpS08Hero_IsDragonSwitchLockedOrBit2_maybe  [dead]
-//   [ ] 0x2ca1b8  CKGrpS08Hero_SetDragonSwitchLocked_maybe
+//   [x] 0x2ca1b8  CKGrpS08Hero_SetDragonSwitchLocked_maybe  (SetDragonSwitchLocked, CKGrpS08Hero.h)
 //   [ ] 0x2ca200  CKGrpS08Hero_TestFlagBits12_13_14_maybe  [dead]
 //   [ ] 0x2ca238  CKGrpS08Hero_SetFlagBit13_maybe  [dead]
-//   [ ] 0x2ca258  CKGrpS08Hero_IsInputBlocked_maybe
-//   [ ] 0x2ca268  CKGrpS08Hero_SetInputBlocked_maybe
-//   [ ] 0x2ca288  GetControlledHeroCount
-//   [ ] 0x2ca290  GetCompanionHeroCount
-//   [ ] 0x2ca298  CKGrpS08Hero_vf16C_Thunk_maybe
-//   [ ] 0x2ca2e0  CKGrpS08Hero_GetByte50Property_maybe
+//   [x] 0x2ca258  CKGrpS08Hero_IsInputBlocked_maybe  (IsInputBlocked, CKGrpS08Hero.h)
+//   [x] 0x2ca268  CKGrpS08Hero_SetInputBlocked_maybe  (SetInputBlocked, CKGrpS08Hero.h)
+//   [x] 0x2ca288  GetControlledHeroCount  (inlined at the callers: m_ui8ControlledHeroCount)
+//   [x] 0x2ca290  GetCompanionHeroCount  (inlined at the callers: m_ui8CompanionHeroCount)
+//   [x] 0x2ca298  CKGrpS08Hero_vf16C_Thunk_maybe  (GetHotSpotIndexSigned, CKGrpS08Hero.h)
+//   [x] 0x2ca2e0  CKGrpS08Hero_GetByte50Property_maybe
 //   [ ] 0x2ca2e8  CKGrpS08Hero_vf188_Thunk_maybe  [dead]
 //   [ ] 0x2ca330  FUN_002ca330  [dead]
 //   [ ] 0x2ca358  CKGrpS08Hero_CountHeroesMatchingVf188_maybe  [dead]
@@ -39,13 +39,13 @@
 //   [ ] 0x2ca5d8  FUN_002ca5d8  [dead]
 //   [ ] 0x2ca600  FUN_002ca600  [dead]
 //   [ ] 0x2ca718  CKGrpS08Hero_CanSwitchToDragon_Thunk_maybe  [dead]
-//   [ ] 0x2ca740  CKGrpS08Hero_RequestDragonSelection_Thunk_maybe
-//   [ ] 0x2ca770  CKGrpS08Hero_FindNextSelectableHeroWrapper_maybe
-//   [ ] 0x2ca7a0  CKGrpS08Hero_GetPlayerToCompanionDistance_maybe
-//   [ ] 0x2ca8b0  CKGrpS08Hero_GetGameManagerVf270OfFirstHeroProperty_maybe
-//   [ ] 0x2ca928  CKGrpS08Hero_GetFirstControlledDragonIndex
-//   [ ] 0x2ca970  KStub_Nop_2ca970
-//   [ ] 0x2ca978  IKGrpHero_vf184
+//   [x] 0x2ca740  CKGrpS08Hero_RequestDragonSelection_Thunk_maybe  (CKGrpS08Hero.h)
+//   [ ] 0x2ca770  CKGrpS08Hero_FindNextSelectableHeroWrapper_maybe  [dead: no pointer to its descriptor 0xb96af8]
+//   [x] 0x2ca7a0  CKGrpS08Hero_GetPlayerToCompanionDistance_maybe
+//   [x] 0x2ca8b0  CKGrpS08Hero_GetGameManagerVf270OfFirstHeroProperty_maybe
+//   [x] 0x2ca928  CKGrpS08Hero_GetFirstControlledDragonIndex
+//   [x] 0x2ca970  KStub_Nop_2ca970  (empty: its callers' calls are left out)
+//   [x] 0x2ca978  IKGrpHero_vf184  (IKGrpHero::PushFocusedCameraTarget, IKGrpHero.cpp)
 //   [x] 0x2cabd8  GetMaxPlayers_maybe
 //   [ ] 0x2cac28  CKGrpS08Hero_QueueTriggerSignalsAtB0_maybe  [dead]
 //   [ ] 0x2cac60  CKGrpS08Hero_QueueTriggerSignalsAtA8_maybe  [dead]
@@ -54,8 +54,8 @@
 //   [ ] 0x2cada0  FUN_002cada0  [dead]
 //   [x] 0x2caee8  CompareHeroesByPlayerIndex_maybe
 //   [x] 0x2caf58  CKGrpS08Hero_FindCatchUpPoint_maybe
-//   [ ] 0x2cb0a8  CKGrpS08Hero_FindNextSelectableHero_maybe
-//   [ ] 0x2cb280  CKGrpS08Hero_UpdateHeroSpeechAnims_maybe
+//   [x] 0x2cb0a8  CKGrpS08Hero_FindNextSelectableHero_maybe
+//   [x] 0x2cb280  CKGrpS08Hero_UpdateHeroSpeechAnims_maybe
 //   [x] 0x2cb4c0  CKGrpS08Hero_IsDragonSelectable_maybe
 //   [x] 0x2cb528  RebuildControlledAndCompanionHeroArrays
 //   [x] 0x2cb6f0  CKGrpS08Hero_AssignFollowSlot_maybe
@@ -63,74 +63,74 @@
 //   [x] 0x2cbb08  CKGrpS08Hero_RequestDragonSelection_maybe
 //   [x] 0x2cbf10  CKGrpS08Hero_UpdatePartnerInteraction_maybe
 //   [x] 0x2cc3f0  SetFocusedDragon
-//   [ ] 0x2cc7c0  ApplyRequestedDragonSelection
+//   [x] 0x2cc7c0  ApplyRequestedDragonSelection
 //   [x] 0x2ccbe0  CKGrpS08Hero_UpdateCatchUpPoints_maybe
-//   [ ] 0x2cde60  IKGrpHero_HandleCommandMessage_maybe
-//   [ ] 0x2ce1f0  IKGrpHero_HandleMessage
+//   [x] 0x2cde60  IKGrpHero_HandleCommandMessage_maybe
+//   [x] 0x2ce1f0  IKGrpHero_HandleMessage
 //   [x] 0x2ce2b8  CKGrpS08Hero_Delete
-//   [ ] 0x2ce308  CKGrpS08Hero_vfB8
-//   [ ] 0x2ce310  CKGrpS08Hero_vfEC
-//   [ ] 0x2ce318  GetCKGrpS08HeroCount
-//   [ ] 0x2ce320  CKGrpS08Hero_vfF8
-//   [ ] 0x2ce330  CKGrpS08Hero_vfFC
+//   [x] 0x2ce308  CKGrpS08Hero_vfB8  (returns 1: undeclared slot, see CKGrpS08Hero.h)
+//   [x] 0x2ce310  CKGrpS08Hero_vfEC  (empty: undeclared slot, see CKGrpS08Hero.h)
+//   [x] 0x2ce318  GetCKGrpS08HeroCount  (GetHeroCount, CKGrpS08Hero.h)
+//   [x] 0x2ce320  CKGrpS08Hero_vfF8  (GetNbHotSpots, CKGrpS08Hero.h; P16)
+//   [x] 0x2ce330  CKGrpS08Hero_vfFC  (GetHeroTableFC, CKGrpS08Hero.h)
 //   [x] 0x2ce340  CKGrpS08Hero_vf100
-//   [ ] 0x2ce350  CKGrpS08Hero_vf104
-//   [ ] 0x2ce360  CKGrpS08Hero_vf108
-//   [ ] 0x2ce370  CKGrpS08Hero_GetNbHeroInputBytes_maybe
-//   [ ] 0x2ce378  CKGrpS08Hero_vf110
-//   [ ] 0x2ce380  CKGrpS08Hero_vf114
-//   [ ] 0x2ce388  CKGrpS08Hero_vf118
+//   [x] 0x2ce350  CKGrpS08Hero_vf104  (GetNbObjects, CKGrpS08Hero.h; P16)
+//   [x] 0x2ce360  CKGrpS08Hero_vf108  (GetHeroTable108, CKGrpS08Hero.h)
+//   [x] 0x2ce370  CKGrpS08Hero_GetNbHeroInputBytes_maybe  (GetHeroRuntimeBlockSize, CKGrpS08Hero.h)
+//   [x] 0x2ce378  CKGrpS08Hero_vf110  (GetNbInputActions, CKGrpS08Hero.h)
+//   [x] 0x2ce380  CKGrpS08Hero_vf114  (GetNbExtraInputActions, CKGrpS08Hero.h)
+//   [x] 0x2ce388  CKGrpS08Hero_vf118  (GetInputAction, CKGrpS08Hero.h)
 //   [x] 0x2ce398  CKGrpS08Hero_vf11C
-//   [ ] 0x2ce3a8  CKGrpS08Hero_vf120
-//   [ ] 0x2ce3b8  CKGrpS08Hero_vf124
-//   [ ] 0x2ce3c8  CKGrpS08Hero_vf128
-//   [ ] 0x2ce3d0  CKGrpS08Hero_vf12C
-//   [ ] 0x2ce3d8  CKGrpS08Hero_vf130
-//   [ ] 0x2ce3e0  CKGrpS08Hero_vf134
-//   [ ] 0x2ce3f0  CKGrpS08Hero_vf138
-//   [ ] 0x2ce3f8  CKGrpS08Hero_vf13C
-//   [ ] 0x2ce400  CKGrpS08Hero_vf140
-//   [ ] 0x2ce408  CKGrpS08Hero_vf144
-//   [ ] 0x2ce410  CKGrpS08Hero_vf148
-//   [ ] 0x2ce418  CKGrpS08Hero_vf14C
-//   [ ] 0x2ce420  CKGrpS08Hero_vf150
-//   [ ] 0x2ce428  CKGrpS08Hero_vf154
-//   [ ] 0x2ce448  CKGrpS08Hero_GetMovementEventSound_maybe
-//   [ ] 0x2ce460  CKGrpS08Hero_vf15C
-//   [ ] 0x2ce468  CKGrpS08Hero_GetSurfaceSoundEntry_maybe
+//   [x] 0x2ce3a8  CKGrpS08Hero_vf120  (GetHeroTable120, CKGrpS08Hero.h)
+//   [x] 0x2ce3b8  CKGrpS08Hero_vf124  (GetNbJumps, CKGrpS08Hero.h)
+//   [x] 0x2ce3c8  CKGrpS08Hero_vf128  (GetHeroStatesC)
+//   [x] 0x2ce3d0  CKGrpS08Hero_vf12C  (GetNbHeroStatesC, CKGrpS08Hero.h)
+//   [x] 0x2ce3d8  CKGrpS08Hero_vf130  (GetHeroConst130, CKGrpS08Hero.h)
+//   [x] 0x2ce3e0  CKGrpS08Hero_vf134  (GetNbAnimBlendSlots)
+//   [x] 0x2ce3f0  CKGrpS08Hero_vf138  (GetHeroConst138, CKGrpS08Hero.h)
+//   [x] 0x2ce3f8  CKGrpS08Hero_vf13C  (GetHeroStatesD)
+//   [x] 0x2ce400  CKGrpS08Hero_vf140  (GetNbHeroStatesD, CKGrpS08Hero.h)
+//   [x] 0x2ce408  CKGrpS08Hero_vf144  (GetHeroStatesA)
+//   [x] 0x2ce410  CKGrpS08Hero_vf148  (GetNbHeroStatesA, CKGrpS08Hero.h)
+//   [x] 0x2ce418  CKGrpS08Hero_vf14C  (GetHeroStatesB)
+//   [x] 0x2ce420  CKGrpS08Hero_vf150  (GetNbHeroStatesB, CKGrpS08Hero.h)
+//   [x] 0x2ce428  CKGrpS08Hero_vf154  (GetFootstepParticleIndex, CKGrpS08Hero.h)
+//   [x] 0x2ce448  CKGrpS08Hero_GetMovementEventSound_maybe  (GetMovementEventSound, CKGrpS08Hero.h)
+//   [x] 0x2ce460  CKGrpS08Hero_vf15C  (GetHeroConst15C, CKGrpS08Hero.h)
+//   [x] 0x2ce468  CKGrpS08Hero_GetSurfaceSoundEntry_maybe  (GetSurfaceEntry, CKGrpS08Hero.h)
 //   [x] 0x2ce480  CKGrpS08Hero_vf164
-//   [ ] 0x2ce498  CKGrpS08Hero_vf168
-//   [ ] 0x2ce4b0  CKGrpS08Hero_vf18C
-//   [ ] 0x2ce4b8  CKGrpS08Hero_vf16C
-//   [ ] 0x2ce4d8  CKGrpS08Hero_vf170
-//   [ ] 0x2ce4f0  CKGrpS08Hero_vf174
-//   [ ] 0x2ce4f8  CKGrpS08Hero_vf178
-//   [ ] 0x2ce518  CKGrpS08Hero_GetMaxPartnerDistance_maybe
+//   [x] 0x2ce498  CKGrpS08Hero_vf168  (GetHeroSoundByte, CKGrpS08Hero.h)
+//   [x] 0x2ce4b0  CKGrpS08Hero_vf18C  (GetHeroConst18C, CKGrpS08Hero.h)
+//   [x] 0x2ce4b8  CKGrpS08Hero_vf16C  (GetHotSpotIndex)
+//   [x] 0x2ce4d8  CKGrpS08Hero_vf170  (GetActiveInnerBlendSlot)
+//   [x] 0x2ce4f0  CKGrpS08Hero_vf174  (GetHeroConst174, CKGrpS08Hero.h)
+//   [x] 0x2ce4f8  CKGrpS08Hero_vf178  (GetSecondaryShadowHotSpot, CKGrpS08Hero.h)
+//   [x] 0x2ce518  CKGrpS08Hero_GetMaxPartnerDistance_maybe  (inlined at the callers: m_unk108)
 //   [x] 0x2ce520  CKGrpS08Hero_GetTetherSpringRadius_maybe
-//   [ ] 0x2ce540  CKGrpS08Hero_GetTetherDampingRadius_maybe
-//   [ ] 0x2ce560  CKGrpS08Hero_GetTetherSpringStiffness_maybe
-//   [ ] 0x2ce580  CKGrpS08Hero_GetTetherDampingCoeff_maybe
-//   [ ] 0x2ce5a0  CKGrpS08Hero_SectorLoaded
-//   [ ] 0x2ce5c8  CKGrpS08Hero_UpdateSwitchPressFeedback_maybe
+//   [x] 0x2ce540  CKGrpS08Hero_GetTetherDampingRadius_maybe  (GetTetherDampingRadius, CKGrpS08Hero.h)
+//   [x] 0x2ce560  CKGrpS08Hero_GetTetherSpringStiffness_maybe  (GetTetherSpringStiffness, CKGrpS08Hero.h)
+//   [x] 0x2ce580  CKGrpS08Hero_GetTetherDampingCoeff_maybe  (GetTetherDampingCoeff, CKGrpS08Hero.h)
+//   [x] 0x2ce5a0  CKGrpS08Hero_SectorLoaded  (= the inherited slot)
+//   [x] 0x2ce5c8  CKGrpS08Hero_UpdateSwitchPressFeedback_maybe
 //   [x] 0x2ce888  CKGrpS08Hero_UpdateFlightAltitudeGap_maybe
 //   [x] 0x2ceb30  CKGrpS08Hero_ApplyTetherPullToHero_maybe
 //   [ ] 0x2ced38  FUN_002ced38  [dead]
-//   [ ] 0x2cee70  CKGrpS08Hero_Stop
-//   [ ] 0x2cee98  CKGrpS08Hero_Resume
-//   [ ] 0x2ceec0  CKGrpS08Hero_Pause
+//   [x] 0x2cee70  CKGrpS08Hero_Stop  (inherited: IKGrpHero_Stop)
+//   [x] 0x2cee98  CKGrpS08Hero_Resume  (empty / no effect: inherited)
+//   [x] 0x2ceec0  CKGrpS08Hero_Pause  (empty / no effect: inherited)
 //   [x] 0x2ceee8  CKGrpS08Hero_Start
-//   [ ] 0x2cef40  CKGrpS08Hero_RecursiveRegistration
+//   [x] 0x2cef40  CKGrpS08Hero_RecursiveRegistration
 //   [x] 0x2cf110  CKGrpS08Hero_DeleteArray
 //   [x] 0x2cf1b0  CKGrpS08Hero_Create
 //   [ ] 0x2cf238  RegisterCKGrpS08HeroClass
 //   [ ] 0x2cf2c0  _GLOBAL__D_2cf2c0
 //   [ ] 0x2cf2d0  _GLOBAL__I_2cf2d0
 //   [x] 0x2cf2e0  CKGrpS08Hero_PostLoad
-//   [ ] 0x2cf410  CKGrpS08Hero_Destroy
+//   [x] 0x2cf410  CKGrpS08Hero_Destroy
 //   [ ] 0x2cf458  CKGrpS08Hero_ResolveHeroPairDisplacement_maybe  [dead]
 //   [x] 0x2cf7c8  UpdateCKGrpS08Hero
-//   [ ] 0x2cf940  CKGrpS08Hero_GetInfo
-//   [ ] 0x2cfb68  CKGrpS08Hero_MessageProc
+//   [x] 0x2cf940  CKGrpS08Hero_GetInfo
+//   [x] 0x2cfb68  CKGrpS08Hero_MessageProc
 //   [x] 0x2cff20  CreateCKGrpS08HeroArray
 //   [x] 0x2d0018  CKGrpS08Hero_ScoreCatchUpPointsByCompanionDistance_maybe
 //   [x] 0x2d01d8  CKGrpS08Hero_UpdateHeroPairGeometry_maybe
@@ -138,7 +138,7 @@
 //   [x] 0x2d0b60  CKGrpS08Hero_Load
 //   [ ] 0x2d2d68  CKGrpS08Hero_Save
 //   [ ] 0x2d4b98  FUN_002d4b98  [dead]
-//   [ ] 0x2d4bc0  CKGrpS08Hero_GetFocusedHeroCamera_maybe
+//   [x] 0x2d4bc0  CKGrpS08Hero_GetFocusedHeroCamera_maybe
 //
 //   [ ] 0x9bd130  CKGrpS08Hero_vfF0  [inline]
 //   [x] 0x9bd208  CKGrpS08Hero_CompareCatchUpPoints_maybe  [inline]
@@ -146,16 +146,18 @@
 //   [ ] 0x9bd2e0  CKGrpS08Hero_GetClassType  [inline]
 //   [ ] 0x9bd2e8  CKGrpS08Hero_GetClassID  [inline]
 //   [ ] 0x9bd2f0  CKGrpS08Hero_vfCC  [inline]
-//   [ ] 0x9bd2f8  CKGrpS08Hero_GetTriggerPropB  [inline]
-//   [ ] 0x9bd308  CKGrpS08Hero_GetTriggerPropF  [inline]
-//   [ ] 0x9bd318  CKGrpS08Hero_GetTriggerProp7  [inline]
-//   [ ] 0x9bd320  CKGrpS08Hero_GetTriggerProp13  [inline]
-//   [ ] 0x9bd330  CKGrpS08Hero_IsFocusedHeroFree  [inline]
-//   [ ] 0x9bd378  CKGrpS08Hero_IsAverageManaAtLeastHalf_maybe  [inline]
-//   [ ] 0x9bd4c0  CKGrpS08Hero_IsFuryGaugeFull_maybe  [inline]
+//   [x] 0x9bd2f8  CKGrpS08Hero_GetTriggerPropB  [inline]
+//   [x] 0x9bd308  CKGrpS08Hero_GetTriggerPropF  [inline]
+//   [x] 0x9bd318  CKGrpS08Hero_GetTriggerProp7  [inline]
+//   [x] 0x9bd320  CKGrpS08Hero_GetTriggerProp13  [inline]
+//   [x] 0x9bd330  CKGrpS08Hero_IsFocusedHeroFree  [inline]
+//   [x] 0x9bd378  CKGrpS08Hero_IsAverageManaAtLeastHalf_maybe  [inline]
+//   [x] 0x9bd4c0  CKGrpS08Hero_IsFuryGaugeFull_maybe  [inline]
 //   [ ] 0x9bd4f8  CKGrpS08Hero_Destructor  [inline]
 //   [ ] 0x9bd560  CKGrpS08Hero_DeletingDestructor  [inline]
 #include "Spyro2008/groups/CKGrpS08Hero.h"
+
+#include "k2000/core/IKInfo.h"
 
 #include "k2000/io/IKFile.h"
 #include "k2000/memory/Mem.h"
@@ -328,12 +330,18 @@ int32_t CKGrpS08Hero::Load(IKFile* file, int32_t type) {
 #include "k2000/misc/Engine.h"
 #include "Spyro2008/hooks/CKHkS08Hero.h"
 #include "Spyro2008/logic/CKS08GameManager.h"
+#include "Spyro2008/hooks/CKHkS08PowerBucket.h"
+#include "k2000/components/CKLocTextAccessor.h"
 #include "k2000/core/Stub.h"
 #include "k2000/logic/ai/CKDetectedMovable.h"
 #include "k2000/misc/FloatApproach.h"
 #include "k2000/services/CKSrvDetect.h"
 #include "k2000/services/CKSrvDynamic.h"
 #include "k2000/system/IKTime.h"
+#include "k2000/animation/AnimBlendSlot.h"
+#include "k2000/graphical/CKAnmKeyFrameController.h"
+#include "k2000/graphical/animation/CKBlenderController.h"
+#include "k2000/logic/ui/CKLocSpeaker.h"
 
 #include <cmath>
 #include <cstring>
@@ -633,10 +641,43 @@ void CKGrpS08Hero::Update(IKTime* clock) {
     FloatApproach_Step(clock->m_afDeltaTime[0], &m_unk100);  // 0x002436e8
 }
 
-// 0x002ce5c8 CKGrpS08Hero_UpdateSwitchPressFeedback_maybe. STUB(C2.8: switches): the feedback FX of the switches the
-// controlled heroes stand on (CKHkS08Hero_SetSwitchFeedbackFxActive_maybe 0x338130). No switch near the start.
-void CKGrpS08Hero::UpdateSwitchPressFeedback(IKTime*) {
-    DOTD_STUB_ONCE("CKGrpS08Hero_UpdateSwitchPressFeedback_maybe 0x2ce5c8 (C2.8)");
+// 0x002ce5c8 CKGrpS08Hero_UpdateSwitchPressFeedback_maybe: with two controlled heroes (input not blocked) a player's
+// switch action (7, CKS08GameManager vt+0x164) starts the 2-second feedback timer (+0x2d0, also set by the dragon
+// switch); while it runs each player-led hero shows the target cursor (the hero of a player who pressed, or any with
+// one controlled hero), else it is faded out. Hero 1 first, then hero 0.
+void CKGrpS08Hero::UpdateSwitchPressFeedback(IKTime* clock) {
+    uint8_t pressed0 = 1;  // r25
+    uint8_t pressed1 = 1;  // r26
+    if (m_ui8ControlledHeroCount == 2) {  // 0x002ca288
+        CKS08GameManager* manager = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager);
+        if (manager->IsInputBlocked() == 0) {  // vt+0x1ec
+            pressed0 = 0;
+            if (manager->GetActionValue(7, 0) != 0.0f) {  // vt+0x164; TOC +0x1c28
+                pressed0 = 1;
+                m_unk2d0 = 2.0f;  // TOC +0x1c24
+            }
+            pressed1 = 0;
+            if (manager->GetActionValue(7, 1) != 0.0f) {
+                pressed1 = 1;
+                m_unk2d0 = 2.0f;
+            }
+        }
+    }
+    if (m_unk2d0 > 0.0f) m_unk2d0 = m_unk2d0 - clock->m_afDeltaTime[0];
+    for (int32_t index = 1; index >= 0; --index) {
+        CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(m_apHeros[index]);
+        uint8_t on = 0;
+        if (m_unk2d0 > 0.0f && hero->m_ui8Hero == hero->m_ui8TrackedLeader) {
+            if (!(m_ui8ControlledHeroCount > 1)) {
+                on = 1;
+            } else if (hero->m_ui8Leader == 0) {
+                on = pressed0;
+            } else if (hero->m_ui8Leader == 1) {
+                on = pressed1;
+            }
+        }
+        hero->SetSwitchFeedbackFxActive(on);  // 0x00338130
+    }
 }
 
 namespace {
@@ -718,6 +759,22 @@ CKGrpS08Hero::SCatchUpPoint* CKGrpS08Hero::FindCatchUpPoint(CKHkS08Hero* hero) {
     if (first == nullptr) return nullptr;
     // +0xd4: the score margin that keeps the point held.
     return match->m_fScore >= first->m_fScore + PropertyFloat(m_sProperties, 5) ? first : match;  // bge
+}
+
+// 0x002cb0a8 CKGrpS08Hero_FindNextSelectableHero_maybe. The filter argument (a {function, this adjustment} pair
+// tested after the selectable check, a virtual one when the function word's bit 0 is set) is only passed by
+// 0x002ca780 CKGrpS08Hero_FindNextSelectableHeroWrapper_maybe, which is not ported; this is the null-filter path.
+int8_t CKGrpS08Hero::FindNextSelectableHero(int8_t start) {
+    const int32_t count = GetHeroCount();  // vt+0xf4
+    int8_t index = start;
+    for (int32_t tries = 0; tries < count; ++tries) {
+        index = static_cast<int8_t>(index + 1);
+        if (!(index < count)) index = 0;
+        const IKHkHero* hero = static_cast<const IKHkHero*>(m_apHeros[index]);
+        if (hero->m_ui8Hero == hero->m_ui8TrackedLeader) continue;
+        if (IsDragonSelectable(static_cast<uint8_t>(index)) != 0) return index;  // vt+0x188
+    }
+    return -1;
 }
 
 // 0x002cb4c0 CKGrpS08Hero_IsDragonSelectable_maybe (vt+0x188): a controlled dragon always; another one when it is enabled (+0x1a4), not
@@ -834,10 +891,9 @@ void CKGrpS08Hero::RequestDragonSelection(uint8_t selected, uint8_t requested, u
         m_unkf8 &= ~0x20u;
         return;
     }
-    // STUB(C2.7, moved from C2.6: the dragon switch changes who the player controls and shows the HUD feedback; ApplyRequestedDragonSelection 0x2cc7c0 is 4.7 KB with the control assignment, the queued trigger signals and the HUD panels): the original asks both heroes' vt+0x170
-    // (CKHkS08Hero_CanDragonSwitch_maybe 0x2dbc60, CKHkS08Hero.cpp) and returns when either refuses, then calls vt+0x180
-    // (ProcessDragonSwitchRequest, stubbed). Only the Select button gets here.
-    DOTD_STUB_ONCE("CKGrpS08Hero_RequestDragonSelection_maybe: CKHkS08Hero_CanDragonSwitch_maybe 0x2dbc60 (C2.7, moved from C2.6)");
+    // Both heroes must allow the switch (vt+0x170 CKHkS08Hero_CanDragonSwitch_maybe 0x2dbc60).
+    if (static_cast<CKHkS08Hero*>(m_apHeros[m_unk64])->CanDragonSwitch() == 0) return;
+    if (static_cast<CKHkS08Hero*>(m_apHeros[m_unk65])->CanDragonSwitch() == 0) return;
     ProcessDragonSwitchRequest(applyArg);  // vt+0x180
 }
 
@@ -883,9 +939,8 @@ void CKGrpS08Hero::UpdatePartnerInteraction(IKTime* clock) {
         std::memcpy(&m_unk70, &timer, sizeof(timer));
         if (timer > 0.7f) {  // TOC 0x1b64
             if (pressed != 0) m_unk68 = clock->m_afCurrentTime[0];
-            // STUB(C2.8: interaction targets): SetHeroInteractionTarget 0x4ee770 (CKS08GameManager_2.cpp) with the
-            // game manager, the group, 0 and player 0. +0xf8 bit 15 is not set in the idle and walk runs.
-            DOTD_STUB_ONCE("CKGrpS08Hero_UpdatePartnerInteraction_maybe: SetHeroInteractionTarget 0x4ee770 (C2.8)");
+            // The group is player 0's interaction target (the dragon switch prompt).
+            static_cast<CKS08GameManager*>(g_pEngine->m_gameManager)->SetHeroInteractionTarget(this, 0, 0);  // 0x004ee770
         }
     } else {
         m_unk70 = 0;
@@ -1371,17 +1426,33 @@ void CKGrpS08Hero::UpdateHeroPairGeometry(float dt) {
 }
 
 // 0x002cb280 CKGrpS08Hero_UpdateHeroSpeechAnims_maybe: a hero with a speaker (+0x1a0) talks on its inner speech layer
-// (the group's vt+0x170 per hero; vt+0x174 the speech animation). LVL010's heroes have no such layer (0xff).
-void CKGrpS08Hero::UpdateHeroSpeechAnims(IKTime*) {
-    const uint8_t count = GetHeroCount();  // vt+0xf4 (vt+0x174 is asked first; its answer only matters below)
+// (the group's vt+0x170 per hero; vt+0x174 the speech animation). DotD's layer table (0x00a704c0, read by vt+0x170
+// 0x002ce4d8) holds 0xff for both heroes, so no hero ever reaches the layer part; it is ported as the original runs it.
+// The layer's active controller has an animation (+0x58) or not: a speaker in the current sekens line starts the speech
+// animation (none playing) or advances it; a silent one fades it out (0xfffe) when one plays; then the layer's
+// crossfade steps (AdvanceInactiveTrack, vt+0x10). Start 0.0 (TOC +0x1b2c), blend 0.12 (TOC +0x1b28).
+void CKGrpS08Hero::UpdateHeroSpeechAnims(IKTime* clock) {
+    const float dt = clock->m_afDeltaTime[0];
+    const uint32_t speech = 0;             // vt+0x174 0x002ce4f0 CKGrpS08Hero_vf174 (li r3, 0)
+    const uint8_t count = GetHeroCount();  // vt+0xf4
     for (uint32_t i = 0; i < count; ++i) {
         CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(m_apHeros[i]);
         const uint8_t layer = GetActiveInnerBlendSlot(static_cast<uint8_t>(i));  // vt+0x170
         if (hero->m_unk1a0 == nullptr || static_cast<int8_t>(layer) == -1) continue;
-        // STUB(C2.8: speech): the speech animation played, advanced or faded out on the layer
-        // (CKLocSpeaker_IsCurrentSekensSpeaker_maybe, PlayAnimOnInnerBlender, AdvanceInnerBlenderAnimTime) and the
-        // layer's AdvanceInactiveTrack.
-        DOTD_STUB_ONCE("CKGrpS08Hero_UpdateHeroSpeechAnims_maybe 0x2cb280: speech layer (C2.8)");
+        AnimBlendSlot& slot = hero->m_unk138[layer];
+        const CKAnmKeyFrameController* controller = static_cast<const CKAnmKeyFrameController*>(
+            static_cast<CKBlenderController*>(slot.m_pController)->m_apControllers[slot.m_unk10]);
+        const bool playing = controller->m_unk58 != nullptr;
+        if (CKLocSpeaker_IsCurrentSekensSpeaker(hero->m_unk1a0) != 0) {  // 0x00035558
+            if (!playing) {
+                hero->PlayAnimOnInnerBlender(0.0f, 0.12f, layer, speech & 0xffffu);  // 0x003516e8
+            } else {
+                hero->AdvanceInnerBlenderAnimTime(dt, layer);  // 0x00350c48
+            }
+        } else if (playing) {
+            hero->PlayAnimOnInnerBlender(0.0f, 0.12f, layer, 0xfffeu);
+        }
+        slot.AdvanceInactiveTrack(dt);  // vt+0x10
     }
 }
 
@@ -1427,4 +1498,292 @@ void CKGrpS08Hero::UpdateFlightAltitudeGap() {
     }
     m_unkac8 = 0.0f;
     m_unkacc = 0xff;
+}
+
+namespace {
+// 0 handled, 1 not this message, 2 refused, 3 (kept as it is).
+int32_t MessageResult(int32_t result) {
+    const int32_t sign = result >> 31;
+    return static_cast<int32_t>(static_cast<uint32_t>(((sign ^ result) - sign) - 1) >> 31) ^ 1;
+}
+}  // namespace
+
+// 0x002cde60 IKGrpHero_HandleCommandMessage_maybe: the commands 0xc00..0xc10 (`command` = the low byte; the data is a
+// value for 0..5, a byte pointer for 6): the focused (0) and companion (1) hero picks, the dragon switch (2..4),
+// the focused hero's player (5) and the switch / input flags of +0xf8.
+int32_t CKGrpS08Hero::HandleHeroCommand(uint32_t command, void* data) {
+    const int32_t value = static_cast<int32_t>(reinterpret_cast<intptr_t>(data));
+    switch (command) {
+        case 0:
+            if (value == -1 || !(static_cast<int32_t>(GetHeroCount()) > value)) return 2;  // vt+0xf4
+            {
+                const CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(m_apHeros[value]);
+                if (hero->m_ui8Hero != hero->m_ui8TrackedLeader) return 2;
+            }
+            m_unk94 = static_cast<uint8_t>(value);
+            return 0;
+        case 1:
+            if (value == -1 || !(static_cast<int32_t>(GetHeroCount()) > value)) return 2;
+            {
+                const CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(m_apHeros[value]);
+                if (hero->m_ui8Hero == hero->m_ui8TrackedLeader) return 2;
+            }
+            m_unk95 = static_cast<uint8_t>(value);
+            return 0;
+        case 2:
+        case 3:
+        case 4:
+            if (value == -1 || !(static_cast<int32_t>(GetHeroCount()) > value)) return 2;
+            RequestDragonSelection(m_unk94, static_cast<uint8_t>(value), command == 4 ? 1 : 0, command == 3 ? 1 : 0, 0, 0,
+                                   0);  // 0x002cbb08
+            m_unk94 = static_cast<uint8_t>(value);
+            return 0;
+        case 5:
+            if (value == -1 || !(static_cast<int32_t>(GetMaxPlayers()) > value)) return 2;  // 0x002cabd8
+            static_cast<CKHkS08Hero*>(m_apHeros[m_unk94])->m_ui8Leader = static_cast<uint8_t>(value);
+            return 0;
+        case 6: {
+            const uint8_t on = *static_cast<const uint8_t*>(data);
+            if (on != 0) {
+                m_unk65 = m_unk64;
+                m_unkf8 &= 0xffffffdfu;
+            }
+            m_unkf8 = (m_unkf8 & 0xfffffffbu) | (static_cast<uint32_t>(on) << 2);
+            return 0;
+        }
+        case 7: m_unkf8 = (m_unkf8 & 0xfffffff7u) | 8u; return 0;
+        case 8: m_unkf8 &= 0xfffffff7u; return 0;
+        case 9: m_unkf8 = (m_unkf8 & 0xffffffefu) | 0x10u; return 0;
+        case 10: m_unkf8 &= 0xffffffefu; return 0;
+        case 13: m_unkf8 = (m_unkf8 & 0xffffefffu) | 0x1000u; return 0;
+        case 14: m_unkf8 &= 0xffffefffu; return 0;
+        case 15: m_unkf8 = (m_unkf8 & 0xfffeffffu) | 0x10000u; return 0;
+        case 16: m_unkf8 &= 0xfffeffffu; return 0;
+        default: return 1;
+    }
+}
+
+namespace {
+// The text of a CKLocTextAccessor for the message 0x2666: its first text when it has a text block (+0x04), else its
+// +0x10.
+IKSerializable* AccessorText(IKSerializable* object) {
+    CKLocTextAccessor* accessor = static_cast<CKLocTextAccessor*>(object);
+    if (accessor->m_texts.m_pBlock != nullptr) return accessor->m_texts.m_pBlock[0];
+    return accessor->m_pText;
+}
+}  // namespace
+
+// 0x002ce1f0 IKGrpHero_HandleMessage (IKGrpHero_MessageProc), inlined here.
+// 0x002cfb68 CKGrpS08Hero_MessageProc
+int32_t CKGrpS08Hero::MessageProc(uint16_t message, void* data) {
+    int32_t base = 1;
+    const uint32_t high = (message >> 8) & 0xffu;
+    if (high == 0xc) {
+        const int32_t command = HandleHeroCommand(message & 0xffu, data);
+        base = command == 3 ? 3 : command == 2 ? 2 : MessageResult(command);
+    } else if (high == 0x26 && (message & 0xffu) == 0x66) {
+        *static_cast<IKSerializable**>(data) = AccessorText(m_pUnk58);  // the CKLocTextAccessor +0x58
+        base = 0;
+    } else {
+        base = MessageResult(1);
+    }
+    int32_t own = 1;
+    if (high == 0xc && static_cast<uint8_t>((message & 0xffu) - 0x11u) < 0xf) {
+        switch (message & 0xffu) {
+            case 0x11: {
+                // The focused hero's (+0xab8) carried power bucket shown (vt+0x194 1). Not handled either way (1).
+                IKSerializable* bucket =
+                    static_cast<CKHkS08Hero*>(m_apHeros[m_unkab8])->GetCarriedPowerBucket();  // 0x003401f0
+                if (bucket != nullptr) static_cast<CKHkS08PowerBucket*>(bucket)->SetCarriedShown(1);  // vt+0x194
+                own = 1;
+                break;
+            }
+            case 0x12: m_unk2c8 = (m_unk2c8 & 0xfffffeffu) | 0x100u; own = 0; break;
+            case 0x15: m_unkfc = 1; own = 0; break;
+            case 0x16: m_unkfc = 0; own = 0; break;
+            case 0x17: m_unk2c8 = (m_unk2c8 & 0xfffff7ffu) | 0x800u; own = 0; break;
+            case 0x18: m_unk2c8 &= 0xfffff7ffu; own = 0; break;
+            case 0x1a: m_unk2c8 = (m_unk2c8 & 0xffffefffu) | 0x1000u; own = 0; break;
+            case 0x1b: m_unk2c8 &= 0xffffefffu; own = 0; break;
+            case 0x1d:
+                m_unk2c8 = (m_unk2c8 & 0xfffffdffu) | 0x200u;
+                static_cast<CKS08GameManager*>(g_pEngine->m_gameManager)->DrainDragonFury(0, m_unk334, 1);  // 0x004fdb28
+                m_unk328 = m_unk17c;
+                m_unk32c = 0;
+                own = 0;
+                break;
+            case 0x1e:
+                static_cast<CKHkS08Hero*>(m_apHeros[0])->m_unked4 |= 0x10u;
+                static_cast<CKHkS08Hero*>(m_apHeros[1])->m_unked4 |= 0x10u;
+                own = 0;
+                break;
+            case 0x1f:
+                static_cast<CKHkS08Hero*>(m_apHeros[0])->m_unked4 &= 0xffffffefu;
+                static_cast<CKHkS08Hero*>(m_apHeros[1])->m_unked4 &= 0xffffffefu;
+                own = 0;
+                break;
+            default: own = 1; break;  // 0xc13, 0xc14, 0xc19, 0xc1c
+        }
+    } else if (high == 0x26 && (message & 0xffu) == 0x66) {
+        *static_cast<IKSerializable**>(data) = AccessorText(m_pUnkabc);  // the group's own CKLocTextAccessor
+        own = 0;
+    }
+    if (base == 3) return 3;
+    if (own == 2 || base == 2) return 2;
+    if (own == 0) return 0;
+    return MessageResult(base);
+}
+
+// IKGrpHero_GetInfo's accessors (IKGrpHero.cpp 0x2c8788).
+// 0x002ca928 CKGrpS08Hero_GetFirstControlledDragonIndex: the first controlled hero's index (+0x24), -1 without one.
+uint32_t IKGrpHero::InfoFirstControlledDragon(IKSerializable* self, uint32_t) {
+    IKSerializable* hero = static_cast<IKGrpHero*>(self)->m_apControlledHeroes[0];
+    if (hero == nullptr) return 0xffffffffu;
+    return static_cast<CKHkS08Hero*>(hero)->GetDragonIndex();  // 0x00361960
+}
+
+// 0x002ca8b0 CKGrpS08Hero_GetGameManagerVf270OfFirstHeroProperty_maybe: the game manager's vt+0x270 of the first
+// controlled hero's index (its low byte), -1 without one.
+uint32_t IKGrpHero::InfoFirstControlledDragonVf270(IKSerializable* self, uint32_t) {
+    IKSerializable* hero = static_cast<IKGrpHero*>(self)->m_apControlledHeroes[0];
+    if (hero == nullptr) return 0xffffffffu;
+    const uint8_t index = static_cast<CKHkS08Hero*>(hero)->GetDragonIndex();  // 0x00361960
+    return static_cast<CKS08GameManager*>(g_pEngine->m_gameManager)->Vf270(index);
+}
+
+// 0x002ca7a0 CKGrpS08Hero_GetPlayerToCompanionDistance_maybe: the distance from the first controlled hero to the
+// nearest companion (squared lengths kept from FLT_MAX down, TOC1 +0x1ad8 -> 0xc4acb8 +0x28; then Math_Sqrtf
+// 0x10690); FLT_MAX without a controlled hero or a companion.
+uint32_t IKGrpHero::InfoCompanionDistance(IKSerializable* self, uint32_t) {
+    IKGrpHero* group = static_cast<IKGrpHero*>(self);
+    constexpr float kMax = 3.40282347e+38f;  // 0x7f7fffff
+    if (group->m_apControlledHeroes[0] == nullptr || group->m_apCompanionHeroes[0] == nullptr) return FloatBits(kMax);
+    const float* from = static_cast<CKHkS08Hero*>(group->m_apControlledHeroes[0])->GetPositionPtr();  // 0x00361968
+    float nearest = kMax;
+    for (IKSerializable** companion = group->m_apCompanionHeroes; *companion != nullptr; ++companion) {
+        const float* to = static_cast<CKHkS08Hero*>(*companion)->GetPositionPtr();  // 0x00361968
+        const float dy = from[1] - to[1];
+        const float dx = from[0] - to[0];
+        const float dz = from[2] - to[2];
+        const float squared = ppc::fmadds(dz, dz, ppc::fmadds(dx, dx, dy * dy));
+        if (nearest > squared) nearest = squared;  // fcmpu / ble: a NaN keeps the nearest
+    }
+    return FloatBits(std::sqrt(nearest));  // 0x00010690 Math_Sqrtf (fsqrts)
+}
+
+// 0x002ca2e0 CKGrpS08Hero_GetByte50Property_maybe: the controlled hero count (+0x50).
+uint32_t IKGrpHero::InfoControlledHeroCount(IKSerializable* self, uint32_t) {
+    return static_cast<IKGrpHero*>(self)->m_ui8ControlledHeroCount;
+}
+
+// 0x002cf940 CKGrpS08Hero_GetInfo (the jump table TOC1 +0x1c64 for the ids 7..0x13), with the inline accessors
+// 0x9bd318 GetTriggerProp7, 0x9bd2f8 GetTriggerPropB, 0x9bd378 IsAverageManaAtLeastHalf, 0x9bd330 IsFocusedHeroFree,
+// 0x9bd4c0 IsFuryGaugeFull, 0x9bd308 GetTriggerPropF and 0x9bd320 GetTriggerProp13.
+int32_t CKGrpS08Hero::GetInfo(IKInfo* info, int32_t request) {
+    // IKGrpHero_GetInfo 0x2c8788 first; outside the ids 7..0x13 its answer (0 found, 2 kept, else 1).
+    const int32_t base = IKGrpHero::GetInfo(info, request);
+    if (request != kGetInfoValueAccessor || info->m_ui32Id - 7u > 0xcu) {
+        if (base == 2) return 2;
+        return base == 0 ? 0 : 1;
+    }
+    switch (info->m_ui32Id) {
+    case 7:
+        return AnswerInfo(info, [](IKSerializable* o, uint32_t) { return static_cast<uint32_t>(static_cast<CKGrpS08Hero*>(o)->m_unkab8); }, 1);
+    case 0xb:
+        return AnswerInfo(info, [](IKSerializable* o, uint32_t) { return (static_cast<CKGrpS08Hero*>(o)->m_unkf8 >> 10) & 1u; }, 0);
+    case 0xd:
+        return AnswerInfo(info, [](IKSerializable* o, uint32_t) {
+            CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(o);
+            const CKHkS08Hero* hero = static_cast<const CKHkS08Hero*>(group->m_apHeros[group->m_unk66]);
+            return static_cast<uint32_t>(hero->IsAnyComboKindActive() ^ 1u);  // 0x002fd030
+        }, 0);
+    case 0xf:
+        return AnswerInfo(info, [](IKSerializable* o, uint32_t) { return static_cast<uint32_t>(static_cast<CKGrpS08Hero*>(o)->m_unk66); }, 1);
+    case 0x13:
+        return AnswerInfo(info, [](IKSerializable* o, uint32_t) { return (static_cast<CKGrpS08Hero*>(o)->m_unk2c8 >> 8) & 1u; }, 0);
+    case 0xc:
+        // 0x009bd378 CKGrpS08Hero_IsAverageManaAtLeastHalf_maybe: the heroes' mana over their capacities, averaged, at
+        // least 0.5 (TOC1 +0x1c28 0, +0x1c2c 0.5; no hero: 0 / 0, false).
+        return AnswerInfo(info, [](IKSerializable* o, uint32_t) {
+            CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(o);
+            CKS08GameManager* manager = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager);
+            const uint32_t count = group->GetHeroCount();  // vt+0xf4
+            float sum = 0.0f;
+            for (uint32_t i = 0; i < count; ++i) {
+                const uint32_t mana = manager->GetDragonMana(static_cast<int32_t>(i));              // 0x004fd7c8
+                const uint32_t capacity = manager->GetDragonManaCapacity(static_cast<int32_t>(i));  // 0x004fd740
+                sum = sum + static_cast<float>(static_cast<double>(mana)) / static_cast<float>(static_cast<double>(capacity));
+            }
+            const float average = sum / static_cast<float>(static_cast<double>(count));
+            return average >= 0.5f ? 1u : 0u;  // cror gt|eq
+        }, 0);
+    case 0xe:
+        // 0x009bd4c0 CKGrpS08Hero_IsFuryGaugeFull_maybe
+        return AnswerInfo(info, [](IKSerializable*, uint32_t) {
+            uint32_t capacity = 0;
+            return static_cast<uint32_t>(static_cast<CKS08GameManager*>(g_pEngine->m_gameManager)->IsFuryGaugeFull(&capacity));  // 0x004fe148
+        }, 0);
+    default:
+        return 1;
+    }
+}
+
+// 0x002cc7c0 ApplyRequestedDragonSelection: a requested dragon that owns its control for another player only gets the
+// focus (+0x364 bit 29); otherwise the heroes the selected dragon owned pass to the requested one (their +0x7c point
+// index reset), the requested dragon takes the selected one's player and +0x364 bit 6 (`applyArg`), both get their
+// control assignment, the hero arrays are rebuilt (inlined in the original), trigger 0 fires and a carried object of the
+// selected hero is told 0xc46; the requested dragon becomes the selected one. Then the time (+0x6c) and the request
+// dropped.
+void CKGrpS08Hero::ApplyRequestedDragonSelection(uint8_t applyArg) {
+    CKHkS08Hero* requested = static_cast<CKHkS08Hero*>(m_apHeros[m_unk65]);
+    CKHkS08Hero* selected = static_cast<CKHkS08Hero*>(m_apHeros[m_unk64]);
+    if (requested->m_ui8Hero == requested->m_ui8TrackedLeader && requested->m_ui8Leader != selected->m_ui8Leader) {
+        SetFocusedDragon(requested, 1);  // 0x002cc3f0
+        requested->m_unk364 = (requested->m_unk364 & ~0x20000000u) | 0x20000000u;
+    } else {
+        // vt+0xf0 0x009bd130 CKGrpS08Hero_vfF0 (selected, requested) is empty.
+        const uint32_t count = GetHeroCount();  // vt+0xf4
+        for (uint32_t i = 0; i < count; ++i) {
+            IKHkHero* hero = static_cast<IKHkHero*>(m_apHeros[i]);
+            if (m_unk64 != hero->m_ui8TrackedLeader) continue;
+            hero->m_ui8TrackedLeader = m_unk65;
+            m_pUnk7c[hero->m_ui8Hero] = 0xff;
+        }
+        requested->m_ui8Leader = selected->m_ui8Leader;
+        requested->m_ui8TrackedLeader = m_unk65;
+        requested->m_unk364 = (requested->m_unk364 & ~0x40u) | ((static_cast<uint32_t>(applyArg) << 6) & 0x3fc0u);
+        selected->ApplyControlAssignment(0, 0);   // 0x00348010
+        requested->ApplyControlAssignment(0, 1);
+        RebuildControlledAndCompanionHeroArrays();  // the same code, inlined
+        QueueTriggerSignals(&m_aTriggers[0]);       // +0x98; 0x00236338
+        if ((selected->m_unk358 & 1u) != 0) selected->GetAttachedObject()->MessageProc(0xc46, nullptr);  // vt+0x1c
+        m_unk64 = m_unk65;
+    }
+    m_unk6c = g_pEngine->m_timeManager->m_pTime->m_afCurrentTime[0];
+    m_unk65 = m_unk64;
+    m_unkf8 &= ~0x20u;
+}
+
+// 0x002cf410 CKGrpS08Hero_Destroy
+void CKGrpS08Hero::Destroy() {
+    IKGrpHero::Destroy();
+    static_cast<CKSrvDynamic*>(g_pEngine->m_srvDynamic)->UnregisterHook(this);
+}
+
+// 0x002cef40 CKGrpS08Hero_RecursiveRegistration (vt+0x24)
+void CKGrpS08Hero::RecursiveRegistration(int32_t type) {
+    IKGrpHero::RecursiveRegistration(type);  // 0x002c8b00
+    m_pUnk2cc->RecursiveRegistration(type);
+    // +0xab0, +0x338, +0x340, +0xac0: the trigger starters' (KStub_Return1_2361b0: nothing).
+    m_pUnkabc->RecursiveRegistration(type);
+    m_pUnk348->RecursiveRegistration(type);
+    m_pUnk34c->RecursiveRegistration(type);
+    m_pUnk354->RecursiveRegistration(type);
+    m_pUnk358->RecursiveRegistration(type);
+    m_pUnk360->RecursiveRegistration(type);
+}
+
+// 0x002d4bc0 CKGrpS08Hero_GetFocusedHeroCamera_maybe
+IKSerializable* CKGrpS08Hero::GetFocusedHeroCamera() const {
+    return static_cast<CKHkS08Hero*>(m_apHeros[m_unk66])->m_unk1818;
 }

@@ -12,7 +12,7 @@
 //   [ ] 0x23c098  BBox_ScaleAboutCenter_maybe  [dead]
 //   [ ] 0x23c130  BBox_Inflate_maybe  [dead]
 //   [ ] 0x23c180  BBox_GetCornersStrided_maybe  [dead]
-//   [ ] 0x23c280  AABB_ContainsAABB
+//   [x] 0x23c280  AABB_ContainsAABB
 //   [ ] 0x23c310  BBox_ExtendByPoints_2_maybe  [dead]
 //   [ ] 0x23c3c8  BBox_SplitIntoSlabsAlongAxis_maybe  [dead]
 //   [x] 0x23c4b8  AABB_ClampPoint
@@ -71,4 +71,11 @@ void AABB_ClampPoint(const CBBox* box, const CVector3* point, CVector3* out) {
     } else {
         out->z = point->z;
     }
+}
+
+// 0x0023c280 AABB_ContainsAABB: x, y, z of the maxima (inner <= outer), then of the minima (outer <= inner); each compare
+// is fcmpu + cror lt|eq (or gt|eq), so an unordered pair fails.
+bool AABB_ContainsAABB(const CBBox* inner, const CBBox* outer) {
+    return inner->m_sup.x <= outer->m_sup.x && inner->m_sup.y <= outer->m_sup.y && inner->m_sup.z <= outer->m_sup.z &&
+           outer->m_inf.x <= inner->m_inf.x && outer->m_inf.y <= inner->m_inf.y && outer->m_inf.z <= inner->m_inf.z;
 }

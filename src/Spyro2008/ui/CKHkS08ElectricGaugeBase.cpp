@@ -6,11 +6,11 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x4e0920  CKHkS08ElectricGaugeBase_3542_maybe_Load
 //   [ ] 0x4e0948  CKHkS08ElectricGaugeBase_3542_maybe_Save
-//   [ ] 0x4e0970  CKHkS08ElectricGaugeBase_3542_maybe_LevelReset
-//   [ ] 0x4e0998  CKHkS08ElectricGaugeBase_3542_maybe_ClearReferences
-//   [ ] 0x4e09c0  CKHkS08ElectricGaugeBase_3542_maybe_DeletingDestructor
-//   [ ] 0x4e0a08  CKHkS08ElectricGaugeBase_3542_maybe_Destructor
-//   [ ] 0x4e0a38  CKHkS08ElectricGaugeBase_3542_maybe_BaseDestructor
+//   [x] 0x4e0970  CKHkS08ElectricGaugeBase_3542_maybe_LevelReset  (CKHkActorBase's: inherited)
+//   [x] 0x4e0998  CKHkS08ElectricGaugeBase_3542_maybe_ClearReferences  (inherited, empty)
+//   [x] 0x4e09c0  CKHkS08ElectricGaugeBase_3542_maybe_DeletingDestructor  (the implicit destructor + delete)
+//   [x] 0x4e0a08  CKHkS08ElectricGaugeBase_3542_maybe_Destructor  (the implicit destructor)
+//   [x] 0x4e0a38  CKHkS08ElectricGaugeBase_3542_maybe_BaseDestructor  (header)
 //   [x] 0x4e0a68  CKHkS08ElectricGaugeBase_3542_maybe_Construct
 //   [x] 0x4e0aa0  CKHkS08ElectricGauge_ConstructBase_maybe
 //

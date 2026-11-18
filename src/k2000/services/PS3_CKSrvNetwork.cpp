@@ -12,15 +12,15 @@
 //   [ ] 0x1dfff8  Vt_b1e2d0_AddZeroedSegment_maybe  [dead]
 //   [ ] 0x1e01c0  Vt_b1e2d0_Destructor_2_maybe  [dead]
 //   [ ] 0x1e0278  Vt_b1e2d0_ConstructWithCount_maybe  [dead]
-//   [ ] 0x1e0428  Vt_b1e2d0_DeletingDestructor_maybe
-//   [ ] 0x1e04f8  Vt_b1e2d0_Destructor_maybe
+//   [ ] 0x1e0428  Vt_b1e2d0_DeletingDestructor_maybe  [dead: its vtable 0xb1e2d0 (TOC1 -0x16c0) is installed only by the dead constructors above]
+//   [ ] 0x1e04f8  Vt_b1e2d0_Destructor_maybe  [dead: its vtable 0xb1e2d0 (TOC1 -0x16c0) is installed only by the dead constructors above]
 //   [ ] 0x1e05b0  Vt_b1e2d0_SetEntryCount_maybe  [dead]
 //   [ ] 0x1e0720  Vt_b1e2d0_ConstructWithCount_2_maybe  [dead]
 //   [x] 0x1e08d0  PS3_CKSrvNetwork_Delete
 //   [x] 0x1e0920  PS3_CKSrvNetwork_InitializeService
 //   [x] 0x1e0928  PS3_CKSrvNetwork_DestroyService
-//   [ ] 0x1e0930  PS3_CKSrvNetwork_Destroy
-//   [ ] 0x1e0938  PS3_CKSrvNetwork_RecursiveRegistration
+//   [x] 0x1e0930  PS3_CKSrvNetwork_Destroy  (empty: the root's default)
+//   [x] 0x1e0938  PS3_CKSrvNetwork_RecursiveRegistration  (returns 1: the root's empty slot)
 //   [ ] 0x1e0940  PS3_CKSrvNetwork_Save
 //   [x] 0x1e0948  PS3_CKSrvNetwork_Load
 //   [x] 0x1e0950  PS3_CKSrvNetwork_Start
@@ -28,20 +28,20 @@
 //   [x] 0x1e0960  PS3_CKSrvNetwork_Pause
 //   [x] 0x1e0968  PS3_CKSrvNetwork_Resume
 //   [x] 0x1e0970  PS3_CKSrvNetwork_Update
-//   [ ] 0x1e0978  PS3_CKSrvNetwork_vfA8
-//   [ ] 0x1e0980  PS3_CKSrvNetwork_vfAC
-//   [ ] 0x1e0988  PS3_CKSrvNetwork_vfB0
-//   [ ] 0x1e0990  PS3_CKSrvNetwork_vfB4
-//   [ ] 0x1e0998  PS3_CKSrvNetwork_vfB8
-//   [ ] 0x1e09a0  PS3_CKSrvNetwork_vfBC
-//   [ ] 0x1e09a8  PS3_CKSrvNetwork_vfC0
-//   [ ] 0x1e09b0  PS3_CKSrvNetwork_vfC4
-//   [ ] 0x1e09b8  PS3_CKSrvNetwork_vfE8
-//   [ ] 0x1e09c0  PS3_CKSrvNetwork_vfEC
-//   [ ] 0x1e09c8  PS3_CKSrvNetwork_vfFC
-//   [ ] 0x1e09d0  PS3_CKSrvNetwork_vfF0
-//   [ ] 0x1e09d8  PS3_CKSrvNetwork_vfF4
-//   [ ] 0x1e09e0  PS3_CKSrvNetwork_vfF8
+//   [x] 0x1e0978  PS3_CKSrvNetwork_vfA8  (PS3_CKSrvNetwork.h)
+//   [x] 0x1e0980  PS3_CKSrvNetwork_vfAC  (PS3_CKSrvNetwork.h)
+//   [x] 0x1e0988  PS3_CKSrvNetwork_vfB0  (PS3_CKSrvNetwork.h)
+//   [x] 0x1e0990  PS3_CKSrvNetwork_vfB4  (PS3_CKSrvNetwork.h)
+//   [x] 0x1e0998  PS3_CKSrvNetwork_vfB8  (PS3_CKSrvNetwork.h)
+//   [x] 0x1e09a0  PS3_CKSrvNetwork_vfBC  (PS3_CKSrvNetwork.h)
+//   [x] 0x1e09a8  PS3_CKSrvNetwork_vfC0  (PS3_CKSrvNetwork.h)
+//   [x] 0x1e09b0  PS3_CKSrvNetwork_vfC4  (PS3_CKSrvNetwork.h)
+//   [x] 0x1e09b8  PS3_CKSrvNetwork_vfE8  (PS3_CKSrvNetwork.h)
+//   [x] 0x1e09c0  PS3_CKSrvNetwork_vfEC  (PS3_CKSrvNetwork.h)
+//   [x] 0x1e09c8  PS3_CKSrvNetwork_vfFC  (PS3_CKSrvNetwork.h)
+//   [x] 0x1e09d0  PS3_CKSrvNetwork_vfF0  (PS3_CKSrvNetwork.h)
+//   [x] 0x1e09d8  PS3_CKSrvNetwork_vfF4  (PS3_CKSrvNetwork.h)
+//   [x] 0x1e09e0  PS3_CKSrvNetwork_vfF8  (PS3_CKSrvNetwork.h)
 //
 //   [ ] 0x9add50  PS3_CKSrvNetwork_IsKindOfClass  [inline]
 //   [ ] 0x9add88  KStub_Return1_9add88  [inline]

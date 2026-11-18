@@ -1,14 +1,18 @@
 // RpAtomic.h - RenderWare atomics as the loader creates them: streamed atomics (chunk 0x14, RpAtomicStreamRead
 // in RpGeometryStream.cpp: the real geometry with its materials and mesh data since C2.4 step 1), PTank
-// atomics (RpPTankAtomicCreate) hold the particle arrays the Loads read.
-// STUB(C1.4): the pipelines and rendering behind them.
+// atomics (RpPTankAtomicCreate) hold the particle arrays the Loads read; both start from RpAtomicCreate 0x69cb58
+// (rpworld/RpGeometry.cpp). An atomic's pipeline (+0x6c) is null for every atomic the game makes (RpAtomicCreate):
+// the default atomic pipeline draws it (rpworld/RpAtomicPSGL.cpp), or the PTank's / the shader manager's render.
 #pragma once
 #include <cstdint>
 #include <vector>
 
+#include "Renderware/rwcore/RwCamera.h"
+
 struct RwStream;
 struct RwTexture;
 struct RpPrtStdEmitter;
+struct RpAtomic;
 
 // The PTank plugin data (RpPTank, atomic + 0x00cf079c on the PS3; 0x140 bytes): what CParticleGeometry_Load
 // and the RpPrtStd emitters fill, and the renderer reads. The PS3 offsets in the comments.
@@ -29,7 +33,9 @@ struct RpPTankData {
     uint32_t renderB4;       // +0xb4 vertex alpha (12)
     uint32_t wordB8;         // +0xb8 RpPrtStd's PTanks: -0.0f (TOC 0x80000000)
     uint32_t wordBC;         // +0xbc
-    uint8_t materialColor[4];  // the PTank material's colour (RpMaterial +4)
+    // +0x10 the atomic's render callback before RpPTankAtomicCreate put the PTank's: RpAtomicCreate's default
+    // (AtomicDefaultRenderCallBack), called after each PTank draw (on the empty quad geometry it draws nothing).
+    RpAtomic* (*defaultRenderCallBack)(RpAtomic* atomic);
     int32_t numProp;         // +0xa0 the property table: the number of per-particle arrays
     int32_t strideOverride;  // +0xa4 interleaved storage's common stride (0 here: separate arrays)
     // Per-particle arrays (rpPTANKDFLAG* 0x1 .. 0x100), PS3 strides: position 16 (12 used), colour 4 (raw),
@@ -59,9 +65,8 @@ struct RpAtomic;
 typedef RpAtomic* (*RpAtomicCallBackRender)(RpAtomic* atomic);
 
 struct RpAtomic {
-    // C1.5 (Rt2d shapes, rpworld/RpGeometry.h): the atomics RpAtomicCreate makes for an Rt2d shape:
-    // object.parent (RpAtomicSetFrame), the geometry (RpAtomicSetGeometry) and the render callback
-    // (PS3 +0x48, called by the shape renderer). Null for streamed and PTank atomics.
+    // object.parent (+0x04, RpAtomicSetFrame), the geometry (+0x18, RpAtomicSetGeometry) and the render callback
+    // (+0x48: RpAtomicCreate's AtomicDefaultRenderCallBack, the PTank's for PTank atomics).
     RwFrame* frame = nullptr;
     RpGeometry* geometry = nullptr;
     RpAtomicCallBackRender renderCallBack = nullptr;
@@ -69,9 +74,21 @@ struct RpAtomic {
     RpPTankData* ptank;        // RpPTankAtomicCreate, or null
     float boundingSphere[4];   // RpAtomic boundingSphere (center, radius)
     float worldSphere[4];      // RpAtomic worldBoundingSphere
-    uint32_t flags;            // RpAtomic flags (bit 1 cleared for PTank atomics: rpATOMICCOLLISIONTEST?)
-    uint8_t objectFlags;       // RwObject flags (bit 0 cleared for PTank atomics)
-    RwTexture* texture;        // RpMaterialSetTexture on its first material
+    uint32_t flags;            // +0x4c the interpolator's flags: RpAtomicCreate 3 (rpINTERPOLATORDIRTYINSTANCE |
+                               // rpINTERPOLATORDIRTYSPHERE); a set bit 1 makes the readers resync the sphere
+    // RW 3.7 RpInterpolator (PS3 +0x4c: the flags above are its rpINTERPOLATORDIRTYSPHERE word as the game
+    // reads it; +0x50 / +0x52 the morph targets, +0x58 recipTime, +0x5c position), with RpAtomicCreate's
+    // values. _rpAtomicResyncInterpolatedSphere (0x69bbe0, rpworld/RpGeometry.h) reads them.
+    int16_t startMorphTarget = 0;
+    int16_t endMorphTarget = 0;
+    float interpTime = 1.0f;
+    float interpRecipTime = 1.0f;
+    float interpPosition = 0.0f;
+    uint8_t objectFlags;       // +0x02 RwObject flags (RpAtomicCreate 5: rpATOMICCOLLISIONTEST | rpATOMICRENDER;
+                               //       RpAtomicStreamRead: the file's)
+    uint8_t privateFlags;      // +0x03 RwObject private flags: bit 0 rpATOMICPRIVATEWORLDBOUNDDIRTY (RpAtomicCreate 1)
+    // +0x6c the atomic's RxPipeline: RpAtomicCreate's null (the default atomic pipeline) for every atomic of the game.
+    void* pipeline = nullptr;
     // The RpPrtStd plugin data (atomic + 0x00cfba78): the emitter list (its last emitter added), or null.
     RpPrtStdEmitter* prtStdEmitters;
     // The right-to-render chunk (0x1f) of the atomic's extension: the plugin id (0x116 skin ...) whose
@@ -84,6 +101,13 @@ struct RpAtomic {
     // The atomic's pipeline (+0x6c) when it is one of the skin plugin's (_rpSkinAtomicSetPipelineByType_maybe
     // 0x775a48): rpSKINTYPEGENERIC 1 or rpSKINTYPEMATFX 2; 0 for the shader manager's atomic pipeline or the default.
     uint32_t skinPipeline = 0;
+    // The RpMatFX plugin data of the atomic (atomic + [0x00cec44c], RpMatFXAtomicQueryEffects): 1 once
+    // RpMatFXAtomicEnableEffects 0x698038 gave it the MatFX atomic pipeline (Renderware/rpmatfx/RpMatFX.h).
+    uint32_t matfxEffects = 0;
+    // +0x64 llWorldSectorsInAtomic: the list of the atomic's ties to world sectors (RpTie, RpWorld.h), which the PSGL
+    // lighting callback walks for the sectors' local lights (RpPSGLLighting.cpp). Always empty: the game adds no atomic
+    // to a world. Self-linked (rwLinkListInitialize) here, by RpAtomicCreate and after the memsets of RpAtomic.cpp.
+    RwLLLink llWorldSectorsInAtomic{&llWorldSectorsInAtomic, &llWorldSectorsInAtomic};
 };
 
 // 0x0069ff28 RpAtomicStreamRead after RwStreamFindChunk(0x14): see rpworld/RpGeometry.h.
@@ -103,3 +127,14 @@ int32_t RpPTankAtomicLock(RpAtomic* atomic, RpPTankLockStruct* lock, uint32_t fl
 RpAtomic* RpPTankAtomicUnlock(RpAtomic* atomic);
 // 0x007799a0 RW_RenderParticleTankAtomic (the PTank atomic's render callback; Renderware/rpptank).
 RpAtomic* RpPTankAtomicRender(RpAtomic* atomic);
+// 0x0077add8 RpPTank_SetShaderBindCallBack_maybe: the PTank draw's shader hook (0xc4d708), which DrawPSGLParticleQuadBatch
+// 0x77aea8 calls with (0, the atomic) before it draws; the default is _rpPTankDefaultLightingCB_maybe 0x77adf8
+// (RwPSGL_AtomicLightingCallback of the atomic). The shader manager installs PreparePSGLAtomicMeshShaders.
+typedef void (*RpPTankShaderBindCallBack)(void* meshData, RpAtomic* atomic);
+void RpPTankSetShaderBindCallBack(RpPTankShaderBindCallBack callback);
+// The PTank's material: the first (only) material of the quad geometry RpPTankAtomicCreate gives the atomic
+// (RpGeometryGetMaterial(RpAtomicGetGeometry(atomic), 0)); the PTank draw reads its texture, CMaterial_Load takes it.
+struct RpMaterial* RpPTankAtomicGetMaterial(RpAtomic* atomic);
+// The constant colour (+0xcc) into the material's colour when the material exists (the inlined
+// RpPTankAtomicSetConstantColor tail: lwz geometry +0x18, matList +0x20, [0], null check, four stb at +4..+7).
+void RpPTankAtomicCopyConstantColorToMaterial(RpAtomic* atomic);

@@ -4,25 +4,25 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x4ec6e8  CKS08GameManager_NotifyInputActivity_maybe
-//   [ ] 0x4ec798  CKS08GameManager_IsFlag480ClearedThisFrame_maybe
-//   [ ] 0x4ec7d0  KStub_ReturnM1_4ec7d0
-//   [ ] 0x4ec7d8  IKCommonGameManager_vf2D8
-//   [ ] 0x4ec7e0  IKCommonGameManager_vf2DC
-//   [ ] 0x4ec7e8  CKS08GameManager_vf15C
+//   [x] 0x4ec6e8  CKS08GameManager_NotifyInputActivity_maybe  (inline, CKS08GameManager.h)
+//   [x] 0x4ec798  CKS08GameManager_IsFlag480ClearedThisFrame_maybe
+//   [x] 0x4ec7d0  KStub_ReturnM1_4ec7d0  (returns -1; only a TOC function-pointer entry (0x00c1c9ec) refers to it, no use found)
+//   [x] 0x4ec7d8  IKCommonGameManager_vf2D8  (IKCommonGameManager's empty slot; CKS08GameManager overrides it (0x502688): nothing to port)
+//   [x] 0x4ec7e0  IKCommonGameManager_vf2DC  (IKCommonGameManager's empty slot; CKS08GameManager overrides it (0x5008d0): nothing to port)
+//   [x] 0x4ec7e8  CKS08GameManager_vf15C  (inline GetStickDirectionAction, CKS08GameManager.h)
 //   [x] 0x4ec878  CKS08GameManager_vfF4
 //   [x] 0x4ec918  KStub_Return1_4ec918
 //   [x] 0x4ec920  KStub_Nop_4ec920
-//   [ ] 0x4ec928  CKS08GameManager_vf228
-//   [ ] 0x4ec938  CKS08GameManager_vf22C
+//   [x] 0x4ec928  CKS08GameManager_vf228
+//   [x] 0x4ec938  CKS08GameManager_vf22C
 //   [ ] 0x4ec948  FUN_004ec948  [dead]
 //   [x] 0x4ec968  CKS08GameManager_SetActiveCameraIndex_maybe
 //   [x] 0x4ec9b8  CKS08GameManager_PickRandomTipText_maybe
-//   [ ] 0x4eccb0  CKS08GameManager_vf190
+//   [x] 0x4eccb0  CKS08GameManager_vf190
 //   [x] 0x4ecd10  CKS08GameManager_vf18C
-//   [ ] 0x4ecd70  IKCommonGameManager_GetDirectionActionState_maybe
+//   [x] 0x4ecd70  IKCommonGameManager_GetDirectionActionState_maybe
 //   [x] 0x4ecdd0  CKS08GameManager_IsActionPressed
-//   [ ] 0x4ecea8  CKS08GameManager_vf168
+//   [x] 0x4ecea8  CKS08GameManager_vf168  (GetActionFilterType)
 //   [x] 0x4ecf80  CKS08GameManager_GetActionValue
 //   [x] 0x4ed058  IKCommonGameManager_vf1D4
 //   [x] 0x4ed080  CKS08GameManager_ResetFadeVideoIfMode2ThenVf338_maybe
@@ -30,27 +30,27 @@
 //   [x] 0x4ed1f8  CKS08GameManager_vf108
 //   [x] 0x4ed220  CKS08GameManager_RequestSave_maybe
 //   [x] 0x4ed298  CKS08GameManager_vfB4
-//   [ ] 0x4ed2c0  CKS08GameManager_vfB0
+//   [x] 0x4ed2c0  CKS08GameManager_vfB0
 //   [x] 0x4ed2e8  CKS08GameManager_InitDefaultOptions_maybe
 //   [x] 0x4ed310  CKS08GameManager_SectorLoaded
 //   [x] 0x4ed440  CKS08GameManager_Resume
 //   [x] 0x4ed540  CKS08GameManager_Pause
-//   [ ] 0x4ed670  IKCommonGameManager_Save
-//   [ ] 0x4ed698  IKCommonGameManager_LevelReset
-//   [ ] 0x4ed6c0  CKS08GameManager_DestroyGame
+//   [x] 0x4ed670  IKCommonGameManager_Save  (CDefaultGameManager_SaveImpl: CKS08GameManager::Save, _3.cpp)
+//   [x] 0x4ed698  IKCommonGameManager_LevelReset  (CDefaultGameManager_LevelResetImpl: CKS08GameManager::RecursiveRegistration, _3.cpp)
+//   [x] 0x4ed6c0  CKS08GameManager_DestroyGame
 //   [x] 0x4ed790  IKCommonGameManager_ClearReferences
 //   [x] 0x4ed7d8  CKS08GameManager_SetAllHeroesInvulnerable_maybe
 //   [x] 0x4ed878  CKS08GameManager_IsInputBlocked_maybe
 //   [x] 0x4ed8b8  CKS08GameManager_SetInputBlocked_maybe
 //   [x] 0x4ed8f0  CKS08GameManager_GetControlledHeroCount
 //   [x] 0x4ed930  CKS08GameManager_GetFocusedHeroMoveVector_maybe
-//   [ ] 0x4ed9c0  CKS08GameManager_GetFocusedHeroNodeForward_maybe
+//   [x] 0x4ed9c0  CKS08GameManager_GetFocusedHeroNodeForward_maybe
 //   [x] 0x4eda18  CKS08GameManager_GetFocusedHeroPosition_maybe
 //   [x] 0x4eda80  CKS08GameManager_vf144
-//   [ ] 0x4edab8  CKS08GameManager_GetFocusedHeroNode_maybe
+//   [x] 0x4edab8  CKS08GameManager_GetFocusedHeroNode_maybe
 //   [x] 0x4edaf8  IKCommonGameManager_PostLoad
-//   [ ] 0x4edc78  CKS08GameManager_IsNoRestartPending_maybe
-//   [ ] 0x4edcc8  IKCommonGameManager_vfC0
+//   [x] 0x4edc78  CKS08GameManager_IsNoRestartPending_maybe
+//   [x] 0x4edcc8  IKCommonGameManager_vfC0  (CKS08GameManager.h VfC0)
 //   [x] 0x4edce8  CKS08GameManager_SetPlayerActive_maybe
 //   [x] 0x4edd20  CKS08GameManager_GetHeroesInvulnerableMask_maybe
 //   [x] 0x4edde8  CKS08GameManager_IsPlayerActive_maybe
@@ -59,32 +59,32 @@
 //   [x] 0x4ee100  CKS08GameManager_InterfaceStateDispatch
 //   [x] 0x4ee1a8  CKS08GameManager_HandleControllerDisconnect_maybe
 //   [x] 0x4ee310  CKS08GameManager_IsVideoSkipPressed_maybe
-//   [ ] 0x4ee4d0  CKS08GameManager_IsAnyMenuButtonActive_maybe
+//   [x] 0x4ee4d0  CKS08GameManager_IsAnyMenuButtonActive_maybe
 //   [x] 0x4ee668  CKS08GameManager_vf2F0
 //   [x] 0x4ee710  CKS08GameManager_OnLevelStart_maybe
-//   [ ] 0x4ee770  SetHeroInteractionTarget
-//   [ ] 0x4ee988  CKS08GameManager_vf140
+//   [x] 0x4ee770  SetHeroInteractionTarget
+//   [x] 0x4ee988  CKS08GameManager_vf140  (local copy GameManagerTargetPoint in CKLightningBoltNodeFx.cpp, the only caller)
 //   [x] 0x4eea60  CKS08GameManager_GetFocusedHeroNodePosition_maybe
 //   [x] 0x4eeab8  CKS08GameManager_SectorUnload
 //   [x] 0x4eebe8  IKCommonGameManager_vf240
 //   [x] 0x4eed08  CKS08GameManager_ResetProgress_maybe
-//   [ ] 0x4eed90  IKCommonGameManager_ResolveTriggerProperty
+//   [x] 0x4eed90  IKCommonGameManager_ResolveTriggerProperty  (written out in CKS08GameManager::GetInfo, CKS08GameManager_3.cpp)
 //   [x] 0x4eee20  CKS08GameManager_HandleCinematicAndUIMessage_maybe
-//   [ ] 0x4ef6a8  CKS08GameManager_vfA8
+//   [x] 0x4ef6a8  CKS08GameManager_vfA8
 //   [x] 0x4ef738  CKS08GameManager_Init
 //   [x] 0x4efb48  CKS08GameManager_vf2E8
-//   [ ] 0x4efbe8  IKCommonGameManager_Construct
-//   [ ] 0x4efe08  IKCommonGameManager_DeletingDestructor
-//   [ ] 0x4eff30  CKS08GameManager_SwitchInterfaceStateToStackTop_maybe
+//   [x] 0x4efbe8  IKCommonGameManager_Construct  (= 0x4edee0, the bases' part of the CKS08GameManager constructor (BootStubs.cpp / CKS08GameManager.h); no caller besides its OPD)
+//   [x] 0x4efe08  IKCommonGameManager_DeletingDestructor  (IKCommonGameManager's deleting form; dotd folds IKCommonGameManager into CKS08GameManager (~CKS08GameManager))
+//   [x] 0x4eff30  CKS08GameManager_SwitchInterfaceStateToStackTop_maybe
 //   [x] 0x4f0110  IKCommonGameManager_Load
-//   [ ] 0x4f0db8  IKCommonGameManager_Destructor
-//   [ ] 0x4f0ed8  IKCommonGameManager_DestructBody
+//   [x] 0x4f0db8  IKCommonGameManager_Destructor  (= 0x4f0ed8)
+//   [x] 0x4f0ed8  IKCommonGameManager_DestructBody  (written out in ~CKS08GameManager, CKS08GameManager_3.cpp)
 //   [x] 0x4f0ff8  IKGameManager_ResetRuntimeImpl
-//   [ ] 0x4f1a38  CKS08GameManager_vf210
+//   [x] 0x4f1a38  CKS08GameManager_vf210  (Vf210)
 //   [x] 0x4f1d90  IKCommonGameManager_vfAC
 //   [x] 0x4f1f88  CKS08GameManager_CheckPauseOrSkipRequest_maybe
 //   [x] 0x4f22e8  CKS08GameManager_Stop
-//   [ ] 0x4f27b0  IKGameManager_ReinitRuntimeImpl
+//   [x] 0x4f27b0  IKGameManager_ReinitRuntimeImpl
 //   [x] 0x4f2dd0  IKGameManager_Update
 //   [x] 0x4f46f8  KStub_Return0_4f46f8
 //   [x] 0x4f4700  KStub_Return4_4f4700
@@ -119,6 +119,7 @@
 //   [ ] 0x9c6b60  IKCommonGameManager_vf35C  [inline]
 //   [ ] 0x9c6ba0  IKCommonGameManager_vf25C  [inline]
 #include "Spyro2008/logic/CKS08GameManager.h"
+#include "platform/fps.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -154,7 +155,11 @@
 #include "k2000/managers/CKInput.h"
 #include "k2000/memory/Mem.h"
 #include "k2000/logic/ui/CKLocText.h"
+#include "k2000/graphical/ui/CFlashMessageBox2d.h"
+#include "k2000/graphical/ui/CManager2d.h"
+#include "k2000/graphical/ui/CMenuManager.h"
 #include "k2000/logic/ui/CLocManager.h"
+#include "k2000/misc/JobQueue.h"
 #include "k2000/misc/ClassRegistry.h"
 #include "k2000/misc/CKGameLoop.h"
 #include "k2000/misc/Engine.h"
@@ -194,6 +199,21 @@ uint8_t CKS08GameManager::StateMachine::Tick() {
     if (next == 0xff) return next;
     Call(next, 1, current);
     return m_ui8Current;
+}
+
+// 0x004ef6a8 CKS08GameManager_vfA8 (Init's counterpart; Init made the tables with Mem_CallocAligned16)
+void CKS08GameManager::ReleaseManager() {
+    ReleaseGameData();  // 0x14cc8
+    m_gameState.m_pOwner = nullptr;
+    Mem_FreeAligned16(m_gameState.m_pTable);
+    m_gameState.m_pTable = nullptr;
+    m_gameState.m_ui8Current = 0xff;
+    m_gameState.m_ui8Count = 0;
+    m_interfaceState.m_pOwner = nullptr;
+    Mem_FreeAligned16(m_interfaceState.m_pTable);
+    m_interfaceState.m_ui8Current = 0xff;
+    m_interfaceState.m_ui8Count = 0;
+    m_interfaceState.m_pTable = nullptr;
 }
 
 // 0x004ef738 CKS08GameManager_Init: InitImpl, then the game state machine (StateCount entries: the
@@ -465,6 +485,31 @@ void CKS08GameManager::SectorLoaded(int32_t sector) {
     }
 }
 
+// 0x004ee770 SetHeroInteractionTarget (C2.8 meca-hero; the hero activators, the save points). The class ids of the
+// held and the new target (vt+0x18): the same id keeps the held one; with a held one, the priority list +0x2bc (class
+// ids) decides: the held one's id first keeps it. BUG(original): CanAttachTo (0x361d08, the hero's vt+0xe0) is asked
+// about the game manager (r25 = this), not the target, with the byte `arg` as its count.
+uint8_t CKS08GameManager::SetHeroInteractionTarget(IKSerializable* target, uint8_t arg, uint8_t player) {
+    IKGrpHero* group = static_cast<IKGrpHero*>(m_unk04[1]);
+    CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(group->m_apControlledHeroes[player]);  // 0x002ca0e0
+    const int32_t newId = target->GetClassID();
+    int32_t heldId = -1;
+    IKSerializable* held = PlayerHudSlots()[player].m_pHero;
+    if (held != nullptr) heldId = held->GetClassID();
+    if (heldId == newId) return 0;
+    if (heldId != -1) {
+        for (uint32_t i = 0; i < m_unk2BC.m_ui32NbUsedElt; ++i) {
+            const int32_t id = static_cast<int32_t>(m_unk2BC.m_pBlock[i]);
+            if (newId == id) break;
+            if (heldId == id) return 0;
+        }
+    }
+    if (target != hero->GetAttachedObject() && target != group && hero->CanAttachTo(this, arg) == 0) return 0;  // 0x00361d50
+    PlayerHudSlots()[player].m_pHero = target;
+    PlayerHudSlots()[player].m_ui8Flag = arg;
+    return 1;
+}
+
 // 0x004eea60 CKS08GameManager_GetFocusedHeroNodePosition_maybe. The focused node is CKGrpS08Hero_GetFocusedHeroNode_maybe
 // (0x2ca128): the group's +0x44 list at the focused index (a signed byte at +0x66, -1 = none, then null).
 // BUG(original): no test of the node; its frame is read at +4.
@@ -482,7 +527,7 @@ const float* CKS08GameManager::GetFocusedHeroNodePosition() {
     CSGMovable* node = static_cast<CSGMovable*>(group->m_apUnk44[index]);
     // The LTM is computed on demand (the PS3 reads the frame's stored LTM, synchronised by
     // CKGraphic_UpdateSceneWorldMatrices_maybe right before).
-    return &RwFrameGetLTM(node->m_pRwFrame)->pos.x;
+    return &FrameLtm(node->m_pRwFrame)->pos.x;
 }
 
 // 0x004eda18 CKS08GameManager_GetFocusedHeroPosition_maybe (step 5, FX: the camera's heading lock). The focused hero
@@ -494,7 +539,7 @@ const float* CKS08GameManager::GetFocusedHeroPosition() {
         if (hero != nullptr) {
             // 0x00363c78 IKHkHero_GetTargetingPositionPtr_maybe
             if ((hero->m_bitArray & 2u) == 0) return &hero->m_unk570;
-            return &static_cast<CSGMovable*>(hero->m_pKGLObject)->m_pRwFrame->ltm.pos.x;
+            return &FrameLtm(static_cast<CSGMovable*>(hero->m_pKGLObject)->m_pRwFrame)->pos.x;
         }
     }
     return CDefaultGameManager::GetFocusedHeroNodePosition();
@@ -530,12 +575,12 @@ uint8_t CKS08GameManager::GetControlledHeroCount() {
 // group's input-blocked bit (0x2ca268 / 0x2ca258: bit 3 of +0xf8); nothing / 0 without the group.
 void CKS08GameManager::SetInputBlocked(uint8_t blocked) {
     CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_unk04[1]);
-    if (group != nullptr) group->m_unkf8 = (group->m_unkf8 & 0xfffffff7u) | (static_cast<uint32_t>(blocked) << 3);
+    if (group != nullptr) group->SetInputBlocked(blocked);  // 0x002ca268
 }
 uint8_t CKS08GameManager::IsInputBlocked() {
     CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_unk04[1]);
     if (group == nullptr) return 0;
-    return static_cast<uint8_t>((group->m_unkf8 >> 3) & 1);
+    return group->IsInputBlocked();  // 0x002ca258
 }
 
 // 0x004edd20 CKS08GameManager_GetHeroesInvulnerableMask_maybe (vt+0x1f0): bit i = hero i's invulnerable bit
@@ -578,8 +623,11 @@ void CKS08GameManager::SetAllHeroesInvulnerable(uint8_t invulnerable) {
 // 0x004eee20 CKS08GameManager_HandleCinematicAndUIMessage_maybe. 0x500 (a cinematic scene started): with bands (the scene's band
 // bit 0) the HUD interfaces are hidden, last to first. 0x2501 (a video started): the same when it is not a
 // video-to-texture (flag 0x40) and the game state is 7. 0x2502 (a video stopped): the game video of that video is
-// marked seen in every level. STUB(C2.8, moved from C2.6: level scripts send them; the text display is C2.7 HUD): the
-// text and message ids 0x2667 and 0x2669..0x2679 are not ported (the original answers 0 for an unknown id, as here).
+// marked seen in every level. The level scripts' messages: 0x2667 the spawn point (the object sent, else the structure's
+// current one) set again and a save requested; 0x2669 the death sequence (mode 0); 0x266a the game manager's flag
+// 0x10000; 0x266c..0x2679 a message box with the text sent (LocString_CopyText into a 2048-byte frame buffer, the box's
+// ShowMessageModal with a type and button pair per id, no interrupt, 1.0, timeout -1, timer on); 0x2672 shows three
+// boxes (6/2, 6/3, 6/4), 0x2677 two (6/3, 6/4). Unknown ids answer 1.
 uint8_t CKS08GameManager::HandleUIMessage(uint16_t message, void* data) {
     auto hideHud = [this]() {
         for (uint32_t i = Vf348(); i != 0;) {
@@ -618,8 +666,46 @@ uint8_t CKS08GameManager::HandleUIMessage(uint16_t message, void* data) {
         m_unk4D0 = 0;
         return 1;
     }
-    if (message == 0x2667 || (message >= 0x2669 && message <= 0x2679))
-        DOTD_STUB_ONCE("CKS08GameManager_HandleCinematicAndUIMessage_maybe: the HUD text messages (C2.7 / C2.8, moved from C2.6)");
+    if (message == 0x2667) {
+        IKGameStructure* structure = static_cast<IKGameStructure*>(m_gameStructure);
+        CKGameSpawnPoint* spawnPoint = *static_cast<CKGameSpawnPoint* const*>(data);
+        if (spawnPoint == nullptr) spawnPoint = structure->m_pCurrentSpawnPoint;
+        structure->SetCurrentSpawnPoint(spawnPoint);  // vt+0x6c
+        RequestSave(1, 0);                            // vt+0x104
+        return 1;
+    }
+    if (message == 0x2669) {
+        StartDeathSequence(0, 0);  // vt+0x25c
+        return 0;
+    }
+    if (message == 0x266a) {
+        m_flags64 = (m_flags64 & 0xfffeffffu) | 0x10000u;
+        return 0;
+    }
+    if (message == 0x266b) return 0;
+    // The message boxes: the box's type and button per id (0x266c..0x2679; 0x2672 and 0x2677 below).
+    static const int8_t kBoxes[14][2] = {{0, 0}, {1, 0}, {2, 0}, {3, 5}, {4, 3}, {5, 5}, {-1, -1},
+                                         {2, 1}, {3, 6}, {4, 1}, {5, 6}, {-1, -1}, {5, 1}, {6, 4}};
+    if (message < 0x266c || message > 0x2679) return 1;
+    const CKLocText* const* text = static_cast<const CKLocText* const*>(data);
+    uint16_t buffer[0x400];  // the 0x800-byte frame buffer
+    auto showBox = [&buffer, text](int32_t type, int32_t button) {
+        LocString_CopyText(*text, buffer);  // 0x00035cc0
+        CMenuManager* menus = static_cast<CMenuManager*>(g_pEngine->m_manager2d->m_menuManager);  // +0xa78
+        static_cast<CFlashMessageBox2d*>(menus->m_pFlashMessageBox)->ShowMessageModal(buffer, type, button, nullptr, 1.0f,
+                                                                                      -1.0f, 1);  // vt+0x54
+    };
+    if (message == 0x2672 || message == 0x2677) {
+        if (*text == nullptr) return 0;
+        if (message == 0x2672) showBox(6, 2);
+        if (*text == nullptr) return 0;
+        showBox(6, 3);
+        if (*text == nullptr) return 0;
+        showBox(6, 4);
+        return 0;
+    }
+    if (*text == nullptr) return 0;
+    showBox(kBoxes[message - 0x266c][0], kBoxes[message - 0x266c][1]);
     return 0;
 }
 
@@ -700,10 +786,24 @@ uint8_t CKS08GameManager::RequestSpawnPointLevel() {
     return RequestLevelChange(spawnPoint->m_pGameStage->m_i32StageIndex, spawnPoint->m_iSectorIndex);  // vt+0x2e4
 }
 
-// 0x004ee1a8 CKS08GameManager_HandleControllerDisconnect_maybe. STUB(C1.6): the system message (port 0:
-// the "TRC_WIIMOTE_SLOT" text variables and job 500; other ports: the reconnect message box).
-void CKS08GameManager::HandleControllerDisconnect(uint8_t /*port*/) {
-    DOTD_STUB_ONCE("CKS08GameManager_HandleControllerDisconnect_maybe (C1.6)");
+// 0x004ee1a8 CKS08GameManager_HandleControllerDisconnect_maybe
+void CKS08GameManager::HandleControllerDisconnect(uint8_t port) {
+    if (port == 0) {
+        CLocManager* loc = g_pEngine->m_locManager;
+        loc->SetTextVariableValueByName("TRC_WIIMOTE_SLOT", 1);  // 0x375f8; 0x00acac98
+        loc->SetTextVariableValueByName("TRC_PAD_SLOT", 1);      // 0x00acacb0
+        g_pEngine->m_jobQueue->PostAndWait(500, 4, nullptr, nullptr, nullptr);  // 0x24318
+        return;
+    }
+    if (GetPlayerCount() == 1) return;  // vt+0x154
+    const uint32_t saveRequest = m_flags64 & 2u;
+    if (saveRequest != 0) return;
+    m_unk4D0 = 1;
+    const CKLocText* text = g_pEngine->m_locManager->GetText(0x3e9);  // 0x37028
+    // 0x00b357d0: GameManager_PollPlayer2Reconnected_maybe 0x14e38 interrupts the box.
+    MessageBox_Show(1.0f, -1.0f, this, text, 1, 0, &GameManager_PollPlayer2Reconnected);  // 0x695d0; TOC 1.0, -1.0
+    m_ui8PausePlayer = static_cast<uint8_t>(saveRequest);  // stb r31 (0 here)
+    SetPlayerCount(1);  // vt+0x158
 }
 
 // 0x00110330 SoundListener_SetFollowCamera_maybe(listener, 1) and 0x00110308 SetOrientationFollowCamera_maybe(
@@ -783,6 +883,45 @@ void CKS08GameManager::ResetRuntime() {
     std::memset(m_aUnk488, 0, sizeof(m_aUnk488));
 }
 
+// 0x004f27b0 IKGameManager_ReinitRuntimeImpl (CKS08GameManager_Restart): ResetRuntime's run-time part without the
+// players, the input and the listener: the base's Restart, the flags, the HUD slots, the menus and the HUD screens
+// reinitialised (vt+0xa0), no menu, then game state 7 and the fade from black over one second, whatever the level.
+void CKS08GameManager::ReinitRuntime() {
+    CDefaultGameManager::Restart();  // 0x00013490
+    m_flags64 &= ~0x10000000u;  // rlwinm 3,1,31 / 29,0,31
+    m_unk4CC = 0;
+    m_flags64 &= 0xfffef7ffu;
+    for (uint32_t i = GetMaxPlayers(); static_cast<uint8_t>(i - 1) != 0xff; --i) {  // vt+0x150
+        PlayerHudSlot& slot = PlayerHudSlots()[static_cast<uint8_t>(i - 1)];
+        slot.m_pHero = nullptr;
+        slot.m_ui8Flag = 0;
+    }
+    for (uint32_t i = Vf340(); i != 0; --i) {
+        IKSerializable* menu = Vf344()[i - 1];
+        if (menu != nullptr) static_cast<CKMenuBase114c*>(Vf344()[i - 1])->VfA0();  // vt+0xa0 0x5140b0
+    }
+    const uint8_t none = NoMenuId();
+    m_ui8PrevMenu = MenuStateCount();
+    m_interfaceState.Switch(none);
+    m_aMenuStack[0] = none;
+    m_ui32MenuStackDepth = 1;
+    for (uint32_t i = Vf348(); i != 0; --i) {
+        IKSerializable* hud = GetHudInterfaces()[i - 1];  // vt+0x34c
+        if (hud != nullptr) static_cast<CKMenuBase114c*>(GetHudInterfaces()[i - 1])->VfA0();  // vt+0xa0
+    }
+    m_flags64 &= 0xfffff9ffu;
+    m_fUnk320 = 0x1.fffffep+127f;  // FLT_MAX: TOC1 +0x7090 -> +0x28
+    m_gameState.Switch(7);
+    // The fade over the restart, as in ResetRuntime (TOC1 +0x7008 1.0, the black at 0x00c50df8 via TOC1 +0x7094).
+    CColorizedScreenFx* fade = static_cast<CColorizedScreenFx*>(m_unk490);
+    const uint8_t primary[4] = {0, 0, 0, 0xff};
+    const uint8_t secondary[4] = {0, 0, 0, 0};
+    fade->m_BitProperties = (fade->m_BitProperties & ~CColorizedScreenFx::kActive) | CColorizedScreenFx::kActive;
+    fade->StartColorFade(1.0f, 1.0f, primary, 1, 2, 1, secondary);  // 0x000b0870 ScreenFade_Start_maybe
+    std::memset(m_aUnk480, 0, sizeof(m_aUnk480));
+    std::memset(m_aUnk488, 0, sizeof(m_aUnk488));
+}
+
 // 0x004f1d90 IKCommonGameManager_vfAC: the game restarts: KStub_Nop_12fb8, vt+0xb8 (NewGame), +0x2fc = 1,
 // flags +0x64 (bits 14 and 16-19 cleared, 14 set), no request, and on the front-end level the game state 1
 // (the auto-load).
@@ -792,7 +931,7 @@ void CKS08GameManager::VfACCommon() {
     const uint32_t flags = m_flags64;
     m_flags64 = (flags & 0xfff10000u) | ((flags & 0x3fffu) | 0x4000u);
     m_ui8RequestedState = 0xff;
-    m_unk4D4 &= 0x00ffffffu;  // the byte at +0x4d4 (param_1 + 0x135)
+    m_ui8PausePlayer = 0;  // the byte at +0x4d4 (param_1 + 0x135)
     if (IsFrontEndLevel() != 0) m_gameState.Switch(1);
 }
 
@@ -914,6 +1053,7 @@ void CKS08GameManager::UpdateCommon(IKTime* frameClock) {
         IKVideo* video = GetInterfaceVideo();
         float dt = 0.0f;  // TOC1 +0x6ff8
         if ((video->m_baData & 1) != 0) dt = 0x1.47ae14p-6f;  // 0x000aa948 KStub_ReturnFloat0p02_aa948
+        if (dotd::fps::Unlocked()) dt = dt * dotd::fps::Scale();  // --fps N (not in the original): 0.02 per 60 Hz frame
         const float level = FloatApproach_Step(dt, m_unk468);
         if (level == 255.0f) {
             video->m_baData &= ~0x10u;
@@ -1078,4 +1218,135 @@ uint8_t CKS08GameManager::IsActionPressed(uint32_t action, uint8_t player) {
 // 0x004ecf80 CKS08GameManager_GetActionValue
 float CKS08GameManager::GetActionValue(uint32_t action, uint8_t player) {
     return m_pCommonInputDicos->GetActionTimePressed(ActionEntryIndex(this, action, player));
+}
+
+// 0x004f1a38 CKS08GameManager_vf210 (C2.8 port-rest R10): the switches are the inlined ones.
+uint8_t CKS08GameManager::Vf210() {
+    if (IsFrontEndLevel() != 0) {  // vt+0x20c
+        m_unk2FC = 1;
+        m_gameState.Switch(5);
+        return 1;
+    }
+    if (m_gameState.m_ui8Current == 8) m_gameState.Switch(7);
+    if (Vf2EC() == 0) return 0;  // vt+0x2ec
+    m_unk2FC = 0;
+    return 1;
+}
+
+// 0x004ecea8 CKS08GameManager_vf168 (C2.8 port-rest R10): the entry's filter type (0x0010eb00 InputMapping_QueryActionSourceVf14_maybe).
+uint8_t CKS08GameManager::GetActionFilterType(uint32_t action, uint8_t player) {
+    return m_pCommonInputDicos->GetFilterThreshold(ActionEntryIndex(this, action, player));
+}
+
+// ==== C2.8 port-all P12 ===================================================================================================
+
+// 0x004ec798 CKS08GameManager_IsFlag480ClearedThisFrame_maybe: pad button `index` (0xc + index) was seen last frame
+// (+0x488) and not this one (+0x480).
+uint8_t CKS08GameManager::IsFlag480ClearedThisFrame(int32_t index) const {
+    if (m_aUnk488[index] == 0) return 0;
+    return m_aUnk480[index] == 0 ? 1 : 0;
+}
+
+// vt+0x228 0x004ec928 / vt+0x22c 0x004ec938 CKS08GameManager_vf228 / _vf22C: the loading screen's two text buffers
+// (+0x4e4, +0x6e4; MessageBox.cpp reads them).
+uint8_t* CKS08GameManager::Vf228() { return m_unk4E4; }
+uint8_t* CKS08GameManager::Vf22C() { return m_unk6E4; }
+
+// vt+0x190 0x004eccb0 CKS08GameManager_vf190: the button state of the action in byte +0x4a2 + `index` (0xff none) for
+// the current player (+0x4a3) in the common input configuration (+0x2e8). No call of the slot found.
+uint8_t CKS08GameManager::Vf190(int32_t index) const {
+    const uint8_t action = (&m_unk4A2)[index];
+    if (action == 0xff) return 0;
+    return m_pCommonInputDicos->GetButtonState(static_cast<uint8_t>(m_unk4A3 * 0x32 + action));  // 0x0010e7d0
+}
+
+// 0x004ecd70 IKCommonGameManager_GetDirectionActionState_maybe: the same with the direction actions of +0x498.
+uint8_t CKS08GameManager::GetCommonDirectionActionState(int32_t direction) const {
+    const uint8_t action = m_unk498[direction];
+    if (action == 0xff) return 0;
+    return m_pCommonInputDicos->GetButtonState(static_cast<uint8_t>(m_unk4A3 * 0x32 + action));
+}
+
+// vt+0xb0 0x004ed2c0 CKS08GameManager_vfB0: level 0 requested, the default sector (0x130e0).
+void CKS08GameManager::VfB0() { SetRequestedLevel(0); }
+
+// 0x004edab8 CKS08GameManager_GetFocusedHeroNode_maybe: the hero group's focused node (CKGrpS08Hero_GetFocusedHeroNode_maybe
+// 0x2ca128: +0x44 at the signed index +0x66), null without the group. dotd also answers null for no focus (-1), where the
+// original reads its list at -1.
+IKSerializable* CKS08GameManager::GetFocusedHeroNode() const {
+    IKGrpHero* group = static_cast<IKGrpHero*>(m_unk04[1]);
+    if (group == nullptr) return nullptr;
+    const int8_t index = static_cast<int8_t>(group->m_unk66);
+    if (index == -1) return nullptr;
+    return group->m_apUnk44[index];
+}
+
+// 0x004ed9c0 CKS08GameManager_GetFocusedHeroNodeForward_maybe: the focused node's frame's at axis (+0x70, the stored
+// LTM), the zero vector (0x00c50d64) without the group. BUG(original): no test of the node (dotd: the zero vector).
+const float* CKS08GameManager::GetFocusedHeroNodeForward() {
+    CSGMovable* node = static_cast<CSGMovable*>(GetFocusedHeroNode());
+    if (node == nullptr) return CDefaultGameManager::GetFocusedHeroNodePosition();
+    return &FrameLtm(node->m_pRwFrame)->at.x;
+}
+
+// 0x004edc78 CKS08GameManager_IsNoRestartPending_maybe: no restart flag (+0x4cc), no pending subsystem reset in the game
+// loop (+0x55) and no requested sector there (+0x24 == -2).
+uint8_t CKS08GameManager::IsNoRestartPending() const {
+    if (m_unk4CC != 0) return 0;
+    CKGameLoop* loop = g_pEngine->m_gameLoop;
+    if (loop->m_pendingSubsystemReset != 0) return 0;
+    return loop->m_requestedSector == -2 ? 1 : 0;
+}
+
+// vt+0x0c 0x004ed6c0 CKS08GameManager_DestroyGame: CDefaultGameManager's (0x12fb0, empty), then the +0x474, +0x2d0 and
+// +0x2bc vectors freed (each block and length cleared) and +0x460 cleared.
+void CKS08GameManager::DestroyGame() {
+    CDefaultGameManager::DestroyGame();
+    if (m_unk474.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_unk474.m_pBlock);
+        m_unk474.m_pBlock = nullptr;
+    }
+    m_unk474.m_ui32NbUsedElt = 0;
+    m_unk474.m_pBlock = nullptr;
+    if (m_unk2D0.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_unk2D0.m_pBlock);
+        m_unk2D0.m_pBlock = nullptr;
+    }
+    m_unk2D0.m_ui32NbUsedElt = 0;
+    m_unk2D0.m_pBlock = nullptr;
+    if (m_unk2BC.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_unk2BC.m_pBlock);
+        m_unk2BC.m_pBlock = nullptr;
+    }
+    m_unk2BC.m_ui32NbUsedElt = 0;
+    m_unk2BC.m_pBlock = nullptr;
+    m_unk460 = nullptr;
+}
+
+// 0x004eff30 CKS08GameManager_SwitchInterfaceStateToStackTop_maybe: with no exit request (+0x290 == -1) and the game loop
+// not in mode 3, the interface state machine (+0x304) switched to the top of the menu stack (+0x30f + depth: depth 0 reads
+// the machine's pad byte, as the original) when it is not the current one; the current one is kept as the previous menu
+// (+0x31c). 1 when it switched, else 0.
+uint8_t CKS08GameManager::SwitchInterfaceStateToStackTop() {
+    if (m_unk290 != -1 || g_pEngine->m_gameLoop->m_mode == 3) return 0;
+    const uint8_t top = m_ui32MenuStackDepth == 0 ? m_interfaceState.m_pad0a[1] : m_aMenuStack[m_ui32MenuStackDepth - 1];
+    if (top == m_interfaceState.m_ui8Current) return 0;
+    m_ui8PrevMenu = m_interfaceState.m_ui8Current;
+    m_interfaceState.Switch(top);
+    return 1;
+}
+
+// 0x004ee4d0 CKS08GameManager_IsAnyMenuButtonActive_maybe: one of the "Flash Manager" input project's second configuration
+// entries 10..19 (the menu buttons) has a filtered state (InputMapping_GetButtonState, in order, stopping at the first).
+// BUG(original): without the project the dico is null (+0x10 of address 0); dotd answers 0. No caller in the original
+// besides its OPD.
+uint8_t CKS08GameManager::IsAnyMenuButtonActive() {
+    CKInput* input = g_pEngine->m_input;
+    const uint32_t project = static_cast<uint32_t>(input->FindMappingIndexByName("Flash Manager")) & 0xff;
+    if (project == 0xff) return 0;
+    const CKInputDico* dico = &input->m_aaInputDico[project][1];  // +0x10: the second configuration
+    for (int32_t entry = 10; entry <= 0x13; ++entry) {
+        if (dico->GetButtonState(entry) != 0) return 1;
+    }
+    return 0;
 }

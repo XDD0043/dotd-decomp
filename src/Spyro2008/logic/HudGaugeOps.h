@@ -22,7 +22,7 @@ inline void SetGaugeValue(double requested, CKGaugeCpntUpdater* updater, int32_t
         updater->m_unk10 = maximum;
         updater->m_unk0c = updater->m_unk08;
     }
-    if (reset != 0) updater->m_unk14 = 0;
+    if (reset != 0) updater->m_unk14 = 0.0f;
 }
 
 // 0x00250dd8 CKSuperGaugeCpnt_SetValue: the value on the first two gauge updaters.
@@ -42,6 +42,9 @@ inline void SetHudGaugeValue(double requested, IKSerializable* updater) {
 }
 
 
+// 0x00250f18 CKSuperGaugeCpnt_GetMarkerValue_maybe: the third updater's value (CKSuperGaugeCpntUpdater::GetMarkerValue).
+inline double SuperGaugeGetMarker(CKSuperGaugeCpntUpdater* super) { return static_cast<double>(super->GetMarkerValue()); }
+
 // 0x00250da8 CKSuperGaugeCpnt_SetMarkerValue_maybe: the capacity marker is the third updater's value.
 inline void SuperGaugeSetMarker(double ratio, CKSuperGaugeCpntUpdater* super) {
     SetGaugeValue(ratio, super->m_apUpdaters[2], 1);
@@ -54,12 +57,12 @@ inline void SuperGaugeSetFullFlag(CKSuperGaugeCpntUpdater* super, uint32_t flag)
     CKGaugeCpntUpdater* record = super->m_apUpdaters[0];
     if (record->m_unk18 != flag) {
         record->m_unk18 = static_cast<uint8_t>(flag);
-        record->m_unk1c = 0;
+        record->m_fFlashTime = 0.0f;
         return;
     }
     if (record->m_pGauge->m_unk21 != 0) return;
     record->m_unk18 = static_cast<uint8_t>(flag);
-    record->m_unk1c = 0;
+    record->m_fFlashTime = 0.0f;
 }
 
 }  // namespace hudgauge

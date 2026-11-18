@@ -11,12 +11,18 @@
 class CKLine : public IKPath {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x1e)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a2238
+        return key == 0x78c || key == 0x70c || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKLine)
 
     CKLine();  // inlined in 0x000c7c20 CKLine_Create (CKLine_Construct 0xc76a8)
     ~CKLine() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x000c7d70 CKLine_Load
+    // vt+0x50 0x000c7940 CKLine_vf50: IKPath::GetPointAt (vt+0x54 into the return value). vt+0x24 0x000c7698
+    // RecursiveRegistration (1) and vt+0x10 0x000c7c18 Destroy (empty): the inherited defaults.
+    CVector3 GetPointAt(float distance, CVector3* direction) override;
     // vt+0x54 0x000c8050 CKLine_GetPointAtDistance: the point at `distance` (cut to the length; not clamped below
     // 0) on the segment whose cumulated length reaches it, and with `direction` that segment's normalised direction.
     void GetPointAtDistance(float distance, CVector3* point, CVector3* direction) override;

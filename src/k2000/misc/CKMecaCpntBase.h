@@ -9,6 +9,8 @@
 
 #include "k2000/components/IKComponent.h"
 
+class IKTime;
+
 class IKMecaCpnt : public IKComponent {
 public:
     IKMecaCpnt() {}  // 0x003f7a08 CKMecaCpntBase_a06_maybe_ConstructBase: the vtable only
@@ -17,7 +19,21 @@ public:
     }
     // vt+0x2c 0x003f7a18 CKMecaCpntBase_a06_maybe_Load: reads nothing.
     int32_t Load(IKFile* /*file*/, int32_t /*type*/) override { return 1; }
+    // vt+0x30 0x003f7a28 CKMecaCpnt_PostLoad (the derived components' PostLoad call it, then return 1): vt+0x50, then 1.
+    int32_t PostLoad(int32_t /*type*/) override {
+        Vf50();
+        return 1;
+    }
+    // vt+0x50 (KBaseA06_vf50 0x9c0cf0; the crumbly zone component's 0x9c10e0): empty in every LVL010 component.
+    virtual void Vf50() {}
+    // vt+0x54 (empty in every LVL010 component: CKCrumblyZoneCpnt_vf54 0x9c10e8).
+    virtual void Vf54() {}
+    // vt+0x10 0x003f7a78 CKMecaCpntBase_a06_maybe_Destroy: vt+0x54.
+    void Destroy() override { Vf54(); }
     // vt+0x58 (KBaseA06_vf58; CKGrpMeca's Start calls it on each component): empty here, the crumbly zone's
     // component clears its byte +0x0d.
     virtual void Vf58() {}
+    virtual void Vf5C() {}  // vt+0x5c (the crumbly zone component's 0x9c1100: empty)
+    // vt+0x60 (CKGrpMeca_UpdateMembers_maybe calls it on each component every frame with the frame clock).
+    virtual void Vf60(IKTime* /*clock*/) {}
 };

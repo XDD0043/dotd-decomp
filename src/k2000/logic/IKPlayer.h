@@ -41,6 +41,12 @@ public:
     void CopyPlayerGameDataImpl(IKPlayer* other);
     // 0x0001a120 CKDefaultPlayer_vf54Impl: +0x09, +0x10, +0x04 and +0x08 cleared.
     void InitializeNewGameImpl();
+    // C2.8 save-menu. 0x00019f98 CKDefaultPlayer_SaveImpl (CDefaultGameManager.cpp): K_GAME_MEMCARD writes the saved-level
+    // bits and +0x10 (little-endian words) around the used byte (Load's mirror); 1.
+    int32_t SaveImpl(IKFile* file, int32_t type);
+    // 0x0001a140 CKDefaultPlayer_LevelResetImpl (CKDefaultPlayer.cpp; XXL2 RecursiveRegistration): types 0, 1 and 4
+    // register the player, K_GAME_MEMCARD the player and its game state; 1.
+    int32_t LevelResetImpl(int32_t type);
 
     uint32_t m_baLevelSaved;     // +0x04 CBitArray (XXL2); read in K_GAME_MEMCARD (mode 5)
     uint8_t m_bUsed;             // +0x08 Bool (XXL2); mode 5

@@ -27,18 +27,31 @@
 
 #include "Renderware/rpprtstd/RpPrtStdInternal.h"
 #include "Renderware/rpworld/RpAtomic.h"
+#include "Renderware/rpworld/RpGeometry.h"
 #include "Renderware/rwcore/RwCamera.h"
 #include "Renderware/rwcore/RwMatrix.h"
 #include "crt/ppc_ops.h"
+#include "platform/heap_fill.h"
 
 namespace rpprtstd {
 
-CachedOffsets g_offsets = {};
+thread_local CachedOffsets g_offsets = {};
+std::atomic<uint32_t> g_propTabDestroyGeneration{0};
+
+namespace {
+thread_local uint32_t t_seenGeneration = 0;  // g_offsets' view of g_propTabDestroyGeneration
+}  // namespace
 
 // 0x0072a538 RW_CacheParticlePropertyOffsets: the offsets are looked up again only when the emitter's or
 // the particle's property table differs from the last one.
 RpPrtStdEmitter* CacheParticlePropertyOffsets(RpPrtStdEmitter* emitter) {
     const RpPrtStdPropertyTable* eTable = emitter->emtClass->propTab;
+    const uint32_t generation = g_propTabDestroyGeneration.load(std::memory_order_acquire);
+    if (t_seenGeneration != generation) {  // DEV: a table was destroyed (maybe by another thread)
+        t_seenGeneration = generation;
+        g_offsets.emitterTable = nullptr;
+        g_offsets.particleTable = nullptr;
+    }
     if (g_offsets.emitterTable != eTable) {
         g_offsets.emitterTable = eTable;
         g_offsets.emtStd = RpPrtStdPropTabGetPropOffset(eTable, 1);
@@ -95,6 +108,7 @@ RpPrtStdParticleBatch* EmitterNewParticleBatch(RpPrtStdEmitter* emitter) {
         const int32_t maxPrt = emitter->prtBatchMaxPrt;
         batch = static_cast<RpPrtStdParticleBatch*>(std::malloc(static_cast<size_t>(maxPrt * pClass->objSize + 0x20)));
         if (batch == nullptr) return nullptr;
+        dotd::HeapFill(batch, static_cast<size_t>(maxPrt * pClass->objSize + 0x20));  // zeroed by default (platform/heap_fill.h)
         batch->maxPrt = maxPrt;
         batch->prtClass = pClass;
         batch->offset = 0x20;
@@ -248,7 +262,7 @@ create:
         data->colorCC[2] = std->prtColor.blue;
         data->colorCC[3] = std->prtColor.alpha;
         // The PTank material's colour (RpMaterial +4) follows.
-        std::memcpy(data->materialColor, data->colorCC, 4);
+        RpPTankAtomicCopyConstantColorToMaterial(pTank);
         data->flags40 |= 0x2000u;
     }
     if ((flags & 0x80000) != 0) {
@@ -259,7 +273,7 @@ create:
         std::memcpy(data->renderC0, &std->prtSize, 8);
         data->flags40 |= 0x4000u;
     }
-    if (std->texture != nullptr) pTank->texture = std->texture;  // RpMaterialSetTexture (the PTank's material)
+    if (std->texture != nullptr) RpMaterialSetTexture(RpPTankAtomicGetMaterial(pTank), std->texture);
     const uint32_t platFlags = ptank->platFlags;
     if (SetPTankAtomic(emitter, pTank) == nullptr) return nullptr;
     ptank->platFlags = platFlags;
@@ -318,12 +332,10 @@ void FinishBoundingRadius(RpPrtStdEmitter* emitter) {
     if (0.0f < emitter->boundingSphere) emitter->boundingSphere = rwSqrt(emitter->boundingSphere);
 }
 
-// 0x0069bbe0 RW_UpdateAtomicMorphBoundingSphere (RpAtomic's interpolated bounding sphere): it returns at
-// once without a geometry, which the shim's streamed particle atomics never have.
-void UpdateAtomicMorphBoundingSphere(RpAtomic* atomic) {
-    if (atomic->geometry == nullptr) return;
-    // STUB(C2): the morph target spheres of geometry atomics (none carries particles in the front end).
-}
+// 0x0069bbe0 RW_UpdateAtomicMorphBoundingSphere (_rpAtomicResyncInterpolatedSphere, rpworld/RpGeometry.cpp):
+// the atomic's interpolated bounding sphere; nothing without a geometry (the shim's streamed particle atomics
+// have none).
+void UpdateAtomicMorphBoundingSphere(RpAtomic* atomic) { _rpAtomicResyncInterpolatedSphere(atomic); }
 
 // 0x0072ba60 RW_UpdateParticleEmitter: the emitter's update callbacks (slot 1), then every active batch's
 // particle update callbacks (slot 0) with the PTank arrays locked; emptied batches go to the inactive ring
@@ -467,6 +479,8 @@ RpPrtStdEmitter* RenderParticleEmitter(RpAtomic* atomic, RpPrtStdEmitter* emitte
     return emitter;
 }
 
+}  // namespace
+
 // 0x0072b3a0 RpPrtStdEmitterUpdate_maybe: RW_UpdateParticleEmitter and RW_EmitParticleEmitter in one: the
 // update callbacks, the particles' update (the batch loops ending at the first empty slot), the PTank arrays
 // locked once, then the emit callbacks (emit flag) and, when the arrays were locked, the PTank's count and
@@ -560,15 +574,17 @@ RpPrtStdEmitter* EmitterUpdate(RpAtomic* atomic, RpPrtStdEmitter* emitter, float
     return emitter;
 }
 
-}  // namespace
-
 // 0x007310e0 _rpPrtStdEmitterStdUpdateTimeCB_maybe (slot 1): the standard property's LTM pointer (the
 // atomic's frame LTM), its time advanced; with a PTank whose constant 2D rotation is animated (update flag
 // 0x20000) the rotation advances by the rotation speed, wrapped into [-pi, pi], and the PTank is told
 // (flag 0x20000).
 RpPrtStdEmitter* StdUpdateTime(RpAtomic* atomic, RpPrtStdEmitter* emitter, void* data) {
     RpPrtStdEmitterStandard* std = reinterpret_cast<RpPrtStdEmitterStandard*>(PropertyAt(emitter, g_offsets.emtStd));
-    std->ltm = RwFrameGetLTM(atomic->frame);
+    // The frame's stored LTM (addi frame, 0x50), not RwFrameGetLTM: the original does not synchronise the hierarchy here.
+    // A sync would refresh every frame of the emitter's hierarchy (the dynamic scene root's: the camera target leaves
+    // too) mid-frame: G +25754, an enemy's Deactivate -> CParticlesNodeFx::StopEmitting -> RpPrtStdAtomicUpdateAndEmit
+    // moved the hero's camera target leaf one frame early and the camera by an ulp.
+    std->ltm = &atomic->frame->ltm;
     const float dt = *static_cast<const float*>(data);
     std->currTime = dt + std->currTime;
     if (g_offsets.emtPTank >= 0) {

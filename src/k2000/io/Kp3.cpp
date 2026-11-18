@@ -10,10 +10,12 @@
 //   [x] 0x25e80  Kp3_LoadClassObjects
 //   [x] 0x26300  Kp3_LoadCategoryObjects
 //   [ ] 0x265a0  Kp3_SortObjectListById_maybe  [dead]
-//   [ ] 0x265e0  Kp3_CompareObjectIds
+//   [x] 0x265e0  Kp3_CompareObjectIds  (only the dead Kp3_SortObjectListById_maybe passes it)
 #include <algorithm>
+#include <atomic>
 #include <cstdio>
 #include <map>
+#include <mutex>
 #include <string>
 #include <utility>
 #include <vector>
@@ -35,6 +37,20 @@ std::map<std::string, uint32_t> g_skippedByClass;  // class name -> objects skip
 std::map<std::string, uint32_t> g_skippedTotals;   // the same over every file since the start
 // DEV: every object the end-offset check saw, in load order, for Kp3_DumpObjects.
 std::vector<std::pair<IKSerializable*, uint32_t>> g_loadedObjects;
+// DEV: a sector load runs on the load worker while the main thread plays (and the replay recorder walks the list): the
+// worker's objects go to a staged list, handed over when its LoadKp3Stream ends, and join g_loadedObjects on the main
+// thread at its next walk, so the list is only touched by the main thread and never shows a half-loaded sector.
+std::atomic<bool> g_stagingLoad{false};
+std::mutex g_stagedMutex;
+std::vector<std::pair<IKSerializable*, uint32_t>> g_stagedObjects;  // the running staged load's (worker only)
+std::vector<std::pair<IKSerializable*, uint32_t>> g_readyObjects;   // finished staged loads (under g_stagedMutex)
+
+void PublishReadyObjects() {
+    std::lock_guard<std::mutex> lock(g_stagedMutex);
+    if (g_readyObjects.empty()) return;
+    g_loadedObjects.insert(g_loadedObjects.end(), g_readyObjects.begin(), g_readyObjects.end());
+    g_readyObjects.clear();
+}
 
 IKSerializable* ObjectAt(void* instances, uint32_t index, uint16_t stride) {
     return reinterpret_cast<IKSerializable*>(static_cast<uint8_t*>(instances) + static_cast<uint32_t>(index) * stride);
@@ -62,7 +78,20 @@ void Kp3_ForEachSkippedTotal(void (*visit)(const char* className, uint32_t count
     for (const auto& entry : g_skippedTotals) visit(entry.first.c_str(), entry.second, context);
 }
 
+void Kp3_BeginStagedLoad() {
+    g_stagedObjects.clear();
+    g_stagingLoad.store(true);
+}
+
+void Kp3_EndStagedLoad() {
+    std::lock_guard<std::mutex> lock(g_stagedMutex);
+    g_readyObjects.insert(g_readyObjects.end(), g_stagedObjects.begin(), g_stagedObjects.end());
+    g_stagedObjects.clear();
+    g_stagingLoad.store(false);
+}
+
 void Kp3_ForgetLoadedObjects(const void* begin, const void* end) {
+    PublishReadyObjects();
     const uintptr_t first = reinterpret_cast<uintptr_t>(begin), last = reinterpret_cast<uintptr_t>(end);
     g_loadedObjects.erase(std::remove_if(g_loadedObjects.begin(), g_loadedObjects.end(),
                                          [first, last](const std::pair<IKSerializable*, uint32_t>& entry) {
@@ -89,7 +118,7 @@ void Kp3_CheckObjectEnd(IKFile* stream, uint32_t end, IKSerializable* object) {
     const uint32_t key = object != nullptr ? MakeClassKey(static_cast<uint32_t>(object->GetClassType()),
                                                           static_cast<uint32_t>(object->GetClassID()))
                                            : 0;
-    if (object != nullptr) g_loadedObjects.emplace_back(object, key);
+    if (object != nullptr) (g_stagingLoad.load() ? g_stagedObjects : g_loadedObjects).emplace_back(object, key);
     if (stream->Tell() == end) return;
     ++g_checks.objectMismatches;
     const KClassInfo* info = object != nullptr ? FindClassInfo(key) : nullptr;
@@ -135,6 +164,7 @@ void Kp3_ReportLoadChecks(const char* file) {
 // DEV: every object the loader saw (and not yet unloaded), in load order, with its class key (C2.4's shader test walks
 // the loaded geometries).
 void Kp3_ForEachLoadedObject(void (*visit)(IKSerializable* object, uint32_t classKey, void* context), void* context) {
+    PublishReadyObjects();
     for (const auto& entry : g_loadedObjects) visit(entry.first, entry.second, context);
 }
 
@@ -149,6 +179,7 @@ bool Kp3_DumpObjects(const char* path) {
     if (f == nullptr) return false;
     std::map<std::string, std::vector<IKSerializable*>> byClass;
     std::map<std::string, uint32_t> keys;
+    PublishReadyObjects();
     for (const auto& entry : g_loadedObjects) {
         const KClassInfo* info = FindClassInfo(entry.second);
         if (info == nullptr || info->size == 0 || ClassRegistry_IsLoadPending(entry.second)) continue;
@@ -444,4 +475,20 @@ void Kp3_PostLoadClassObjects(CKIDBundleLoad* record, int32_t mode, int8_t secto
         object->PostLoad(mode);
         object = reinterpret_cast<IKSerializable*>(reinterpret_cast<uint8_t*>(object) + record->m_ui16SizeOfClass);
     }
+}
+
+// C2.8 port-all P08.
+// 0x000265e0 Kp3_CompareObjectIds: the qsort comparator of two object pointers by their first word (a class key with an
+// instance number above bit 17): category, then class id, then the number; -1 / 0 / 1. BUG(original): a category below
+// with a class id above answers 1 (the class id is only tested when the category is not above).
+int32_t Kp3_CompareObjectIds(const void* a, const void* b) {
+    const uint32_t x = **static_cast<const uint32_t* const*>(a);
+    const uint32_t y = **static_cast<const uint32_t* const*>(b);
+    const uint32_t xid = (x >> 6) & 0x7ff;
+    const uint32_t yid = (y >> 6) & 0x7ff;
+    if ((x & 0x3f) > (y & 0x3f) || xid > yid) return 1;
+    if (xid < yid) return -1;
+    if ((x >> 17) > (y >> 17)) return 1;
+    if ((y >> 17) > (x >> 17)) return -1;
+    return 0;
 }

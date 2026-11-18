@@ -19,13 +19,21 @@ class CKSectorDetector;
 class CKSector : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x4)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x10c || key == 0xc; }  // vt+0x08 0x994148
     DOTD_DECLARE_FACTORIES(CKSector)
+    // vt+0x40 0x00033448 CKSector_GetInfo: the trigger values 5 (bit 0 of +0x06, the sector active).
+    int32_t GetInfo(IKInfo* info, int32_t request) override;
+    // vt+0x1c 0x00033398 CKSector_MessageProc: 0x1200 switches the level to this sector (CKLevel::SwitchToSector, no
+    // wait), 0x1201 enters it (CKLevel::EnterSector: the game waits on the job queue until it is streamed); 0 for both,
+    // 1 otherwise.
+    int32_t MessageProc(uint16_t message, void* data) override;
 
     CKSector();  // inlined in 0x000335f8 CKSector_Create
     ~CKSector() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x000336a0 CKSector_Load
     int32_t PostLoad(int32_t type) override;            // vt+0x30 0x00032e18 CKSector_PostLoad
+    void Destroy() override;                            // vt+0x10 0x000332d0 CKSector_Destroy
 
     // The sector's runtime slots (XXL2: PreSectorLoaded, SectorLoaded, SectorUnload, PostSectorUnload; the
     // argument is the sector index). CKLevel calls vt+0x58 / vt+0x5c on every sector it holds.

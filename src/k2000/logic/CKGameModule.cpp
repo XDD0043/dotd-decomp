@@ -3,7 +3,7 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x3b4f0  CKGameModule_SetField2C_maybe
+//   [x] 0x3b4f0  CKGameModule_SetField2C_maybe  (the member store, inlined at its call in CKDefaultGameStructure_2.cpp's PostLoad)
 //   [x] 0x3b4f8  CKGameModule_vf78
 //   [x] 0x3b500  CKGameModule_vf7C
 //   [x] 0x3b508  CKGameModule_vf88
@@ -18,17 +18,17 @@
 //   [x] 0x3b790  CKGameModule_ClearLevelData
 //   [x] 0x3b808  CKGameModule_InitLevelData
 //   [x] 0x3b868  CKGameModule_InitGameData
-//   [ ] 0x3b8f0  CKGameModule_RecursiveRegistration
-//   [ ] 0x3b918  CKGameModule_Destroy
+//   [x] 0x3b8f0  CKGameModule_RecursiveRegistration  (inherited: IKGameObject_vf24, nothing)
+//   [x] 0x3b918  CKGameModule_Destroy  (inherited: IKGameObject_Destroy)
 //   [x] 0x3b940  CKGameModule_DeleteArray
 //   [x] 0x3b9e8  CKGameModule_Create
 //   [x] 0x3ba58  CKGameModule_vf98
 //   [x] 0x3bb08  CKGameModule_SetActivated_maybe
-//   [ ] 0x3bbc0  CKGameModule_PostLoad
-//   [ ] 0x3bcb0  CKGameModule_GetInfo
+//   [x] 0x3bbc0  CKGameModule_PostLoad
+//   [x] 0x3bcb0  CKGameModule_GetInfo
 //   [x] 0x3bd08  CKGameModule_CreateArray
 //   [x] 0x3bdf0  CKGameModule_UpdateTriggerDomains_maybe
-//   [ ] 0x3be88  CKGameModule_MessageProc
+//   [x] 0x3be88  CKGameModule_MessageProc
 //   [x] 0x3bf18  CKGameModule_Load
 //   [ ] 0x3c218  CKGameModule_Save
 //
@@ -36,12 +36,14 @@
 //   [x] 0x994d18  CKGameModule_GetClassType  [inline]
 //   [x] 0x994d20  CKGameModule_GetClassID  [inline]
 //   [x] 0x994d28  CKGameModule_vf74  [inline]
-//   [ ] 0x994d38  CKGameModule_GetTriggerProp2  [inline]
+//   [x] 0x994d38  CKGameModule_GetTriggerProp2  [inline]
 //   [x] 0x994d80  CKGameModule_vf80  [inline]
 //   [x] 0x994da0  CKGameModule_vf84  [inline]
-//   [ ] 0x994db0  CKGameModule_DeletingDestructor  [inline]
-//   [ ] 0x994e38  CKGameModule_Destructor  [inline]
+//   [x] 0x994db0  CKGameModule_DeletingDestructor  [inline]  (the destructor; delete)
+//   [x] 0x994e38  CKGameModule_Destructor  [inline]  (written out below (C2.8 port-all P12))
+#include "k2000/memory/Mem.h"
 #include "k2000/logic/CKGameModule.h"
+#include "k2000/core/IKInfo.h"
 #include "k2000/logic/CKTriggerSynchro.h"
 
 #include "k2000/io/IKFile.h"
@@ -70,6 +72,15 @@ void CKGameModule::InitializeGameData() {
     m_pGameStage = nullptr;
     SetActivated(0);  // vt+0x70
     SetFlag2(0);      // vt+0x80
+}
+
+// 0x0003bbc0 CKGameModule_PostLoad
+int32_t CKGameModule::PostLoad(int32_t type) {
+    if (type == 0 && (m_baFlags & 1u) == 0) {
+        SetActivated(0);  // vt+0x70
+        SetFlag2(0);      // vt+0x80
+    }
+    return IKGameObject::PostLoad(type);  // 0x42e40 IKGameObject_PostLoad: returns 1
 }
 
 // 0x0003bb08 CKGameModule_SetActivated_maybe
@@ -149,4 +160,29 @@ void CKGameModule::UpdateTriggerDomains() {
     const uint8_t activated = static_cast<uint8_t>(IsActivated());
     m_pTriggerSynchro->FindSetForSector(0)->SetEnabled(activated ^ 1);
     m_pTriggerSynchro->FindSetForSector(1)->SetEnabled(activated);
+}
+
+// 0x0003be88 CKGameModule_MessageProc
+int32_t CKGameModule::MessageProc(uint16_t message, void* data) {
+    if (message != 0x200) return 1;
+    SetActivated(*static_cast<const uint8_t*>(data));  // vt+0x70
+    UpdateTriggerDomains();                            // 0x3bdf0
+    return 0;
+}
+
+// 0x0003bcb0 CKGameModule_GetInfo
+int32_t CKGameModule::GetInfo(IKInfo* info, int32_t request) {
+    if (request != kGetInfoValueAccessor || info->m_ui32Id != 2) return 1;
+    // 0x00994d38 CKGameModule_GetTriggerProp2: the module's vt+0x74 (activated), its low byte.
+    return AnswerInfo(info, [](IKSerializable* o, uint32_t) {
+        return static_cast<CKGameModule*>(o)->IsActivated() & 0xffu;
+    }, 0);
+}
+
+// 0x00994e38 CKGameModule_Destructor [inline] (written out in CKS08GameModule_Destructor 0x5085b0; C2.8 port-all P12):
+// the object vector's block freed, its length and block cleared.
+CKGameModule::~CKGameModule() {
+    if (m_vObjects.m_pBlock != nullptr) Mem_FreeAligned16(m_vObjects.m_pBlock);
+    m_vObjects.m_ui32NbUsedElt = 0;
+    m_vObjects.m_pBlock = nullptr;
 }

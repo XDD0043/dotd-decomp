@@ -7,11 +7,11 @@
 //   [x] 0x110048  MouseDevice_Init_maybe
 //   [x] 0x110090  KStub_Return1_110090
 //   [x] 0x110098  KStub_Return1_110098
-//   [ ] 0x1100a0  KStub_Return1_1100a0
+//   [x] 0x1100a0  KStub_Return1_1100a0
 //   [ ] 0x1100a8  MouseDevice_Destructor_2_maybe  [dead]
 //   [ ] 0x1100b8  MouseDevice_Construct_2_maybe  [dead]
-//   [ ] 0x1100c8  MouseDevice_DeletingDestructor_maybe
-//   [ ] 0x1100f8  MouseDevice_Destructor_maybe
+//   [x] 0x1100c8  MouseDevice_DeletingDestructor_maybe  (~MouseDevice, MouseDevice.h: delete)
+//   [x] 0x1100f8  MouseDevice_Destructor_maybe  (~MouseDevice, MouseDevice.h (vtable store only))
 #include "k2000/input/MouseDevice.h"
 
 // 0x00110048 MouseDevice_Init_maybe (XXL2 InitializeData(CKParams*)): no name for any button, in the

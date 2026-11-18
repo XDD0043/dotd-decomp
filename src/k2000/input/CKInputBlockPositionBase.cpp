@@ -7,20 +7,20 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x20da38  CKInputBlockPositionBase_620c_maybe_OnDeactivate_maybe
-//   [ ] 0x20da80  CKInputBlockPositionBase_620c_maybe_OnActivate_maybe
-//   [ ] 0x20db98  CKInputBlockPositionBase_620c_maybe_Load
-//   [ ] 0x20dbf8  CKInputBlockPositionBase_620c_maybe_vf28
-//   [ ] 0x20dc20  CKInputBlockPositionBase_620c_maybe_vf24
-//   [ ] 0x20dc48  CKInputBlockPositionBase_620c_maybe_vf10
-//   [ ] 0x20dc70  CKInputBlockPositionBase_620c_maybe_BaseDestructor
-//   [ ] 0x20dca0  StaticInitAndDestruction_20dca0
+//   [x] 0x20da38  CKInputBlockPositionBase_620c_maybe_OnDeactivate_maybe  (KBase620C::OnDeactivate, k2000/misc/KBase620C.h (P06))
+//   [x] 0x20da80  CKInputBlockPositionBase_620c_maybe_OnActivate_maybe  (KBase620C::OnActivate, k2000/misc/KBase620C.h (P06))
+//   [x] 0x20db98  CKInputBlockPositionBase_620c_maybe_Load  (KBase620C::Load, k2000/misc/KBase620C.h (P06))
+//   [x] 0x20dbf8  CKInputBlockPositionBase_620c_maybe_vf28  (Save: KBase628C's 0x209c40 then 1 (inherited; the Saves are left out))
+//   [x] 0x20dc20  CKInputBlockPositionBase_620c_maybe_vf24  (RecursiveRegistration: KBase628C's 0x209c68 then 1 (inherited))
+//   [x] 0x20dc48  CKInputBlockPositionBase_620c_maybe_vf10  (Destroy: KBase628C's (KBase60CC_Destroy, inherited))
+//   [x] 0x20dc70  CKInputBlockPositionBase_620c_maybe_BaseDestructor  (C++ destructor chain: vtable stores only (~KBase620C))
+//   [x] 0x20dca0  StaticInitAndDestruction_20dca0  (KBase620C::kNoPosition, k2000/misc/KBase620C.h)
 //   [ ] 0x20dcd0  _GLOBAL__D_20dcd0
 //   [ ] 0x20dce0  _GLOBAL__I_20dce0
-//   [ ] 0x20dcf0  CKInputBlockPositionBase_620c_maybe_DeletingDestructor
-//   [ ] 0x20dd38  CKInputBlockPositionBase_620c_maybe_Destructor
-//   [ ] 0x20dd68  PS3_CKInputBlockPosition_ConstructBase_maybe
-//   [ ] 0x20dda0  CKInputBlockPositionBase_620c_maybe_Construct
+//   [x] 0x20dcf0  CKInputBlockPositionBase_620c_maybe_DeletingDestructor  (the implicit destructor (~KBase620C), delete)
+//   [x] 0x20dd38  CKInputBlockPositionBase_620c_maybe_Destructor  (C++ destructor chain: vtable stores only (~KBase620C))
+//   [x] 0x20dd68  PS3_CKInputBlockPosition_ConstructBase_maybe  (KBase620C::KBase620C, k2000/misc/KBase620C.h: KBase628C's, then the vtable)
+//   [ ] 0x20dda0  CKInputBlockPositionBase_620c_maybe_Construct  [dead: no pointer to its descriptor 0xb7baf8, no call]
 //
 //   [ ] 0x9b1b78  CKInputBlockPositionBase_620c_maybe_vf8  [inline]
 //   [ ] 0x9b1bb0  CKInputBlockPositionBase_620c_maybe_vf14  [inline]

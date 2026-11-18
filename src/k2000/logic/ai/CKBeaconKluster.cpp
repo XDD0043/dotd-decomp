@@ -4,9 +4,9 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x2e880  CKBeaconKluster_Delete
-//   [ ] 0x2e8d0  CKBeaconKluster_RecursiveRegistration
+//   [x] 0x2e8d0  CKBeaconKluster_RecursiveRegistration  (returns 1: the default slot)
 //   [ ] 0x2e8d8  CKBeaconKluster_Save
-//   [ ] 0x2e8e0  CKBeaconKluster_PostLoad
+//   [x] 0x2e8e0  CKBeaconKluster_PostLoad  (returns 1: the default slot)
 //   [ ] 0x2e8e8  RegisterCKBeaconKlusterClass
 //   [ ] 0x2e960  _GLOBAL__I_2e960
 //   [x] 0x2e970  CKBeaconKluster_Destroy

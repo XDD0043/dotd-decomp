@@ -7,14 +7,14 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0xfdc70  PixelShaderObject_ReleaseCgProgram_maybe
-//   [ ] 0xfdcb8  PixelShaderObject_Init_maybe
+//   [ ] 0xfdc70  PixelShaderObject_ReleaseCgProgram_maybe  [platform]  (a Cg shader object of the PS3 program cache: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
+//   [ ] 0xfdcb8  PixelShaderObject_Init_maybe  [platform]  (a Cg shader object of the PS3 program cache: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
 //   [ ] 0xfdce8  FUN_000fdce8  [dead]
-//   [ ] 0xfdd30  PixelShaderObject_DeletingDestructor_maybe
-//   [ ] 0xfdd78  PixelShaderObject_Destruct_maybe
-//   [ ] 0xfdda8  PixelShaderObject_Destruct_2_maybe
-//   [ ] 0xfddd8  PixelShaderObject_Construct_maybe
-//   [ ] 0xfde18  PixelShaderObject_Construct_2_maybe
-//   [ ] 0xfde58  PixelShaderObject_ReadCompiledCode_maybe
-//   [ ] 0xfdef8  PixelShaderObject_Compile_maybe
-//   [ ] 0xfdf90  CShaderManagerPSGL_LoadPixelShader_maybe
+//   [ ] 0xfdd30  PixelShaderObject_DeletingDestructor_maybe  [platform]  (a Cg shader object of the PS3 program cache: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
+//   [ ] 0xfdd78  PixelShaderObject_Destruct_maybe  [platform]  (a Cg shader object of the PS3 program cache: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
+//   [ ] 0xfdda8  PixelShaderObject_Destruct_2_maybe  [dead: no pointer to its descriptor 0xb55f60, no call]
+//   [ ] 0xfddd8  PixelShaderObject_Construct_maybe  [platform]  (a Cg shader object of the PS3 program cache: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
+//   [ ] 0xfde18  PixelShaderObject_Construct_2_maybe  [dead: no pointer to its descriptor 0xb55f70, no call]
+//   [ ] 0xfde58  PixelShaderObject_ReadCompiledCode_maybe  [platform]  (a Cg shader object of the PS3 program cache: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
+//   [ ] 0xfdef8  PixelShaderObject_Compile_maybe  [platform]  (a Cg shader object of the PS3 program cache: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
+//   [ ] 0xfdf90  CShaderManagerPSGL_LoadPixelShader_maybe  [platform]  (a Cg shader object of the PS3 program cache: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)

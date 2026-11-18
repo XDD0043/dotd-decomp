@@ -58,6 +58,12 @@ struct TextureLevel {
 uint32_t CreateTexture(TextureFormat format, int width, int height, int levelCount, const TextureLevel* levels);
 // RGBA8, one level (the C1.0 test path).
 uint32_t CreateTextureRGBA8(int width, int height, const void* pixels, bool linearFilter);
+// The LOD bias PSGL gives every texture: PSGL_Texture_BuildGcmSamplerState_maybe 0x655348 writes the RSX filter word's
+// bias as (int)((GL_TEXTURE_LOD_BIAS - 0.26) * 256) (0x655414: the constants 0.26 and 256.0 at the library TOC -0x4c70 /
+// -0x4c6c), and nothing in the game sets GL_TEXTURE_LOD_BIAS (0): -66 / 256 of a mip level, so the PS3 samples a quarter
+// level sharper than plain GL. CreateTexture sets it on mipmapped textures (desktop GL); the web build's translated
+// pixel shaders pass it to their lookups (cg_to_glsl.cpp: WebGL 2 has no such texture parameter).
+constexpr float kPsglLodBias = -66.0f / 256.0f;
 // GL_TEXTURE_MAX_LOD of a texture (the PS3 driver limits the smallest mip level used, C2.4 exit).
 void SetTextureMaxLod(uint32_t texture, float lod);
 void DestroyTexture(uint32_t texture);

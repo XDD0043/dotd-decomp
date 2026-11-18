@@ -22,6 +22,8 @@ DOTD_ASSERT_SIZE(RwIm2DVertex, 0x24);
 
 // RWEngine +0x18: the near screen z (RwIm2DGetNearScreenZ).
 RwReal RwIm2DGetNearScreenZ();
+// RWEngine +0x1c: the far screen z (RwIm2DGetFarScreenZ).
+RwReal RwIm2DGetFarScreenZ();
 // RWEngine +0x34: draws numIndices indices into vertices (screen space of the current camera's raster).
 RwBool RwIm2DRenderIndexedPrimitive(RwPrimitiveType primType, RwIm2DVertex* vertices, RwInt32 numVertices,
                                     RwImVertexIndex* indices, RwInt32 numIndices);

@@ -12,7 +12,7 @@
 //   [ ] 0x3131e0  FUN_003131e0  [dead]
 //   [x] 0x313340  CKHkS08Hero_ComputeFlightGravityAccel_maybe
 //   [x] 0x313780  CKHkS08Hero_LocoState0_Flying_Condition
-//   [ ] 0x3137a8  StaticInitAndDestruction_3137a8
+//   [x] 0x3137a8  StaticInitAndDestruction_3137a8  (the two file statics at the end)
 //   [ ] 0x3137d8  _GLOBAL__D_3137d8
 //   [ ] 0x3137e8  _GLOBAL__I_3137e8
 //   [x] 0x3137f8  CKHkS08Hero_ComputeFlightDragForce_maybe
@@ -28,6 +28,7 @@
 //   [x] 0x3167e0  CKHkS08Hero_UpdateFlyingLocomotion_maybe
 
 #include "Spyro2008/hooks/CKHkS08Hero.h"
+#include "Spyro2008/hooks/CKHkS08AirCurrent.h"
 #include <cmath>
 #include <cstring>
 #include "Renderware/rtanim/RtAnim.h"
@@ -1043,10 +1044,16 @@ void CKHkS08Hero::UpdateFlyingLocomotion(float dt) {
         const float length =
             std::sqrt(ppc::fmadds(m_unk1364, m_unk1364, ppc::fmadds(m_unk135c, m_unk135c, m_unk1360 * m_unk1360)));
         if (length > kNear) {
-            // STUB(C2.7: targets): CKHkS08Hero_FindBestEnemyInAimCone_maybe 0x2fe5b8 (+0x1d38's cone, the facing) finds no
-            // enemy before the enemies are ported; then CKHkS08Hero_GetAimPointOnEnemy 0x2fdec8 into +0x1d2c.
-            DOTD_STUB_ONCE("CKHkS08Hero_UpdateFlyingLocomotion_maybe 0x3167e0: the aimed enemy (C2.7)");
-            m_unk1d28 = 0;
+            const CVector3 facing{m_unk135c, m_unk1360, m_unk1364};
+            m_unk1d28 = FindBestEnemyInAimCone(m_unk1d38, &facing);  // 0x002fe5b8
+        }
+        if (m_unk1d28 != nullptr) {
+            // The aim point from the position (+0x54c), hot spot 1 when it is nearer, the height clamped.
+            const CVector3 from{m_unk54c, m_unk550, m_unk554};
+            const CVector3 aim = GetAimPointOnEnemy(m_unk1d28, &from, 1, 1);  // 0x002fdec8
+            m_unk1d2c = aim.x;
+            m_unk1d34 = aim.z;
+            m_unk1d30 = aim.y;
         }
     }
 }
@@ -1305,9 +1312,13 @@ void CKHkS08Hero::UpdateFlyingMovement(float dt) {
         }
     }
     if (GameManagerHeroRecord(m_ui8Hero)[7] != 0) {  // the record's word +0xe14: the air current holding the hero
-        // STUB(C2.8: air currents): CKHkS08AirCurrent_ClampPositionToTube_maybe 0x475278 (the current, +0x558, the
-        // position) puts the position back into the current's tube. No air current holds a hero before the first fight.
-        DOTD_STUB_ONCE("CKHkS08Hero_UpdateFlyingMovement_maybe 0x3141b0: the air current's tube (C2.8)");
+        // CKHkS08AirCurrent_ClampPositionToTube_maybe 0x475278 (the current, +0x558 unread, the position) puts the
+        // position back into the current's tube. DOTD (x64): the word holds the current's low address bits.
+        CKHkS08AirCurrent* current = CKHkS08AirCurrent::FromRecordWord(GameManagerHeroRecord(m_ui8Hero)[7]);
+        const CVector3 clamped = current->ClampPositionToTube(position);
+        position->x = clamped.x;
+        position->y = clamped.y;
+        position->z = clamped.z;
     }
     CMatrix34 matrix;
     matrix.m_pos.x = 0.0f;
@@ -1418,9 +1429,9 @@ void CKHkS08Hero::UpdateFlyingMovement(float dt) {
         }
         float pitch = crt::Asinf(s);  // TocBridge_Math_Asinf_maybe
         if ((m_unkec8 & 0x10000000u) != 0) pitch = 0.0f;
-        float target = m_unk970 * -1.74532923847436905e-2f;  // TOC +0x234c
+        float target = m_unk970 * -1.74532905220985413e-2f;  // TOC +0x234c
         if (!(pitch <= target)) {
-            const float high = m_unk970 * 1.74532923847436905e-2f;  // TOC +0x2350
+            const float high = m_unk970 * 1.74532905220985413e-2f;  // TOC +0x2350
             target = pitch >= high ? high : pitch;
         }
         if (m_unk12c4 < m_unk964 || m_unk13a4 != 0) {
@@ -1491,3 +1502,10 @@ void CKHkS08Hero::UpdateFlyingMovement(float dt) {
 
 // 0x00313780 CKHkS08Hero_LocoState0_Flying_Condition: flying (movement mode 1).
 uint8_t CKHkS08Hero::LocoFlyingCondition(IKTime*, uint8_t) { return IsFlyingMovementMode1(); }
+
+// 0x003137a8 StaticInitAndDestruction_3137a8: two file statics (0x00ceae24, 0x00ceae28) set to -1.0f. Nothing in the game
+// reads them (their only references are the initialiser's TOC entries).
+namespace {
+[[maybe_unused]] float s_unkceae24 = -1.0f;
+[[maybe_unused]] float s_unkceae28 = -1.0f;
+}  // namespace

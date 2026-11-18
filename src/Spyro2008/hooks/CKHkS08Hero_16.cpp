@@ -6,40 +6,43 @@
 //   [x] 0x33ca98  CKHkS08Hero_vfFC
 //   [x] 0x33caa0  CKHkS08Hero_CtlState0_AIWarpToCatchUpPoint_Condition
 //   [x] 0x33cab0  CKHkS08Hero_CtlState1_AIPickCatchUpPoint_Condition
-//   [ ] 0x33cac0  CKHkS08Hero_CopyPointRecordWithType4_maybe
-//   [ ] 0x33cb08  CKHkS08Hero_CopyPointRecordWithType2_maybe
+//   [x] 0x33cac0  CKHkS08Hero_CopyPointRecordWithType4_maybe
+//   [x] 0x33cb08  CKHkS08Hero_CopyPointRecordWithType2_maybe
 //   [x] 0x33cb50  CKHkS08Hero_AIWriteStickFromDesiredMove_maybe
-//   [ ] 0x33cc28  StaticInitAndDestruction_33cc28
+//   [x] 0x33cc28  StaticInitAndDestruction_33cc28  (the two file statics at the end)
 //   [ ] 0x33cc58  _GLOBAL__I_33cc58
 //   [ ] 0x33cc68  _GLOBAL__D_33cc68
 //   [x] 0x33cc78  CKHkS08Hero_AIGetFollowFlyingTarget_maybe
 //   [ ] 0x33ce70  FUN_0033ce70  [dead]
-//   [ ] 0x33d000  CKHkS08Hero_CtlState3_AICombat
+//   [x] 0x33d000  CKHkS08Hero_CtlState3_AICombat
 //   [ ] 0x33d178  FUN_0033d178  [dead]
 //   [x] 0x33d250  CKHkS08Hero_CtlState3_AICombat_Condition
 //   [x] 0x33d330  CKHkS08Hero_CtlState5_AIClimbing_maybe_Condition
 //   [x] 0x33d428  CKHkS08Hero_CtlState7_AIFollowGround_Condition
 //   [x] 0x33d570  CKHkS08Hero_CtlState6_AIFollowFlying_Condition
 //   [ ] 0x33d708  FUN_0033d708  [dead]
-//   [ ] 0x33d7d8  CKHkS08Hero_IsPointWalkableInCurrentSector_maybe
+//   [x] 0x33d7d8  CKHkS08Hero_IsPointWalkableInCurrentSector_maybe
 //   [x] 0x33d8f0  CKHkS08Hero_UpdateField1348Timers_maybe
-//   [ ] 0x33da70  CKHkS08Hero_CtlState4_ControlLocked
+//   [x] 0x33da70  CKHkS08Hero_CtlState4_ControlLocked
 //   [x] 0x33db90  CKHkS08Hero_AIComputeFollowFlyingThrottle_maybe
 //   [x] 0x33de60  CKHkS08Hero_AISteerFollowFlying_maybe
 //   [x] 0x33e108  CKHkS08Hero_CtlState1_AIPickCatchUpPoint
-//   [ ] 0x33e378  CKHkS08Hero_CtlState2_ScriptedMoveTo
+//   [x] 0x33e378  CKHkS08Hero_CtlState2_ScriptedMoveTo
 //   [x] 0x33e600  CKHkS08Hero_CtlState7_AIFollowGround
 //   [x] 0x33ecf0  CKHkS08Hero_AIGetFollowFlyingDirection_maybe
 //   [x] 0x33f080  CKHkS08Hero_CtlState5_AIClimbing_maybe
 //   [x] 0x33f150  CKHkS08Hero_CtlState0_AIWarpToCatchUpPoint
 //   [x] 0x33f4d0  CKHkS08Hero_CtlState6_AIFollowFlying
-//   [ ] 0x33f9c0  KStub_Nop_33f9c0
-//   [ ] 0x33f9c8  KStub_Return1_33f9c8
+//   [x] 0x33f9c0  KStub_Nop_33f9c0  (skipped by its caller: CKHkS08Hero_16.cpp CtlAICombat)
+//   [x] 0x33f9c8  KStub_Return1_33f9c8  (inline in its caller: CKHkS08Hero_16.cpp CtlAICombat)
 //   [x] 0x33f9d0  CKHkS08Hero_ResetComboAndAttackCredits
-//   [ ] 0x33f9e8  CKHkS08Hero_ConsumeAttackCredits
+//   [x] 0x33f9e8  CKHkS08Hero_ConsumeAttackCredits
 #include "Spyro2008/hooks/CKHkS08Hero.h"
+#include "Spyro2008/groups/IKGrpHero.h"
 #include "k2000/hooks/CKHkClimbZone.h"
 #include "k2000/scenegraph/CSGMovable.h"
+#include "k2000/logic/CKPFGraphNode.h"
+#include "k2000/ai/CKSrvPathFinding.h"
 #include "Renderware/rwcore/RwCamera.h"
 #include <cmath>
 #include "Spyro2008/groups/C22SpyroShims.h"
@@ -195,7 +198,7 @@ uint8_t CKHkS08Hero::CtlAIFollowGround(IKTime* clock, int32_t phase, uint8_t oth
                         const float ratio = m_unk3dc / m_unkaf4;
                         uint8_t level = 0xff;
                         bool stand = false;
-                        if (ratio <= 1.0f) {
+                        if (!(ratio > 1.0f)) {  // ble 0x0033ec90: a NaN ratio takes the fctiwz (0x80000000, byte 0)
                             if (ratio == 0.0f) {
                                 stand = true;
                             } else {
@@ -254,7 +257,8 @@ uint8_t CKHkS08Hero::CtlAIFollowGround(IKTime* clock, int32_t phase, uint8_t oth
     if (!clear) {
         const float ratio = m_unk3dc / m_unkaf4;
         uint8_t level = 0xff;
-        if (ratio <= 1.0f) {  // TOC +0x28e4
+        if (!(ratio > 1.0f)) {  // TOC +0x28e4; ble 0x0033e894: a NaN ratio (the leader's 0 / 0 speed of a frozen frame)
+            // takes the fctiwz (0x80000000): no move (byte 0), not the full stick
             if (ratio == 0.0f) {
                 clear = true;
             } else {
@@ -647,7 +651,7 @@ void CKHkS08Hero::AIWriteStickFromDesiredMove() {
     uint8_t level = 0xff;
     if (!none) {
         const float ratio = m_unk3dc / m_unkaf4;
-        if (ratio <= 1.0f) {  // TOC +0x28e4; ble
+        if (!(ratio > 1.0f)) {  // TOC +0x28e4; ble 0x0033cb94 (a NaN ratio: byte 0)
             if (ratio == 0.0f) {
                 none = true;
             } else {
@@ -782,3 +786,152 @@ uint8_t CKHkS08Hero::CtlAIWarpToCatchUpPoint(IKTime* clock, int32_t phase, uint8
     m_unk113c = m_unk113c + clock->m_afDeltaTime[0];
     return other;
 }
+
+// 0x0033d7d8 CKHkS08Hero_IsPointWalkableInCurrentSector_maybe: `position` with the hero's current graph node (the path
+// component's position hint, +0x43c) inside that node's box (an unordered compare fails) and walkable there for the
+// hero's character type (+0x3e0; NavSectors_IsPointWalkable_maybe 0x001e42d0).
+uint8_t CKHkS08Hero::IsPointWalkableInCurrentSector(const CVector3* position) {
+    CKSrvPathFinding* pathFinding = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);
+    CPFPoint point;
+    point.m_position = *position;
+    point.m_unk0c = m_PFCpnt.m_Destination.m_unk0c;
+    const int32_t node = static_cast<int16_t>(point.m_unk0c);
+    if (node < 0 || static_cast<uint32_t>(node) >= pathFinding->m_Graph.m_ui32GraphNodesSize) return 0;
+    const CBBox& box = static_cast<CKPFGraphNode*>(pathFinding->m_Graph.m_apGraphNodes[node])->m_Sector.m_box;
+    const CVector3& p = point.m_position;
+    if (!(box.m_inf.x <= p.x && box.m_sup.x >= p.x && box.m_inf.z <= p.z && box.m_sup.z >= p.z && box.m_inf.y <= p.y &&
+          box.m_sup.y >= p.y)) {
+        return 0;
+    }
+    return static_cast<uint8_t>(pathFinding->IsPointWalkable(&point, &m_PFCharacter));  // 0x001e42d0
+}
+
+// 0x0033da70 CKHkS08Hero_CtlState4_ControlLocked: the control locked by a script. Enter: +0xb0 = 5, 0. Run: +0x354 bit 31
+// = the speed +0x5a8 is not the zero vector (an unordered compare counts as moving), bit 6 set; +0xec4 bits 0x200000,
+// 0x800, 0x400, 0x2000 set; returns `other`. Leave (any other phase): +0x354 bits 31 and 6, +0x35c bit 6 and +0xec4 bits
+// 0x200000 / 0x2000 / 0x800 / 0x400 cleared, 0.
+uint8_t CKHkS08Hero::CtlControlLocked(IKTime* /*clock*/, int32_t phase, uint8_t other) {
+    if (phase == 0) {
+        const bool still = m_unk5a8 == 0.0f && m_unk5ac == 0.0f && m_unk5b0 == 0.0f;  // TOC +0x28e0 (0x00c50d64)
+        m_unk354 = ((m_unk354 & 0x7fffffffu) | (still ? 0u : 0x80000000u)) | 0x40u;
+        m_unkec4 = m_unkec4 | 0x200000u | 0x800u | 0x400u | 0x2000u;
+        return other;
+    }
+    if (phase == 1) {
+        m_unkb0 = 5;
+        return 0;
+    }
+    m_unk354 &= 0x7fffffbfu;
+    m_unk35c &= ~0x40u;
+    m_unkec4 &= 0xffdfd3ffu;
+    return 0;
+}
+
+// 0x0033d000 CKHkS08Hero_CtlState3_AICombat: the partner fights. Entering: the combo credits reset (0x33f9d0), +0x1378,
+// the move direction +0x37c and +0x394 cleared. Each frame: the attack buttons released; outside a grab combo a target
+// sought (KStub_Return1_33f9c8 always allows it) and, outside any combo kind, the combat movement; then the attack queued.
+uint8_t CKHkS08Hero::CtlAICombat(IKTime* clock, int32_t phase, uint8_t other) {
+    if (phase == 1) {
+        ResetComboAndAttackCredits();  // 0x0033f9d0
+        m_unk1378 = 0.0f;
+        const CVector3& zero = kHeroZeroVector;  // TOC +0x28e0
+        m_unk37c = zero.x;
+        m_unk384 = zero.z;
+        m_unk380 = zero.y;
+        m_unk394 = 0;
+        return other;
+    }
+    if (phase != 0) return other;
+    AIClearAttackButtons();  // 0x0033fdb8
+    if (IsGrabComboKind() == 0) {  // 0x002fc208
+        // KStub_Nop_33f9c0, then KStub_Return1_33f9c8.
+        AIAcquireTargetIfCredits();  // 0x0033fae0
+        if (IsComboKindFlagSet() == 0) AIUpdateCombatMovement(clock);  // 0x002fc1b0, 0x0033fb80
+    }
+    AIQueueAttack();  // 0x0033fdc8
+    return other;
+}
+
+// 0x0033f9e8 CKHkS08Hero_ConsumeAttackCredits: the blows of the combo (+0x1a18) taken from the credits (+0x1a20); 0 and
+// no credits left when they do not cover them.
+uint8_t CKHkS08Hero::ConsumeAttackCredits() {
+    const int32_t used = static_cast<int32_t>(m_unk1a18);
+    const int32_t credits = static_cast<int32_t>(m_unk1a20);
+    if (used > credits) {
+        m_unk1a20 = 0;
+        return 0;
+    }
+    m_unk1a20 = static_cast<uint32_t>(credits - used);
+    return 1;
+}
+
+// 0x0033fa78 CKHkS08Hero_GrantPartnerAttackCredits_maybe: with at most one controlled hero, the first companion hero
+// gets the combo's blows as credits.
+void CKHkS08Hero::GrantPartnerAttackCredits() {
+    IKGrpHero* group = static_cast<IKGrpHero*>(m_pGrpHero);
+    if (group->m_ui8ControlledHeroCount > 1) return;  // 0x002ca288 GetControlledHeroCount
+    CKHkS08Hero* partner = static_cast<CKHkS08Hero*>(group->m_apCompanionHeroes[0]);
+    partner->m_unk1a20 = partner->m_unk1a20 + m_unk1a18;
+}
+
+// 0x0033cac0 CKHkS08Hero_CopyPointRecordWithType4_maybe (type 4) / 0x0033cb08 _CopyPointRecordWithType2_maybe (type 2): the
+// path character's walk type and its copy into the path-finding component (+0x3f8; CtlAIFollowFlying inlines them).
+void CKHkS08Hero::SetPathCharacterType(uint32_t type) {
+    m_PFCharacter.m_bits = (m_PFCharacter.m_bits & 0xfffffff8u) | type;  // +0x3e0
+    m_PFCpnt.m_CharacterType = m_PFCharacter;                            // +0x3f8
+}
+
+// 0x0033e378 CKHkS08Hero_CtlState2_ScriptedMoveTo: the scripted move to +0x398 (CKControlableHero's move-to). A flying
+// hero within 2 (TOC +0x292c; the flat distance, z first then fused) of the target lands (+0x358 bit 20 cleared, ground
+// mode unless locked) and walks as type 4, else type 2 (SetPathCharacterType inlined: +0x3e0 copied to +0x3f8); a
+// climbing hero is put on the ground; then the move itself (CtlMoveToTargetBody). The stick follows the move vector
+// +0x3b8: none for the null vector (+0x37c.. = 0, +0x394 = 0), else +0x37c.. = the move and +0x394 = 255 x the speed
+// ratio +0x3dc / +0xaf4 (0xff above 1, TOC +0x28e4; none at exactly 0, TOC +0x2900; x 255, TOC +0x28e8, fctiwz byte).
+uint8_t CKHkS08Hero::CtlScriptedMoveTo(IKTime* clock, int32_t phase, uint8_t other) {
+    if (IsFlyingMovementMode1() == 0) {  // 0x00340188
+        SetPathCharacterType(2);
+    } else {
+        const float dz = m_unk3a0 - m_unk554;
+        const float dx = m_unk398 - m_unk54c;
+        const float flat = static_cast<float>(c22spyro::MathSqrtf(ppc::fmadds(dx, dx, dz * dz)));  // 0x00010690
+        if (flat < 2.0f) {  // blt
+            m_unk358 &= 0xffefffffu;
+            SetMovementModeUnlessLocked(0);  // 0x00342ef8
+        }
+        SetPathCharacterType(4);
+    }
+    if (IsClimbingMovementMode2() != 0) SetMovementModeUnlessLocked(0);  // 0x003401a0
+    const uint8_t result = CtlMoveToTargetBody(clock, phase, other);  // 0x00368618
+    const CVector3& zero = kHeroZeroVector;  // TOC +0x28e0 (g_nullVector)
+    if (!(m_unk3b8 == zero.x && m_unk3bc == zero.y && m_unk3c0 == zero.z)) {
+        const float ratio = m_unk3dc / m_unkaf4;
+        uint8_t stick = 0xff;
+        bool none = false;
+        if (!(ratio > 1.0f)) {  // ble
+            if (ratio == 0.0f) {
+                none = true;
+            } else {
+                stick = static_cast<uint8_t>(ppc::fctiwz(ratio * 255.0f));
+            }
+        }
+        if (!none) {
+            m_unk394 = stick;
+            m_unk37c = m_unk3b8;
+            m_unk384 = m_unk3c0;
+            m_unk380 = m_unk3bc;
+            return result;
+        }
+    }
+    m_unk37c = zero.x;
+    m_unk384 = zero.z;
+    m_unk380 = zero.y;
+    m_unk394 = 0;
+    return result;
+}
+
+// 0x0033cc28 StaticInitAndDestruction_33cc28: two file statics (0x00ceae6c, 0x00ceae70) set to -1.0f. Nothing in the game
+// reads them (their only references are the initialiser's TOC entries).
+namespace {
+[[maybe_unused]] float s_unkceae6c = -1.0f;
+[[maybe_unused]] float s_unkceae70 = -1.0f;
+}  // namespace

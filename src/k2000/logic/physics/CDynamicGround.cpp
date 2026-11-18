@@ -8,11 +8,11 @@
 //   [x] 0x1a1cc0  CDynamicGround_vf54
 //   [ ] 0x1a1cc8  RegisterCDynamicGroundClass
 //   [ ] 0x1a1d40  _GLOBAL__I_1a1d40
-//   [ ] 0x1a1d50  CDynamicGround_PostLoad
+//   [x] 0x1a1d50  CDynamicGround_PostLoad  (= the inherited slot)
 //   [x] 0x1a1d78  CDynamicGround_Load
 //   [ ] 0x1a1ef0  CDynamicGround_Save
-//   [ ] 0x1a2168  CDynamicGround_RecursiveRegistration
-//   [ ] 0x1a2190  CDynamicGround_vf60
+//   [x] 0x1a2168  CDynamicGround_RecursiveRegistration  (CGround::RecursiveRegistration, inherited)
+//   [x] 0x1a2190  CDynamicGround_vf60
 //   [x] 0x1a21e0  CDynamicGround_DeleteArray
 //   [x] 0x1a2280  CDynamicGround_Create
 //   [x] 0x1a22c8  CDynamicGround_vf6C
@@ -172,4 +172,13 @@ void CDynamicGround::FindAllPotentialEdgesForIntersection(SExtrapolated_Edge2D_F
                                                           const CLine* line, const CBBox* box, float radius,
                                                           uint8_t cull) {
     ground_test::GatherEdges(*this, GetWorldMatrix(), edges, count, line, box, true, radius, cull);
+}
+
+// 0x001a2190 CDynamicGround_vf60 (MyDestroy)
+void CDynamicGround::MyDestroy() {
+    CGround::MyDestroy();
+    if (m_pInvertedWorldMatrix != nullptr) {
+        RwMatrixDestroy_Thunk(m_pInvertedWorldMatrix);
+        m_pInvertedWorldMatrix = nullptr;
+    }
 }

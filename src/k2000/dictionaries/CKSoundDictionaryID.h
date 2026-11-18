@@ -12,10 +12,19 @@ class CKSound;
 class CKSoundDictionaryID : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryDictionary, 0x4)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x109 || key == 0xc; }  // vt+0x08 0x9a6ba8
     DOTD_DECLARE_FACTORIES(CKSoundDictionaryID)
 
     CKSoundDictionaryID();                              // 0x00112f20 CKSoundDictionaryID_Create (inlined)
-    ~CKSoundDictionaryID() override {}                  // STUB(C1.6): 0x113050
+    ~CKSoundDictionaryID() override {}                  // 0x00113050 CKSoundDictionaryID_Destructor (0x113010 deleting): the vtables only
+    // vt+0x10 0x00112e30 CKSoundDictionaryID_Destroy: the reference array deleted (OperatorDeleteArray), the count cleared.
+    void Destroy() override {
+        if (m_apKSound != nullptr) {
+            delete[] m_apKSound;
+            m_apKSound = nullptr;
+        }
+        m_ui32NbKSound = 0;
+    }
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00112c78 CKSoundDictionaryID_Load
     CKSound* GetSound(uint32_t index);    // 0x00112bc0 CKSoundDictionaryID_GetSound (no range check)
     CKSound* GetSound2(uint32_t index);   // 0x00112bd8 CKSoundDictionaryID_GetSound_2 (the same code)

@@ -11,6 +11,9 @@ class CKTimeScalingFxData;
 class CKTimeScalingNodeFx : public IKNodeFx {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x9f)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9ad738
+        return key == 0x27cc || key == 0x148c || key == 0x154c || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKTimeScalingNodeFx)
 
     CKTimeScalingNodeFx() {}  // inlined in 0x001d82b8 CKTimeScalingNodeFx_Create: the IKNodeFx part only
@@ -18,6 +21,8 @@ public:
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x001d7f58 CKTimeScalingNodeFx_Load
     int32_t PostLoad(int32_t type) override;            // vt+0x30 0x001d7e00 CKTimeScalingNodeFx_PostLoad
+    void Destroy() override {}                          // vt+0x10 0x001d7da0 CKTimeScalingNodeFx_Destroy (empty: the node kept)
+    void RecursiveRegistration(int32_t type) override;  // vt+0x24 0x001d7da8: the saving manager's registration only
     void Vf64() override;                               // vt+0x64 0x001d7e10 CKTimeScalingNodeFx_Start
     void Vf68() override { Stop(); }                    // vt+0x68 0x001d7e30 CKTimeScalingNodeFx_Interrupt_maybe
     void Stop() override;                               // vt+0x6c 0x001d8238 CKTimeScalingNodeFx_Stop

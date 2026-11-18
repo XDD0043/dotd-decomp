@@ -2,7 +2,7 @@
 // m_ui8NbKeyboards of them; GAME has none). The members are XXL2's IKKeyboard
 // (K/KModules/KIL/KKeyboard/IKKeyboard.h) and the slots match O_CKKeyboard's; the PS3 class (vtable
 // 0xb19618, size 0x3f8) has no separate base vtable. Code in input/KeyboardDevice.cpp (0x10f1f8-0x10f2b0).
-// STUB(C1.6): vt+0x14 ReadKeyboard, +0x18, +0x1c.
+// The PS3 build reads no keyboard: ReadKeyboard returns 1 and leaves the values as they are (no cell call).
 #pragma once
 #include <cstdint>
 
@@ -15,6 +15,12 @@ public:
     virtual int32_t InitializeData(void* params);      // vt+0x08 0x0010f208 KeyboardDevice_Init_maybe
     virtual int32_t Destroy() { return 1; }            // vt+0x0c 0x10f238
     virtual int32_t InitKeyboard() { return 1; }       // vt+0x10 0x10f240
+    virtual int32_t ReadKeyboard() { return 1; }       // vt+0x14 0x10f248 KStub_Return1_10f248
+    // vt+0x18 0x9a6750 KStub_Nop_9a6750 (XXL2 IKKeyboard::FillKeyInfo(UInt32, UInt32, Bool)).
+    virtual void FillKeyInfo(uint32_t /*key*/, uint32_t /*info*/, uint8_t /*down*/) {}
+    // vt+0x1c 0x9a6758 KStub_ReturnM1_9a6758 (DotD): the glyph index of key `key` (CKInput_GetActionButtonGlyph_maybe).
+    virtual int32_t Vf1c(uint8_t /*key*/) { return -1; }
+    virtual int32_t Vf20() { return -1; }              // vt+0x20 0x9a6768 KStub_ReturnM1_9a6768 (DotD)
 
     uint8_t m_bActive;                              // +0x004
     uint8_t m_ui8InternKeyboardValue[144];          // +0x005

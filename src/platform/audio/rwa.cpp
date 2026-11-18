@@ -109,7 +109,13 @@ void Commit(RwaVoice* v) {
     v->playPosition = playing ? VoiceGetPosition(v->mixerVoice) : 0;
 }
 
+// The wave-dictionary system's word +0x08 (its globals at library TOC -0x3ffc): RwaSetExitFlag's.
+int32_t s_waveDictReadAbort = 0;
+
 }  // namespace
+
+// 0x006e13e0 FUN_006e13e0 (RwaSetExitFlag; CKGameLoop_RequestExit_maybe passes 1).
+void RwaSetExitFlag(int32_t value) { s_waveDictReadAbort = value; }
 
 RwaWaveDict* RwaWaveDict_StreamRead(std::vector<uint8_t>&& payload) {
     RwaWaveDict* dict = new RwaWaveDict();
@@ -131,6 +137,12 @@ RwaWaveDict* RwaWaveDict_StreamRead(std::vector<uint8_t>&& payload) {
     dict->waves.resize(count);
     uint32_t at = list.offset + 4;
     for (uint32_t i = 0; i < count; ++i) {
+        // RwaWaveDict_StreamRead_maybe tests the exit flag before every wave (0x6e25a0, 0x6e25d8): once it is 1 the read
+        // stops and the dictionary is unwound (0x6e2634); here the dictionary is not returned.
+        if (s_waveDictReadAbort == 1) {
+            delete dict;
+            return nullptr;
+        }
         Chunk wave, info, data;
         if (!ReadChunk(d, at, &wave) || wave.type != 0x802 || !ReadChunk(d, wave.offset, &info) || info.type != 0x803 ||
             info.size < 0x70 || !ReadChunk(d, info.offset + info.size, &data) || data.type != 0x804) {
@@ -168,7 +180,16 @@ RwaWaveDict* RwaWaveDict_StreamRead(std::vector<uint8_t>&& payload) {
     return dict;
 }
 
-void RwaWaveDict_Destroy(RwaWaveDict* dict) { delete dict; }
+// The dictionary's waves go with it (RWA's RwaWave_Destroy_maybe loop of CKSoundDictionary_Destroy); a voice still
+// holding one of them loses it first (as RwaVoice_SetWave(voice, null)), so the mixer reads no freed samples.
+void RwaWaveDict_Destroy(RwaWaveDict* dict) {
+    if (dict == nullptr) return;
+    for (RwaVoice* voice : Voices()) {
+        if (voice->wave == nullptr || dict->waves.empty()) continue;
+        if (voice->wave >= &dict->waves.front() && voice->wave <= &dict->waves.back()) RwaVoice_SetWave(voice, nullptr);
+    }
+    delete dict;
+}
 uint32_t RwaWaveDict_GetWaveCount(const RwaWaveDict* dict) {
     return dict != nullptr ? static_cast<uint32_t>(dict->waves.size()) : 0u;
 }
@@ -193,6 +214,10 @@ void RwaPS3Driver_SetOutputEffect(RwaOutput* output, const void* environment) {
 }
 
 RwaListener* RwaListener_Create() { return new RwaListener(); }
+
+void RwaPS3Driver_Destroy(RwaOutput* output) { delete output; }
+void RwaListener_Destroy(RwaListener* listener) { delete listener; }
+// RwaStreamPlayer_Destroy: rwa_stream.cpp (the stream player).
 
 RwaVoice* RwaVoice_Create(RwaOutput* output) {
     RwaVoice* v = new RwaVoice();

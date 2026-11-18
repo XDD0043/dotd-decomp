@@ -11,18 +11,18 @@
 //   [ ] 0x2accd0  _GLOBAL__I_2accd0
 //   [ ] 0x2acce0  CKS08EnemyAttack_Construct_2  [dead]
 //   [ ] 0x2acd18  CKS08EnemyAttack_Save
-//   [ ] 0x2acd20  CKS08EnemyAttack_RecursiveRegistration
-//   [ ] 0x2acd28  CKS08EnemyAttack_PostLoad
-//   [ ] 0x2acd30  CKS08EnemyAttack_Destroy
+//   [x] 0x2acd20  CKS08EnemyAttack_RecursiveRegistration  (returns 1: the root's empty slot)
+//   [x] 0x2acd28  CKS08EnemyAttack_PostLoad  (returns 1: the root's default)
+//   [x] 0x2acd30  CKS08EnemyAttack_Destroy  (empty: the root's default)
 //   [x] 0x2acd38  CKS08EnemyAttack_CreateArray
 //   [x] 0x2ace00  CKS08EnemyAttack_Create
-//   [ ] 0x2ace60  CKS08EnemyAttack_CopyConstruct_maybe
+//   [x] 0x2ace60  CKS08EnemyAttack_CopyConstruct_maybe  (the copy constructor)
 //   [ ] 0x2ad110  CKS08EnemyAttack_Assign_maybe  [dead]
-//   [ ] 0x2ad3e0  CKS08EnemyAttack_CopyConstruct_2_maybe
+//   [x] 0x2ad3e0  CKS08EnemyAttack_CopyConstruct_2_maybe  (= 0x2ace60)
 //   [x] 0x2ad690  CKS08EnemyAttack_Load
-//   [ ] 0x2ae0d8  CKS08EnemyAttack_Destructor
+//   [x] 0x2ae0d8  CKS08EnemyAttack_Destructor
 //   [ ] 0x2ae178  CKS08EnemyAttack_Destructor_2  [dead]
-//   [ ] 0x2ae218  CKS08EnemyAttack_DeletingDestructor
+//   [x] 0x2ae218  CKS08EnemyAttack_DeletingDestructor  (the destructor; delete)
 //
 //   [ ] 0x9bca68  CKS08EnemyAttack_GetClassType  [inline]
 //   [ ] 0x9bca70  CKS08EnemyAttack_GetClassID  [inline]
@@ -103,4 +103,65 @@ int32_t CKS08EnemyAttack::Load(IKFile* file, int32_t type) {
     ReadS32LE(file, &m_unk64);
     ReadU8(file, &m_unk6c);
     return 1;
+}
+
+// 0x002ae0d8 CKS08EnemyAttack_Destructor
+CKS08EnemyAttack::~CKS08EnemyAttack() {
+    if (m_array54.m_data != nullptr) Mem_FreeAligned16(m_array54.m_data);
+    m_array54.m_data = nullptr;
+    m_array54.m_count = 0;
+    if (m_array48.m_data != nullptr) Mem_FreeAligned16(m_array48.m_data);
+    m_array48.m_count = 0;
+    m_array48.m_data = nullptr;
+}
+
+namespace {
+// The copy constructor's array copy: the array made `size` bytes long as the Load does (allocated with 1 byte when it
+// has no block, grown to size + 1 when smaller), then `size` bytes copied from `from`.
+void CopyByteArray(CKS08EnemyAttack::ByteArray* array, const uint8_t* from, uint32_t size) {
+    if (array->m_data == nullptr) {
+        array->m_capacity = 1;
+        array->m_data = static_cast<uint8_t*>(Mem_AllocAligned16(1));
+    }
+    if (array->m_capacity < size) {
+        uint32_t capacity = size + 1;
+        if (capacity == 0) capacity = 1;
+        array->m_data = static_cast<uint8_t*>(Mem_ReallocAligned16(array->m_data, capacity));
+        array->m_capacity = capacity;
+    }
+    array->m_count = size;
+    for (uint32_t i = 0; i < size; ++i) array->m_data[i] = from[i];
+}
+}  // namespace
+
+// 0x002ace60 CKS08EnemyAttack_CopyConstruct_maybe (0x2ad3e0 _CopyConstruct_2_maybe the same): the members copied, the
+// two byte arrays made fresh and filled with the sizes of the type table for this type (as the Load sizes them; the
+// source's own counts are not used). No caller in the original (only their OPDs).
+CKS08EnemyAttack::CKS08EnemyAttack(const CKS08EnemyAttack& other) : IKSerializable() {
+    for (uint32_t i = 0; i < 4; ++i) m_unk28[i] = other.m_unk28[i];
+    m_unk04 = other.m_unk04;
+    m_unk08 = other.m_unk08;
+    m_unk0c = other.m_unk0c;
+    m_pDamage = other.m_pDamage;
+    m_unk10 = other.m_unk10;
+    m_unk18 = other.m_unk18;
+    m_unk44 = other.m_unk44;
+    m_unk14 = other.m_unk14;
+    m_unk1c = other.m_unk1c;
+    m_unk24 = other.m_unk24;
+    m_unk28[4] = other.m_unk28[4];
+    m_unk28[5] = other.m_unk28[5];
+    m_pProjectile = other.m_pProjectile;
+    m_array48.m_data = nullptr;
+    m_array48.m_count = 0;
+    m_array48.m_capacity = 1;
+    m_array54.m_data = nullptr;
+    m_array54.m_count = 0;
+    m_array54.m_capacity = 1;
+    m_unk60 = other.m_unk60;
+    m_unk64 = other.m_unk64;
+    m_unk68 = other.m_unk68;
+    m_unk6c = other.m_unk6c;
+    CopyByteArray(&m_array48, other.m_array48.m_data, kEnemyAttackTypeTable[m_unk04 * 4 + 3]);
+    CopyByteArray(&m_array54, other.m_array54.m_data, kEnemyAttackTypeTable[0x28 + m_unk04]);
 }

@@ -9,12 +9,12 @@
 //   [x] 0xd7950  CKDynBSphereProjectile_DeleteArray
 //   [x] 0xd79f8  CKDynBSphereProjectile_CreateArray
 //   [x] 0xd7ae8  CKDynBSphereProjectile_Create
-//   [ ] 0xd7b58  CKDynBSphereProjectile_Destroy
+//   [x] 0xd7b58  CKDynBSphereProjectile_Destroy
 //   [x] 0xd7b80  CKDynBSphereProjectile_Load
 //
 //   [x] 0x9a44a0  CKDynBSphereProjectile_GetClassType  [inline]
 //   [x] 0x9a44a8  CKDynBSphereProjectile_GetClassID  [inline]
-//   [ ] 0x9a44b0  CKDynBSphereProjectile_GetSerializationFlags  [inline]
+//   [x] 0x9a44b0  CKDynBSphereProjectile_GetSerializationFlags  [inline]
 //   [ ] 0x9a44b8  CKDynBSphereProjectile_vf74  [inline]
 //   [ ] 0x9a44c0  CKDynBSphereProjectile_IsKindOfClass  [inline]
 //   [ ] 0x9a4520  CKDynBSphereProjectile_DeletingDestructor  [inline]

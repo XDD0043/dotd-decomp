@@ -24,9 +24,8 @@ namespace {
 RwInt32 s_brushFreeListBlockSize = 8;
 RwInt32 s_brushFreeListPreallocBlocks = 1;
 
-// RwTextureDestroy as the brush calls it (RW 3.7: drops a reference). STUB(C1.4): the shim's textures
-// belong to their dictionaries, which free them; only the count is kept.
-void TextureRelease(RwTexture* texture) { --texture->refCount; }
+// RwTextureDestroy 0x7548c0 as the brush calls it (a reference less; the last one destroys the texture).
+void TextureRelease(RwTexture* texture) { RwTextureDestroy(texture); }
 
 // The colour cache: fctiwz of the top colour, the low byte of each.
 void SetColorCache(Rt2dBrush* brush) {
@@ -39,9 +38,8 @@ void SetColorCache(Rt2dBrush* brush) {
 // 0x0070a940 _rt2dBrushStreamReadData_maybe: the four shade parameters, the colour cache, the flags (bit 1
 // recomputed: set when a delta or top/bottom difference is non-zero), the half width; with gotTexture,
 // RwStreamFindChunk(rwID_TEXTURE) and RwTextureStreamRead (a non-power-of-two raster is clamped:
-// filterAddressing = (fa & 0xffff00ff) | 0x3300), the texture kept and flag 2 set.
-// STUB(C1.4): RwTextureStreamRead; the texture chunk is consumed (no movie or widget brush carries one in
-// the game data) and the brush gets no texture, but flag 2 is still set.
+// filterAddressing = (fa & 0xffff00ff) | 0x3300), the texture kept (null when the read finds none) and flag 2 set.
+// No chunk: null. (No movie or widget brush of the game data carries a texture.)
 Rt2dBrush* BrushStreamReadData(Rt2dBrush* brush, const _rt2dStreamBrush* record, RwStream* stream) {
     brush->top = record->top;
     brush->dtop = record->dtop;
@@ -62,10 +60,16 @@ Rt2dBrush* BrushStreamReadData(Rt2dBrush* brush, const _rt2dStreamBrush* record,
     }
     brush->halfwidth = record->halfwidth;
     if (record->gotTexture == 0) return brush;
-    RwShim_Blob* texture = RwShim_ReadChunkBlob(stream, 6);  // RwStreamFindChunk(6) + RwTextureStreamRead
-    if (texture == nullptr) return nullptr;
-    RwShim_FreeBlob(texture);
-    brush->texture = nullptr;
+    if (RwStreamFindChunk(stream, 6, nullptr, nullptr) == 0) return nullptr;
+    RwTexture* texture = RwTextureStreamRead(stream);
+    if (texture != nullptr && texture->raster != nullptr) {
+        const RwUInt32 width = static_cast<RwUInt32>(texture->raster->width);
+        const RwUInt32 height = static_cast<RwUInt32>(texture->raster->height);
+        if (((height - 1) & height) != 0 || ((width - 1) & width) != 0) {
+            texture->filterAddressing = (texture->filterAddressing & 0xffff00ffu) | 0x3300u;  // clamp, clamp
+        }
+    }
+    brush->texture = texture;
     brush->flag |= 2;
     return brush;
 }

@@ -23,3 +23,7 @@ void CurveKeys_Load(TVector<CurveKey, 20>* keys, IKFile* file);
 
 // 0x00246408 ColorCurve_Evaluate: the colour (r, g, b, a bytes) of the key list at time `t` (see CurveKeys.cpp).
 void ColorCurve_Evaluate(float t, uint8_t out[4], const TVector<CurveKey, 20>* keys);
+// 0x00246670 CurveKeys_CopyFrom_maybe: `keys` becomes a copy of `source` (dead in the original).
+void CurveKeys_CopyFrom(TVector<CurveKey, 20>* keys, const TVector<CurveKey, 20>* source);
+// 0x00246830 CurveKeys_Save_maybe: the Load's format written back (only the Save writers call it).
+void CurveKeys_Save(const TVector<CurveKey, 20>* keys, IKFile* file);

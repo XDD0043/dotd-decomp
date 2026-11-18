@@ -6,6 +6,6 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0xf26a0  ShaderVariantList_AppendFixedVariants_maybe
-//   [ ] 0xf2900  ShaderVariantList_BuildDefaults_maybe
+//   [ ] 0xf26a0  ShaderVariantList_AppendFixedVariants_maybe  [platform]  (the shfct.bin shader cache / its offline variant lists: the programs are translated at run time (ShaderVariantKey.cpp header))
+//   [ ] 0xf2900  ShaderVariantList_BuildDefaults_maybe  [platform]  (the shfct.bin shader cache / its offline variant lists: the programs are translated at run time (ShaderVariantKey.cpp header))
 //   [ ] 0xf2968  ShaderVariantList_BuildGeneratedVariants_maybe  [dead]

@@ -14,8 +14,12 @@ public:
     DOTD_DECLARE_FACTORIES(CSectorAnimation)
 
     CSectorAnimation() {}                               // 0x000a5670 CSectorAnimation_Create: the vtable only
-    ~CSectorAnimation() override {}                     // STUB(C1.6): 0x9a0498 / 0xa5928 free the animations
+    ~CSectorAnimation() override {}                     // 0x009a0498 / 0x009a04d0 CSectorAnimation_Destructor / _DeletingDestructor: the vtables only
     int32_t IsKindOfClass(uint32_t key) override { return key == 0xdcd || key == 0xc; }  // 0x9a04b0
+    // vt+0x10 0x000a5928 CSectorAnimation_Destroy (the sector unload): every animation destroyed, the array freed.
+    void Destroy() override;
+    // vt+0x24 0x000a58c8 CSectorAnimation_RecursiveRegistration: type 0 registers the object.
+    void RecursiveRegistration(int32_t type) override;
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x000a5748 CSectorAnimation_Load
     int32_t GetSerializationFlags() override { return 1; }  // vt+0x34 0x9a0490
 

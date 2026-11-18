@@ -36,9 +36,35 @@ public:
 
     // 0x005bd050 CKHkDetectorGroup_Create (inlined constructor): only the IKLife/IKHook defaults.
     CKHkDetectorGroup() {}
+    // 0x005bd480 CKHkDetectorGroup_Destructor / 0x005bdf68 CKHkDetectorGroup_DeletingDestructor: the vtables only.
     ~CKHkDetectorGroup() override {}
 
+    // vt+0x10 0x005bcc48 CKHkDetectorGroup_Destroy (Ghidra; row name ClearReferences): the three detector lists freed
+    // (Mem_FreeAligned16) and cleared.
+    void Destroy() override;
+    // vt+0x24 0x005bd430 (Ghidra CKHkDetectorGroup_RecursiveRegistration; row name LevelReset): IKHook's.
+    void RecursiveRegistration(int32_t type) override { IKHook::RecursiveRegistration(type); }
+    void Stop() override {}    // vt+0x68 0x005bcc38 CKHkDetectorGroup_vf68 (empty)
+    void Pause() override {}   // vt+0x70 0x005bcc40 CKHkDetectorGroup_vf70 (empty)
+    void Resume() override {}  // vt+0x78 0x005bcc30 CKHkDetectorGroup_vf78 (empty)
+
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x005bd0b8 CKHkDetectorGroup_Load
+    // vt+0x30 0x005bc628 CKHkDetectorGroup_PostLoad: IKLife's, both trigger starters', and for a level (type 0) the
+    // run-time word +0x4c cleared. Returns 1.
+    int32_t PostLoad(int32_t type) override;
+    // vt+0x50 0x005bccd0 CKHkDetectorGroup_vf50 (Start): the hold timer +0x50 cleared.
+    void Start() override;
+    // vt+0x54 0x005bcce0 CKHkDetectorGroup_vf54 (Restart): +0x4c bit 0 (holds) and the hold timer cleared.
+    void Restart() override;
+    // vt+0x7c 0x005bdc60 CKHkDetectorGroup_Update: while enabled (+0x4c bit 1) and not frozen (+0x44), the lists
+    // tested at the object positions (no point): it holds when no detector of list 2 does, lists 0 and 1 are not both
+    // empty, every detector of list 0 does and (when list 1 has any) one of list 1 does. A hold delay (+0x48 above 0)
+    // must run out on the timer +0x50 (reset while not holding) first. Holding: when bit 0 is clear, the enter
+    // starter (+0x34) fires and bit 0 is set; otherwise when bit 0 is set, the leave starter (+0x3c) fires and it is
+    // cleared.
+    void Update(IKTime* clock) override;
+    // vt+0xa0 0x005bcd00 CKHkDetectorGroup_OnActivate (SectorNowValid): +0x4c bit 0 cleared. (vt+0xa4 0x5bcd10 is empty.)
+    void VfA0() override;
     void SetDefaultState(int32_t flag) override;  // vt+0x38 0x005bcb48 CKHkDetectorGroup_SetDefaultState
     // 0x005bca38 CKHkDetectorGroup_RestoreCheckpointState_maybe: the SetGameState override (vt+0x3c; its
     // argument's second word, `stateIdForLeft`, selects which saved enable flag applies). Not yet wired to the
@@ -57,6 +83,13 @@ public:
     // it at vt+0xc4 (vt+0xc0 0x9ccff0 returns +0x4c bit 0, vt+0xc8 0x9cd000 stores its byte argument at +0x44); IKHook
     // declares no slot past vt+0xbc yet, so it is a plain member here. CKCameraConstraint::ContainsPoint calls it.
     uint8_t IsTriggered(const float* point) const;
+    // vt+0x1c 0x005bc840 CKHkDetectorGroup_MessageProc (Ghidra HandleMessage): 0x496 enables the group (+0x4c bit 1), 0x497
+    // turns bits 0 and 1 off; 0x498 / 0x499 arm / disarm the detector of index *data (the three lists one after the
+    // other; +0x24). 0 for those four, 1 for the others.
+    int32_t MessageProc(uint16_t message, void* data) override;
+    // vt+0x40 0x005bc7b0 CKHkDetectorGroup_vf40 (GetInfo): the trigger values 4 (0x9cd008 GetTriggerProp4: vt+0xc0, +0x4c
+    // bit 0) and 5 (0x9cd050 GetTriggerProp5: +0x4c bit 1, enabled), bytes.
+    int32_t GetInfo(struct IKInfo* info, int32_t request) override;
 
     uint8_t m_ui8NbDetectors[3];     // +0x20 the sizes of the three lists below
     uint8_t m_pad23;
@@ -68,8 +101,10 @@ public:
     CTriggerStarter m_tsUnk3C;       // +0x3c
     uint8_t m_unk44;                 // +0x44
     uint8_t m_pad45[3];
-    uint32_t m_unk48;                // +0x48
-    uint32_t m_unk4C[2];             // +0x4c runtime (not set by Create or Load)
+    float m_unk48;                   // +0x48 the hold delay (Update: the lists must hold this long; 0 or less: at once)
+    // +0x4c runtime (not set by Create or Load; PostLoad clears it for a level): bit 0 holds (Update), bit 1 enabled.
+    uint32_t m_unk4C[1];
+    float m_fHoldTime;               // +0x50 the time the lists have held (Update; Start / Restart clear it)
 };
 DOTD_ASSERT_SIZE(CKHkDetectorGroup, 0x54);
 DOTD_ASSERT_OFFSET(CKHkDetectorGroup, m_ui8NbDetectors, 0x20);
@@ -80,6 +115,7 @@ DOTD_ASSERT_OFFSET(CKHkDetectorGroup, m_tsUnk34, 0x34);
 DOTD_ASSERT_OFFSET(CKHkDetectorGroup, m_tsUnk3C, 0x3c);
 DOTD_ASSERT_OFFSET(CKHkDetectorGroup, m_unk44, 0x44);
 DOTD_ASSERT_OFFSET(CKHkDetectorGroup, m_unk48, 0x48);
+DOTD_ASSERT_OFFSET(CKHkDetectorGroup, m_fHoldTime, 0x50);
 DOTD_ASSERT_SIZE(CKHkDetectorGroup::Detector, 0x28);
 DOTD_ASSERT_OFFSET(CKHkDetectorGroup::Detector, m_unk1C, 0x1c);
 DOTD_ASSERT_OFFSET(CKHkDetectorGroup::Detector, m_pUnk20, 0x20);

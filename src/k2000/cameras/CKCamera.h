@@ -12,6 +12,9 @@ class IKFile;
 class CKCamera : public IKCamera {
 public:
     DOTD_CLASS_KEY(kCategoryCamera, 0x1)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a75e8
+        return key == 0x47 || key == 0x347 || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKCamera)
 
     // 0x0013dae0 CKCamera_Create: IKCamera_ConstructBase, then the vtable.

@@ -4,12 +4,12 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x1e3c08  CKSrvPathFinding_Destroy
-//   [ ] 0x1e3c58  CKSrvPathFinding_vf1C
+//   [x] 0x1e3c08  CKSrvPathFinding_Destroy  (the Delete factory: DOTD_DECLARE_FACTORIES(CKSrvPathFinding))
+//   [x] 0x1e3c58  CKSrvPathFinding_vf1C  (MessageProc, vt+0x1c)
 //   [ ] 0x1e3c60  PathFinding_InitCellSizeConstants_maybe  [dead]
-//   [ ] 0x1e3c88  CKSrvPathFinding_vf50
-//   [ ] 0x1e3c90  CKSrvPathFinding_vf70
-//   [ ] 0x1e3c98  CKSrvPathFinding_vf78
+//   [x] 0x1e3c88  CKSrvPathFinding_vf50  (Start, vt+0x50, empty)
+//   [x] 0x1e3c90  CKSrvPathFinding_vf70  (Pause, vt+0x70, empty)
+//   [x] 0x1e3c98  CKSrvPathFinding_vf78  (Resume, vt+0x78, empty)
 //   [ ] 0x1e3ca0  CKSrvPathFinding_FindFreeQuerySlot_maybe  [dead]
 //   [x] 0x1e3ce8  CKSrvPathFinding_Shutdown
 //   [ ] 0x1e3da0  RegisterCKSrvPathFindingClass
@@ -18,39 +18,39 @@
 //   [x] 0x1e3ea8  CKSrvPathFinding_InitializeSearchPFGrid
 //   [x] 0x1e42d0  NavSectors_IsPointWalkable_maybe
 //   [x] 0x1e4820  CKSrvPathFinding_ReleaseAllQueries_maybe
-//   [ ] 0x1e4880  CKSrvPathFinding_ReinitRuntime
-//   [ ] 0x1e48e0  CKSrvPathFinding_PostLoad
+//   [x] 0x1e4880  CKSrvPathFinding_ReinitRuntime
+//   [x] 0x1e48e0  CKSrvPathFinding_PostLoad  (= the inherited slot)
 //   [x] 0x1e4908  CKSrvPathFinding_Init
-//   [ ] 0x1e4a90  CKSrvPathFinding_ClearReferences
+//   [x] 0x1e4a90  CKSrvPathFinding_ClearReferences  (Destroy, vt+0x10)
 //   [x] 0x1e4ad8  CKSrvPathFinding_ConstructBase_maybe
-//   [ ] 0x1e4c28  CKSrvPathFinding_DestroyArray
+//   [x] 0x1e4c28  CKSrvPathFinding_DestroyArray  (the DeleteArray factory: DOTD_DECLARE_FACTORIES(CKSrvPathFinding))
 //   [x] 0x1e4cc8  CKSrvPathFinding_CreateArray
 //   [x] 0x1e4d68  CKSrvPathFinding_Create
-//   [ ] 0x1e4da8  CKSrvPathFinding_LevelReset
-//   [ ] 0x1e4ea8  CKSrvPathFinding_ResetToInitialState_maybe
+//   [x] 0x1e4da8  CKSrvPathFinding_LevelReset  (RecursiveRegistration, vt+0x24)
+//   [x] 0x1e4ea8  CKSrvPathFinding_ResetToInitialState_maybe
 //   [x] 0x1e4f70  CKSrvPathFinding_IsValidOrFindNearestPointInTheBox
-//   [ ] 0x1e5148  NavSectors_PointToCell_maybe
-//   [ ] 0x1e5240  NavSectors_SnapPointToCellCenter_maybe
+//   [x] 0x1e5148  NavSectors_PointToCell_maybe
+//   [x] 0x1e5240  NavSectors_SnapPointToCellCenter_maybe  [dead: no pointer to its descriptor 0xb76360, no call]  (CKSrvPathFinding::SnapPointToCellCenter)
 //   [x] 0x1e52c8  CKSrvPathFinding_GetNextPoint
 //   [ ] 0x1e5570  FUN_001e5570  [dead]
-//   [ ] 0x1e55f8  CKSrvPathFinding_IsTransitionEnabledBetween_maybe
+//   [x] 0x1e55f8  CKSrvPathFinding_IsTransitionEnabledBetween_maybe  [dead: no pointer to its descriptor 0xb76390, no call]  (CKSrvPathFinding::IsTransitionEnabledBetween)
 //   [x] 0x1e5680  CKSrvPathFinding_FindNearestPointInBox
 //   [ ] 0x1e5880  CKSrvPathFinding_Save
 //   [x] 0x1e5920  CKSrvPathFinding_AskForPath
-//   [ ] 0x1e59c8  NavSectors_RelocatePoint_maybe
+//   [x] 0x1e59c8  NavSectors_RelocatePoint_maybe  [dead: no pointer to its descriptor 0xb763d0, no call]  (CKSrvPathFinding::RelocatePoint)
 //   [x] 0x1e5ca0  NavSectors_FindSectorForPoint_maybe
-//   [ ] 0x1e5ef8  CKSrvPathFinding_RefreshQueryEndpointSectors_maybe
-//   [ ] 0x1e5f60  CKSrvPathFinding_SetBoxBlocked_maybe
-//   [ ] 0x1e62e0  NavSectors_SnapPointToGround_maybe
-//   [ ] 0x1e64c8  NavSectors_SnapPointToGroundThunk_maybe
+//   [x] 0x1e5ef8  CKSrvPathFinding_RefreshQueryEndpointSectors_maybe  [dead: no pointer to its descriptor 0xb763e0, no call]  (CKSrvPathFinding::RefreshQueryEndpointSectors)
+//   [x] 0x1e5f60  CKSrvPathFinding_SetBoxBlocked_maybe
+//   [x] 0x1e62e0  NavSectors_SnapPointToGround_maybe  (CKSrvPathFinding::SnapPointToGround)
+//   [x] 0x1e64c8  NavSectors_SnapPointToGroundThunk_maybe  (CKSrvPathFinding::SnapPointToGround(point))
 //   [ ] 0x1e6510  CKSrvPathFinding_GetQueryCurrentSegment_maybe  [dead]
 //   [x] 0x1e6738  CKSrvPathFinding_Load
 //   [x] 0x1e67e8  CKSrvPathFinding_IsPathWalkableInSameGrid
 //   [ ] 0x1e6c90  CKSrvPathFinding_ConstructBase_2_maybe  [dead]
-//   [ ] 0x1e6de0  CKSrvPathFinding_GetTransitionBetweenPoints_maybe
+//   [x] 0x1e6de0  CKSrvPathFinding_GetTransitionBetweenPoints_maybe  [dead: no pointer to its descriptor 0xb76428, no call]  (CKSrvPathFinding::GetTransitionBetweenPoints)
 //   [x] 0x1e6e68  CKSrvPathFinding_IsPathWalkableOnTwoGrids
 //   [x] 0x1e71e0  CKSrvPathFinding_SearchPFGraph
-//   [ ] 0x1e9198  CKSrvPathFinding_HasSectorRoute_maybe
+//   [x] 0x1e9198  CKSrvPathFinding_HasSectorRoute_maybe
 //   [x] 0x1e92f8  CKSrvPathFinding_SearchPFGrid
 //   [x] 0x1e9600  CKSrvPathFinding_UpdatePath
 //   [x] 0x1e98f8  CKSrvPathFinding_Update
@@ -75,6 +75,9 @@
 #include "k2000/misc/Engine.h"
 #include "crt/ppc_ops.h"
 #include "k2000/logic/CKPFGraphNode.h"
+#include "k2000/services/CKSrvCollision.h"
+#include "k2000/hooks/GroundContact.h"
+#include "k2000/logic/CKSavingManager.h"
 #include "k2000/logic/CKPFGraphTransition.h"
 #include "k2000/math/CBBox.h"
 #include "k2000/math/CVector2.h"
@@ -182,6 +185,48 @@ void CKSrvPathFinding::DestroyService() {
     }
 }
 
+// 0x001e4da8 CKSrvPathFinding_RecursiveRegistration
+void CKSrvPathFinding::RecursiveRegistration(int32_t type) {
+    if (type != 0) return;
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    // KStub_Return1_1f0bc8(&m_Graph, 0): the graph's own registration does nothing.
+    for (uint32_t i = 0; i < m_Graph.m_ui32GraphNodesSize; ++i) {
+        m_Graph.m_apGraphNodes[i & 0xffff]->RecursiveRegistration(0);  // the index as a u16 (rlwinm)
+    }
+}
+
+// 0x001e62e0 NavSectors_SnapPointToGround_maybe
+int32_t CKSrvPathFinding::SnapPointToGround(CPFPoint* point, const CGroundContactDatasInOut* contact) {
+    if (static_cast<int16_t>(point->m_unk0c) == -1) FindSectorForPoint(point);
+    const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(m_Graph.m_apGraphNodes[point->m_unk0c]);
+    const CBBox& box = node->m_Sector.m_box;
+    CGroundContactDatasIn in;
+    in.m_fDeltaMax = 0.0f;
+    in.m_fObjectHeight = 0.0f;
+    in.m_MasksOfGrdForTest[0] = 1;
+    in.m_MasksOfGrdForTest[1] = 8;
+    CGroundContactDatasInOut inOut;  // the caller's contact, copied member by member (status 3 first, then its own)
+    CopyGroundContact(inOut, *contact);
+    CVector3 probe;
+    probe.x = point->m_position.x;
+    probe.y = box.m_sup.y;
+    probe.z = point->m_position.z;
+    static_cast<CKSrvCollision*>(g_pEngine->m_srvCollision)->GroundProbePoints(&in, &inOut, &probe.x, 1);  // 0x196540
+    if (inOut.m_eContactStatus != 0) return 0;
+    GroundContact_GetWorldPoint(&inOut, &probe);  // 0x1a70e0
+    if (probe.y < box.m_inf.y) return 0;
+    point->m_position.x = probe.x;
+    point->m_position.z = probe.z;
+    point->m_position.y = probe.y;
+    return 1;
+}
+
+// 0x001e64c8 NavSectors_SnapPointToGroundThunk_maybe
+uint8_t CKSrvPathFinding::SnapPointToGround(CPFPoint* point) {
+    const CGroundContactDatasInOut contact;
+    return static_cast<uint8_t>(SnapPointToGround(point, &contact));
+}
+
 // 0x001e6738 CKSrvPathFinding_Load
 int32_t CKSrvPathFinding::Load(IKFile* file, int32_t type) {
     if (type != K_LEVEL_PLATEFORMS) return 1;
@@ -228,6 +273,67 @@ bool AllowsAgent(const CKPFGraphTransition* transition, const CPFCharacter* char
 // Whether the palette entry for the flags is blocked (low seven bits all set).
 bool IsBlocked(uint8_t palette) { return static_cast<uint8_t>(palette | 0x7f) == palette || palette == 0x7f; }
 }  // namespace
+
+// 0x001e9198 CKSrvPathFinding_HasSectorRoute_maybe
+uint8_t CKSrvPathFinding::HasSectorRoute(const CPFPoint* from, const CPFPoint* to, const CPFCharacter* character,
+                                         int16_t* length) {
+    if (static_cast<int16_t>(from->m_unk0c) == -1 || static_cast<int16_t>(to->m_unk0c) == -1) return 0;
+    for (uint8_t slot = 0; slot < 20; ++slot) {
+        if (m_aPathStock[slot].m_bIsFree == 0) continue;
+        m_aPathStock[slot].Initialize(from, to, character);  // 0x001e9ee0
+        const PFSearchResult result = FindSectorRoute(slot);  // 0x001e71e0
+        uint8_t found = 0;
+        if ((result.m_eState & 2u) != 0) {
+            found = 1;
+            if (length != nullptr) *length = result.m_i16Value;
+        }
+        m_aPathStock[slot].Release();  // 0x001e9e28
+        return found;
+    }
+    return 0;
+}
+
+// 0x001e5148 NavSectors_PointToCell_maybe
+void CKSrvPathFinding::PointToCell(const CPFPoint* point, float* fracX, float* fracZ, uint8_t* cell) const {
+    const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(m_Graph.m_apGraphNodes[point->m_unk0c]);
+    const CPFSector& sector = node->m_Sector;
+    const float x = point->m_position.x - sector.m_box.m_inf.x;
+    const float z = point->m_position.z - sector.m_box.m_inf.z;
+    uint8_t cellX = static_cast<uint8_t>(ppc::fctiwz(x * g_pfGridScale.m_invCellSize));
+    uint8_t cellZ = static_cast<uint8_t>(ppc::fctiwz(z * g_pfGridScale.m_invCellSize));
+    if (sector.m_grid.m_width == cellX) cellX = static_cast<uint8_t>(sector.m_grid.m_width - 1);
+    if (sector.m_grid.m_height == cellZ) cellZ = static_cast<uint8_t>(sector.m_grid.m_height - 1);
+    *fracX = x - static_cast<float>(cellX) * g_pfGridScale.m_cellSize;
+    *fracZ = z - static_cast<float>(cellZ) * g_pfGridScale.m_cellSize;
+    cell[1] = cellZ;
+    cell[0] = cellX;
+}
+
+// 0x001e5f60 CKSrvPathFinding_SetBoxBlocked_maybe. The corner nodes are compared as signed halfwords; a corner's node is not
+// checked against the node count.
+uint32_t CKSrvPathFinding::SetBoxBlocked(uint16_t node, const CVector3* min, const CVector3* max, uint8_t blocked) {
+    const auto block = [&](uint16_t index) {
+        static_cast<CKPFGraphNode*>(m_Graph.m_apGraphNodes[index])->m_Sector.SetBoxBlocked(min, max, blocked);  // 0x001ed3c0
+    };
+    if (m_Graph.m_ui32GraphNodesSize > node) block(node);
+    int16_t ids[4] = {-1, -1, -1, -1};
+    const int16_t own = static_cast<int16_t>(node);
+    const CVector3 corners[4] = {{min->x, min->y, min->z}, {max->x, max->y, max->z}, {min->x, min->y, max->z},
+                                 {max->x, max->y, min->z}};
+    for (int k = 0; k < 4; ++k) {
+        CPFPoint point;
+        point.m_position = corners[k];
+        point.m_unk0c = node;
+        if ((FindSectorForPoint(&point) & 0xff) == 0) continue;  // 0x001e5ca0
+        const int16_t id = static_cast<int16_t>(point.m_unk0c);
+        ids[k] = id;
+        if (id == own) continue;
+        bool seen = false;
+        for (int j = 0; j < k; ++j) seen = seen || ids[j] == id;
+        if (!seen) block(static_cast<uint16_t>(id));
+    }
+    return 1;
+}
 
 // 0x001e5ca0 NavSectors_FindSectorForPoint_maybe
 uint32_t CKSrvPathFinding::FindSectorForPoint(CPFPoint* point) {
@@ -365,9 +471,24 @@ CKPFGraphTransition* CKSrvPathFinding::GetTransitionBetween(uint16_t from, uint1
     return node->m_ppTransition[static_cast<uint16_t>(index)];
 }
 
+// 0x001e4ea8 CKSrvPathFinding_SetDefaultState (the node and transition indices are 16-bit in the original's loops).
+void CKSrvPathFinding::SetDefaultState(int32_t /*flag*/) {
+    for (uint32_t i = 0; i < m_Graph.m_ui32GraphNodesSize; ++i) {
+        CKPFGraphNode* node = static_cast<CKPFGraphNode*>(m_Graph.m_apGraphNodes[i & 0xffffu]);
+        for (uint32_t t = 0; t < node->m_ui16TransitionSize; ++t) {
+            node->m_ppTransition[t & 0xffffu]->ResetEnabledToDefault();
+        }
+    }
+}
+
 // 0x001e4820 CKSrvPathFinding_ReleaseAllQueries_maybe (the service's Stop): all 20 query slots released.
 void CKSrvPathFinding::Stop() {
     for (CPFPathSlot& slot : m_aPathStock) slot.Release();
+}
+
+// 0x001e4880 CKSrvPathFinding_ReinitRuntime (vt+0x54, CKSrvPathFinding_Restart): every path slot released, as Stop.
+void CKSrvPathFinding::Restart() {
+    for (CPFPathSlot& slot : m_aPathStock) slot.Release();  // 0x001e9e28
 }
 
 namespace {
@@ -1133,4 +1254,88 @@ int16_t TAstar::FindPathInGrid(const CPFGrid* grid, const uint8_t* start, const 
             }
         }
     }
+}
+
+// 0x001e5240 NavSectors_SnapPointToCellCenter_maybe: the centre of the cell of the point's node that holds it
+// (CPFSector_FindIndexFromVector, then CPFSector_FindVectorFromIndex: at the box's bottom + 0.01) into `out`. Dead in
+// the original (no pointer to its descriptor 0xb76360, no call).
+void CKSrvPathFinding::SnapPointToCellCenter(const CPFPoint* point, CVector3* out) const {
+    const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(m_Graph.m_apGraphNodes[point->m_unk0c]);
+    uint8_t cell[2];
+    node->m_Sector.WorldToCell(&point->m_position, cell);
+    node->m_Sector.CellToWorldPos(cell, out);
+}
+
+// 0x001e55f8 CKSrvPathFinding_IsTransitionEnabledBetween_maybe: the enabled bit (bit 2) of node `from`'s transition to
+// node `to`; 0 without one. Dead in the original (no pointer to its descriptor 0xb76390, no call).
+uint32_t CKSrvPathFinding::IsTransitionEnabledBetween(uint16_t from, uint16_t to) const {
+    const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(m_Graph.m_apGraphNodes[from]);
+    const int32_t index = node->FindTransitionIndexTo(m_Graph.m_apGraphNodes[to]);  // 0x001efda0
+    if (static_cast<int16_t>(index) < 0) return 0;
+    return (node->m_ppTransition[static_cast<uint16_t>(index)]->m_baFlags >> 2) & 1u;
+}
+
+// 0x001e59c8 NavSectors_RelocatePoint_maybe: the point's node looked up again: its hinted node when the box holds the
+// point (x, z, then y, each inf <= p <= sup: cror, a NaN fails), else the first node a transition of it leads to whose
+// box holds it, else the first node of the whole graph (a linear scan, not the quadtree of FindSectorForPoint) whose box
+// holds it; the hint becomes that node's box id (NavSectors_FindBoxIdAtPoint_maybe), 1. None: the hint 0xffff, 0. Dead
+// in the original (no pointer to its descriptor 0xb763d0, no call).
+uint32_t CKSrvPathFinding::RelocatePoint(CPFPoint* point) {
+    const auto holds = [point](const CBBox& box) {
+        const float x = point->m_position.x;
+        if (!(box.m_inf.x <= x) || !(box.m_sup.x >= x)) return false;
+        const float z = point->m_position.z;
+        if (!(box.m_inf.z <= z) || !(box.m_sup.z >= z)) return false;
+        const float y = point->m_position.y;
+        return box.m_inf.y <= y && box.m_sup.y >= y;
+    };
+    int32_t found = -1;
+    if (static_cast<int16_t>(point->m_unk0c) >= 0) {
+        const uint16_t hint = point->m_unk0c;
+        const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(m_Graph.m_apGraphNodes[hint]);
+        if (holds(node->m_Sector.m_box)) {
+            found = hint;
+        } else {
+            for (uint32_t i = 0; i < node->m_ui16TransitionSize; ++i) {
+                const CKPFGraphNode* target = static_cast<const CKPFGraphNode*>(node->m_ppTransition[i & 0xffffu]->m_pNode);
+                if (holds(target->m_Sector.m_box)) {
+                    found = target->m_ui16Node;
+                    break;
+                }
+            }
+        }
+    }
+    if (found < 0) {
+        const int32_t count = static_cast<int32_t>(m_Graph.m_ui32GraphNodesSize);
+        for (int32_t i = 0; i < count; ++i) {
+            const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(m_Graph.m_apGraphNodes[i]);
+            if (holds(node->m_Sector.m_box)) {
+                found = i;
+                break;
+            }
+        }
+        if (found < 0) {
+            point->m_unk0c = 0xffff;
+            return 0;
+        }
+    }
+    const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(m_Graph.m_apGraphNodes[found & 0xffff]);
+    point->m_unk0c = node->FindBoxIdAtPoint(&point->m_position.x);  // 0x001efe18
+    return 1;
+}
+
+// 0x001e5ef8 CKSrvPathFinding_RefreshQueryEndpointSectors_maybe: FindSectorForPoint of the slot's seeker, then of its
+// target (that result returned: a tail call). Dead in the original (no pointer to its descriptor 0xb763e0, no call).
+uint32_t CKSrvPathFinding::RefreshQueryEndpointSectors(uint32_t slot) {
+    FindSectorForPoint(&m_aPathStock[slot].m_SeekerPosition);  // 0x001e5ca0
+    return FindSectorForPoint(&m_aPathStock[slot].m_TargetPosition);
+}
+
+// 0x001e6de0 CKSrvPathFinding_GetTransitionBetweenPoints_maybe: GetTransitionBetween of the two points' nodes. Dead in
+// the original (no pointer to its descriptor 0xb76428, no call).
+CKPFGraphTransition* CKSrvPathFinding::GetTransitionBetweenPoints(const CPFPoint* from, const CPFPoint* to) const {
+    const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(m_Graph.m_apGraphNodes[from->m_unk0c]);
+    const int32_t index = node->FindTransitionIndexTo(m_Graph.m_apGraphNodes[to->m_unk0c]);
+    if (static_cast<int16_t>(index) < 0) return nullptr;
+    return node->m_ppTransition[static_cast<uint16_t>(index)];
 }

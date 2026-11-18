@@ -7,13 +7,13 @@
 //   [x] 0x2b2d0  SaveDataRequest_Execute
 //   [x] 0x2b370  SaveDataRequest_CheckDone
 //   [x] 0x2b3a8  SaveDataRequest_Post
-//   [ ] 0x2b420  SaveDataRequest_DeletingDestructor
-//   [ ] 0x2b468  SaveDataRequest_Destructor
+//   [x] 0x2b420  SaveDataRequest_DeletingDestructor  (~SaveDataRequest, the deleting form)
+//   [x] 0x2b468  SaveDataRequest_Destructor
 //   [ ] 0x2b498  SaveDataRequest_Destructor_2  [dead]
 //   [x] 0x2b4c8  SaveDataRequest_Construct
 //   [ ] 0x2b500  SaveDataRequest_Construct_2  [dead]
-//   [ ] 0x2b538  CKMemcardRequestQueue_JoinThreads
-//   [ ] 0x2b578  CKMemcardRequestQueue_Abort
+//   [x] 0x2b538  CKMemcardRequestQueue_JoinThreads  (LoadRequests.h)
+//   [x] 0x2b578  CKMemcardRequestQueue_Abort  (LoadRequests.h)
 //   [ ] 0x2b5b0  CKMemcardRequestQueue_CancelRequest_maybe  [dead]
 //   [x] 0x2b5d8  SaveDataQueue_Enqueue_maybe
 #include "k2000/io/LoadRequests.h"
@@ -28,16 +28,44 @@ CKMemcardRequestQueue::CKMemcardRequestQueue()
 #include "k2000/io/SaveData.h"
 #include "k2000/misc/CKGameLoop.h"
 #include "k2000/misc/Engine.h"
+#include "k2000/system/LwMutex.h"
+#include "platform/cell/savedata.h"
 
-// 0x0002b2d0 SaveDataRequest_Execute
+// 0x0002b2d0 SaveDataRequest_Execute. The platform marks around it (platform/cell/savedata.h, reproducible runs) are not
+// in the original.
 void SaveDataRequest::Execute() {
+    dotd::platform::SaveDataWorkerBegin();
     switch (m_kind) {
-    case kListLoad: SaveData_ListLoad(); return;
-    case kListSave: SaveData_ListSave(); return;
-    case kDelete: SaveData_Delete(); return;
-    case kListAutoLoad: SaveData_ListAutoLoad(); return;
-    default: return;
+    case kListLoad: SaveData_ListLoad(); break;
+    case kListSave: SaveData_ListSave(); break;
+    case kDelete: SaveData_Delete(); break;
+    case kListAutoLoad: SaveData_ListAutoLoad(); break;
+    default: break;
     }
+    dotd::platform::SaveDataWorkerEnd();
+}
+
+// Platform (replays, not in the original): once the worker is past Execute, the request's done state is waited for, so
+// the next poll sees it whatever the pool thread's speed. Nothing waits while the request is parked in Execute.
+void SaveDataRequest::SettleForReplay() {
+    if (!dotd::platform::SaveDataWorkerIdle()) return;
+    LwMutex_Lock(&m_mutex);
+    const int32_t state = m_state;
+    LwMutex_Unlock(&m_mutex);
+    if (state != kQueued && state != kRunning) return;
+    uint8_t ignored = 0;
+    Wait(&ignored);
+}
+
+// 0x0002b760 CKMemcardRequestQueue_Destructor_maybe: as CKLoadRequestQueue's.
+CKMemcardRequestQueue::~CKMemcardRequestQueue() {
+    if (m_unkD1 == 0) {
+        RequestAbort();
+        m_unkD1 = 1;
+    }
+    if (m_unkD0 != 0) return;
+    keCThreadPool::JoinThreads();
+    m_unkD0 = 1;
 }
 
 // 0x0002b370 SaveDataRequest_CheckDone
@@ -51,5 +79,6 @@ uint8_t SaveDataRequest::CheckDone() {
 void SaveDataRequest::Post(int32_t kind) {
     Reset();
     m_kind = kind;
+    dotd::platform::SaveDataRequestPosted();  // platform (reproducible runs), not in the original
     g_pEngine->m_gameLoop->m_memcardQueue.Enqueue(this);
 }

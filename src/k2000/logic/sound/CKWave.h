@@ -13,10 +13,13 @@ struct RwaWave;
 class CKWave : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x143)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x50cc || key == 0xc; }  // vt+0x08 0x9a6e18
     DOTD_DECLARE_FACTORIES(CKWave)
 
     CKWave();                                           // 0x001227b8 CKWave_Create (inlined)
-    ~CKWave() override {}                               // STUB(C1.6): 0x9a6e00
+    ~CKWave() override {}                               // 0x009a6e00 CKWave_Destructor (0x9a6e38 deleting): the vtables only
+    // vt+0x24 0x00122630 CKWave_RecursiveRegistration: registered with the saving manager for type 0.
+    void RecursiveRegistration(int32_t type) override;
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00122970 CKWave_Load
 
     float m_fLength;            // +0x04 seconds

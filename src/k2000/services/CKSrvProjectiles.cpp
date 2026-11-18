@@ -5,30 +5,30 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1f32e0  CKSrvProjectiles_Delete
-//   [ ] 0x1f3330  CKSrvProjectiles_UpdateAll
+//   [x] 0x1f3330  CKSrvProjectiles_UpdateAll
 //   [x] 0x1f3588  CKSrvProjectiles_InitializeService
 //   [x] 0x1f3590  CKSrvProjectiles_DestroyService
 //   [ ] 0x1f3598  RegisterCKSrvProjectilesClass
 //   [ ] 0x1f3610  _GLOBAL__I_1f3610
 //   [x] 0x1f3620  CKSrvProjectiles_Construct
-//   [ ] 0x1f3680  CKSrvProjectiles_Construct_2
+//   [x] 0x1f3680  CKSrvProjectiles_Construct_2  (the constructor's second C++ variant)
 //   [x] 0x1f36e0  CKSrvProjectiles_DeleteArray
 //   [x] 0x1f3788  CKSrvProjectiles_CreateArray
 //   [x] 0x1f3898  CKSrvProjectiles_Create
-//   [ ] 0x1f3918  CKSrvProjectiles_MessageProc
+//   [x] 0x1f3918  CKSrvProjectiles_MessageProc  (returns 0: CKSrvProjectiles.h)
 //   [x] 0x1f3920  CKSrvProjectiles_Destroy
-//   [ ] 0x1f3968  CKSrvProjectiles_RecursiveRegistration
+//   [x] 0x1f3968  CKSrvProjectiles_RecursiveRegistration  (returns 1: the root's empty slot)
 //   [ ] 0x1f3970  CKSrvProjectiles_Save
 //   [x] 0x1f3978  CKSrvProjectiles_Load
-//   [ ] 0x1f3ad8  CKSrvProjectiles_Start
+//   [x] 0x1f3ad8  CKSrvProjectiles_Start
 //   [x] 0x1f3ae0  CKSrvProjectiles_Stop
-//   [ ] 0x1f3bb0  CKSrvProjectiles_Pause
-//   [ ] 0x1f3bb8  CKSrvProjectiles_Resume
-//   [ ] 0x1f3bc0  CKSrvProjectiles_Restart
-//   [ ] 0x1f3c00  UpdateCKSrvProjectiles
-//   [ ] 0x1f3c38  IKProjectileType_ClearReferences
-//   [ ] 0x1f3c90  KStub_Return1_1f3c90
-//   [ ] 0x1f3c98  IKProjectileType_vf28
+//   [x] 0x1f3bb0  CKSrvProjectiles_Pause
+//   [x] 0x1f3bb8  CKSrvProjectiles_Resume
+//   [x] 0x1f3bc0  CKSrvProjectiles_Restart
+//   [x] 0x1f3c00  UpdateCKSrvProjectiles
+//   [x] 0x1f3c38  IKProjectileType_ClearReferences  (IKProjectileType::Destroy, vt+0x10)
+//   [x] 0x1f3c90  KStub_Return1_1f3c90  (IKProjectileType vt+0x24 RecursiveRegistration: returns 1, the root's empty slot)
+//   [x] 0x1f3c98  IKProjectileType_vf28  (IKProjectileType vt+0x28 Save: returns 1, the root's default)
 //   [x] 0x1f3ca0  CKProjectileType_LoadBase
 //
 //   [ ] 0x9b07d8  CKSrvProjectiles_IsKindOfClass  [inline]
@@ -57,6 +57,7 @@
 #include "k2000/memory/Mem.h"
 #include "k2000/services/IKProjectileType.h"
 #include "k2000/misc/Engine.h"
+#include "k2000/system/IKTime.h"
 
 // 0x001f3620 CKSrvProjectiles_Construct (the same stores inlined in 0x1f3898 CKSrvProjectiles_Create).
 CKSrvProjectiles::CKSrvProjectiles() {
@@ -106,4 +107,37 @@ void CKSrvProjectiles::Stop() {
         IKProjectileType* pool = static_cast<IKProjectileType*>(m_apProjectilePoolList[i]);
         while (pool->m_ui8NbOfActiveProjectiles != 0) pool->KillProjectile(0);
     }
+}
+
+// 0x001f3330 CKSrvProjectiles_UpdateAll
+void CKSrvProjectiles::UpdateAll(float dt) {
+    for (uint8_t i = 0; i < m_ui8NbOfProjectilePools; ++i) {
+        IKProjectileType* pool = static_cast<IKProjectileType*>(m_apProjectilePoolList[i]);
+        if (pool->m_ui8NbOfActiveProjectiles == 0) continue;
+        uint8_t index = 0;
+        do {
+            pool->UpdateMotion(index, dt);       // vt+0x50
+            pool->ProcessDamageContacts(index);  // vt+0xa4
+            pool->UpdateCollision(index, dt);    // vt+0x54
+            pool->UpdateOrientation(index, dt);  // vt+0x64
+            if (pool->IsDead(index) != 0) {      // vt+0x58
+                pool->OnDeath(index);            // vt+0x5c (the index is looked at again)
+            } else {
+                ++index;
+            }
+        } while (index < pool->m_ui8NbOfActiveProjectiles);
+    }
+}
+
+// 0x001f3c00 UpdateCKSrvProjectiles
+void CKSrvProjectiles::Update(IKTime* frameClock) {
+    if (frameClock->m_eCurrentState != 0) return;
+    UpdateAll(frameClock->m_afDeltaTime[IKTime::SCALABLE_GAME_TIME]);  // +0x1c
+}
+
+// 0x001f3c38 IKProjectileType_ClearReferences (Ghidra: IKProjectileType_Destroy; vtable 0xb1e968 +0x10): both lists
+// freed. BUG(original): the pointers are kept (the next Load replaces them). The two registered types' Destroy call it.
+void IKProjectileType::Destroy() {
+    if (m_apProjectileList != nullptr) Mem_FreeAligned16(m_apProjectileList);
+    if (m_aProjectiles != nullptr) Mem_FreeAligned16(m_aProjectiles);
 }

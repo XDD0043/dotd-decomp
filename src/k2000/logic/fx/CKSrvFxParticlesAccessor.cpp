@@ -7,12 +7,12 @@
 //   [ ] 0x1d8c68  _GLOBAL__I_1d8c68
 //   [x] 0x1d8c78  CKSrvFxParticlesAccessor_Load
 //   [ ] 0x1d8d38  CKSrvFxParticlesAccessor_Save
-//   [ ] 0x1d8d60  CKSrvFxParticlesAccessor_Destroy
-//   [ ] 0x1d8d98  CKSrvFxParticlesAccessor_DeletingDestructor
-//   [ ] 0x1d8de0  CKSrvFxParticlesAccessor_Destructor
-//   [ ] 0x1d8e10  CKSrvFxParticlesAccessor_BaseDestructor
+//   [x] 0x1d8d60  CKSrvFxParticlesAccessor_Destroy  (in the header)
+//   [x] 0x1d8d98  CKSrvFxParticlesAccessor_DeletingDestructor  (C++ deleting destructor)
+//   [x] 0x1d8de0  CKSrvFxParticlesAccessor_Destructor  (C++ destructor chain: vtable stores only)
+//   [x] 0x1d8e10  CKSrvFxParticlesAccessor_BaseDestructor  (C++ destructor chain)
 //   [x] 0x1d8e40  CKSrvFxParticlesAccessor_Construct
-//   [ ] 0x1d8e80  CKSrvFxParticlesAccessor_Construct_2
+//   [x] 0x1d8e80  CKSrvFxParticlesAccessor_Construct_2  (the constructor)
 //   [x] 0x1d8ec0  CKSrvFxParticlesAccessor_DeleteArray
 //   [x] 0x1d8f60  CKSrvFxParticlesAccessor_Create
 //   [x] 0x1d8fc0  CKSrvFxParticlesAccessor_CreateArray

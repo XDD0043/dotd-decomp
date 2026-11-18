@@ -5,26 +5,26 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1f0380  CKPFGraphTransition_Delete
-//   [ ] 0x1f03d0  CKPFGraphTransition_RecursiveRegistration
+//   [x] 0x1f03d0  CKPFGraphTransition_RecursiveRegistration
 //   [ ] 0x1f0438  RegisterCKPFGraphTransitionClass
 //   [ ] 0x1f04b0  _GLOBAL__I_1f04b0
 //   [x] 0x1f04c0  CKPFGraphTransition_DeleteArray
 //   [x] 0x1f0568  CKPFGraphTransition_Create
-//   [ ] 0x1f0600  CKPFGraphTransition_ResetEnabledToDefault_maybe
+//   [x] 0x1f0600  CKPFGraphTransition_ResetEnabledToDefault_maybe  (inline in the header)
 //   [x] 0x1f0648  NavSectorFlags_AllowsAgent_maybe
-//   [ ] 0x1f06d8  CKPFGraphTransition_Save
-//   [ ] 0x1f06e0  CKPFGraphTransition_GetInfo
-//   [ ] 0x1f06e8  CKPFGraphTransition_MessageProc
-//   [ ] 0x1f0760  CKPFGraphTransition_PostLoad
-//   [ ] 0x1f0768  CKPFGraphTransition_SetGameState
-//   [ ] 0x1f07d0  CKPFGraphTransition_Destroy
+//   [x] 0x1f06d8  CKPFGraphTransition_Save  (the base class default)
+//   [x] 0x1f06e0  CKPFGraphTransition_GetInfo  (the base class default)
+//   [x] 0x1f06e8  CKPFGraphTransition_MessageProc
+//   [x] 0x1f0760  CKPFGraphTransition_PostLoad  (the base class default)
+//   [x] 0x1f0768  CKPFGraphTransition_SetGameState
+//   [x] 0x1f07d0  CKPFGraphTransition_Destroy
 //   [x] 0x1f0860  CKPFGraphTransition_Load
 //   [x] 0x1f0ad0  CKPFGraphTransition_CreateArray
 //   [ ] 0x1f0bb8  FUN_001f0bb8  [dead]
-//   [ ] 0x1f0bc8  KStub_Return1_1f0bc8
-//   [ ] 0x1f0bd0  CKSrvPathFinding_ClearGraph_maybe
+//   [x] 0x1f0bc8  KStub_Return1_1f0bc8  (1: CKSrvPathFinding_RecursiveRegistration's call does nothing)
+//   [x] 0x1f0bd0  CKSrvPathFinding_ClearGraph_maybe
 //   [x] 0x1f0c38  CKSrvPathFinding_LoadGraph_maybe
-//   [ ] 0x1f0de8  CKSrvPathFinding_SaveGraph_maybe
+//   [x] 0x1f0de8  CKSrvPathFinding_SaveGraph_maybe
 //
 //   [ ] 0x9b05d8  CKPFGraphTransition_GetClassType  [inline]
 //   [ ] 0x9b05e0  CKPFGraphTransition_GetClassID  [inline]
@@ -72,6 +72,32 @@ CKPFGraphTransition::CKPFGraphTransition() {
     m_AllowedChar.m_bits = (m_AllowedChar.m_bits & 0xfffffff8u) | 0x7u;
 }
 
+// 0x001f06e8 CKPFGraphTransition_MessageProc
+int32_t CKPFGraphTransition::MessageProc(uint16_t message, void* /*data*/) {
+    if (message == 0xa00) {
+        m_baFlags = (m_baFlags & ~4u) | 4u;
+        return 0;
+    }
+    if (message == 0xa01) {
+        m_baFlags &= ~4u;
+        return 0;
+    }
+    return 1;
+}
+
+// 0x001f0768 CKPFGraphTransition_SetGameState
+int32_t CKPFGraphTransition::SetGameState(const SApplyGameState* state) {
+    if (state->m_ui32GameStateId == 0) {
+        m_baFlags = (m_baFlags & ~4u) | 4u;
+        return 1;
+    }
+    if (state->m_ui32GameStateId == 1) {
+        m_baFlags &= ~4u;
+        return 1;
+    }
+    return 0;
+}
+
 // 0x001f0860 CKPFGraphTransition_Load
 int32_t CKPFGraphTransition::Load(IKFile* file, int32_t type) {
     if (type != K_LEVEL_PLATEFORMS) return 1;
@@ -96,4 +122,49 @@ uint8_t CKPFGraphTransition::AllowsCharacter(const CPFCharacter* character) cons
     if (types != 0x80u && ((bits >> 3) & types) == 0) return 0;
     if ((allowed & bits & 7u) == 0) return 0;
     return m_AllowedChar.m_unk04 >= character->m_unk04 ? 1 : 0;
+}
+
+#include "k2000/ai/CKSrvPathFinding.h"
+#include "k2000/logic/CKSavingManager.h"
+#include "k2000/memory/Mem.h"
+#include "k2000/misc/Engine.h"
+
+// 0x001f07d0 CKPFGraphTransition_Destroy (the portals' destructors only store their vtable; OperatorDeleteArray)
+void CKPFGraphTransition::Destroy() {
+    if (m_aPortals != nullptr) delete[] m_aPortals;
+    m_pNode = nullptr;
+    m_aPortals = nullptr;
+}
+
+// 0x001f03d0 CKPFGraphTransition_RecursiveRegistration
+void CKPFGraphTransition::RecursiveRegistration(int32_t type) {
+    if (static_cast<uint32_t>(type - 4) > 3) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);
+}
+
+// 0x001f0bd0 CKSrvPathFinding_ClearGraph_maybe (CKSrvPathFinding_Destroy's; XXL2 CPFGraph::Destroy): the node block freed,
+// then the quadtree's Destroy (CKQuadTreeRoot_Destroy 0x1f21f8, called directly; here its vt+0x10).
+void CPFGraph::Clear() {
+    if (m_apGraphNodes != nullptr) {
+        Mem_FreeAligned16(m_apGraphNodes);
+        m_apGraphNodes = nullptr;
+    }
+    m_quadTree.Destroy();
+}
+
+// 0x001f0de8 CKSrvPathFinding_SaveGraph_maybe
+int32_t CPFGraph::Save(IKFile* file, int32_t /*type*/) {
+    const uint32_t count = m_ui32GraphNodesSize;
+    WriteU32LE(file, count);
+    if (count == 0) return 1;
+    if (file->m_pSavingInterfaces != nullptr) {
+        file->m_pSavingInterfaces->WriteAsContiguousHandles(file, m_apGraphNodes, count);  // vt+0x4c
+        return 1;
+    }
+    for (uint32_t i = 0; i < count; ++i) {  // the block's words as they are in memory (big-endian pointers)
+        const uint32_t raw = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(m_apGraphNodes[i]));
+        const uint8_t b[4] = {static_cast<uint8_t>(raw >> 24), static_cast<uint8_t>(raw >> 16),
+                              static_cast<uint8_t>(raw >> 8), static_cast<uint8_t>(raw)};
+        file->Write(b, 4);
+    }
+    return 1;
 }

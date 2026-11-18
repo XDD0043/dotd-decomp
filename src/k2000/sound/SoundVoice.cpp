@@ -24,6 +24,7 @@
 #include "k2000/logic/sound/CKSound.h"
 #include "k2000/logic/sound/CKWave.h"
 #include "k2000/managers/CKSoundManager.h"
+#include "k2000/misc/CKGameLoop.h"
 #include "k2000/misc/Engine.h"
 #include "k2000/sound/CKSoundOutput.h"
 #include "k2000/sound/CKSoundStreamManager.h"
@@ -41,10 +42,6 @@ float SampleRate(SoundInstance* instance) {
     return static_cast<float>(static_cast<double>(WaveOf(instance)->m_ui16SampleRate));
 }
 
-// 0x0001e2e0 CKGameLoop_IsRequestedLevelWithGmFlag294_maybe (misc/CKGameLoop.cpp, family gm; not ported):
-// 1 while a requested level loads with the game manager's +0x294 flag (and two globals) set: the sounds
-// are muted then. STUB(gm): 0 (the front end requests no level; C2 needs the port).
-uint32_t CKGameLoop_IsRequestedLevelWithGmFlag294() { return 0; }
 
 }  // namespace
 
@@ -74,8 +71,20 @@ float SoundVoice::GetPlayPositionSeconds() {
     return static_cast<float>(static_cast<double>(samples)) / SampleRate(m_pInstance);
 }
 
-// 0x00121d80 SoundVoice_IsPlaying_maybe
-uint8_t SoundVoice::IsPlaying() { return RwaVoice_IsPlaying(m_pRwaVoice) == 1 ? 1 : 0; }
+namespace {
+VoiceReplaySource g_voiceReplaySource = nullptr;
+}  // namespace
+
+void SoundVoice_SetReplaySource(VoiceReplaySource source) { g_voiceReplaySource = source; }
+
+// 0x00121d80 SoundVoice_IsPlaying_maybe (a replay source, when set, answers for the recorded instances)
+uint8_t SoundVoice::IsPlaying() {
+    if (g_voiceReplaySource != nullptr && m_pInstance != nullptr) {
+        const int32_t answer = g_voiceReplaySource(m_pInstance);
+        if (answer >= 0) return static_cast<uint8_t>(answer);
+    }
+    return RwaVoice_IsPlaying(m_pRwaVoice) == 1 ? 1 : 0;
+}
 
 // 0x00121dc8 SoundVoice_SetPlayPositionSeconds_maybe
 void SoundVoice::SetPlayPositionSeconds(float seconds) {
@@ -145,7 +154,8 @@ int32_t SoundVoice::ApplyParameters() {
         const float music = manager->m_pSoundStreamManager->GetMusicCurrentVolume();
         volume = (music * manager->m_unk34[0]) * manager->m_unk28[0];
     }
-    if ((CKGameLoop_IsRequestedLevelWithGmFlag294() & 0xff) != 0) volume = kZero;
+    // 0x0001e2e0 CKGameLoop_IsRequestedLevelWithGmFlag294_maybe: the sounds are muted while a requested level loads.
+    if (g_pEngine->m_gameLoop->IsRequestedLevelWithGmFlag294() != 0) volume = kZero;
     float gain = volume * m_pInstance->m_volumeRamp[2];
     if (gain > kOne) gain = kOne;
     RwaVoice_SetVolume(gain, m_pRwaVoice);

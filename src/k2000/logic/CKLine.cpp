@@ -4,7 +4,7 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0xc7648  CKLine_Delete
-//   [ ] 0xc7698  CKLine_RecursiveRegistration
+//   [x] 0xc7698  CKLine_RecursiveRegistration  (1: the inherited default)
 //   [ ] 0xc76a0  CKLine_Save
 //   [ ] 0xc76a8  CKLine_Construct  [dead]
 //   [ ] 0xc76f0  CKLine_Construct_2  [dead]
@@ -12,10 +12,10 @@
 //   [ ] 0xc77b0  _GLOBAL__I_c77b0
 //   [ ] 0xc77c0  CKLine_GetSegmentDirection_maybe  [dead]
 //   [x] 0xc7898  CKLine_DeleteArray
-//   [ ] 0xc7940  CKLine_vf50
+//   [x] 0xc7940  CKLine_vf50
 //   [ ] 0xc7998  CKLine_GetSegmentLength_maybe  [dead]
 //   [x] 0xc7a30  CKLine_GetClosestDistanceAlong
-//   [ ] 0xc7c18  CKLine_Destroy
+//   [x] 0xc7c18  CKLine_Destroy  (empty: the inherited default)
 //   [x] 0xc7c20  CKLine_Create
 //   [x] 0xc7c90  CKLine_CreateArray
 //   [x] 0xc7d70  CKLine_Load
@@ -137,4 +137,18 @@ int32_t CKLine::Load(IKFile* file, int32_t /*type*/) {
     LoadPathVector(file, PointsList, static_cast<uint32_t>(m_ui8NumberOfSegment) + 1, true);
     LoadPathVector(file, SegmentLenghtList, m_ui8NumberOfSegment, true);
     return 1;
+}
+
+// 0x000c7940 CKLine_vf50
+CVector3 CKLine::GetPointAt(float distance, CVector3* direction) {
+    CVector3 point;
+    GetPointAtDistance(distance, &point, direction);  // vt+0x54
+    return point;
+}
+
+// IKPath::GetPointAt (vt+0x50; IKPath has no unit of its own here): CKLine's body, which CKSpline4L_vf50 0xc6650 repeats.
+CVector3 IKPath::GetPointAt(float distance, CVector3* direction) {
+    CVector3 point;
+    GetPointAtDistance(distance, &point, direction);  // vt+0x54
+    return point;
 }

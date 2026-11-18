@@ -10,7 +10,7 @@
 //   [x] 0xd6390  CKAABB_DeleteArray
 //   [x] 0xd6438  CKAABB_CreateArray
 //   [x] 0xd6528  CKAABB_Create
-//   [ ] 0xd6598  CKAABB_RecursiveRegistration
+//   [x] 0xd6598  CKAABB_RecursiveRegistration  (CSGLeaf's (nothing))
 //
 //   [ ] 0x9a2e70  CKAABB_GetClassType  [inline]
 //   [ ] 0x9a2e78  CKAABB_GetClassID  [inline]

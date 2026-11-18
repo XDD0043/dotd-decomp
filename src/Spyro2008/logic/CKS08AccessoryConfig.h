@@ -10,6 +10,7 @@
 class CKS08AccessoryConfig : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x286)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0xa18c || key == 0xc; }  // vt+0x08 0x9bd0b8
     DOTD_DECLARE_FACTORIES(CKS08AccessoryConfig)
 
     CKS08AccessoryConfig() {}  // 0x002c6da0 CKS08AccessoryConfig_Construct: the vtable only

@@ -4,13 +4,13 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x31308  CKMeshKluster_Delete
-//   [ ] 0x31358  CKMeshKluster_vf54
-//   [ ] 0x31368  CKMeshKluster_RecursiveRegistration
-//   [ ] 0x31370  CKMeshKluster_PostLoad
+//   [x] 0x31358  CKMeshKluster_vf54  (header: SectorUnload_maybe (vt+0x54))
+//   [x] 0x31368  CKMeshKluster_RecursiveRegistration  (IKSerializable's: returns 1)
+//   [x] 0x31370  CKMeshKluster_PostLoad  (IKSerializable's: returns 1)
 //   [ ] 0x31378  RegisterCKMeshKlusterClass
 //   [ ] 0x313f0  _GLOBAL__I_313f0
 //   [ ] 0x31400  CKMeshKluster_BuildSortedFlaggedList_maybe  [dead]
-//   [ ] 0x314c8  CKMeshKluster_Destroy
+//   [x] 0x314c8  CKMeshKluster_Destroy
 //   [x] 0x31570  CKMeshKluster_DeleteArray
 //   [x] 0x31618  CKMeshKluster_Create
 //   [x] 0x31658  CKMeshKluster_CreateArray
@@ -113,4 +113,24 @@ void CKMeshKluster::SectorLoaded_maybe(int32_t /*sector*/) {
     CKLevel* level = g_pEngine->m_level;
     level->m_ba8GroundStateFlags = static_cast<uint8_t>((level->m_ba8GroundStateFlags & 0xfe) | 1);
     UpdateDynamicGrounds(nullptr);
+}
+
+// 0x000314c8 CKMeshKluster_Destroy
+void CKMeshKluster::Destroy() {
+    if (m_apGround != nullptr) {
+        Mem_FreeAligned16(m_apGround);
+        m_apGround = nullptr;
+    }
+    if (m_apWall != nullptr) {
+        Mem_FreeAligned16(m_apWall);
+        m_apWall = nullptr;
+    }
+    if (m_apCollisionMesh != nullptr) {
+        Mem_FreeAligned16(m_apCollisionMesh);
+        m_apCollisionMesh = nullptr;
+    }
+    if (m_apActiveGround != nullptr) {
+        Mem_FreeAligned16(m_apActiveGround);
+        m_apActiveGround = nullptr;
+    }
 }

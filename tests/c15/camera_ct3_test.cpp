@@ -240,6 +240,13 @@ int main() {
     CKCameraClassicTrack3* track = new CKCameraClassicTrack3();
     std::memcpy(&track->m_param5c, &kLiveTrack[0x5c / 4], 35 * 4);
     track->m_Flags = kLiveTrack[2];
+    // The four bytes the Load reads at +0x10 (the smooth modes, the safe mode, the avoiding-system index: 0). The
+    // constructor leaves them as allocated; an index past the service's ten avoiding datas made the wall sweep read
+    // the heap after the camera service (a radius that changed from run to run).
+    track->m_CameraSmoothMode = static_cast<uint8_t>(kLiveTrack[4] >> 24);
+    track->m_TargetSmoothMode = static_cast<uint8_t>(kLiveTrack[4] >> 16);
+    track->m_TargetSafeMode = static_cast<uint8_t>(kLiveTrack[4] >> 8);
+    track->m_ui8CameraAvoidingSystemIndex = static_cast<uint8_t>(kLiveTrack[4]);
     track->m_fFar = F(kLiveTrack[5]);
     track->m_unk18 = F(kLiveTrack[6]);
     track->m_fFov = F(kLiveTrack[7]);

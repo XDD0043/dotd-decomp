@@ -4,14 +4,14 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0xd2e28  CSGSectorRoot_Delete
-//   [ ] 0xd2e78  CSGSectorRoot_GetSectorIndex_maybe
+//   [x] 0xd2e78  CSGSectorRoot_GetSectorIndex_maybe  (GetSectorIndex, CSGSectorRoot.h)
 //   [ ] 0xd2e80  RegisterCSGSectorRootClass
 //   [ ] 0xd2ef8  _GLOBAL__I_d2ef8
-//   [ ] 0xd2f08  CSGSectorRoot_PostLoad
+//   [x] 0xd2f08  CSGSectorRoot_PostLoad  (= the inherited slot)
 //   [x] 0xd2f30  CSGSectorRoot_Load
 //   [ ] 0xd3068  CSGSectorRoot_Save
-//   [ ] 0xd3090  CSGSectorRoot_RecursiveRegistration
-//   [ ] 0xd30b8  CSGSectorRoot_Destroy
+//   [x] 0xd3090  CSGSectorRoot_RecursiveRegistration  (CNode's (nothing))
+//   [x] 0xd30b8  CSGSectorRoot_Destroy  (CNode's: inherited)
 //   [x] 0xd30e0  CSGSectorRoot_DeleteArray
 //   [x] 0xd3180  CreateCSGSectorRoot
 //   [x] 0xd31e8  CSGSectorRoot_CreateArray

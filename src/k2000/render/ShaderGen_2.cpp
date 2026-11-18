@@ -7,7 +7,7 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0xff498  ShaderGen_CompileVertexShaderBinary_maybe
-//   [ ] 0xff5b8  ShaderGen_CompileCurrentVertexShaderBinary_maybe
-//   [ ] 0xff5c8  CShaderManagerPSGL_Destroy
-//   [ ] 0xff618  PSGLAtomicNode_SetupCallback_Nop
+//   [ ] 0xff498  ShaderGen_CompileVertexShaderBinary_maybe  [platform]  (the embedded Cg compiler: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
+//   [ ] 0xff5b8  ShaderGen_CompileCurrentVertexShaderBinary_maybe  [platform]  (the embedded Cg compiler: replaced by design: platform/gfx/cg_program translates the Cg programs to GLSL per variant)
+//   [x] 0xff5c8  CShaderManagerPSGL_Destroy  (BootStubs.cpp's CShaderManagerPSGL::Delete)
+//   [ ] 0xff618  PSGLAtomicNode_SetupCallback_Nop  [platform]  (the PS3 atomic pipeline node's empty setup callback: the remake draws atomics without RxPipeline nodes)

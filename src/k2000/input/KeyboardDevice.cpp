@@ -7,11 +7,11 @@
 //   [x] 0x10f208  KeyboardDevice_Init_maybe
 //   [x] 0x10f238  KStub_Return1_10f238
 //   [x] 0x10f240  KStub_Return1_10f240
-//   [ ] 0x10f248  KStub_Return1_10f248
+//   [x] 0x10f248  KStub_Return1_10f248
 //   [ ] 0x10f250  KeyboardDevice_Destructor_2_maybe  [dead]
 //   [ ] 0x10f260  KeyboardDevice_Construct_2_maybe  [dead]
-//   [ ] 0x10f270  KeyboardDevice_DeletingDestructor_maybe
-//   [ ] 0x10f2a0  KeyboardDevice_Destructor_maybe
+//   [x] 0x10f270  KeyboardDevice_DeletingDestructor_maybe  (~KeyboardDevice, KeyboardDevice.h: delete)
+//   [x] 0x10f2a0  KeyboardDevice_Destructor_maybe  (~KeyboardDevice, KeyboardDevice.h (vtable store only))
 #include "k2000/input/KeyboardDevice.h"
 
 // 0x0010f208 KeyboardDevice_Init_maybe (XXL2 InitializeData(CKParams*)): no name for any key.

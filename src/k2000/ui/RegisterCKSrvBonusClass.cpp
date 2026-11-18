@@ -9,4 +9,4 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [ ] 0x5a9588  RegisterCKSrvBonusClass
 //   [ ] 0x5a9600  _GLOBAL__I_5a9600
-//   [ ] 0x5a9610  UpdateCKSrvBonus
+//   [x] 0x5a9610  UpdateCKSrvBonus

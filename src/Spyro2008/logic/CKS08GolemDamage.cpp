@@ -8,18 +8,18 @@
 //   [ ] 0x4c4ac8  _GLOBAL__I_4c4ac8
 //   [x] 0x4c4ad8  CKS08GolemDamage_Load
 //   [ ] 0x4c4c10  CKS08GolemDamage_Save
-//   [ ] 0x4c4c38  CKS08GolemDamage_RecursiveRegistration
-//   [ ] 0x4c4c60  CKS08GolemDamage_Destroy
-//   [ ] 0x4c4c88  CKS08GolemDamage_DeletingDestructor
-//   [ ] 0x4c4cd0  CKS08GolemDamage_Destructor
-//   [ ] 0x4c4d00  CKS08GolemDamage_DestructBody
+//   [x] 0x4c4c38  CKS08GolemDamage_RecursiveRegistration  (CKS08Damage's (CKDamage's: nothing registered), then 1)
+//   [x] 0x4c4c60  CKS08GolemDamage_Destroy  (inherited: CKS08Damage_Destroy)
+//   [x] 0x4c4c88  CKS08GolemDamage_DeletingDestructor  (the destructor; delete)
+//   [x] 0x4c4cd0  CKS08GolemDamage_Destructor  (CKS08Damage's, inherited: nothing of its own)
+//   [x] 0x4c4d00  CKS08GolemDamage_DestructBody  (C++ destructor chain: vtable stores, then CKS08Damage_BaseDestructor)
 //   [x] 0x4c4d30  CKS08GolemDamage_Construct  [dead]
 //   [ ] 0x4c4d68  CKS08GolemDamage_Construct_2  [dead]
 //   [x] 0x4c4da0  CKS08GolemDamage_DeleteArray
 //   [x] 0x4c4e40  CKS08GolemDamage_Create
 //   [x] 0x4c4e98  CKS08GolemDamage_CreateArray
-//   [ ] 0x4c4f48  KStub_Nop_4c4f48
-//   [ ] 0x4c4f50  KStub_Nop_4c4f50
+//   [x] 0x4c4f48  KStub_Nop_4c4f48  (GolemPhaseCondTimer vt+0x08 Update: empty, the base's (k2000/misc/GolemPhaseCondAnd.h))
+//   [x] 0x4c4f50  KStub_Nop_4c4f50  (GolemPhaseCondTimer vt+0x0c OnStart: empty, the base's (k2000/misc/GolemPhaseCondAnd.h))
 //
 //   [ ] 0x9c57c0  CKS08GolemDamage_IsKindOfClass  [inline]
 //   [ ] 0x9c5810  CKS08GolemDamage_GetClassType  [inline]

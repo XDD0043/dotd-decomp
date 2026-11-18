@@ -9,8 +9,8 @@
 //   [x] 0x55bb90  CKS08MenuOptionPS3_OnMenuState_maybe
 //   [x] 0x55bd50  CKS08MenuOptionPS3_Load
 //   [ ] 0x55bd78  CKS08MenuOptionPS3_Save
-//   [ ] 0x55bda0  CKS08MenuOptionPS3_RecursiveRegistration
-//   [ ] 0x55bdc8  CKS08MenuOptionPS3_Destroy
+//   [x] 0x55bda0  CKS08MenuOptionPS3_RecursiveRegistration  (inherited: CKMenuBase114c::RecursiveRegistration)
+//   [x] 0x55bdc8  CKS08MenuOptionPS3_Destroy  (inherited: CKMenuBase114c::Destroy)
 //   [x] 0x55bdf0  CKS08MenuOptionPS3_DeleteArray
 //   [ ] 0x55be90  RegisterCKS08MenuOptionPS3Class
 //   [ ] 0x55bf18  _GLOBAL__D_55bf18
@@ -18,9 +18,9 @@
 //   [ ] 0x55bf38  CKS08MenuOptionPS3_Construct_2  [dead]
 //   [x] 0x55bfe0  CKS08MenuOptionPS3_CreateArray
 //   [x] 0x55c120  CKS08MenuOptionPS3_Create
-//   [ ] 0x55c208  CKS08MenuOptionPS3_Destructor
-//   [ ] 0x55c340  CKS08MenuOptionPS3_Destructor_2
-//   [ ] 0x55c478  CKS08MenuOptionPS3_DeletingDestructor
+//   [x] 0x55c208  CKS08MenuOptionPS3_Destructor  (implicit destructor: CKMenuBase114c's inlined)
+//   [x] 0x55c340  CKS08MenuOptionPS3_Destructor_2  (implicit destructor: CKMenuBase114c's inlined)
+//   [x] 0x55c478  CKS08MenuOptionPS3_DeletingDestructor  (implicit destructor: CKMenuBase114c's inlined)
 //
 //   [x] 0x9c9e88  CKS08MenuOptionPS3_IsKindOfClass  [inline]
 //   [x] 0x9c9ec8  CKS08MenuOptionPS3_GetClassType  [inline]

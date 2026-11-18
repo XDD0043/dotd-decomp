@@ -10,6 +10,7 @@
 class CKDamage : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x25b)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x96cc || key == 0xc; }  // vt+0x08 0x9ba6e0
     DOTD_DECLARE_FACTORIES(CKDamage)
 
     CKDamage() {}  // 0x00253bf8 CKDamage_Construct: stores the vtable only

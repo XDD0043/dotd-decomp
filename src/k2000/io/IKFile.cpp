@@ -7,11 +7,11 @@
 //   [ ] 0x4d008  IKFile_Construct_2  [dead]
 //   [x] 0x4d030  IKFile_SetAccessMode
 //   [x] 0x4d088  IKFile_GetFileLength
-//   [ ] 0x4d168  IKFile_GetString
+//   [x] 0x4d168  IKFile_GetString
 //   [x] 0x4d218  IKFile_ReadTextureRef
-//   [ ] 0x4d2e8  KStub_Return0_4d2e8
+//   [x] 0x4d2e8  KStub_Return0_4d2e8  (IKFile::Printf inline default, IKFile.h)
 //   [x] 0x4d2f0  IKFile_ReadLengthPrefixedString
-//   [ ] 0x4d4e0  IKFile_PutString
+//   [x] 0x4d4e0  IKFile_PutString
 //   [ ] 0x4d620  IKFile_WriteLengthPrefixedWideString_maybe  [dead]
 //
 //   [x] 0x995a48  IKFile_DeletingDestructor  [inline]
@@ -26,6 +26,34 @@ IKFile::IKFile() : m_pRwStream(nullptr), m_eInternalOpenMode(4), m_pSavingInterf
 
 // 0x00995a78 IKFile_Destructor, 0x00995a48 IKFile_DeletingDestructor
 IKFile::~IKFile() {}
+
+// 0x0004d168 IKFile_GetString: one byte at a time through Read (vt+0x14) until a short read, a CR or LF (stored), or
+// `size` bytes. BUG(original): returns null on every path and never terminates the string.
+char* IKFile::ReadLine(char* dst, uint32_t size) {
+    do {
+        --size;
+        if (Read(dst, 1) != 1) return nullptr;
+        const char c = *dst++;
+        if (c == '\r' || c == '\n') return nullptr;
+    } while (size != 0);
+    return nullptr;
+}
+
+// 0x0004d4e0 IKFile_PutString: each line up to LF or the end through Write (vt+0x20), an LF as the two bytes CR LF
+// (0x00ac3c00); returns the sum of the writes.
+int32_t IKFile::WriteText(const char* text) {
+    static const char kCrLf[3] = {'\r', '\n', 0};  // 0x00ac3c00
+    int32_t total = 0;
+    for (;;) {
+        const char* end = text;
+        while (*end != '\n' && *end != '\0') ++end;
+        total += static_cast<int32_t>(Write(text, static_cast<uint32_t>(end - text)));
+        if (*end == '\0') break;
+        text = end + 1;
+        if (*end == '\n') total += static_cast<int32_t>(Write(kCrLf, 2));
+    }
+    return total;
+}
 
 // 0x0004d088 IKFile_GetFileLength: seek to the end, tell, seek back.
 uint32_t IKFile::GetSize() {

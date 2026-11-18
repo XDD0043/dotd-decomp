@@ -6,18 +6,18 @@
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [ ] 0x1ad058  RegisterCKFlashFxDataClass
 //   [ ] 0x1ad350  _GLOBAL__I_1ad350
-//   [ ] 0x1ad360  CKMeshPopFxData_DeleteArray
-//   [ ] 0x1ad400  CKDistortionFxData_DeleteArray
-//   [ ] 0x1ad4a8  CKLensFlareFxData_DeleteArray
-//   [ ] 0x1ad548  CKSparkFxData_DestroyArray
+//   [x] 0x1ad360  CKMeshPopFxData_DeleteArray  (DOTD_DECLARE_FACTORIES(CKMeshPopFxData))
+//   [x] 0x1ad400  CKDistortionFxData_DeleteArray  (DOTD_DECLARE_FACTORIES(CKDistortionFxData))
+//   [x] 0x1ad4a8  CKLensFlareFxData_DeleteArray  (DOTD_DECLARE_FACTORIES(CKLensFlareFxData))
+//   [x] 0x1ad548  CKSparkFxData_DestroyArray  (DOTD_DECLARE_FACTORIES(CKSparkFxData))
 //   [x] 0x1ad5f0  CKParticlesEffectFxData_DestroyArray
-//   [ ] 0x1ad698  CKFireBallFxData_DeleteArray
-//   [ ] 0x1ad738  CKShockWaveFxData_DestroyArray
-//   [ ] 0x1ad7e0  CKHedgeHopTrailFxData_DeleteArray
+//   [x] 0x1ad698  CKFireBallFxData_DeleteArray  (DOTD_DECLARE_FACTORIES(CKFireBallFxData))
+//   [x] 0x1ad738  CKShockWaveFxData_DestroyArray  (DOTD_DECLARE_FACTORIES(CKShockWaveFxData))
+//   [x] 0x1ad7e0  CKHedgeHopTrailFxData_DeleteArray  (DOTD_DECLARE_FACTORIES(CKHedgeHopTrailFxData))
 //   [x] 0x1ad888  CKExplosionFxData_DeleteArray
 //   [x] 0x1ad930  CKFilterFxData_DeleteArray
-//   [ ] 0x1ad9d8  CKLightningObjectFxData_DeleteArray
-//   [ ] 0x1ada80  CKQuadFxData_DeleteArray
-//   [ ] 0x1adb28  CKElectricArcFxData_DeleteArray
+//   [x] 0x1ad9d8  CKLightningObjectFxData_DeleteArray  (DOTD_DECLARE_FACTORIES(CKLightningObjectFxData))
+//   [x] 0x1ada80  CKQuadFxData_DeleteArray  (DOTD_DECLARE_FACTORIES(CKQuadFxData))
+//   [x] 0x1adb28  CKElectricArcFxData_DeleteArray  (DOTD_DECLARE_FACTORIES(CKElectricArcFxData))
 //   [x] 0x1adbd0  CKFlashFxData_DeleteArray
 

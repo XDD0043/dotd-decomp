@@ -10,9 +10,14 @@
 class CKS08Damage : public CKDamage {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x25c)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9c67c8
+        return key == 0x970c || key == 0xc || key == 0x96cc;
+    }
     DOTD_DECLARE_FACTORIES(CKS08Damage)
 
     CKS08Damage();  // 0x004ebc70 CKS08Damage_Construct
+    CKS08Damage(const CKS08Damage& other);  // 0x004ebb60 CKS08Damage_Construct_3: the derived fields only
+    CKS08Damage& operator=(const CKS08Damage& other) = default;  // 0x004eba18 CKS08Damage_Assign
     ~CKS08Damage() override {}
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x004ebdf8 CKS08Damage_Load
 

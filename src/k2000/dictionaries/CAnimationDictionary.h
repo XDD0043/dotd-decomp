@@ -11,6 +11,7 @@
 class CAnimationDictionary : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryDictionary, 0x1)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x49 || key == 0xc; }  // vt+0x08 0x991820
     DOTD_DECLARE_FACTORIES(CAnimationDictionary)
 
     // 0x0007a338 CAnimationDictionary_Create (the constructor inlined; also CAnimationDictionary_Construct)
@@ -20,6 +21,9 @@ public:
         m_ui32NbAnimations = 1;
     }
     ~CAnimationDictionary() override {}
+    void Destroy() override;  // vt+0x10 0x0007a198 CAnimationDictionary_Destroy: the index rows freed
+    // vt+0x24 0x0007a0a8 CAnimationDictionary_RecursiveRegistration: type 0: this registered with the saving manager.
+    void RecursiveRegistration(int32_t type) override;
 
     // vt+0x2c 0x0007a438 CAnimationDictionary_Load. No type check.
     int32_t Load(IKFile* file, int32_t type) override;

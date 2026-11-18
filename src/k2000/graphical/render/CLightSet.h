@@ -7,6 +7,7 @@
 #include "k2000/core/IKSerializable.h"
 #include "k2000/core/Layout.h"
 #include "k2000/math/CBBox.h"
+#include "k2000/memory/Mem.h"
 #include "k2000/util/TVector.h"
 
 class CLightComponent;
@@ -17,10 +18,21 @@ public:
     DOTD_DECLARE_FACTORIES(CLightSet)
 
     CLightSet();                   // 0x0009b770 CLightSet_Create (inlined)
-    ~CLightSet() override {}       // STUB(C1.6): 0x99cbd0 / 0x99ca68 (frees the light lists)
+    // 0x0099cbd0 / 0x0099ca68 CLightSet_Destructor / _DeletingDestructor: the light lists, then the ratio lists: each
+    // inner list's block freed and its length and block cleared, then the outer block freed (its fields are left).
+    ~CLightSet() override {
+        FreeAccumulationLists(m_avpAccumulatedLight);
+        FreeAccumulationLists(m_afAccumulatedLightRatio);
+    }
     // vt+0x08 0x99ca48
     int32_t IsKindOfClass(uint32_t key) override { return key == 0x94d || key == 0xc; }
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x0009cd28 CLightSet_Load
+    // vt+0x30 0x0009c8d8 CLightSet_PostLoad: a set of box type 2 (m_baProperties & 3) gets its local box recentred on the
+    // origin (the same half extents, BBox_SetFromCenterExtents with the null vector 0x00c50d64); any other set follows
+    // nothing (+0x74 = -1, the followed leaf cleared). 1.
+    int32_t PostLoad(int32_t type) override;
+    // vt+0x24 0x0009b628 CLightSet_RecursiveRegistration (C2.8 save-menu): type 0 only, itself and its five components.
+    void RecursiveRegistration(int32_t type) override;
     // 0x0009b7e0 CLightSet_InitLightLists_maybe (XXL2 CLightSet::InitializeData): sizes both lists to 10
     // lists of 10 entries each, sets both occlusion levels to -1.
     void InitializeData();
@@ -35,6 +47,19 @@ public:
     // of occlusion level `level` (their colours and directions weighted by their overlap ratios), over those of the lower levels
     // for the part that is not covered.
     void AccumulateLights(uint32_t level, uint32_t mode);
+
+    // The destructor's inlined TVector<TVector<T>> destruction.
+    template <class Inner, uint32_t Grow>
+    static void FreeAccumulationLists(TVector<Inner, Grow>& lists) {
+        if (lists.m_pBlock == nullptr) return;
+        for (uint32_t i = 0; i < lists.m_ui32NbUsedElt; ++i) {
+            Inner& list = lists.m_pBlock[i];
+            if (list.m_pBlock != nullptr) Mem_FreeAligned16(list.m_pBlock);
+            list.m_ui32NbUsedElt = 0;
+            list.m_pBlock = nullptr;
+        }
+        Mem_FreeAligned16(lists.m_pBlock);
+    }
 
     uint32_t m_baProperties;                                     // +0x04 (XXL2 CBitArray)
     TVector<TVector<float, 10>, 10> m_afAccumulatedLightRatio;   // +0x08 the constructor sets capacity 10

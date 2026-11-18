@@ -25,6 +25,9 @@ public:
         m_pGroupLife = nullptr;
     }
 
+    // vt+0x08 0x00991038 IKBaseGroup_IsKindOf: IKBaseGroup (4), IKLife (0x2fe), IKUpdatable (0x3fe), IKSerializable (0xc).
+    int32_t IsKindOfClass(uint32_t key) override { return key == 4 || key == 0x2fe || key == 0x3fe || key == 0xc; }
+
     // The IKUpdatable pure slots: empty in the groups' vtables (CKGroupRoot 0xb13990).
     void Start() override {}           // vt+0x50 0x990f88
     void Stop() override {}            // vt+0x68 0x990f98
@@ -40,6 +43,22 @@ public:
     // vt+0xa8 / +0xac 0x990c98 / 0x990ca0 (empty): IKLife::OnLock / OnUnlock (the hooks' own).
     // vt+0xb0 (IKGroup<T>: 0x992d50 IKGroup_GetMemberListHead, this + 0x28). XXL2 slot 41 (vt 0x148).
     virtual IKSerializable** GetMemberListHead() = 0;
+    // vt+0x24 0x00012a68 IKGroup_LevelReset (XXL2 IKBaseGroup::RecursiveRegistration; the core TU CKCoreError.cpp): IKLife's
+    // (KStub_Return1_19c90: nothing), then every child group's (+0x18, through +0x14) and every member's (vt+0xb0's head,
+    // through the hooks' +0x14), the type passed on.
+    void RecursiveRegistration(int32_t type) override {
+        for (IKBaseGroup* child = m_lChilds; child != nullptr; child = child->m_pNextGroup) child->RecursiveRegistration(type);
+        for (IKHook* member = static_cast<IKHook*>(*GetMemberListHead()); member != nullptr; member = member->m_pNextHook) {
+            member->RecursiveRegistration(type);  // vt+0x24
+        }
+    }
+    // The Destroy (vt+0x10) of the groups (e.g. 0x00022c70 CKGroupRoot_Destroy, XXL2 IKBaseGroup::Destroy): no child
+    // groups, no members (vt+0xb0's head). Not the base's slot: each group's own Destroy calls it.
+    void DestroyGroupLists() {
+        m_lChilds = nullptr;
+        *GetMemberListHead() = nullptr;
+    }
+
 
     // 0x00012ce8 IKGroup_Load (XXL2 IKBaseGroup::GroupBasicLoad: the same reads in the same order).
     int32_t GroupBasicLoad(IKFile* file, int32_t type) {

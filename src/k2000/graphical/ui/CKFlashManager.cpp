@@ -5,11 +5,11 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x6c6e8  CKFlashManager_Delete
-//   [ ] 0x6c738  CKFlashManager_RecursiveRegistration
+//   [x] 0x6c738  CKFlashManager_RecursiveRegistration
 //   [x] 0x6c798  CKFlashManager_MessageProc
 //   [x] 0x6c7a0  CKFlashManager_GetInputMapping_maybe
 //   [ ] 0x6c7a8  CKFlashManager_FindUIByMaestro_maybe  [dead]
-//   [ ] 0x6c7f0  RegisterCKFlashManagerType
+//   [x] 0x6c7f0  RegisterCKFlashManagerType  (RegisterAllClasses: ClassTable.inc)
 //   [ ] 0x6c868  _GLOBAL__I_6c868
 //   [x] 0x6c878  CKFlashManager_BindPlayerInputMapping_maybe
 //   [x] 0x6c990  UI2D_DestroyRt2dFreeLists_maybe
@@ -34,7 +34,7 @@
 //   [x] 0x6d2b8  CKFlashManager_CreateArray
 //   [x] 0x6d370  CKFlashManager_DeletingDestructor
 //   [x] 0x6d3d0  CKFlashManager_Destructor
-//   [ ] 0x6d418  CKFlashManager_DestructBody
+//   [x] 0x6d418  CKFlashManager_DestructBody  (~CKFlashManager)
 //
 //   [x] 0x998ca8  CKFlashManager_GetClassType  [inline]
 //   [x] 0x998cb0  CKFlashManager_GetClassID  [inline]
@@ -47,6 +47,7 @@
 #include "k2000/graphical/ui/CKFlashUI.h"
 #include "k2000/input/CKInputDico.h"
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/CKSavingManager.h"
 #include "k2000/managers/CKInput.h"
 #include "k2000/memory/Mem.h"
 #include "k2000/misc/Engine.h"
@@ -187,4 +188,9 @@ Rt2dMessage* CKFlashManager::HandleMaestroEvent(Rt2dMaestro* maestro, Rt2dMessag
     // its +0x24). DEV: skipped here.
     if (owner != nullptr) owner->TranslateMessageIn(message->intParam1);
     return Rt2dMessageHandlerDefaultCallBack(maestro, message);
+}
+
+// 0x0006c738 CKFlashManager_RecursiveRegistration (returns 1)
+void CKFlashManager::RecursiveRegistration(int32_t type) {
+    if (type == 0) g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
 }

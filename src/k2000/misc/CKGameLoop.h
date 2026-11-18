@@ -68,6 +68,10 @@ public:
         return key == 0x4c || key == 0x3fe || key == 0xc;
     }
     void Destroy() override {}               // vt+0x10 0x21398 (empty)
+    // vt+0x24 0x00020ce0 CKGameLoop_vf24 (XXL2 RecursiveRegistration; C2.8 save-menu): type 0 / 1 the loc manager and
+    // the subsystems (+0x2c, +0x34 / +0x4c, +0x3c, +0x40); the save types 4..7 the service manager (+0x2c), the game
+    // manager (+0x4c) and the input (+0x3c).
+    void RecursiveRegistration(int32_t type) override;
     void SetDefaultState(int32_t mode) override; // vt+0x38 0x1f658 CKGameLoop_vf38
     void Start() override;                    // vt+0x50 0x1ffe0
     void Restart() override;                  // vt+0x54 0x1fe20 CKGameLoop_ReinitRuntime
@@ -85,9 +89,12 @@ public:
     // vt+0x74 0x992c98 CKGameLoop_IsVideoMode_maybe (inline): 1 in mode 8 (the paused in-game mode), else 0. A cutscene video waits for
     // it to be 0 before it inhibits the loop (PS3_CKVideo's state 1).
     int32_t Vf74() override { return m_mode == kModeInGame ? 1 : 0; }
+    // 0x0001e340 CKGameLoop_IsActiveModeWithGmVfC0_maybe: 0 in modes 0, 1 and 10; in modes 2..9 the game manager's
+    // vt+0xc0; 1 otherwise.
+    uint8_t IsActiveModeWithGmVfC0() const;
     // vt+0x94 0x1eae8 InitializeCKGameLoopSubsystems
     virtual int32_t InitializeSubsystems(void* startupContext);
-    // vt+0x98 0x20780 CKGameLoop_ShutdownSubsystems_maybe  STUB(C1.6)
+    // vt+0x98 0x20780 CKGameLoop_ShutdownSubsystems_maybe (Cleanup)
     virtual void ShutdownSubsystems();
 
     // 0x00021848 GameLoop: one frame. Returns 0 once the mode is 10 (quit).
@@ -100,7 +107,15 @@ public:
     void RequestExit();                                  // 0x0001e828 CKGameLoop_RequestExit_maybe
     void SetAppActive(uint8_t active);                   // 0x00020ff8 CKGameLoop_SetAppActive_maybe
     uint8_t IsExitRequested() const { return m_exitRequested; }  // 0x0001e458 _maybe
+    // 0x0001e2e0 CKGameLoop_IsRequestedLevelWithGmFlag294_maybe: the loading screen's condition (a level requested
+    // with the game manager's +0x294 flag after the boot loc, no job message): the streams' and the sounds' volume is 0.
+    uint8_t IsRequestedLevelWithGmFlag294() const;
     uint8_t IsShutdownReady() const { return m_shutdownReady; }  // 0x0001e468 _maybe
+    // 0x0001e150 CKGameLoop_HasRequestedLevel_maybe: the game manager has a requested level (+0x280 != -1).
+    bool HasRequestedLevel() const;
+    // 0x0001e188 CKGameLoop_IncPauseCount_maybe / 0x0001e198 CKGameLoop_DecPauseCount_maybe: the inhibit count (+0x20).
+    void IncPauseCount() { ++m_inhibitCount; }
+    void DecPauseCount() { --m_inhibitCount; }
     uint8_t HasEnteredQuit() const { return m_quitEntered; }     // 0x0001e478 _maybe
     void ShutdownAndExit();                              // 0x0001e650 CKGameLoop_ShutdownAndExit_maybe
 
@@ -112,7 +127,7 @@ public:
     uint8_t Mode4_StartLevel(IKTime* frameClock, int32_t phase, uint8_t otherMode);
     uint8_t Mode5_LevelStart(IKTime* frameClock, int32_t phase, uint8_t otherMode);
     uint8_t Mode6_LevelLoad(IKTime* frameClock, int32_t phase, uint8_t otherMode);   // a sector change
-    uint8_t Mode7_Loading(IKTime* frameClock, int32_t phase, uint8_t otherMode);     // STUB(C1.6)
+    uint8_t Mode7_Loading(IKTime* frameClock, int32_t phase, uint8_t otherMode);     // the streams settling
     uint8_t Mode8_InGame(IKTime* frameClock, int32_t phase, uint8_t otherMode);
     uint8_t Mode9_LevelExit(IKTime* frameClock, int32_t phase, uint8_t otherMode);
     uint8_t Mode10_Quit(IKTime* frameClock, int32_t phase, uint8_t otherMode);
@@ -163,6 +178,12 @@ public:
     SaveDataRequest m_saveDataRequest;      // +0x358
 };
 DOTD_ASSERT_SIZE(CKGameLoop, 0x3c0);
+
+// 0x0001e178 CKGameLoop_GetGlobalUpdateInhibitByte_maybe: the byte at 0x00ceac59 (g_systemMenuOpen: the XMB is open).
+uint8_t CKGameLoop_GetGlobalUpdateInhibitByte();
+// 0x0001ea38 PlayLevelLoadingVideo_maybe: unless a loading video plays, the game manager's loading video (vt+0xd8) of
+// the requested level (or, with `bootVideo`, of -1: the boot video) becomes the video manager's and plays.
+void PlayLevelLoadingVideo(int32_t bootVideo);
 DOTD_ASSERT_OFFSET(CKGameLoop, m_stopReason, 0x0c);
 DOTD_ASSERT_OFFSET(CKGameLoop, m_modeTable, 0x10);
 DOTD_ASSERT_OFFSET(CKGameLoop, m_mode, 0x14);

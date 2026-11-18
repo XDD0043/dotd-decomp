@@ -10,7 +10,7 @@
 //   [ ] 0x58d68  FUN_00058d68  [dead]
 //   [ ] 0x58de8  KStub_Nop_58de8  [dead]
 //   [ ] 0x58df0  KStub_Nop_58df0  [dead]
-//   [ ] 0x58df8  PpuThread_GetPriorityLevel_maybe
-//   [ ] 0x58e80  KThread_SetCurrentThreadTls_maybe
-//   [ ] 0x58e90  KThread_GetCurrentThreadTls_maybe
+//   [ ] 0x58df8  PpuThread_GetPriorityLevel_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x58e80  KThread_SetCurrentThreadTls_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
+//   [ ] 0x58e90  KThread_GetCurrentThreadTls_maybe  [platform]  (the PS3 thread layer (sys_ppu_thread objects, lwarx/stwcx. reference counts, r13 TLS, KBarrier / KThreadSet): host threads by design, platform/cell/sys_thread and keCThreadPool::HostSync (KRequest.cpp))
 //   [ ] 0x58ea0  KStub_Nop_58ea0  [dead]

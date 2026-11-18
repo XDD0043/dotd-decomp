@@ -10,16 +10,16 @@
 //   [x] 0x32de0  CKSector_QueueEnterEvent_maybe
 //   [x] 0x32e18  CKSector_PostLoad
 //   [ ] 0x32e90  CKSector_Save
-//   [ ] 0x32f00  CKSector_RecursiveRegistration
+//   [x] 0x32f00  CKSector_RecursiveRegistration  (the starters' KStub_Return1_2361b0: registers nothing; the default slot)
 //   [x] 0x32f60  CKSector_DeleteArray
 //   [x] 0x33010  CKSector_CreateArray
 //   [x] 0x33128  CKSector_NotifySectorLoaded_maybe
 //   [x] 0x331c0  CKSector_UpdateMeshKlusters
 //   [x] 0x33238  CKSector_NotifySectorUnload_maybe
-//   [ ] 0x332d0  CKSector_Destroy
+//   [x] 0x332d0  CKSector_Destroy
 //   [ ] 0x33328  CKSector_InsertMeshKlusterSorted_maybe  [dead]
-//   [ ] 0x33398  CKSector_MessageProc
-//   [ ] 0x33448  CKSector_GetInfo
+//   [x] 0x33398  CKSector_MessageProc
+//   [x] 0x33448  CKSector_GetInfo
 //   [x] 0x334b0  CKSector_FindSectorAtPoint_maybe
 //   [x] 0x335f8  CKSector_Create
 //   [x] 0x336a0  CKSector_Load
@@ -30,13 +30,16 @@
 //   [ ] 0x994138  CKSector_GetTriggerProp5  [inline]
 //   [ ] 0x994148  CKSector_IsKindOfClass  [inline]
 //   [ ] 0x994168  CKSector_DeletingDestructor  [inline]
-//   [ ] 0x9941d0  CKSector_Destructor  [inline]
+//   [x] 0x9941d0  CKSector_Destructor  [inline]  (CKSector.h: the implicit body destroys m_request (SectorRequest_Destructor 0x34d80), nothing freed)
 #include "k2000/logic/CKSector.h"
+#include "k2000/core/IKInfo.h"
 
 #include "k2000/core/Stub.h"
 #include "k2000/dictionaries/CKSoundDictionary.h"
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/CKLevel.h"
 #include "k2000/logic/CKSas.h"
+#include "k2000/misc/Engine.h"
 #include "k2000/logic/ai/CKSectorDetector.h"
 #include "k2000/logic/render/CKMeshKluster.h"
 #include "k2000/scenegraph/CSGSectorRoot.h"
@@ -133,4 +136,31 @@ int32_t CKSector::FindSectorAtPoint(const float* point) {
         }
     }
     return -2;
+}
+
+// 0x00033448 CKSector_GetInfo, with 0x00994138 CKSector_GetTriggerProp5: 5 the sector active (+0x06 bit 0).
+int32_t CKSector::GetInfo(IKInfo* info, int32_t request) {
+    if (request != kGetInfoValueAccessor || info->m_ui32Id != 5) return 1;
+    return AnswerInfo(info, [](IKSerializable* o, uint32_t) { return static_cast<uint32_t>(static_cast<CKSector*>(o)->m_ba16Properties & 1u); }, 0);
+}
+
+// 0x00033398 CKSector_MessageProc
+int32_t CKSector::MessageProc(uint16_t message, void* /*data*/) {
+    if (message == 0x1200) {
+        g_pEngine->m_level->SwitchToSector(m_ui16NumSector, 0);  // 0x00030908
+        return 0;
+    }
+    if (message != 0x1201) return 1;
+    g_pEngine->m_level->EnterSector(m_ui16NumSector);  // 0x00030a48
+    return 0;
+}
+
+// 0x000332d0 CKSector_Destroy: the kluster lists dropped (not destroyed) and the CKSas array freed.
+void CKSector::Destroy() {
+    m_lMeshKlusterList = nullptr;
+    m_lBeaconKlusterList = nullptr;
+    if (m_apSasOut != nullptr) {
+        delete[] m_apSasOut;  // TocBridge_OperatorDeleteArray
+        m_apSasOut = nullptr;
+    }
 }

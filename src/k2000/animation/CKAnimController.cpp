@@ -5,8 +5,8 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x7ced0  CKAnimController_PostLoadBase_maybe
-//   [ ] 0x7cff8  KBase98D_LevelReset
-//   [ ] 0x7d050  CKAnimController_ClearReferencesBase_maybe
+//   [x] 0x7cff8  KBase98D_LevelReset  (graphical/KBase98D.cpp KBase98D::RecursiveRegistration)
+//   [x] 0x7d050  CKAnimController_ClearReferencesBase_maybe
 //   [x] 0x7d0d8  CKAnimController_LoadBase_maybe
 #include "k2000/graphical/KBase98D.h"
 
@@ -46,4 +46,13 @@ int32_t KBase98D::PostLoadBase() {
     RtAnimInterpolatorSetAnimLoopCallBack(m_unk0c, nullptr, nullptr);
     m_unk08 &= 0xfffffffdu;
     return 1;
+}
+
+// 0x0007d050 CKAnimController_ClearReferencesBase_maybe
+void KBase98D::ClearReferencesBase() {
+    if (m_unk0c != nullptr && (m_unk08 & 1u) == 0) {
+        RtAnimInterpolatorDestroy(m_unk0c);
+        m_unk0c = nullptr;
+    }
+    m_pParentController = nullptr;
 }

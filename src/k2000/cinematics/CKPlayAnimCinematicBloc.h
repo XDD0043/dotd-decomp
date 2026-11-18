@@ -21,6 +21,9 @@ public:
     ~CKPlayAnimCinematicBloc() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00185ad8 CKPlayAnimCinematicBloc_Load
+    // vt+0x24 0x00185430 CKPlayAnimCinematicBloc_RecursiveRegistration: registered with the saving manager (vt+0x24) unless the type is 4..7, then
+    // IKCinematicBloc_LevelReset 0x18e8d8 (which registers it once more).
+    void RecursiveRegistration(int32_t type) override;
 
     void Start() override;                 // vt+0x5c 0x00185710 CKPlayAnimCinematicBloc_Start
     void Complete() override;              // vt+0x64 0x00186240 CKPlayAnimCinematicBloc_Complete

@@ -5,14 +5,14 @@
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
 //   [x] 0x1b8778  CKFilterFxData_GetNodeClassKey
-//   [ ] 0x1b8780  CKFilterFxData_RecursiveRegistration
-//   [ ] 0x1b87a8  CKFilterFxData_GetInfo
-//   [ ] 0x1b87b0  CKFilterFxData_Destroy
+//   [x] 0x1b8780  CKFilterFxData_RecursiveRegistration  (IKFxData's KStub_Return1_1d8340: the default slot)
+//   [x] 0x1b87a8  CKFilterFxData_GetInfo  (returns 1: the default slot)
+//   [x] 0x1b87b0  CKFilterFxData_Destroy
 //   [x] 0x1b87e8  CKFilterFxData_Load
 //   [ ] 0x1b89e8  CKFilterFxData_Save
-//   [ ] 0x1b8bd8  CKFilterFxData_MessageProc
-//   [ ] 0x1b92f8  CKFilterNode2dFx_Delete
-//   [ ] 0x1b9348  CKFilterNode2dFx_Destroy
+//   [x] 0x1b8bd8  CKFilterFxData_MessageProc
+//   [x] 0x1b92f8  CKFilterNode2dFx_Delete  (CKFilterNode2dFx's factory Delete: DOTD_DECLARE_FACTORIES)
+//   [x] 0x1b9348  CKFilterNode2dFx_Destroy  (empty: the default slot)
 //   [ ] 0x1b9350  KStub_Nop_1b9350  [dead]
 //
 //   [ ] 0x9abd68  CKFilterFxData_IsKindOfClass  [inline]
@@ -23,6 +23,11 @@
 #include "k2000/logic/fx/CKFilterFxData.h"
 
 #include "k2000/io/IKFile.h"
+#include "Renderware/rwcore/RwTexture.h"
+#include "k2000/fx/IKFx.h"
+#include "k2000/logic/fx/CKFilterNode2dFx.h"
+#include "k2000/misc/Engine.h"
+#include "k2000/services/CKSrvFx.h"
 
 // 0x001b87e8 CKFilterFxData_Load
 int32_t CKFilterFxData::Load(IKFile* file, int32_t type) {
@@ -40,4 +45,37 @@ int32_t CKFilterFxData::Load(IKFile* file, int32_t type) {
     }
     m_unk20 = 0;  // every type
     return 1;
+}
+
+// 0x001b87b0 CKFilterFxData_Destroy
+void CKFilterFxData::Destroy() {
+    if (m_pTexture != nullptr) RwTextureDestroy(static_cast<RwTexture*>(m_pTexture));  // TocBridge_RwTextureDestroy
+}
+
+// 0x001b8bd8 CKFilterFxData_MessageProc
+int32_t CKFilterFxData::MessageProc(uint16_t message, void* data) {
+    if (message == 0x1b01) {
+        if (m_unk20 == nullptr) return 0;
+        m_unk20->StopAndRelease(this);  // vt+0x58
+        m_unk20 = nullptr;
+        return 0;
+    }
+    if (message == 0x1b1e) {
+        if (m_unk20 == nullptr) return 0;
+        static_cast<CKFilterNode2dFx*>(m_unk20)->BeginFadeOut(*static_cast<const float*>(data), this);  // 0x001b9a18
+        m_unk20->ReleaseReservation(this);  // vt+0x54
+        return 0;
+    }
+    if (message != 0x1b00) return 1;
+    CKSrvFx* fxService = static_cast<CKSrvFx*>(g_pEngine->m_srvFx);
+    if (((m_baFlags >> 1) & 1u) == 0) {
+        if (m_unk20 != nullptr) {
+            m_unk20->StopAndRelease(this);  // vt+0x58
+            m_unk20 = nullptr;
+        }
+        m_unk20 = fxService->AcquireFx(this, this);
+        return 0;
+    }
+    fxService->StartEffect(this, this);  // every path answers 0
+    return 0;
 }

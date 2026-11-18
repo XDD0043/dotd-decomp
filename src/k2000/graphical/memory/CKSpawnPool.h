@@ -9,10 +9,15 @@
 
 struct RwFrame;
 struct RpHAnimHierarchy;
+struct RwCamera;
+class CAnimatedNode;
+class IKTime;
+class RenderQueue;
 
 class CKSpawnPool : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryGraphical, 0x2f)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0xbcd || key == 0xc; }  // vt+0x08 0x9a0f08
     DOTD_DECLARE_FACTORIES(CKSpawnPool)
 
     // XXL2 CKSpawnPool::SAnimHierarchy (PS3 0x24 bytes).
@@ -22,8 +27,8 @@ public:
         RwFrame* m_pRootFrame;                  // +0x08 IKFile_ReadBoneFrameList
         uint16_t m_unk0c;                       // +0x0c Load sets 0
         uint16_t m_pad0e;
-        uint32_t m_aUnk10[4];                   // +0x10 not read
-        uint32_t m_unk20;                       // +0x20
+        float m_aUnk10[4];                      // +0x10 not read; the local bounding sphere UpdateAnimSlot caches
+        float m_unk20;                          // +0x20 the animation time (read; AcquireAnimSlot draws a start)
     };
 
     // 0x000b6e78 CKSpawnPool_Create (the constructor inlined)
@@ -34,6 +39,7 @@ public:
         m_ui32RenderParamsCapacity = 2;
         m_ui32NbRenderParams = 0;
         m_apRenderParams = nullptr;
+        m_unk2c = 0;
     }
     ~CKSpawnPool() override {}
 
@@ -46,7 +52,27 @@ public:
     // (bit 1 of its +0x04), starts all its shakes.
     void StartSlotShakeCache(int32_t slot);
     // vt+0x30 0x000b7480 CKSpawnPool_PostLoad: every hierarchy's controller gets the template node's
-    // animation. STUB(C2.2) (default).
+    // animation.
+    int32_t PostLoad(int32_t type) override;
+    // vt+0x24 0x000b7160 CKSpawnPool_RecursiveRegistration: (type 0) itself registered; every params and render params
+    // block's with the type; (type 0) the template node's and the controllers' of the hierarchies 1.. (the first one is
+    // skipped).
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x10 0x000b7a60 CKSpawnPool_Destroy: each hierarchy's frame (RpHAnimHierarchy parentFrame) destroyed
+    // (RwFrameDestroy_Field14_Thunk_maybe 0xc8d60), then the hierarchy block freed.
+    void Destroy() override;
+
+    // ---- C2.8 port-rest R02 (CSpawnAnimatedNode_UpdateSharedAnim_maybe 0xd4a60, CZoneNode.cpp, calls both).
+    // 0x000b6d00 CKSpawnPool_AcquireAnimSlot_maybe: the next hierarchy slot (+0x2c, back to 0 past the count) is handed
+    // out; unless flag bit 0 (+0x08), its animation starts at a random time: (draw & 0xffff) / 65535 x the controller's
+    // duration (Rand_Int before Anim_GetDuration), stored in the slot and the controller.
+    uint32_t AcquireAnimSlot();
+    // 0x000b6f48 CKSpawnPool_UpdateAnimSlot_maybe: `node` takes slot `slot`'s hierarchy and controller; a slot already
+    // posed this render frame only puts its cached sphere into world space (TransformNodeBoundingSphereToWorld); else
+    // (the clock running: its time advanced by the frame delta into the controller) the node is posed and culled
+    // (UpdateAnimatedNodePoseAndCull) and the slot caches the sphere and the frame.
+    void UpdateAnimSlot(CAnimatedNode* node, RenderQueue** stages, IKTime* clock, uint32_t slot, float* sphere,
+                        float* worldSphere, RwCamera* camera);
 
     IKSerializable* m_pNode;                  // +0x04 the template node (a CNode)
     uint32_t m_unk08;                         // +0x08
@@ -58,7 +84,8 @@ public:
     uint32_t m_ui32NbRenderParams;            // +0x20
     SAnimHierarchy* m_asRpHAnimHierarchy;     // +0x24 null when there are none
     uint32_t m_ui32NumHierarchy;              // +0x28
-    void* m_unk2c;                            // +0x2c not set by the constructor or Load
+    uint32_t m_unk2c;                         // +0x2c the next hierarchy slot (AcquireAnimSlot); not set by the
+                                              //       constructor or Load (zeroed here: the fresh heap)
 };
 DOTD_ASSERT_SIZE(CKSpawnPool::SAnimHierarchy, 0x24);
 static_assert(CKSpawnPool::kClassKey == 0xbcd, "key");

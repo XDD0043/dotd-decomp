@@ -16,32 +16,32 @@
 //   [ ] 0x64bb8  CScene2d_Enable  [dead]
 //   [ ] 0x64bc8  CScene2d_Disable  [dead]
 //   [ ] 0x64bd8  CScene2d_IsEnabled  [dead]
-//   [ ] 0x64be0  CContainer2d_SwapChildWithPrev
-//   [ ] 0x64dd0  CContainer2d_MoveChildToHead_maybe
-//   [ ] 0x64e70  CContainer2d_SwapChildWithNext
-//   [ ] 0x65060  CContainer2d_MoveChildToTail_maybe
+//   [x] 0x64be0  CContainer2d_SwapChildWithPrev  (CScene2d::SwapChildWithPrev)
+//   [x] 0x64dd0  CContainer2d_MoveChildToHead_maybe  (CScene2d::MoveChildToHead)
+//   [x] 0x64e70  CContainer2d_SwapChildWithNext  (CScene2d::SwapChildWithNext)
+//   [x] 0x65060  CContainer2d_MoveChildToTail_maybe  (CScene2d::MoveChildToTail)
 //   [x] 0x650d8  CContainer2d_RemoveChild_maybe
 //   [x] 0x652b8  CScene2d_AddChild
 //   [x] 0x65468  CScene2d_AddChild_Thunk
-//   [ ] 0x65490  RegisterCScene2dType
+//   [x] 0x65490  RegisterCScene2dType  (RegisterAllClasses: ClassTable.inc)
 //   [ ] 0x65508  _GLOBAL__I_65508
-//   [ ] 0x65518  CScene2d_Destroy
+//   [x] 0x65518  CScene2d_Destroy  (CScene2d::Destroy)
 //   [x] 0x65560  CScene2d_DeleteArray
 //   [x] 0x65608  DrawUISceneWidgetList
-//   [ ] 0x656c8  CContainer2d_ShowChildren_maybe
+//   [x] 0x656c8  CContainer2d_ShowChildren_maybe  (CScene2d::ShowChildren)
 //   [ ] 0x65750  CContainer2d_InsertChildAt_maybe  [dead]
 //   [ ] 0x659b8  CContainer2d_GetChildOfTypeAt_maybe  [dead]
-//   [ ] 0x65a28  CContainer2d_HideChildren_maybe
+//   [x] 0x65a28  CContainer2d_HideChildren_maybe  (CScene2d::HideChildren)
 //   [ ] 0x65ab0  CContainer2d_DestroyChildrenWithoutFlag5Bit0_maybe  [dead]
 //   [ ] 0x65bb8  CContainer2d_CountChildrenOfType_maybe  [dead]
 //   [ ] 0x65c00  IKNode2d_IsChildOf_maybe  [dead]
-//   [ ] 0x65c28  CScene2d_PostLoad
-//   [ ] 0x65c30  CContainer2d_RemoveChildAt
+//   [x] 0x65c28  CScene2d_PostLoad  (PostLoad: returns 1, the default slot)
+//   [x] 0x65c30  CContainer2d_RemoveChildAt  (CScene2d::RemoveChildAt)
 //   [x] 0x65c98  CScene2d_Create
 //   [x] 0x65d00  CScene2d_CreateArray
-//   [ ] 0x65dc8  CScene2d_Destructor
+//   [x] 0x65dc8  CScene2d_Destructor
 //   [ ] 0x65de8  CScene2d_Destructor_2  [dead]
-//   [ ] 0x65e08  CScene2d_DeletingDestructor
+//   [x] 0x65e08  CScene2d_DeletingDestructor
 //
 //   [x] 0x997cf8  CScene2d_IsKindOfClass  [inline]
 //   [x] 0x997d20  CScene2d_GetClassType  [inline]
@@ -84,7 +84,7 @@ int32_t CScene2d::Load(IKFile* file, int32_t type) {
 // 0x00065608 DrawUISceneWidgetList. The frame context the renderer passes down is the game loop's frame
 // clock (CTimeManager's IKTime, what RenderGameFrame receives). BUG(original): a disabled scene returns
 // without PopRenderStates, so the renderer's state stack grows by one entry per frame.
-void CScene2d::Render() {
+void CScene2d::Render(IKTime* /*frameClock*/) {
     PushRenderStates(g_pRenderStateRenderer);
     SetUIOverlayRenderStates();
     if (m_bEnable == 0) return;
@@ -156,3 +156,96 @@ uint8_t CScene2d::AddChild(IKNode2d* node) {
     }
     return 0;
 }
+
+// 0x00065518 CScene2d_Destroy
+void CScene2d::Destroy() {
+    IRendableObject::Destroy();
+    m_bEnable = 0;
+    m_pLastNode = nullptr;
+    m_pRootNode = nullptr;
+    m_ui32NodeCount = 0;
+}
+
+// 0x00064be0 CContainer2d_SwapChildWithPrev: the scene's last / root node moved first, then the links (vt+0x70 SetNext,
+// vt+0x6c SetPrevious) in the original's order.
+uint8_t CScene2d::SwapChildWithPrev(IKNode2d* node) {
+    CScene2d* owner = static_cast<CScene2d*>(node->m_pOwner);
+    if (owner != this) return 0;
+    IKNode2d* previous = node->m_pPrevious;
+    if (previous == nullptr) return 0;
+    IKNode2d* next = node->m_pNext;
+    IKNode2d* before = previous->m_pPrevious;
+    if (owner->m_pLastNode == node) owner->m_pLastNode = previous;
+    if (owner->m_pRootNode == previous) owner->m_pRootNode = node;
+    previous->SetNext(next);
+    if (next != nullptr) next->SetPrevious(previous);
+    previous->SetPrevious(node);
+    node->SetNext(previous);
+    IKNode2d* link = nullptr;
+    if (before != nullptr) {
+        before->SetNext(node);
+        link = before;
+    }
+    node->SetPrevious(link);
+    return 1;
+}
+
+// 0x00064e70 CContainer2d_SwapChildWithNext
+uint8_t CScene2d::SwapChildWithNext(IKNode2d* node) {
+    CScene2d* owner = static_cast<CScene2d*>(node->m_pOwner);
+    if (owner != this) return 0;
+    IKNode2d* next = node->m_pNext;
+    if (next == nullptr) return 0;
+    IKNode2d* previous = node->m_pPrevious;
+    IKNode2d* after = next->m_pNext;
+    if (owner->m_pRootNode == node) owner->m_pRootNode = next;
+    if (owner->m_pLastNode == next) owner->m_pLastNode = node;
+    next->SetPrevious(previous);
+    if (previous != nullptr) previous->SetNext(next);
+    next->SetNext(node);
+    node->SetPrevious(next);
+    IKNode2d* link = nullptr;
+    if (after != nullptr) {
+        after->SetPrevious(node);
+        link = after;
+    }
+    node->SetNext(link);
+    return 1;
+}
+
+// 0x00064dd0 CContainer2d_MoveChildToHead_maybe
+uint8_t CScene2d::MoveChildToHead(IKNode2d* node) {
+    uint8_t result = 1;
+    while (m_pLastNode != node && m_pRootNode != node) {
+        result = SwapChildWithPrev(node);
+        if (result == 0) return 0;
+    }
+    return result;
+}
+
+// 0x00065060 CContainer2d_MoveChildToTail_maybe
+uint8_t CScene2d::MoveChildToTail(IKNode2d* node) {
+    while (m_pLastNode != node && m_pRootNode != node) {
+        if (SwapChildWithNext(node) == 0) return 1;
+    }
+    return 1;
+}
+
+// 0x000656c8 CContainer2d_ShowChildren_maybe
+uint8_t CScene2d::ShowChildren() {
+    for (IKNode2d* node = static_cast<IKNode2d*>(m_pRootNode); node != nullptr; node = node->m_pNext) {
+        if ((node->m_baFlags & 1) == 0) node->Enable();  // vt+0x64
+    }
+    return 1;
+}
+
+// 0x00065a28 CContainer2d_HideChildren_maybe
+uint8_t CScene2d::HideChildren() {
+    for (IKNode2d* node = static_cast<IKNode2d*>(m_pRootNode); node != nullptr; node = node->m_pNext) {
+        if ((node->m_baFlags & 1) == 0) node->Disable();  // vt+0x68
+    }
+    return 1;
+}
+
+// 0x00065c30 CContainer2d_RemoveChildAt (GetChildAt 0x64b30 inlined, then a tail call of RemoveChild)
+IKNode2d* CScene2d::RemoveChildAt(uint32_t index) { return RemoveChild(static_cast<IKNode2d*>(GetChildAt(index))); }

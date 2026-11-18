@@ -12,6 +12,9 @@ struct CGroundContactDatasInOut;
 class CGround : public ICollisionMesh {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x12)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9aad38
+        return key == 0x48c || key == 0x34c || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CGround)
 
     // An edge without height (4 bytes: two vertex indices).
@@ -31,12 +34,23 @@ public:
     // edges after the triangles in the same buffer and two floats. No type check.
     int32_t Load(IKFile* file, int32_t type) override;
 
+    // vt+0x24 0x001a3ee0 CGround_RecursiveRegistration: registered with the saving manager unless the type is 4..7
+    // (CDynamicGround's 0x1a2168 is this one).
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0x1c 0x001a4fb8 CGround_MessageProc: the messages 0x0b00..0x0b0f store the data byte shifted into bit n of
+    // m_ba16EngineFlags, 0x0b10..0x0b1f set (byte != 0) or clear bit n - 0x10 of m_ui16PropertiesFlags (0 returned);
+    // anything else returns 1. vt+0x40 GetInfo 0x1a4fb0 / vt+0x30 PostLoad 0x1a5078: return 1 (IKSerializable's).
+    int32_t MessageProc(uint16_t message, void* data) override;
+
     // vt+0x50 0x001a3f48 CGround_vf50 / vt+0x54 0x001a3f50 CGround_vf54: a static ground has no matrix.
     const CMatrix34* GetWorldMatrix() const override { return nullptr; }
     const CMatrix34* GetInvertedWorldMatrix() const override { return nullptr; }
     // vt+0x58 0x001a4cb8 CGround_RaycastTriangles_maybe (XXL2 FindLineIntersection).
     uint8_t FindLineIntersection(const CLine* line, CLineCollisionDatas* out, uint8_t backFaces) const override;
     void Update(uint8_t /*updateIndex*/) override {}  // vt+0x5c 0x001a3f58 CGround_RefreshTransform_maybe (blr)
+    // vt+0x60 0x001a4000 CGround_vf60 (XXL2 MyDestroy): KStub_Nop_1a6bb8, the buffer (vertices, triangles, edges)
+    // freed, the pointers and counts cleared.
+    void MyDestroy() override;
     // vt+0x64 0x001a4620 CGround_FindFloorAtPoint_maybe (XXL2 GetGroundContactOnFace): the point against the face the
     // contact already holds (its normal too): inside it in x / z, the contact gets the height there (+0.001), the
     // signed distance and the status 0 (under the face), 1 (within m_fDeltaMax above) or 2 (within m_fObjectHeight).

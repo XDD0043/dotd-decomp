@@ -11,12 +11,15 @@
 class CKSas : public IKSerializable {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0x11)
+    int32_t IsKindOfClass(uint32_t key) override { return key == 0x44c || key == 0xc; }  // vt+0x08 0x9940a8
     DOTD_DECLARE_FACTORIES(CKSas)
 
     CKSas() {}  // 0x00032898 CKSas_Create: only the vtable is set
     ~CKSas() override {}
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00032970 CKSas_Load
+    // vt+0x24 0x00032708 CKSas_RecursiveRegistration: type 0 registers the object with the saving manager (no owner).
+    void RecursiveRegistration(int32_t type) override;
 
     // A box as the file stores it: maximum corner first (x, y, z), then minimum corner.
     struct SBox {

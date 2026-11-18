@@ -9,6 +9,7 @@
 #include "Renderware/rwcore/RwMatrix.h"
 
 #include <cmath>
+#include <cstddef>
 #include <cstring>
 #include <vector>
 
@@ -37,9 +38,25 @@ inline float Ftz(float x) {
     const RwUInt32 b = Bits(x);
     return (b & 0x7f800000u) == 0 ? Real(b & 0x80000000u) : x;
 }
-// vmaddfp vD, vA, vC, vB: vA * vC + vB, one rounding.
-inline float Maddfp(float a, float c, float b) { return Ftz(std::fmaf(Ftz(a), Ftz(c), Ftz(b))); }
+// vmaddfp vD, vA, vC, vB: vA * vC + vB, one rounding. (ppc::detail::FusedMulAdd: std::fmaf's bits, the FMA3 instruction
+// when the CPU has it.)
+inline float Maddfp(float a, float c, float b) { return Ftz(ppc::detail::FusedMulAdd(Ftz(a), Ftz(c), Ftz(b))); }
 inline float Addfp(float a, float b) { return Ftz(Ftz(a) + Ftz(b)); }
+
+#if DOTD_PPC_HW_FMA
+// PERF: the same two operations on the four lanes of a row at once (what the PS3's vmaddfp / vaddfp are). Each lane is
+// Maddfp / Addfp above: the inputs' and the result's denormals flushed, one rounding of a * c + b by VFMADD (IEEE
+// fusedMultiplyAdd, as std::fmaf). Only a NaN result's payload can differ from the library's, so RwMatrixMultiply
+// computes a product with a NaN lane again with the scalar code.
+inline __m128 Ftz4(__m128 x) {
+    const __m128i bits = _mm_castps_si128(x);
+    const __m128i tiny = _mm_cmpeq_epi32(_mm_and_si128(bits, _mm_set1_epi32(0x7f800000)), _mm_setzero_si128());
+    // an exponent field of 0: only the sign stays
+    return _mm_castsi128_ps(_mm_andnot_si128(_mm_and_si128(tiny, _mm_set1_epi32(0x7fffffff)), bits));
+}
+inline __m128 Maddfp4(__m128 a, __m128 c, __m128 b) { return Ftz4(_mm_fmadd_ps(Ftz4(a), Ftz4(c), Ftz4(b))); }
+inline __m128 Addfp4(__m128 a, __m128 b) { return Ftz4(_mm_add_ps(Ftz4(a), Ftz4(b))); }
+#endif
 }  // namespace vmx
 
 // ---- the matrix module globals (RWEngineInstance + [0xcf01bc]) --------------------------------
@@ -182,6 +199,39 @@ RwMatrix* RwMatrixUpdate(RwMatrix* m) {
 // and the pos row adds b.pos (vaddfp). All four lanes are stored, so the output's flags/pad words get
 // the w-lane results; the flags are then overwritten with a.flags & b.flags (read after the stores).
 RwMatrix* RwMatrixMultiply(RwMatrix* out, const RwMatrix* a, const RwMatrix* b) {
+#if DOTD_PPC_HW_FMA
+    // PERF: the four lanes of each row in one register (vmx::Maddfp4 / Addfp4: the lanes' operations and their order are
+    // those of the scalar code below, so the bits are the same); a product with a NaN in it is left to the scalar code.
+    if (ppc::detail::g_hardwareFma) {
+        static_assert(sizeof(RwMatrix) == 64 && offsetof(RwMatrix, right) == 0 && offsetof(RwMatrix, flags) == 12 &&
+                          offsetof(RwMatrix, up) == 16 && offsetof(RwMatrix, pad1) == 28 && offsetof(RwMatrix, at) == 32 &&
+                          offsetof(RwMatrix, pad2) == 44 && offsetof(RwMatrix, pos) == 48 && offsetof(RwMatrix, pad3) == 60,
+                      "RwMatrix: four rows of x, y, z and a flags / pad word");
+        const float* af = &a->right.x;
+        const float* bf = &b->right.x;
+        // b's rows with their fourth words as floats (the flags and pads), a's elements splatted.
+        const __m128 b0 = _mm_loadu_ps(bf), b1 = _mm_loadu_ps(bf + 4), b2 = _mm_loadu_ps(bf + 8), b3 = _mm_loadu_ps(bf + 12);
+        __m128 rows[4];
+        for (int i = 0; i < 4; ++i) {
+            __m128 r = vmx::Maddfp4(_mm_set1_ps(af[i * 4 + 0]), b0, _mm_setzero_ps());
+            r = vmx::Maddfp4(b1, _mm_set1_ps(af[i * 4 + 1]), r);
+            r = vmx::Maddfp4(b2, _mm_set1_ps(af[i * 4 + 2]), r);
+            if (i == 3) r = vmx::Addfp4(r, b3);
+            rows[i] = r;
+        }
+        const __m128 nan = _mm_or_ps(_mm_or_ps(_mm_cmpunord_ps(rows[0], rows[0]), _mm_cmpunord_ps(rows[1], rows[1])),
+                                     _mm_or_ps(_mm_cmpunord_ps(rows[2], rows[2]), _mm_cmpunord_ps(rows[3], rows[3])));
+        if (_mm_movemask_ps(nan) == 0) {
+            float* of = &out->right.x;
+            _mm_storeu_ps(of, rows[0]);
+            _mm_storeu_ps(of + 4, rows[1]);
+            _mm_storeu_ps(of + 8, rows[2]);
+            _mm_storeu_ps(of + 12, rows[3]);
+            out->flags = a->flags & b->flags;  // read after the stores, as the scalar code below
+            return out;
+        }
+    }
+#endif
     float A[4][3];
     float B[4][4];
     const RwV3d* arows[4] = {&a->right, &a->up, &a->at, &a->pos};

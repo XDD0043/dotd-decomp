@@ -1,7 +1,10 @@
 // xatanf.cpp - the game's float arc tangent. See xatanf.h.
 #include "crt/xatanf.h"
 
+#include <cstring>
+
 #include "crt/ppc_ops.h"
+#include "crt/xatan2.h"
 
 namespace crt {
 
@@ -60,6 +63,60 @@ float Atanf(float x) {
         x = 1.0f / x;
     }
     return FAtan(x, mode);
+}
+
+namespace {
+// 0x0077ffd8 _FDtest_maybe: the class of a float from its two halves: 2 NaN, 1 infinity, 0 zero, -1 finite (a
+// denormal included).
+int32_t FDtest(float x) {
+    uint32_t bits;
+    std::memcpy(&bits, &x, 4);
+    const uint32_t hi = bits >> 16;
+    const uint32_t lo = bits & 0xffffu;
+    if ((hi & 0x7f80u) == 0x7f80u) {
+        if ((hi & 0x7fu) != 0) return 2;
+        return lo == 0 ? 1 : 2;
+    }
+    if ((hi & 0x7fffu) != 0) return -1;
+    return lo == 0 ? 0 : -1;
+}
+bool FSignBit(float x) {
+    uint32_t bits;
+    std::memcpy(&bits, &x, 4);
+    return (bits >> 31) != 0;
+}
+}  // namespace
+
+// 0x0077e9f0 atan2f (library TOC -0x2e78 = 0, -0x2e7c = 1).
+float Atan2f(float y, float x) {
+    const int32_t xClass = FDtest(x);  // the first _FDtest is of x (the stack copy of f2)
+    const int32_t yClass = FDtest(y);
+    if (xClass <= 0 && yClass <= 0) {
+        uint32_t mode = 0;
+        if (FSignBit(y)) {
+            y = -y;
+            mode = 8;
+        }
+        if (FSignBit(x)) {
+            x = -x;
+            mode ^= 6;
+        }
+        float ratio;
+        if (!(x >= y)) {  // bge: a NaN cannot reach here
+            mode ^= 2;
+            ratio = x / y;
+        } else {
+            ratio = xClass == 0 ? 0.0f : y / x;
+        }
+        return FAtan(ratio, mode);
+    }
+    if (yClass == 2) return y;
+    if (xClass == 2) return x;
+    const float ratio = xClass == yClass ? 1.0f : 0.0f;  // both infinite: 1
+    uint32_t mode = FSignBit(y) ? 8u : 0u;
+    if (FSignBit(x)) mode |= 6;
+    if (yClass == 1) mode ^= 2;
+    return FAtan(ratio, mode);
 }
 
 }  // namespace crt

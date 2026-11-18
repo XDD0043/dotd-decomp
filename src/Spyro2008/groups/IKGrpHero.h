@@ -28,7 +28,36 @@ public:
     }
 
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x002c8fb0 IKGrpHero_Load
+    // vt+0x10 0x002c8d58 IKGrpHero_Destroy: no child groups, no members (vt+0xb0's head), then FreeArrays.
+    void Destroy() override;
+    // 0x002c82a8 IKGrpHero_FreeArrays_maybe: the hero and runtime arrays freed (the pointers kept), the player slots
+    // deleted.
+    void FreeArrays();
     int32_t PostLoad(int32_t type) override;            // vt+0x30 0x002c8598 IKGrpHero_PostLoad (C2.2)
+    // vt+0x24 0x002c8b00 IKGrpHero_LevelReset: IKGroup's (0x12a68), then for the types below 4 or above 7 the group
+    // registered with the saving manager, each hero's three references (+0x44, +0x48, +0x4c; vt+0xf4 heroes) and +0x58
+    // registered (the five trigger starters register nothing).
+    void RecursiveRegistration(int32_t type) override;
+    // vt+0xa8 0x002c81f0 IKGrpHero_EnableMembers / vt+0xac 0x002c8660 DisableMembers (OnLock / OnUnlock): every hero
+    // (vt+0xf4, from the last) locked / unlocked (SetObjectLocked 0x1c250).
+    void OnLock() override;
+    void OnUnlock() override;
+    // vt+0x60 0x002c8af8 CKGrpS08Hero_vf60, vt+0x70 0x002c8af0 CKGrpS08Hero_BasePause_maybe and vt+0x78 0x002c8a88
+    // CKGrpS08Hero_BaseResume_maybe: empty, IKUpdatable's Vf60 / IKBaseGroup's Pause and Resume (CKGrpS08Hero's Pause /
+    // Resume call the latter two).
+    // vt+0x184 0x002ca978 IKGrpHero_vf184: the focused hero's (+0x66) camera target (+0x44) pushed on the camera
+    // service's target stack (blend -1). CKGrpS08Hero, the only concrete hero group, overrides the slot
+    // (UpdateHeroCameraTargets 0x2d52d8), so nothing calls it; the slot is not modelled (non-virtual here).
+    void PushFocusedCameraTarget();
+    // vt+0x40 0x002c8788 IKGrpHero_GetInfo (checklist: IKGrpHero_ResolveTriggerProperty_maybe): the trigger values
+    // 0 the first controlled dragon, 1 the game manager's vt+0x270 of it, 2 the controlled hero's distance to the
+    // nearest companion (a float), 3 the controlled hero count.
+    int32_t GetInfo(IKInfo* info, int32_t request) override;
+    // Its accessors (CKGrpS08Hero.cpp, the original's unit): the value as a raw word.
+    static uint32_t InfoFirstControlledDragon(IKSerializable* self, uint32_t arg);      // 0x002ca928
+    static uint32_t InfoFirstControlledDragonVf270(IKSerializable* self, uint32_t arg); // 0x002ca8b0
+    static uint32_t InfoCompanionDistance(IKSerializable* self, uint32_t arg);          // 0x002ca7a0
+    static uint32_t InfoControlledHeroCount(IKSerializable* self, uint32_t arg);        // 0x002ca2e0
     // vt+0xf4 CKGrpS08Hero 0x2ce318 returns 2 (the heroes of the group); named _maybe.
     virtual uint8_t GetHeroCount() = 0;
     // The tables the heroes' InitRuntimeTables (0x00345408) takes from the group (CKGrpS08Hero returns constants;

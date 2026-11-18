@@ -4,50 +4,51 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x573b0  keCThreadPoolBase_Destructor_maybe_2
-//   [ ] 0x57418  keCThreadPoolBase_Construct_maybe
+//   [x] 0x573b0  keCThreadPoolBase_Destructor_maybe_2  (keCThreadPool's destructor (the base's part: its CondVars and LwMutex are the host sync, freed with it))
+//   [x] 0x57418  keCThreadPoolBase_Construct_maybe  (keCThreadPool's constructor (the base's stores: head, active count, the three flags; LwMutex / CondVars the host sync))
 //   [x] 0x574b0  KRequest_Construct
-//   [ ] 0x57518  KRequest_Destructor_2
-//   [ ] 0x57578  keCThreadPoolBase_Construct_maybe_2
-//   [ ] 0x57610  KRequest_Construct_2
-//   [ ] 0x57678  keCThreadPoolBase_DeletingDestructor_maybe
-//   [ ] 0x576f8  keCThreadPoolBase_Destructor_maybe
+//   [x] 0x57518  KRequest_Destructor_2  (the same as 0x57760 KRequest_Destructor)
+//   [x] 0x57578  keCThreadPoolBase_Construct_maybe_2  (the same stores as 0x57418 (keCThreadPool's constructor))
+//   [x] 0x57610  KRequest_Construct_2  (the same stores as 0x574b0 KRequest_Construct)
+//   [x] 0x57678  keCThreadPoolBase_DeletingDestructor_maybe  (the deleting form of keCThreadPool's destructor)
+//   [x] 0x576f8  keCThreadPoolBase_Destructor_maybe  (keCThreadPool's destructor (the base's part))
 //   [x] 0x57760  KRequest_Destructor
 //   [x] 0x577c0  KRequest_DeletingDestructor
-//   [ ] 0x57838  KRequest_WaitTimeout_maybe
+//   [ ] 0x57838  KRequest_WaitTimeout_maybe  [platform]  (a timed wait on the engine's semaphore CondVar (the timeout a spin count of sys_ppu_thread_yield): host condition variables by design; no caller in the original)
 //   [x] 0x57978  KRequest_IsFinished
 //   [x] 0x57a18  KRequest_Wait
-//   [ ] 0x57af0  keCThreadPoolBase_CancelRequest_maybe
+//   [x] 0x57af0  keCThreadPoolBase_CancelRequest_maybe  (keCThreadPool::CancelRequest)
 //   [x] 0x57c58  KRequest_Reset
 //   [x] 0x57cb0  keCThreadPool_Enqueue
-//   [ ] 0x57d58  keCThreadPool_WaitUntilIdleTimeout_maybe
-//   [ ] 0x57e90  keCThreadPoolBase_IsIdle_maybe
-//   [ ] 0x57f30  keCThreadPool_RequestStopWhenIdle_maybe
+//   [ ] 0x57d58  keCThreadPool_WaitUntilIdleTimeout_maybe  [platform]  (a timed wait on the engine's semaphore CondVar (the timeout a spin count): host condition variables by design; no caller in the original)
+//   [x] 0x57e90  keCThreadPoolBase_IsIdle_maybe  (keCThreadPool::IsIdle; no caller in the original either)
+//   [x] 0x57f30  keCThreadPool_RequestStopWhenIdle_maybe  (keCThreadPool::RequestStopWhenIdle; no caller in the original either)
 //   [x] 0x57fa0  keCThreadPool_RequestAbort_maybe
 //   [x] 0x58010  KRequest_SetQueued
 //   [x] 0x58098  KRequest_SetDone
 //   [x] 0x58130  KRequest_SetCancelled
 //   [x] 0x581c8  KRequest_SetRunning
-//   [ ] 0x58250  keCThreadPool_WaitUntilIdle_maybe
+//   [x] 0x58250  keCThreadPool_WaitUntilIdle_maybe  (keCThreadPool::WaitUntilIdle; no caller in the original either)
 //   [x] 0x58318  keCThreadPool_WorkerLoop_maybe
-//   [ ] 0x585e0  keCThreadPool_WorkerLoop_maybe
+//   [x] 0x585e0  keCThreadPool_WorkerLoop_maybe  (the same as 0x58318 keCThreadPool_WorkerLoop_maybe)
 //   [x] 0x585e8  keCThreadPool_Construct
-//   [ ] 0x587d8  keCThreadPool_Construct_2
-//   [ ] 0x589c8  keCThreadPool_DeletingDestructor
+//   [x] 0x587d8  keCThreadPool_Construct_2  (the same as 0x585e8 keCThreadPool_Construct)
+//   [x] 0x589c8  keCThreadPool_DeletingDestructor  (the deleting form of 0x58a68 keCThreadPool_Destructor)
 //   [x] 0x58a68  keCThreadPool_Destructor
-//   [ ] 0x58af0  keCThreadPool_Destructor_2
-//   [ ] 0x58b78  Sema_Destroy_2
-//   [ ] 0x58b98  Sema_Wait
-//   [ ] 0x58bf0  Sema_TryWaitRetry_maybe
-//   [ ] 0x58c78  Sema_Post
+//   [x] 0x58af0  keCThreadPool_Destructor_2  (the same as 0x58a68 keCThreadPool_Destructor)
+//   [ ] 0x58b78  Sema_Destroy_2  [platform]  (a PS3 semaphore syscall (sys_semaphore_destroy): host primitives by design)
+//   [ ] 0x58b98  Sema_Wait  [platform]  (a PS3 semaphore syscall (sys_semaphore_wait; the CondVar layer's): host primitives by design)
+//   [ ] 0x58bf0  Sema_TryWaitRetry_maybe  [platform]  (a spin wait on sys_ppu_thread_yield (the CondVar layer's): host primitives by design)
+//   [ ] 0x58c78  Sema_Post  [platform]  (a PS3 semaphore syscall (sys_semaphore_post; the CondVar layer's): host primitives by design)
 //   [ ] 0x58ca0  PpuThread_InvokeEntryFunc_maybe  [dead]
-//   [ ] 0x58ce0  PpuThread_Join
-//   [ ] 0x58d20  sys_ppu_thread_yield
+//   [ ] 0x58ce0  PpuThread_Join  [platform]  (sys_ppu_thread_join (KThreadSet, the particle scheduler's SPU threads): platform/cell/sys_thread)
+//   [ ] 0x58d20  sys_ppu_thread_yield  [platform]  (the syscall sys_ppu_thread_yield: platform/cell/sys_thread)
 //   [x] 0x58d40  Sys_UsleepMs_maybe
 #include "k2000/misc/KRequest.h"
 
 #include "k2000/core/Stub.h"
 #include "k2000/memory/Mem.h"
+#include "k2000/misc/Str.h"
 #include "k2000/system/LwMutex.h"
 #include "platform/cell/sys_thread.h"
 
@@ -200,14 +201,15 @@ keCThreadPool::keCThreadPool(uint32_t threadCount, const char* name, int32_t pri
       m_pad9b(),
       m_threadSet() {
     for (uint32_t i = 0; i < threadCount; ++i) {
-        char threadName[0x80];
-        std::snprintf(threadName, sizeof(threadName), "%s %u", name, i);  // Str_FormatAllocTo "%s %d"
+        char* threadName = nullptr;
+        Str_FormatAllocTo(&threadName, "%s %d", name, static_cast<int32_t>(i));  // 0x00011f90
         sys_ppu_thread_t id = 0;
         // KThread priority level -> PPU priority: RPCS3 shows 1002 for level 2 and 1001 for level 3.
         const int32_t ppuPriority = priority == 2 ? 1002 : 1001;
         sys_ppu_thread_create(&id, &WorkerEntry, static_cast<uint64_t>(reinterpret_cast<uintptr_t>(this)), ppuPriority,
                               0x10000, 1, threadName);
         m_host->threads.push_back(id);
+        Mem_FreeAlignedAndNull(&threadName);  // 0x00011100
     }
 }
 
@@ -240,6 +242,59 @@ void keCThreadPool::RequestAbort() {
         m_abort = 1;
     }
     m_host->work.notify_all();
+}
+
+// 0x00057af0 keCThreadPoolBase_CancelRequest_maybe
+void keCThreadPool::CancelRequest(KRequest* request) {
+    std::lock_guard<std::mutex> lock(m_host->mutex);
+    KRequest* head = m_head;
+    if (head == nullptr) return;
+    if (request == head) {
+        m_head = request->m_next;
+    } else {
+        KRequest* node = head;
+        do {
+            node = node->m_next;
+            if (node == nullptr) return;
+        } while (request != node);
+        KRequest* previous;
+        node = head;
+        do {
+            previous = node;
+            node = previous->m_next;
+            if (node == nullptr) {  // not reached: the first walk found it
+                request->SetCancelled();  // vt+0x24
+                return;
+            }
+        } while (request != node);
+        previous->m_next = request->m_next;
+        if (request->m_next != nullptr) request->m_next = nullptr;
+    }
+    request->m_next = nullptr;
+    request->SetCancelled();  // vt+0x24
+}
+
+// 0x00057e90 keCThreadPoolBase_IsIdle_maybe
+bool keCThreadPool::IsIdle(uint8_t* notAborted) {
+    std::lock_guard<std::mutex> lock(m_host->mutex);
+    *notAborted = static_cast<uint8_t>(m_abort ^ 1);
+    return m_activeWorkers == 0 && m_head == nullptr;
+}
+
+// 0x00057f30 keCThreadPool_RequestStopWhenIdle_maybe
+void keCThreadPool::RequestStopWhenIdle() {
+    {
+        std::lock_guard<std::mutex> lock(m_host->mutex);
+        m_stopWhenIdle = 1;
+    }
+    m_host->work.notify_all();  // CondVar_Broadcast(+0x30)
+}
+
+// 0x00058250 keCThreadPool_WaitUntilIdle_maybe
+void keCThreadPool::WaitUntilIdle(uint8_t* notAborted) {
+    std::unique_lock<std::mutex> lock(m_host->mutex);
+    while (m_activeWorkers != 0 || m_head != nullptr) m_host->idle.wait(lock);  // CondVar +0x68
+    *notAborted = static_cast<uint8_t>(m_abort ^ 1);
 }
 
 // The workers' KThreadSet join (CKLoadRequestQueue_JoinThreads and friends).

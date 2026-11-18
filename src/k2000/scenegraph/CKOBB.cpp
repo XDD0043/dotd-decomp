@@ -10,7 +10,7 @@
 //   [x] 0xd7e48  CKOBB_DeleteArray
 //   [x] 0xd7ef0  CKOBB_CreateArray
 //   [x] 0xd7fe0  CKOBB_Create
-//   [ ] 0xd8050  CKOBB_RecursiveRegistration
+//   [x] 0xd8050  CKOBB_RecursiveRegistration  (CSGLeaf's (nothing))
 //
 //   [ ] 0x9a45c8  CKOBB_GetClassType  [inline]
 //   [ ] 0x9a45d0  CKOBB_GetClassID  [inline]

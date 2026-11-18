@@ -12,6 +12,7 @@
 
 #include "k2000/core/Layout.h"
 #include "k2000/misc/CKHkActorBase.h"
+#include "k2000/memory/Mem.h"
 #include "k2000/services/CTriggerStarter.h"
 #include "k2000/util/TVector.h"
 #include "k2000/math/CMatrix34.h"
@@ -42,10 +43,19 @@ public:
         m_vUnkB4.m_ui32NbElt = 1;
         m_vUnkB4.m_ui32NbUsedElt = 0;
     }
-    ~CKHkClimbZone() override {}
+    // 0x00458548 CKHkClimbZone_Destructor: the climber block freed (Mem_FreeAligned16), its count and pointer cleared.
+    ~CKHkClimbZone() override {
+        if (m_vUnkB4.m_pBlock != nullptr) Mem_FreeAligned16(m_vUnkB4.m_pBlock);
+        m_vUnkB4.m_ui32NbUsedElt = 0;
+        m_vUnkB4.m_pBlock = nullptr;
+    }
 
     void Destroy() override;                                // vt+0x10 0x004574f0 CKHkClimbZone_Destroy
     int32_t MessageProc(uint16_t message, void* data) override;  // vt+0x1c 0x004578b8 CKHkClimbZone_MessageProc
+    // vt+0x40 0x00457288 CKHkClimbZone_GetInfo: id 0x96 answers 0x009c3f48 CKHkClimbZone_GetTriggerProp96 (the halfword
+    // +0x0c's bit 0: the flag word's bit 16) as a byte; folded with the actor base's answer (KStub_Return1 0x3f7140).
+    // vt+0x24 0x004574c8 RecursiveRegistration: the actor base's (inherited).
+    int32_t GetInfo(IKInfo* info, int32_t request) override;
     int32_t Load(IKFile* file, int32_t type) override;      // vt+0x2c 0x004595d0 CKHkClimbZone_Load
     int32_t PostLoad(int32_t type) override;                // vt+0x30 0x00457438 CKHkClimbZone_PostLoad
     void SetDefaultState(int32_t flag) override;  // vt+0x38 0x00457808 CKHkClimbZone_SetDefaultState

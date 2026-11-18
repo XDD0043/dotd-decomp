@@ -4,9 +4,9 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x864b8  CCloneManager_Delete
+//   [x] 0x864b8  CCloneManager_Delete  (DOTD_DECLARE_FACTORIES)
 //   [ ] 0x86508  CCloneManager_Construct  [dead]
-//   [ ] 0x86548  CCloneManager_GetMaterialRenderInfo
+//   [x] 0x86548  CCloneManager_GetMaterialRenderInfo  (GetRenderingProperties)
 //   [ ] 0x86570  CCloneManager_Construct_2  [dead]
 //   [ ] 0x865b0  RegisterCCloneManagerClass
 //   [ ] 0x86628  _GLOBAL__I_86628
@@ -21,16 +21,16 @@
 //   [x] 0x86eb8  CCloneManager_DrawClones
 //   [ ] 0x86f40  CCloneManager_Save
 //   [x] 0x86f68  CCloneManager_Destroy
-//   [ ] 0x87108  CCloneManager_DeleteArray
-//   [ ] 0x871a8  CCloneManager_RecursiveRegistration
+//   [x] 0x87108  CCloneManager_DeleteArray  (DOTD_DECLARE_FACTORIES)
+//   [x] 0x871a8  CCloneManager_RecursiveRegistration
 //   [x] 0x872b0  CCloneManager_vf70
 //   [x] 0x872d0  CCloneManager_PostLoad
 //   [x] 0x87300  CCloneManager_CreateArray
 //   [x] 0x873d0  CCloneManager_Create
 //   [x] 0x87440  CCloneManager_Load
 //   [ ] 0x87990  CCloneManager_Destructor_2  [dead]
-//   [ ] 0x87a10  CCloneManager_DeletingDestructor
-//   [ ] 0x87a98  CCloneManager_Destructor
+//   [x] 0x87a10  CCloneManager_DeletingDestructor  (~CCloneManager, the deleting form)
+//   [x] 0x87a98  CCloneManager_Destructor
 //
 //   [x] 0x99c288  CCloneManager_IsKindOfClass  [inline]
 //   [x] 0x99c2b0  CCloneManager_GetClassType  [inline]
@@ -53,6 +53,7 @@
 #include "k2000/managers/CKGraphic.h"
 #include "k2000/memory/Mem.h"
 #include "k2000/misc/Engine.h"
+#include "k2000/logic/CKSavingManager.h"
 #include "k2000/render/CRenderer.h"
 #include "k2000/scenegraph/CClone.h"
 
@@ -62,6 +63,14 @@ CCloneManager::CCloneManager() {
     m_pPriorityParent = 0;
     m_pLightSet = nullptr;
     m_vClones.m_ui32NbElt = 10;
+    m_vClones.m_ui32NbUsedElt = 0;
+    m_vClones.m_pBlock = nullptr;
+}
+
+// 0x00087a98 CCloneManager_Destructor: the clone vector's block freed (Destroy has normally done it), its length and
+// block cleared. The team is Destroy's.
+CCloneManager::~CCloneManager() {
+    if (m_vClones.m_pBlock != nullptr) Mem_FreeAligned16(m_vClones.m_pBlock);
     m_vClones.m_ui32NbUsedElt = 0;
     m_vClones.m_pBlock = nullptr;
 }
@@ -219,9 +228,30 @@ void CCloneManager::UpdateAndExtract(float /*maxDistanceSquared*/, RenderQueue**
 
 // 0x00086eb8 CCloneManager_Render: RwRenderStateSet(0x14 = rwRENDERSTATECULLMODE, 1 = rwCULLMODECULLNONE) between the
 // render-state stack's push and pop, around the team's passes 2 (clip state), 4 (skin matrices), 8 (draw).
-void CCloneManager::Render() {
+void CCloneManager::Render(IKTime* /*frameClock*/) {
     PushRenderStates(g_pRenderStateRenderer);
     RwRenderStateSet(rwRENDERSTATECULLMODE, reinterpret_cast<void*>(1));
     RpTeamRender(m_pRpTeam, 0xe);
     PopRenderStates(g_pRenderStateRenderer);
+}
+
+// C2.8 port-all P08.
+
+// 0x00086548 CCloneManager_GetRenderingProperties (Ghidra CCloneManager_GetMaterialRenderInfo in the checklist)
+void CCloneManager::GetRenderingProperties(uint8_t* first, uint8_t* second, uint8_t* third, uint32_t* blendMode) {
+    *first = 0;
+    *second = 0xff;
+    *third = 1;
+    *blendMode = 1;
+}
+
+// 0x000871a8 CCloneManager_RecursiveRegistration
+void CCloneManager::RecursiveRegistration(int32_t type) {
+    if (type != 0) return;
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    const uint32_t count = m_vClones.m_ui32NbUsedElt;
+    for (uint32_t i = 0; i < count; ++i) {
+        IKSerializable* clone = m_vClones.m_pBlock[i];
+        if (clone != nullptr) clone->RecursiveRegistration(0);  // vt+0x24
+    }
 }

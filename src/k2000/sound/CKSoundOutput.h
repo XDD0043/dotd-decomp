@@ -20,9 +20,23 @@ class CKSoundOutput {
 public:
     CKSoundOutput();                           // 0x00114858 SoundOutput_Construct_maybe
     void Init();                               // 0x001148d8 SoundOutput_Init_maybe
+    ~CKSoundOutput();                          // 0x00114a30 SoundOutput_FreeEffectArrays_maybe (its destructor)
+    // 0x00114980 SoundOutput_ShutdownDriver_maybe (CKSoundManager_DestroyModule): the RWA driver destroyed (the
+    // pointer is left), both reference lists freed and cleared.
+    void ShutdownDriver();
     int32_t Load(IKFile* file, int32_t type);  // 0x00114bd0 SoundOutput_LoadEffectRefs_maybe
     void SetCurrentEffect(CKSoundOutputEffect* effect);  // 0x00114578 SoundOutputEffectMgr_SetCurrent_maybe
     void ResetOutputEffect();                  // 0x00114b80 SoundOutput_ResetOutputEffect_maybe
+    // 0x001148c8 SoundOutput_ClearEffectRefs_maybe (CKSoundManager_Destroy): both reference lists emptied (the blocks kept).
+    void ClearEffectRefs() {
+        m_vpEnvironment.m_ui32NbUsedElt = 0;
+        m_vpUnk18.m_ui32NbUsedElt = 0;
+    }
+    // 0x00114b30 SoundOutputEffectMgr_SelectByIndex_maybe: environment `index` made current (no range check).
+    void SelectEffectByIndex(uint32_t index);
+    // 0x00114738 SoundOutput_LevelReset_maybe (CKSoundManager's RecursiveRegistration, P21): every reference of both
+    // lists gets RecursiveRegistration(type).
+    void RecursiveRegistration(int32_t type);
 
     // +0x00 RwaPS3Driver_Create_maybe(0, 0, 4, 0, 0) (Init): platform/audio/rwa.h
     RwaOutput* m_rwaOutput;

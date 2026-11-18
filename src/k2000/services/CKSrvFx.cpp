@@ -7,39 +7,39 @@
 //   [x] 0x1ab2b0  CKSrvFx_Delete
 //   [x] 0x1ab300  CKSrvFx_InitializeService
 //   [x] 0x1ab308  CKSrvFx_DestroyService
-//   [ ] 0x1ab310  CKSrvFx_RecursiveRegistration
+//   [x] 0x1ab310  CKSrvFx_RecursiveRegistration
 //   [ ] 0x1ab460  RegisterCKSrvFxClass
 //   [ ] 0x1ab4d8  _GLOBAL__I_1ab4d8
-//   [ ] 0x1ab4e8  CKSrvFx_Start
+//   [x] 0x1ab4e8  CKSrvFx_Start
 //   [x] 0x1ab558  CKSrvFx_Destroy
 //   [x] 0x1ab6e0  CKSrvFx_DeleteArray
 //   [x] 0x1ab788  CKSrvFx_Construct
-//   [ ] 0x1ab7e8  CKSrvFx_Construct_2
+//   [x] 0x1ab7e8  CKSrvFx_Construct_2  (the not-in-charge copy of the constructor 0x1ab788: CKSrvFx())
 //   [x] 0x1ab848  CKSrvFx_SectorUnload
 //   [x] 0x1ab990  CKSrvFx_PostLoad
 //   [x] 0x1abc50  CKSrvFx_Stop
-//   [ ] 0x1abe28  CKSrvFx_Restart
+//   [x] 0x1abe28  CKSrvFx_Restart
 //   [x] 0x1ac000  UpdateCKSrvFx
-//   [ ] 0x1ac210  CKSrvFx_Pause
-//   [ ] 0x1ac3c0  CKSrvFx_Resume
+//   [x] 0x1ac210  CKSrvFx_Pause
+//   [x] 0x1ac3c0  CKSrvFx_Resume
 //   [ ] 0x1ac570  CKSrvFx_Save
 //   [x] 0x1ac578  CKSrvFx_CreateArray
 //   [x] 0x1ac688  CKSrvFx_Create
 //   [x] 0x1ac708  CKSrvFx_Load
-//   [ ] 0x1acbf8  CKFlashFxData_Delete
-//   [ ] 0x1acc48  CKElectricArcFxData_Delete
-//   [ ] 0x1acc98  CKQuadFxData_Delete
-//   [ ] 0x1acce8  CKLightningObjectFxData_Delete
-//   [ ] 0x1acd38  CKFilterFxData_Delete
-//   [ ] 0x1acd88  CKExplosionFxData_Delete
-//   [ ] 0x1acdd8  CKHedgeHopTrailFxData_Delete
-//   [ ] 0x1ace28  CKShockWaveFxData_Destroy
-//   [ ] 0x1ace78  CKFireBallFxData_Delete
-//   [ ] 0x1acec8  CKParticlesEffectFxData_Destroy
-//   [ ] 0x1acf18  CKSparkFxData_Destroy
-//   [ ] 0x1acf68  CKLensFlareFxData_Delete
-//   [ ] 0x1acfb8  CKDistortionFxData_Delete
-//   [ ] 0x1ad008  CKMeshPopFxData_Delete
+//   [x] 0x1acbf8  CKFlashFxData_Delete  (DOTD_DECLARE_FACTORIES(CKFlashFxData))
+//   [x] 0x1acc48  CKElectricArcFxData_Delete  (DOTD_DECLARE_FACTORIES(CKElectricArcFxData))
+//   [x] 0x1acc98  CKQuadFxData_Delete  (DOTD_DECLARE_FACTORIES(CKQuadFxData))
+//   [x] 0x1acce8  CKLightningObjectFxData_Delete  (DOTD_DECLARE_FACTORIES(CKLightningObjectFxData))
+//   [x] 0x1acd38  CKFilterFxData_Delete  (DOTD_DECLARE_FACTORIES(CKFilterFxData))
+//   [x] 0x1acd88  CKExplosionFxData_Delete  (DOTD_DECLARE_FACTORIES(CKExplosionFxData))
+//   [x] 0x1acdd8  CKHedgeHopTrailFxData_Delete  (DOTD_DECLARE_FACTORIES(CKHedgeHopTrailFxData))
+//   [x] 0x1ace28  CKShockWaveFxData_Destroy  (CKShockWaveFxData's Delete: DOTD_DECLARE_FACTORIES(CKShockWaveFxData))
+//   [x] 0x1ace78  CKFireBallFxData_Delete  (DOTD_DECLARE_FACTORIES(CKFireBallFxData))
+//   [x] 0x1acec8  CKParticlesEffectFxData_Destroy  (CKParticlesEffectFxData's Delete: DOTD_DECLARE_FACTORIES(CKParticlesEffectFxData))
+//   [x] 0x1acf18  CKSparkFxData_Destroy  (CKSparkFxData's Delete: DOTD_DECLARE_FACTORIES(CKSparkFxData))
+//   [x] 0x1acf68  CKLensFlareFxData_Delete  (DOTD_DECLARE_FACTORIES(CKLensFlareFxData))
+//   [x] 0x1acfb8  CKDistortionFxData_Delete  (DOTD_DECLARE_FACTORIES(CKDistortionFxData))
+//   [x] 0x1ad008  CKMeshPopFxData_Delete  (DOTD_DECLARE_FACTORIES(CKMeshPopFxData))
 //
 //   [ ] 0x9ab2f0  CKSrvFx_IsKindOfClass  [inline]
 //   [ ] 0x9ab328  CKSrvFx_GetClassType  [inline]
@@ -47,13 +47,14 @@
 //   [ ] 0x9ab338  CKSrvFx_Destructor  [inline]
 //   [ ] 0x9ab358  CKSrvFx_DeletingDestructor  [inline]
 //   [ ] 0x9ab3a0  KStub_Return0_9ab3a0  [inline]
-//   [ ] 0x9bdc18  CKSrvFx_AcquireFx  [inline]
-//   [ ] 0x9c6468  CKSrvFx_AcquireFx_2  [inline]
+//   [ ] 0x9bdc18  CKSrvFx_AcquireFx  [inline]  (no reservation store: StartEffect's out-of-line copy)
+//   [ ] 0x9c6468  CKSrvFx_AcquireFx_2  [inline]  (sets the reservation bit 0x2: AcquireFx)
 #include "k2000/services/CKSrvFx.h"
 
 #include "k2000/components/CKParticlesCpnt.h"
 #include "k2000/fx/IKFx.h"
 #include "k2000/io/IKFile.h"
+#include "k2000/logic/CKSavingManager.h"
 #include "k2000/logic/IKFxData.h"
 #include "k2000/memory/Mem.h"
 #include "k2000/misc/Engine.h"
@@ -63,6 +64,47 @@
 CKSrvFx::CKSrvFx() {
     m_ui32Priority = 0x64;
     Engine_SetSrvFx(this);
+}
+
+// 0x001ab310 CKSrvFx_RecursiveRegistration
+void CKSrvFx::RecursiveRegistration(int32_t type) {
+    if (type != 0) return;
+    g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
+    for (uint32_t i = 0; i < m_ui32FxArraySize; ++i) m_apFxArray[i]->RecursiveRegistration(0);  // vt+0x24
+    for (uint32_t i = 0; i < m_ui32UniqueFxArraySize; ++i) m_apUniqueFxArray[i]->RecursiveRegistration(0);
+}
+
+// 0x001ab4e8 CKSrvFx_Start (the count and the array read again each time)
+void CKSrvFx::Start() {
+    for (uint32_t i = 0; m_ui32NbPartEmitter > i; ++i) {
+        static_cast<CKParticlesCpnt*>(m_apPartEmitter[i])->CachePropertyValuesFromEmitter();  // 0x1d9b78
+    }
+}
+
+namespace {
+// CKSrvFx_Pause / Resume's loop over one pool (the count and the array read once).
+template <class Call>
+void ForRunningEffects(IKSerializable** effects, uint32_t count, Call call) {
+    for (uint32_t i = 0; i != count; ++i) {
+        IKFx* fx = static_cast<IKFx*>(effects[i]);
+        const uint8_t flags = fx->m_baFxData;
+        if ((flags & 1) != 0 && (flags & 2) == 0) continue;  // stopped and not reserved
+        if (fx->GetUpdateWhenPaused() != 0) continue;       // vt+0x94
+        call(fx);
+    }
+}
+}  // namespace
+
+// 0x001ac210 CKSrvFx_Pause
+void CKSrvFx::Pause() {
+    ForRunningEffects(m_apFxArray, m_ui32FxArraySize, [](IKFx* fx) { fx->Vf70(); });               // OnPause
+    ForRunningEffects(m_apUniqueFxArray, m_ui32UniqueFxArraySize, [](IKFx* fx) { fx->Vf70(); });
+}
+
+// 0x001ac3c0 CKSrvFx_Resume
+void CKSrvFx::Resume() {
+    ForRunningEffects(m_apFxArray, m_ui32FxArraySize, [](IKFx* fx) { fx->Vf74(); });               // OnResume
+    ForRunningEffects(m_apUniqueFxArray, m_ui32UniqueFxArraySize, [](IKFx* fx) { fx->Vf74(); });
 }
 
 // 0x001ab558 CKSrvFx_Destroy: every mapping's effect arrays and its type table, the emitter array, the table, the flat and the
@@ -171,10 +213,17 @@ void CKSrvFx::Stop() {
     for (uint32_t i = 0; i < m_ui32NbPartEmitter; ++i) static_cast<CKParticlesCpnt*>(m_apPartEmitter[i])->FlushEmissionRequests();
 }
 
+// 0x001abe28 CKSrvFx_Restart (vt+0x54): the same body as Stop (instruction for instruction).
+void CKSrvFx::Restart() {
+    StopPool(m_apFxArray, m_ui32FxArraySize);
+    StopPool(m_apUniqueFxArray, m_ui32UniqueFxArraySize);
+    for (uint32_t i = 0; i < m_ui32NbPartEmitter; ++i) static_cast<CKParticlesCpnt*>(m_apPartEmitter[i])->FlushEmissionRequests();
+}
+
 // 0x001ac000 UpdateCKSrvFx (vt+0x7c): every running effect of both pools (the stopped bit clear) has its frame (vt+0x78)
 // unless the clock is paused (IKTime +0x30) and the effect does not update while paused (vt+0x94); then, unless paused,
-// the particle components' queued emissions. STUB(C2.7): ProcessParticleComponentEmissionQueue 0x1da1a8 (the particle
-// emitters are not ported).
+// the particle components' queued emissions (ProcessParticleComponentEmissionQueue 0x1da1a8; the original passes the
+// frame time in f1, unused).
 void CKSrvFx::Update(IKTime* frameClock) {
     for (uint32_t i = 0; i < m_ui32FxArraySize; ++i) {
         IKFx* fx = FxAt(m_apFxArray, i);
@@ -187,6 +236,10 @@ void CKSrvFx::Update(IKTime* frameClock) {
         if ((fx->m_baFxData & 1) != 0) continue;
         if (frameClock->m_eCurrentState != 0 && fx->GetUpdateWhenPaused() == 0) continue;
         fx->Update(frameClock);
+    }
+    for (uint32_t i = 0; i < m_ui32NbPartEmitter; ++i) {
+        if (frameClock->m_eCurrentState != 0) continue;
+        static_cast<CKParticlesCpnt*>(m_apPartEmitter[i])->ProcessEmissionQueue();  // 0x001da1a8
     }
 }
 
@@ -259,6 +312,34 @@ IKFx* CKSrvFx::StartEffect(IKFxData* data, const IKSerializable* owner) {
         fx->SetDataAndOwner(data, owner);  // vt+0x8c
         if ((fx->m_baFxData & 1) != 0 && (fx->m_baFxData & 2) == 0) fx->Vf64();  // vt+0x64 Start
         return fx;
+    }
+    return nullptr;
+}
+
+// The inlined reserving lookup 0x9c6468 (not 0x9bdc18, which is StartEffect) (CKExplosionNodeFx_FireSubEffect, CKLightningBoltNodeFx_SetEndParticlesActive,
+// CKProjectileTypeScrap...).
+IKFx* CKSrvFx::AcquireFx(IKFxData* data, const IKSerializable* owner) {
+    const uint32_t classId = data->GetAssociatedFxClassIdentifier();               // vt+0x54
+    const int32_t typeId = static_cast<int32_t>(data->GetAssociatedFxClassType());  // vt+0x58
+    for (uint32_t i = 0; i < m_ui32EltNb; ++i) {
+        const CMappingindex& mapping = m_apMappingIndexTable[i];
+        if (mapping.m_ui32ClassId != classId || mapping.m_ui32NbTypeFx == 0) continue;
+        const CUnderMappingindex* under = mapping.m_aUnderMapping;
+        uint32_t k = 0;
+        while (under[k].m_i32FxTypeId != typeId) {
+            if (++k == mapping.m_ui32NbTypeFx) break;
+        }
+        if (k == mapping.m_ui32NbTypeFx) continue;
+        for (uint32_t n = 0; n < under[k].m_ui32MaxSize; ++n) {
+            IKFx* node = static_cast<IKFx*>(under[k].m_apFxArrayForTypeId[n]);
+            if ((node->m_baFxData & 1u) == 0 || (node->m_baFxData & 2u) != 0) continue;
+            node->SetFxData(data);  // vt+0x84
+            node->m_baFxData = static_cast<uint8_t>((node->m_baFxData & 0xfcu) | (node->m_baFxData & 1u) | 2u);
+            node->SetOwner(owner);  // vt+0x88
+            node->Vf64();           // vt+0x64 Start
+            return node;
+        }
+        return nullptr;
     }
     return nullptr;
 }

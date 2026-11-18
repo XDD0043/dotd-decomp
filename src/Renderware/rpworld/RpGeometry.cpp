@@ -3,6 +3,7 @@
 
 #include <cstring>
 
+#include "Renderware/rpprtstd/RpPrtStd.h"
 #include "Renderware/rpskin/RpSkin.h"
 #include "Renderware/rpworld/RpAtomicPSGL.h"
 #include "Renderware/rwcore/RwCamera.h"
@@ -18,10 +19,9 @@ namespace {
 
 std::vector<RpAtomicDraw> g_atomicDraws;
 
-// RwTextureDestroy as RpMaterial uses it (RW 3.7: the texture's reference count). STUB(C1.4): the
-// textures belong to the shim's dictionaries, which free them; only the count is kept.
+// RwTextureDestroy 0x7548c0 as RpMaterial calls it (when it has a texture).
 void TextureRelease(RwTexture* texture) {
-    if (texture != nullptr) --texture->refCount;
+    if (texture != nullptr) RwTextureDestroy(texture);
 }
 
 // 0x0069d180 RW_RenderAtomicThroughPipeline (RW's AtomicDefaultRenderCallBack, the default +0x48 set by
@@ -51,9 +51,14 @@ RpAtomic* AtomicDefaultRenderCallBack(RpAtomic* atomic) {
 
 }  // namespace
 
+RpAtomicCallBackRender RpAtomicGetDefaultRenderCallBack() { return AtomicDefaultRenderCallBack; }
+
 // 0x006a1388 RpGeometryCreate. The PS3 allocates the geometry and its arrays as one block (plugin data,
 // then the prelight colours, the texture coordinate sets and the triangles); here each array is its own
-// block with the same contents. STUB(C1.4): the plugin registry.
+// block with the same contents. The plugin registry (_rwPluginRegistryInitObject 0x75dbe0) runs the geometry plugins'
+// constructors in their registration order: the bin mesh (0x50e) and the native data (0x510, both registered by
+// _rpWorldRegisterObjectPlugins_maybe 0x6b38d0 without data or constructor), then the skin (0x116, 4 bytes,
+// RpSkinPluginAttach_maybe 0x773620: RpSkinGeometryConstructor).
 RpGeometry* RpGeometryCreate(RwInt32 numVerts, RwInt32 numTriangles, RwUInt32 format) {
     if (static_cast<RwUInt32>(numVerts) > 0xffff || numTriangles < 0) return nullptr;  // _rwerror(6)
     RwUInt32 numTexCoordSets;
@@ -109,6 +114,24 @@ RpGeometry* RpGeometryCreate(RwInt32 numVerts, RwInt32 numTriangles, RwUInt32 fo
     }
     geometry->morphTarget = target;
     geometry->numMorphTargets = 1;
+    RpSkinGeometryConstructor(geometry);  // _rwPluginRegistryInitObject
+    return geometry;
+}
+
+// 0x006a1eb0 RW_CreateEmptyGeometryWithRadius_maybe (RpGeometryCreateSpace). A failed unlock drops the reference
+// (RpGeometryDestroy inlined: with other references only the count; else the resource entry and the geometry).
+RpGeometry* RpGeometryCreateSpace(RwReal radius) {
+    RpGeometry* geometry = RpGeometryCreate(0, 0, 0);
+    if (geometry == nullptr) return nullptr;
+    RpMorphTarget* target = geometry->morphTarget;
+    target->boundingSphere.radius = radius;
+    target->boundingSphere.center.z = 0.0f;
+    target->boundingSphere.center.x = 0.0f;
+    target->boundingSphere.center.y = 0.0f;
+    if (RpGeometryUnlock(geometry) == nullptr) {
+        RpGeometryDestroy(geometry);
+        return nullptr;
+    }
     return geometry;
 }
 
@@ -167,6 +190,20 @@ RwBool RpGeometryDestroy(RpGeometry* geometry) {
 // 0x006a0a28 RpGeometryUnlock. STUB(C1.4): the mesh (RpMeshes by material, tristripped) the pipeline
 // renders; nothing reads it before then.
 RpGeometry* RpGeometryUnlock(RpGeometry* geometry) { return geometry; }
+
+// 0x006a0e28 RpGeometryLock (_rpMeshDestroy 0x6a5fc8 is the bin mesh's delete here)
+RpGeometry* RpGeometryLock(RpGeometry* geometry, RwInt32 lockMode) {
+    if ((lockMode & 1) == 0) {
+        geometry->lockedSinceLastInst = static_cast<RwUInt16>(geometry->lockedSinceLastInst | 0xffe);
+        return geometry;
+    }
+    geometry->lockedSinceLastInst = static_cast<RwUInt16>(geometry->lockedSinceLastInst | 0xfff);
+    if (geometry->mesh != nullptr) {
+        delete geometry->mesh;
+        geometry->mesh = nullptr;
+    }
+    return geometry;
+}
 
 // 0x006a0230 RpGeometryTriangleSetVertexIndices
 RpGeometry* RpGeometryTriangleSetVertexIndices(const RpGeometry* geometry, RpTriangle* triangle, RwUInt16 vert1,
@@ -295,11 +332,35 @@ RwInt32 _rpMaterialListAppendMaterial(RpMaterialList* matList, RpMaterial* mater
     return matList->numMaterials++;
 }
 
-// 0x0069cb58 RpAtomicCreate (Ghidra RW_CreateAtomic). STUB(C1.4): the pipeline, bounding-sphere sync and
-// the plugin data; the render callback records the draw.
+// 0x0069cb58 RpAtomicCreate (Ghidra RW_CreateAtomic; RW 3.7 baclump.c): from the atomic free list (RwFreeListAlloc
+// through the engine's +0x118); the object header (type 1 rpATOMIC, sub type 0, flags 5 = rpATOMICCOLLISIONTEST |
+// rpATOMICRENDER, private flags 1), the frame sync callback (+0x10 RpAtomicUpdateBoundingSphereIfDirty_maybe) and no
+// frame (RwObjectHasFrameSetFrame(atomic, null)); the private world-bound-dirty bit set again; the interpolator: time
+// and recipTime 1.0f (TOC -0x466c), position 0, flags 3 (dirty instance and sphere: the first sphere read resyncs it),
+// morph targets 0 / 0; the default render callback (+0x48), no pipeline (+0x6c), no geometry, zero spheres, the empty
+// world-sector tie list (+0x64); then the plugins' constructors (_rwPluginRegistryInitObject 0x75dbe0: the K engine's,
+// skin, RpPrtStd and PTank extensions, which only zero their data; the remake's fields start zeroed: value-initialised).
 RpAtomic* RpAtomicCreate() {
     RpAtomic* atomic = new RpAtomic();
+    atomic->privateFlags = 1;
+    atomic->objectFlags = 5;
+    atomic->frame = nullptr;  // RwObjectHasFrameSetFrame(atomic, null)
+    atomic->privateFlags |= 1;
+    atomic->interpRecipTime = 1.0f;
+    atomic->interpTime = 1.0f;
     atomic->renderCallBack = AtomicDefaultRenderCallBack;
+    atomic->interpPosition = 0.0f;
+    atomic->flags = 3;
+    atomic->pipeline = nullptr;
+    atomic->geometry = nullptr;
+    for (int i = 0; i < 4; ++i) {
+        atomic->worldSphere[i] = 0.0f;
+        atomic->boundingSphere[i] = 0.0f;
+    }
+    atomic->startMorphTarget = 0;
+    atomic->endMorphTarget = 0;
+    atomic->llWorldSectorsInAtomic.next = &atomic->llWorldSectorsInAtomic;  // rwLinkListInitialize (+0x64)
+    atomic->llWorldSectorsInAtomic.prev = &atomic->llWorldSectorsInAtomic;
     return atomic;
 }
 
@@ -326,8 +387,77 @@ RpAtomic* RpAtomicSetGeometry(RpAtomic* atomic, RpGeometry* geometry, RwUInt32 f
     return atomic;
 }
 
+// 0x0069bbe0 _rpAtomicResyncInterpolatedSphere. The single key frame is the start one when both are equal and
+// in range, else key frame 0; two key frames in range are interpolated by recipTime * position: the radius with
+// one fused multiply-add, the centre by separate multiply and add. The private flag is RpAtomic::privateFlags
+// bit 0 here (as GetGeometryWorldBoundingSphere clears it).
+void _rpAtomicResyncInterpolatedSphere(RpAtomic* atomic) {
+    const RpGeometry* geometry = atomic->geometry;
+    if (geometry == nullptr) return;
+    const int32_t start = atomic->startMorphTarget;
+    const int32_t end = atomic->endMorphTarget;
+    const RpMorphTarget* single = &geometry->morphTarget[0];
+    if (start == end) {
+        if (end < geometry->numMorphTargets) single = &geometry->morphTarget[end];
+    } else if (start < geometry->numMorphTargets && end < geometry->numMorphTargets) {
+        const RpMorphTarget* from = &geometry->morphTarget[start];
+        const RpMorphTarget* to = &geometry->morphTarget[end];
+        const float scale = atomic->interpRecipTime * atomic->interpPosition;
+        const float dx = scale * (to->boundingSphere.center.x - from->boundingSphere.center.x);
+        const float dy = scale * (to->boundingSphere.center.y - from->boundingSphere.center.y);
+        const float dz = scale * (to->boundingSphere.center.z - from->boundingSphere.center.z);
+        atomic->boundingSphere[0] = dx;
+        atomic->boundingSphere[1] = dy;
+        atomic->boundingSphere[2] = dz;
+        atomic->boundingSphere[3] =
+            ppc::fmadds(scale, to->boundingSphere.radius - from->boundingSphere.radius, from->boundingSphere.radius);
+        atomic->boundingSphere[0] = dx + from->boundingSphere.center.x;
+        atomic->boundingSphere[2] = dz + from->boundingSphere.center.z;
+        atomic->boundingSphere[1] = dy + from->boundingSphere.center.y;
+        atomic->flags &= 0xfffffffdu;
+        atomic->privateFlags |= 1;
+        return;
+    }
+    atomic->boundingSphere[0] = single->boundingSphere.center.x;
+    atomic->boundingSphere[1] = single->boundingSphere.center.y;
+    atomic->boundingSphere[2] = single->boundingSphere.center.z;
+    atomic->boundingSphere[3] = single->boundingSphere.radius;
+    atomic->flags &= 0xfffffffdu;
+    atomic->privateFlags |= 1;
+}
+
+// 0x0069dd20 RpAtomicGetWorldBoundingSphere (RW 3.7 baclump.c; the PSGL lighting callback's local lights, never reached:
+// RpPSGLLighting.cpp): a dirty interpolated sphere (flag 2) resynced first (_rpAtomicResyncInterpolatedSphere inlined,
+// with a geometry); with the frame's hierarchy dirty (RwFrameDirty 0x74a428: the root's private flags & 3) or the world
+// bound dirty (private flag 1): the centre through the frame's LTM, the radius as it is for an orthonormal LTM (flags & 3
+// == 3), else times the square root of the largest squared axis length (the compares as fcmpu / cror), the private flag
+// cleared. Returns the world sphere.
+const float* RpAtomicGetWorldBoundingSphere(RpAtomic* atomic) {
+    RwFrame* frame = atomic->frame;
+    if ((atomic->flags & 2u) != 0 && atomic->geometry != nullptr) _rpAtomicResyncInterpolatedSphere(atomic);
+    if ((frame->root->object.privateFlags & 3) == 0 && (atomic->privateFlags & 1) == 0) return atomic->worldSphere;
+    const RwMatrix* ltm = RwFrameGetLTM(frame);  // 0x0074a6f0
+    RwV3dTransformPoint(reinterpret_cast<RwV3d*>(atomic->worldSphere), reinterpret_cast<const RwV3d*>(atomic->boundingSphere),
+                        ltm);  // 0x0075e7f0
+    if ((ltm->flags & 3u) == 3u) {
+        atomic->worldSphere[3] = atomic->boundingSphere[3];
+    } else {
+        const float right = ppc::fmadds(ltm->right.z, ltm->right.z, ppc::fmadds(ltm->right.x, ltm->right.x, ltm->right.y * ltm->right.y));
+        const float up = ppc::fmadds(ltm->up.z, ltm->up.z, ppc::fmadds(ltm->up.x, ltm->up.x, ltm->up.y * ltm->up.y));
+        const float at = ppc::fmadds(ltm->at.z, ltm->at.z, ppc::fmadds(ltm->at.x, ltm->at.x, ltm->at.y * ltm->at.y));
+        const float larger = up >= at ? up : at;
+        const float scale = larger <= right ? right : (up >= at ? up : at);
+        atomic->worldSphere[3] = rwSqrt(scale) * atomic->boundingSphere[3];  // 0x0075e738
+    }
+    atomic->privateFlags &= 0xfe;
+    return atomic->worldSphere;
+}
+
 // 0x0069ecb0 RpAtomicDestroy
 RwBool RpAtomicDestroy(RpAtomic* atomic) {
+    // rwPluginRegistryDeInitObject: the RpPrtStd plugin's destructor (0x730158; the other plugins' are not
+    // ported here).
+    RpPrtStdAtomicDestruct(atomic);
     if (atomic->geometry != nullptr) {
         RpGeometryDestroy(atomic->geometry);
         atomic->geometry = nullptr;

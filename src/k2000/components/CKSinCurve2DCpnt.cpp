@@ -13,14 +13,14 @@
 //   [x] 0x24fcf0  CKSinCurve2DCpnt_DeleteArray
 //   [ ] 0x24fd98  CKSinCurve2DCpnt_Construct_2  [dead]
 //   [ ] 0x24fdd0  CKSinCurve2DCpnt_Save
-//   [ ] 0x24fdd8  CKSinCurve2DCpnt_RecursiveRegistration
-//   [ ] 0x24fde0  CKSinCurve2DCpnt_Destructor
-//   [ ] 0x24fe58  CKSinCurve2DCpnt_Destructor_2
-//   [ ] 0x24fed0  CKSinCurve2DCpnt_Destroy
+//   [x] 0x24fdd8  CKSinCurve2DCpnt_RecursiveRegistration  (returns 1, registers nothing: the default)
+//   [x] 0x24fde0  CKSinCurve2DCpnt_Destructor  (~CKSinCurve2DCpnt)
+//   [x] 0x24fe58  CKSinCurve2DCpnt_Destructor_2  (~CKSinCurve2DCpnt)
+//   [x] 0x24fed0  CKSinCurve2DCpnt_Destroy  (empty: the default)
 //   [x] 0x24fed8  CKSinCurve2DCpnt_CreateArray
 //   [x] 0x24ffb0  CKSinCurve2DCpnt_Create
 //   [x] 0x250010  CKSinCurve2DCpnt_Load
-//   [ ] 0x250158  CKSinCurve2DCpnt_DeletingDestructor
+//   [x] 0x250158  CKSinCurve2DCpnt_DeletingDestructor  (~CKSinCurve2DCpnt + delete)
 //
 //   [ ] 0x9ba388  CKSinCurve2DCpnt_IsKindOfClass  [inline]
 //   [x] 0x9ba3b0  CKSinCurve2DCpnt_GetClassType  [inline]
@@ -28,6 +28,7 @@
 #include "k2000/components/CKSinCurve2DCpnt.h"
 
 #include "k2000/io/IKFile.h"
+#include "k2000/memory/Mem.h"
 
 // 0x0024ffb0 CKSinCurve2DCpnt_Create, the inlined constructor (0x24fbf0 CKSinCurve2DCpnt_Construct is the
 // same): the two point lists, in the original's store order.
@@ -64,4 +65,12 @@ void CKSinCurve2DCpnt::ResetState(State* state) const {
     state->m_bActive = 0;
     state->m_fTime = 0.0f;
     state->m_fValue = 0.0f;
+}
+
+// C2.8 port-all P11.
+
+// 0x0024fde0 CKSinCurve2DCpnt_Destructor (0x24fe58 / 0x250158 the same)
+CKSinCurve2DCpnt::~CKSinCurve2DCpnt() {
+    if (m_vAmplitudeCurve.m_pBlock != nullptr) Mem_FreeAligned16(m_vAmplitudeCurve.m_pBlock);
+    if (m_vFrequencyCurve.m_pBlock != nullptr) Mem_FreeAligned16(m_vFrequencyCurve.m_pBlock);
 }

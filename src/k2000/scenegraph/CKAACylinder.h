@@ -10,6 +10,9 @@
 class CKAACylinder : public IKBoundingVolume {
 public:
     DOTD_CLASS_KEY(kCategoryNode, 0x18)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9a3c08
+        return key == 0x60b || key == 0x34b || key == 0x20b || key == 0x14b || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKAACylinder)
 
     CKAACylinder() {}  // 0x000d6740 CKAACylinder_Create: CSGLeaf's constructor, +0x1c and +0x28 cleared

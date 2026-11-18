@@ -6,11 +6,11 @@
 //   [x] 0xf2bf8  Immediate2DShaderPassState_GetTexCoordSetCount_maybe
 //   [x] 0xf2c90  KStub_Return1_f2c90  (Immediate2DShaderPassState.h)
 //   [ ] 0xf2c98  KStub_Nop_f2c98  [dead]
-//   [ ] 0xf2ca0  Immediate2DShaderPassState_DeletingDestructor_maybe
-//   [ ] 0xf2ce8  Immediate2DShaderPassState_Destruct_maybe
-//   [ ] 0xf2d18  Immediate2DShaderPassState_Destruct_2_maybe
+//   [x] 0xf2ca0  Immediate2DShaderPassState_DeletingDestructor_maybe  (the implicit destructor: ShaderPassStateBase_Destruct_maybe 0xf5e70 stores the vtable only)
+//   [x] 0xf2ce8  Immediate2DShaderPassState_Destruct_maybe  (the implicit destructor)
+//   [ ] 0xf2d18  Immediate2DShaderPassState_Destruct_2_maybe  [dead: no pointer to its descriptor 0xb54050, no call]
 //   [x] 0xf2d48  Immediate2DShaderPassState_Construct_maybe  (Immediate2DShaderPassState.h)
-//   [ ] 0xf2d88  Immediate2DShaderPassState_Construct_2_maybe
+//   [ ] 0xf2d88  Immediate2DShaderPassState_Construct_2_maybe  [dead: no pointer to its descriptor 0xb54060, no call]
 //   [x] 0xf2dc8  Immediate2DShaderPassState_IsGaussianBlur_maybe
 //   [x] 0xf2df8  Immediate2DShaderPassState_IsPostDof_maybe
 //   [x] 0xf2e28  Immediate2DShaderPassState_IsBloom_maybe

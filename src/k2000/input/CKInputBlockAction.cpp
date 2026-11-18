@@ -7,21 +7,21 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0x20cea8  CKInputBlockAction_608c_maybe_vf28
-//   [ ] 0x20ced0  CKInputBlockAction_608c_maybe_vf24
-//   [ ] 0x20cef8  CKInputBlockAction_608c_maybe_ClearReferences
-//   [ ] 0x20cf58  CKInputBlockAction_608c_maybe_Construct
-//   [ ] 0x20cfb8  KBase608C_OnActivate_maybe
-//   [ ] 0x20d088  KBase608C_vf60
-//   [ ] 0x20d108  KBase608C_CollectAnchors_maybe
-//   [ ] 0x20d2e0  CKInputBlockAction_608c_maybe_BaseDestructor
-//   [ ] 0x20d350  KBase608C_vf78
-//   [ ] 0x20d3a0  KBase608C_vf98
-//   [ ] 0x20d3f0  CKInputBlockAction_608c_maybe_Construct_2
-//   [ ] 0x20d450  KBase608C_OnDeactivate_maybe
-//   [ ] 0x20d508  CKInputBlockAction_608c_maybe_DeletingDestructor
-//   [ ] 0x20d580  CKInputBlockAction_608c_maybe_Destructor
-//   [ ] 0x20d5f0  CKInputBlockAction_608c_maybe_Load
+//   [x] 0x20cea8  CKInputBlockAction_608c_maybe_vf28  (Save: KBase628C's 0x209c40 then 1 (inherited; the Saves are left out))
+//   [x] 0x20ced0  CKInputBlockAction_608c_maybe_vf24  (RecursiveRegistration: KBase628C's 0x209c68 then 1 (inherited))
+//   [x] 0x20cef8  CKInputBlockAction_608c_maybe_ClearReferences  (KBase608C::Destroy, k2000/misc/KBase608C.h (P06))
+//   [x] 0x20cf58  CKInputBlockAction_608c_maybe_Construct  (KBase608C::KBase608C, k2000/misc/KBase608C.h (P06))
+//   [x] 0x20cfb8  KBase608C_OnActivate_maybe  (KBase608C::OnActivate, k2000/misc/KBase608C.h (P06))
+//   [x] 0x20d088  KBase608C_vf60  (KBase608C::DisconnectAnchors, k2000/misc/KBase608C.h)
+//   [x] 0x20d108  KBase608C_CollectAnchors_maybe  (KBase608C::CollectAnchors, k2000/misc/KBase608C.h)
+//   [x] 0x20d2e0  CKInputBlockAction_608c_maybe_BaseDestructor  (~KBase608C, k2000/misc/KBase608C.h (P06))
+//   [x] 0x20d350  KBase608C_vf78  (KBase608C::SetCommonValue1C, k2000/misc/KBase608C.h)
+//   [x] 0x20d3a0  KBase608C_vf98  (KBase608C::SetStepIndex, k2000/misc/KBase608C.h)
+//   [ ] 0x20d3f0  CKInputBlockAction_608c_maybe_Construct_2  [dead: no pointer to its descriptor 0xb7b7f8, no call]
+//   [x] 0x20d450  KBase608C_OnDeactivate_maybe  (KBase608C::OnDeactivate, k2000/misc/KBase608C.h (P06))
+//   [x] 0x20d508  CKInputBlockAction_608c_maybe_DeletingDestructor  (the implicit destructor (~KBase608C), delete)
+//   [x] 0x20d580  CKInputBlockAction_608c_maybe_Destructor  (~KBase608C, k2000/misc/KBase608C.h: the word block freed, then KBase628C's)
+//   [x] 0x20d5f0  CKInputBlockAction_608c_maybe_Load  (KBase608C::Load, k2000/misc/KBase608C.h (P06))
 //
 //   [ ] 0x9b18d0  KBase608C_vf74  [inline]
 //   [ ] 0x9b18e0  KBase608C_vf88  [inline]

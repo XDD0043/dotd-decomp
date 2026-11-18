@@ -14,16 +14,16 @@
 //   [ ] 0x1e0e0  KStub_Nop_1e0e0  [dead]
 //   [ ] 0x1e0e8  FUN_0001e0e8  [dead]
 //   [ ] 0x1e148  KStub_Nop_1e148  [dead]
-//   [ ] 0x1e150  CKGameLoop_HasRequestedLevel_maybe
-//   [ ] 0x1e178  CKGameLoop_GetGlobalUpdateInhibitByte_maybe
-//   [ ] 0x1e188  CKGameLoop_IncPauseCount_maybe
-//   [ ] 0x1e198  CKGameLoop_DecPauseCount_maybe
+//   [x] 0x1e150  CKGameLoop_HasRequestedLevel_maybe  (CKGameLoop::HasRequestedLevel)
+//   [x] 0x1e178  CKGameLoop_GetGlobalUpdateInhibitByte_maybe  (CKGameLoop_GetGlobalUpdateInhibitByte)
+//   [x] 0x1e188  CKGameLoop_IncPauseCount_maybe  (CKGameLoop::IncPauseCount, CKGameLoop.h)
+//   [x] 0x1e198  CKGameLoop_DecPauseCount_maybe  (CKGameLoop::DecPauseCount, CKGameLoop.h)
 //   [ ] 0x1e1a8  FUN_0001e1a8  [dead]
 //   [ ] 0x1e1f0  FUN_0001e1f0  [dead]
-//   [ ] 0x1e2e0  CKGameLoop_IsRequestedLevelWithGmFlag294_maybe
-//   [ ] 0x1e340  CKGameLoop_IsActiveModeWithGmVfC0_maybe
+//   [x] 0x1e2e0  CKGameLoop_IsRequestedLevelWithGmFlag294_maybe
+//   [x] 0x1e340  CKGameLoop_IsActiveModeWithGmVfC0_maybe
 //   [ ] 0x1e410  KStub_Return1_1e410  [dead]
-//   [ ] 0x1e418  KStub_Return1_1e418
+//   [x] 0x1e418  KStub_Return1_1e418  (the modal frame: returns 1; CFlashMessageBox2d.cpp KStub_Return1_1e418)
 //   [ ] 0x1e420  KStub_Return1_1e420  [dead]
 //   [ ] 0x1e428  FUN_0001e428  [dead]
 //   [x] 0x1e458  CKGameLoop_IsExitRequested_maybe
@@ -34,7 +34,7 @@
 //   [ ] 0x1e488  FUN_0001e488  [dead]
 //   [ ] 0x1e490  FUN_0001e490  [dead]
 //   [ ] 0x1e498  FUN_0001e498  [dead]
-//   [ ] 0x1e4a0  KStub_Return1_1e4a0
+//   [x] 0x1e4a0  KStub_Return1_1e4a0  (returns 1: its OPD is the constructor's raw +0x04 word, nothing calls it)
 //   [x] 0x1e4a8  CKGameLoop_Mode2_Resume_maybe
 //   [x] 0x1e538  CKGameLoop_Mode4_StartLevel_maybe
 //   [x] 0x1e5b8  CKGameLoop_Mode10_Quit
@@ -46,7 +46,7 @@
 //   [ ] 0x1e858  FUN_0001e858  [dead]
 //   [x] 0x1e890  UpdateGame
 //   [ ] 0x1ea08  StopLevelLoadingVideo_maybe  [dead]
-//   [ ] 0x1ea38  PlayLevelLoadingVideo_maybe
+//   [x] 0x1ea38  PlayLevelLoadingVideo_maybe  (PlayLevelLoadingVideo)
 //   [x] 0x1eae8  InitializeCKGameLoopSubsystems
 //   [x] 0x1ef38  CKGameLoop_ConstructBase_maybe
 //   [x] 0x1f0a0  CKGameLoop_Create
@@ -68,25 +68,25 @@
 //   [x] 0x20150  CKGameLoop_NotifySectorUnload_maybe
 //   [x] 0x202d8  CKGameLoop_NotifySectorActivate
 //   [x] 0x20498  CKGameLoop_Mode6_LevelLoad
-//   [ ] 0x20780  CKGameLoop_ShutdownSubsystems_maybe
+//   [x] 0x20780  CKGameLoop_ShutdownSubsystems_maybe
 //   [x] 0x20b98  CKGameLoop_Mode3_PauseMenu_maybe
-//   [ ] 0x20ce0  CKGameLoop_vf24
+//   [x] 0x20ce0  CKGameLoop_vf24
 //   [x] 0x20ff8  CKGameLoop_SetAppActive_maybe
 //   [x] 0x21130  CKGameLoop_NotifySectorDeactivate
 //   [x] 0x212f0  CKGameLoop_Mode5_LevelStart
-//   [ ] 0x21380  CKGameLoop_vf28
-//   [ ] 0x21388  CKGameLoop_vf2C
-//   [ ] 0x21390  CKGameLoop_vf30
+//   [x] 0x21380  CKGameLoop_vf28  (Save: returns 1, the default slot)
+//   [x] 0x21388  CKGameLoop_vf2C  (Load: returns 1, the default slot)
+//   [x] 0x21390  CKGameLoop_vf30  (PostLoad: returns 1, the default slot)
 //   [x] 0x21398  CKGameLoop_ClearReferences
 //   [ ] 0x213a0  FUN_000213a0  [dead]
 //   [x] 0x213c8  CKGameLoop_Mode9_LevelExit
 //   [x] 0x21678  CKGameLoop_Mode7_Loading
 //   [x] 0x21848  GameLoop
-//   [ ] 0x22128  CKGameLoop_DeletingDestructor
+//   [x] 0x22128  CKGameLoop_DeletingDestructor
 //   [x] 0x221e8  CKGameLoop_Mode1_Init
 //   [x] 0x22520  CKGameLoop_Mode0_Boot
-//   [ ] 0x22758  CKGameLoop_Destructor
-//   [ ] 0x22808  CKGameLoop_Destructor_2
+//   [x] 0x22758  CKGameLoop_Destructor
+//   [x] 0x22808  CKGameLoop_Destructor_2  (the same body as 0x22758: ~CKGameLoop; no reference)
 //
 //   [x] 0x992c78  CKGameLoop_GetClassGroup  [inline]
 //   [x] 0x992c80  CKGameLoop_GetClassId  [inline]
@@ -99,6 +99,7 @@
 #include <cstdlib>
 
 #include "k2000/core/Stub.h"
+#include "k2000/fx/ParticleUpdateScheduler.h"
 #include "k2000/graphical/system/CVideoManager.h"
 #include "k2000/io/KFileSystem.h"
 #include "k2000/io/KHostFS.h"
@@ -119,6 +120,7 @@
 #include "k2000/system/CellSysutilCallback.h"
 #include "k2000/system/IKTime.h"
 #include "k2000/system/CTimeManager.h"
+#include "platform/audio/rwa.h"
 
 // Globals of this unit (0x00c50efc..), and the two in .data at 0x00c29608.
 uint8_t g_engineBusy = 0;     // 0x00c50efc (stored as a word)
@@ -126,6 +128,12 @@ uint8_t g_bootLocLoaded = 0;  // 0x00c50f00
 int32_t g_mode1Step = 0;      // 0x00c50f14
 int32_t g_mode0Step = 0;      // 0x00c50f18
 void* g_pScratchBuffer16k = nullptr;  // 0x00c50d30 (InitializeCKGameLoopSubsystems; CKSrvCollision keeps it as m_aPotentialEdge)
+
+// 0x0001e2e0 CKGameLoop_IsRequestedLevelWithGmFlag294_maybe
+uint8_t CKGameLoop::IsRequestedLevelWithGmFlag294() const {
+    if (g_bootLocLoaded == 0 || m_gameManager->m_requestedLevel == -1 || g_pEngine->m_gameManager->m_unk294 == 0) return 0;
+    return MessageBox_GetJobMessageCount() == 0 ? 1 : 0;
+}
 
 namespace {
 float s_savedMasterVolume = 1.0f;  // 0x00c29608 (SetAppActive)
@@ -141,15 +149,14 @@ constexpr float kJobMessageAlpha = 1.0f;  // TOC 0xc0dd5c
 constexpr float kMutedVolume = 0.0f;      // TOC 0xc0dd58
 }  // namespace
 
-// STUB(C1.6) helpers whose units are not ported yet (bodies in k2000/stubs/BootStubs.cpp).
-void KStub_Nop_1038c8(CKInput* input);
-void RwaSetExitFlag(int32_t value);                 // 0x006e13e0 FUN_006e13e0 (stores 0x00ced0e0)
+// Other units' functions without a header of their own.
+void KStub_Nop_1038c8(CKInput* input);  // CKInput.cpp
 float SoundOutput_GetMasterVolume(CKSoundManager* manager);
 void SoundOutput_SetMasterVolume(float volume, CKSoundManager* manager);
 void CVideoManager_PauseAllVideos(CVideoManager* manager);
 void CVideoManager_ResumeAllVideos(CVideoManager* manager);
+// 0x000f39a0 ShaderUniforms_ReleaseBuiltinRecords_maybe: k2000/stubs/BootStubs.cpp (no built-in records).
 void ShaderUniforms_ReleaseBuiltinRecords();
-void ShutdownParticleUpdateScheduler(struct ParticleUpdateScheduler* scheduler);
 
 // 0x00c4b070: {OPD, adjustment 0} per mode.
 const CKGameLoop::ModeHandler CKGameLoop::kModeHandlers[kModeCount] = {
@@ -199,8 +206,10 @@ CKGameLoop::CKGameLoop() {
     m_unk64 = 0;
 }
 
-// 0x00022758 CKGameLoop_Destructor, 0x00022128 CKGameLoop_DeletingDestructor. STUB(C1.2): the embedded
-// queues and requests are destroyed by their own destructors.
+// 0x00022758 CKGameLoop_Destructor, 0x00022128 CKGameLoop_DeletingDestructor: the embedded requests and queues
+// destroyed, last first (SaveDataRequest_Destructor, CKMemcardRequestQueue_Destructor_maybe, LocLoadRequest_Destructor,
+// BootLoadRequest_Destructor_maybe, GameLevelLoadRequest_Destructor, CKLoadRequestQueue_Destructor_maybe): the
+// members' destructors, in C++'s reverse declaration order.
 CKGameLoop::~CKGameLoop() {}
 
 // 0x0001f0a0 CKGameLoop_Create
@@ -266,8 +275,79 @@ int32_t CKGameLoop::InitializeSubsystems(void* startupContext) {
     return 1;
 }
 
-// 0x00020780 CKGameLoop_ShutdownSubsystems_maybe  STUB(C1.6)
-void CKGameLoop::ShutdownSubsystems() { DOTD_STUB_ONCE("CKGameLoop::ShutdownSubsystems"); }
+// 0x00020780 CKGameLoop_ShutdownSubsystems_maybe (vt+0x98; Cleanup): the subsystems InitializeSubsystems made, released
+// and destroyed. The game manager's slot (+0x4c) keeps its pointer (the original clears only the engine's).
+void CKGameLoop::ShutdownSubsystems() {
+    if (g_pScratchBuffer16k != nullptr) {
+        Mem_FreeAligned16(g_pScratchBuffer16k);
+        g_pScratchBuffer16k = nullptr;
+    }
+    if (m_gameManager != nullptr) {
+        m_gameManager->ReleaseManager();  // vt+0xa8 (CKS08GameManager_vfA8 0x4ef6a8)
+        ClassRegistry_DestroyObject(m_gameManager);
+        Engine_SetGameManager(nullptr);
+    }
+    if (g_pEngine->m_level != nullptr) {
+        ClassRegistry_DestroyObject(g_pEngine->m_level);
+        Engine_SetLevel(nullptr);
+    }
+    if (g_pEngine->m_jobQueue != nullptr) {
+        delete g_pEngine->m_jobQueue;  // vt+0x04
+        Engine_SetJobQueue(nullptr);
+    }
+    if (m_loadingManager != nullptr) {
+        ClassRegistry_DestroyObject(m_loadingManager);
+        m_loadingManager = nullptr;
+        Engine_SetLoadingManager_2(nullptr);
+    }
+    if (m_pSavingManager != nullptr) {
+        ClassRegistry_DestroyObject(m_pSavingManager);
+        m_pSavingManager = nullptr;
+        Engine_SetSavingManager(nullptr);
+    }
+    if (m_serviceManager != nullptr) {
+        m_serviceManager->DestroyModule();  // vt+0x98 0x23578
+        ClassRegistry_DestroyObject(m_serviceManager);
+        m_serviceManager = nullptr;
+        Engine_SetServiceManager(nullptr);
+    }
+    if (m_hostFS != nullptr) {
+        m_hostFS->CloseCachedFiles();  // vt+0x1c 0x51020
+        if (m_hostFS != nullptr) delete m_hostFS;  // vt+0x04
+        m_hostFS = nullptr;
+    }
+    if (m_soundManager != nullptr) {
+        m_soundManager->DestroyModule();  // vt+0x98 0x1137b8
+        ClassRegistry_DestroyObject(m_soundManager);
+        m_soundManager = nullptr;
+        Engine_SetSoundManager(nullptr);
+    }
+    if (m_graphic != nullptr) {
+        m_graphic->DestroyModule();  // vt+0x98 0x59c88
+        ClassRegistry_DestroyObject(m_graphic);
+        m_renderer = nullptr;
+        m_graphic = nullptr;
+        Engine_SetGraphic(nullptr);
+    }
+    if (m_input != nullptr) {
+        m_input->DestroyModule();  // vt+0x98 0x10c450
+        ClassRegistry_DestroyObject(m_input);
+        m_input = nullptr;
+        Engine_SetInput(nullptr);
+    }
+    if (m_timeManager != nullptr) {
+        m_timeManager->Destroy();  // 0x53998
+        if (m_timeManager != nullptr) delete m_timeManager;  // vt+0x04
+        m_timeManager = nullptr;
+        Engine_SetTimeManager(nullptr);
+    }
+    if (m_errorTable != nullptr) {
+        m_errorTable->DestroyObjects();  // vt+0x10 0x1dc70
+        if (m_errorTable != nullptr) delete m_errorTable;  // vt+0x04
+        m_errorTable = nullptr;
+        Engine_SetErrorTable(nullptr);
+    }
+}
 
 // 0x0001f658 CKGameLoop_vf38: reset every subsystem to its initial state.
 void CKGameLoop::SetDefaultState(int32_t mode) {
@@ -462,12 +542,14 @@ void CKGameLoop::ShutdownAndExit() {
     g_pEngine->m_soundManager->ShutdownAudio();
     m_loadQueue.Abort();
     m_memcardQueue.Abort();
-    // CKShaderRequestQueue_Abort(shaderManager + 0x8508), CKFileSystemRequestQueue_Abort(hostFS + 0x20):
-    // STUB(C1.4 / C1.2), those queues do not exist yet.
+    g_pShaderManager->m_requestQueue.Abort();       // 0x1011f0 (shader manager +0x8508)
+    KHostFS_GetInstance()->m_requestQueue.Abort();  // 0x51990, 0x4f360 (host file system +0x20)
     m_shutdownReady = 1;
     ShutdownParticleUpdateScheduler(g_pEngine->m_particleScheduler);
     m_loadQueue.JoinThreads();
     m_memcardQueue.JoinThreads();
+    g_pShaderManager->m_requestQueue.JoinThreads();       // 0x1011b0
+    KHostFS_GetInstance()->m_requestQueue.JoinThreads();  // 0x4f320
     dotd::trace::Boot("exit(0)");  // trace only (not in the original)
     std::exit(0);
 }
@@ -486,6 +568,16 @@ void UpdateGame(CKGameLoop* gameLoop) {
         gameLoop->m_pendingSubsystemReset = 0;
     }
     gameLoop->m_serviceManager->Update(frameClock);
+}
+
+// 0x0001e340 CKGameLoop_IsActiveModeWithGmVfC0_maybe (1 << mode as a 64-bit shift; modes above 10 answer 1).
+uint8_t CKGameLoop::IsActiveModeWithGmVfC0() const {
+    const uint32_t mode = m_mode;
+    if (mode > 10) return 1;
+    const uint64_t bit = static_cast<uint64_t>(1) << mode;
+    if ((bit & 0x403) != 0) return 0;
+    if ((bit & 0x3fc) != 0) return g_pEngine->m_gameManager->VfC0() != 0 ? 1 : 0;  // vt+0xc0
+    return 1;
 }
 
 // 0x00021848 GameLoop (ported from the assembly).
@@ -636,11 +728,7 @@ uint8_t CKGameLoop::Mode0_Boot(IKTime* /*frameClock*/, int32_t phase, uint8_t /*
             m_gameManager->RecacheLocStrings();
             KStub_Nop_1038c8(m_input);
             g_bootLocLoaded = 1;
-            CVideoManager* video = g_pEngine->m_videoManager;
-            if (!video->IsLoadingVideoActive()) {
-                video->m_pLoadingVideo = g_pEngine->m_gameManager->GetLoadingVideo(-1);
-                video->PlayLoadingVideo();
-            }
+            PlayLevelLoadingVideo(1);  // 0x0001ea38 (inlined)
             g_mode0Step = 3;
         }
     }
@@ -657,14 +745,7 @@ uint8_t CKGameLoop::Mode1_Init(IKTime* /*frameClock*/, int32_t phase, uint8_t ot
     if (phase == kPhaseEnter) {
         s_mode1FromBoot = otherMode == kModeBoot ? 1 : 0;
         m_gameManager->UnloadCurrentLevel();
-        const uint8_t fromBoot = s_mode1FromBoot;
-        CVideoManager* video = g_pEngine->m_videoManager;
-        if (!video->IsLoadingVideoActive()) {
-            CDefaultGameManager* manager = g_pEngine->m_gameManager;
-            const int32_t level = fromBoot == 0 ? manager->m_requestedLevel : -1;
-            video->m_pLoadingVideo = manager->GetLoadingVideo(level);
-            video->PlayLoadingVideo();
-        }
+        PlayLevelLoadingVideo(s_mode1FromBoot);  // 0x0001ea38 (inlined)
         g_mode1Step = 0;
         return kModeInit;
     }
@@ -723,6 +804,9 @@ uint8_t CKGameLoop::Mode1_Init(IKTime* /*frameClock*/, int32_t phase, uint8_t ot
     } else {
         if (m_inhibitJobMessage != 0 || m_locRequest.CheckDone() == 0) return kModeInit;
         m_gameManager->ReloadLocalizedData();
+        // PLATFORM (perf, not in the original): the level is in and its loading video still up: the shader programs
+        // it used in earlier runs are built here instead of at their first draw (CShaderManagerPSGL.h).
+        ShaderManagerPSGL_PrewarmLevelPrograms(static_cast<CDefaultGameManager*>(m_gameManager)->m_currentLevel);
         g_pEngine->m_videoManager->StopLoadingVideo();
         g_mode1Step = 3;
     }
@@ -879,7 +963,7 @@ uint8_t CKGameLoop::Mode7_Loading(IKTime* /*frameClock*/, int32_t phase, uint8_t
     }
     if (phase != kPhaseTick) return kModeLoading;
     if (m_hostFS->IsIdle() != 0 && m_soundManager->Vf74() != 0 && g_pEngine->m_level->Vf74() != 0) return kModeInGame;
-    if (s_waitTime < 10.0f) {
+    if (!(s_waitTime >= kLoadingMessageDelay)) {  // fcmpu + cror gt|eq: a NaN wait keeps adding
         s_waitTime = s_waitTime + g_pEngine->m_timeManager->m_pTime->m_afDeltaTime[IKTime::SYSTEM_TIME];
         return kModeLoading;
     }
@@ -931,7 +1015,7 @@ uint8_t CKGameLoop::Mode9_LevelExit(IKTime* /*frameClock*/, int32_t phase, uint8
         if (m_stopReason == 2) return kModeQuit;
         if (m_gameManager->m_requestedLevel != -1) return kModeInit;
     }
-    if (s_waitTime < 10.0f) {
+    if (!(s_waitTime >= kLoadingMessageDelay)) {  // fcmpu + cror gt|eq: a NaN wait keeps adding
         s_waitTime = s_waitTime + g_pEngine->m_timeManager->m_pTime->m_afDeltaTime[IKTime::SYSTEM_TIME];
         return kModeLevelExit;
     }
@@ -941,3 +1025,57 @@ uint8_t CKGameLoop::Mode9_LevelExit(IKTime* /*frameClock*/, int32_t phase, uint8
 
 // 0x0001e5b8 CKGameLoop_Mode10_Quit
 uint8_t CKGameLoop::Mode10_Quit(IKTime*, int32_t, uint8_t) { return kModeQuit; }
+
+// ==== C2.8 save-menu ===========================================================================================
+#include "k2000/logic/CDefaultGameManager.h"
+#include "k2000/logic/ui/CLocManager.h"
+#include "k2000/managers/CKGraphic.h"
+#include "k2000/managers/CKInput.h"
+#include "k2000/managers/CKServiceManager.h"
+#include "k2000/managers/CKSoundManager.h"
+
+// 0x00020ce0 CKGameLoop_vf24 (XXL2 RecursiveRegistration)
+void CKGameLoop::RecursiveRegistration(int32_t type) {
+    IKSerializable* last;
+    int32_t lastType;
+    if (type == 0) {
+        g_pEngine->m_locManager->RecursiveRegistration(0);
+        m_serviceManager->RecursiveRegistration(0);
+        m_graphic->RecursiveRegistration(0);
+        m_input->RecursiveRegistration(0);
+        m_soundManager->RecursiveRegistration(0);
+        last = m_gameManager;
+        lastType = 0;
+    } else if (type == 1) {
+        g_pEngine->m_locManager->RecursiveRegistration(1);
+        m_serviceManager->RecursiveRegistration(1);
+        m_gameManager->RecursiveRegistration(1);
+        m_input->RecursiveRegistration(1);
+        m_soundManager->RecursiveRegistration(1);
+        last = m_graphic;
+        lastType = 1;
+    } else {
+        if (static_cast<uint32_t>(type - 4) > 3u) return;
+        m_serviceManager->RecursiveRegistration(type);
+        m_gameManager->RecursiveRegistration(type);
+        m_input->RecursiveRegistration(type);
+        return;
+    }
+    last->RecursiveRegistration(lastType);
+}
+
+// 0x0001e150 CKGameLoop_HasRequestedLevel_maybe
+bool CKGameLoop::HasRequestedLevel() const { return m_gameManager->m_requestedLevel != -1; }
+
+// 0x0001e178 CKGameLoop_GetGlobalUpdateInhibitByte_maybe
+uint8_t CKGameLoop_GetGlobalUpdateInhibitByte() { return g_systemMenuOpen; }
+
+// 0x0001ea38 PlayLevelLoadingVideo_maybe (Mode0_Boot and Mode1_Init have it inlined)
+void PlayLevelLoadingVideo(int32_t bootVideo) {
+    CVideoManager* video = g_pEngine->m_videoManager;
+    if (video->IsLoadingVideoActive()) return;
+    CDefaultGameManager* manager = g_pEngine->m_gameManager;
+    const int32_t level = bootVideo == 0 ? manager->m_requestedLevel : -1;
+    video->m_pLoadingVideo = manager->GetLoadingVideo(level);  // vt+0xd8
+    video->PlayLoadingVideo();
+}

@@ -7,21 +7,21 @@
 //   [x] 0x36a90  CKTrcText_Delete
 //   [ ] 0x36ae0  RegisterCKTrcTextClass
 //   [ ] 0x36b58  _GLOBAL__I_36b58
-//   [ ] 0x36b68  CKTrcText_PostLoad
+//   [x] 0x36b68  CKTrcText_PostLoad  (CKLocText's PostLoad, inherited)
 //   [x] 0x36b90  CKTrcText_Load
 //   [ ] 0x36bb8  CKTrcText_Save
-//   [ ] 0x36be0  CKTrcText_RecursiveRegistration
+//   [x] 0x36be0  CKTrcText_RecursiveRegistration  (CKLocText's RecursiveRegistration, inherited)
 //   [x] 0x36c08  CKTrcText_ClearGameData_maybe
 //   [x] 0x36c30  CKTrcText_InitGameData
-//   [ ] 0x36c58  CKTrcText_DeletingDestructor
-//   [ ] 0x36ca0  CKTrcText_Destructor
-//   [ ] 0x36cd0  CKTrcText_BaseDestructor
+//   [x] 0x36c58  CKTrcText_DeletingDestructor  (the deleting form of 0x36ca0)
+//   [x] 0x36ca0  CKTrcText_Destructor  (the vtable, then ~CKLocText: ~CKTrcText)
+//   [x] 0x36cd0  CKTrcText_BaseDestructor  (the same as 0x36ca0 CKTrcText_Destructor)
 //   [ ] 0x36d00  CKTrcText_Construct  [dead]
 //   [ ] 0x36d38  CKTrcText_Construct_2  [dead]
 //   [x] 0x36d70  CKTrcText_DeleteArray
 //   [x] 0x36e18  CKTrcText_CreateArray
 //   [x] 0x36ed0  CKTrcText_Create
-//   [ ] 0x36f28  CLocManager_Delete
+//   [x] 0x36f28  CLocManager_Delete  (CLocManager::Delete, CLocManager.cpp)
 //   [ ] 0x36f78  FUN_00036f78  [dead]
 //   [ ] 0x36f80  FUN_00036f80  [dead]
 //   [x] 0x36fb8  CLocManager_vf50

@@ -5,8 +5,8 @@
 //   [x] 0x542d8  CKTime_Initialize
 //   [x] 0x54318  CKTime_Destructor_maybe
 //   [x] 0x54328  CKTime_Construct_maybe
-//   [ ] 0x54360  CKTime_Construct_2_maybe  (second compilation of the constructor)
-//   [ ] 0x54398  CKTime_Destructor_2_maybe  (second compilation of the destructor)
+//   [ ] 0x54360  CKTime_Construct_2_maybe  (second compilation of the constructor)  [dead: no pointer to its descriptor 0xb3ed58, no call]
+//   [ ] 0x54398  CKTime_Destructor_2_maybe  (second compilation of the destructor)  [dead: no pointer to its descriptor 0xb3ed60, no call]
 //   [x] 0x543a8  CKTime_DeletingDestructor_maybe
 //   [x] 0x54248  KStub_Nop_54248  (vt+0x10, emitted just before this unit)
 #include "k2000/system/IKTime.h"

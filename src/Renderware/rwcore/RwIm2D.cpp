@@ -6,6 +6,8 @@
 // The PSGL driver's near screen z (RWEngine +0x18): 0 (GL's window z of the near plane, before the
 // depth range; the value is only copied into the vertices).
 RwReal RwIm2DGetNearScreenZ() { return 0.0f; }
+// The far screen z (RWEngine +0x1c): 1 (GL's window z of the far plane; only copied into the vertices, as the near one).
+RwReal RwIm2DGetFarScreenZ() { return 1.0f; }
 
 RwBool RwIm2DRenderIndexedPrimitive(RwPrimitiveType primType, RwIm2DVertex* vertices, RwInt32 numVertices,
                                     RwImVertexIndex* indices, RwInt32 numIndices) {

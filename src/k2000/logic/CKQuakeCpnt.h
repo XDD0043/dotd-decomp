@@ -14,6 +14,9 @@ class CKQuakeCpntUpdater;
 class CKQuakeCpnt : public IKComponent {
 public:
     DOTD_CLASS_KEY(kCategoryLogic, 0xd9)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9ba1a8
+        return key == 0x364c || key == 0x6 || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKQuakeCpnt)
 
     // 0x1c bytes on the PS3: a curve reference, then six words, all byte-swapped. CKQuakeCpnt_Evaluate_maybe 0x24e310

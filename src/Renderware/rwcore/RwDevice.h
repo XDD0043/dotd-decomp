@@ -11,14 +11,14 @@
 
 struct RwCamera;
 struct RwIm3DDraw;
-struct RwShim_DdsRaster;
+struct RwRaster;
 struct RpAtomicDraw;
 struct RwIm3DRenderStates;
 struct RwIm2DVertex;
 
-// The device texture of a raster (a DDS file or an RW Image's pixels), created on first use; 0 when the
-// raster cannot be shown (unknown format) or without a device.
-uint32_t RwDevice_GetRasterTexture(RwShim_DdsRaster* raster);
+// The device texture of a raster (a camera texture's render target colour, else its GL texture: platform/gfx/raster.h),
+// created on first use; 0 when the raster cannot be shown or without a device.
+uint32_t RwDevice_GetRasterTexture(RwRaster* raster);
 
 // ---- camera rasters (C2.4 step 8) ------------------------------------------------------------------------------
 // The PSGL driver keeps a frame buffer object per camera-texture raster (rwRASTERTYPECAMERATEXTURE, 5); the camera
@@ -44,6 +44,19 @@ void RwDevice_EndCameraUpdate(RwCamera* camera);
 // program.
 typedef uint32_t (*RwDeviceIm2DShaderBind)();
 void RwDevice_SetIm2DShaderBindCallBack(RwDeviceIm2DShaderBind callback);
+// The shader bind callback of the immediate 3D pipeline (0x0076b590 PSGLImmediate_SetShaderBindCallBack_maybe, storage
+// 0xc4d674, default the nop 0x76b588; the shader manager installs ShaderManagerPSGL_BindImmediate3DShaders_maybe 0xffde8).
+// DrawPSGLImmediateGeometry 0x76b610 calls it with the pool's descriptor before every Im3D draw; when it returns a GL
+// program it has bound that program and filled its uniforms, and the draw goes through it (object-space vertices at the
+// shader's input slots POSITION 0, COLOR0 3, TEXCOORD0 8, the raster on unit 0 with the render states' sampler state);
+// 0: the device's own program.
+typedef uint32_t (*RwDeviceIm3DShaderBind)(const RwIm3DDraw& draw);
+void RwDevice_SetIm3DShaderBindCallBack(RwDeviceIm3DShaderBind callback);
+// Not in the original (the PTank's draws, Renderware/rpptank/RpPTankRender.cpp): the PS3 draws PTank quads with its own
+// glDrawArrays (DrawPSGLParticleQuadBatch 0x77aea8) and the programs the PTank's shader hook bound, not through the
+// immediate pipeline; here they are RwIm3D draws, and while this bind is set it replaces the Im3D callback (null: the
+// callback again).
+void RwDevice_SetIm3DShaderBindOverride(RwDeviceIm3DShaderBind bind);
 
 // RwCameraBeginUpdate as far as drawing goes: the camera's view and projection become the device's
 // (RW's camera space: x to the left, y up, z forward; the view window gives the half extents at z = 1).
@@ -67,8 +80,11 @@ dotd::gfx::DrawState RwDevice_CurrentMeshState(int* alphaFunc, float* alphaRef);
 // The sampler state (filter, addressing) of a texture, and its device texture in `texture` (0: none).
 dotd::gfx::DrawState RwDevice_TextureState(const RwTexture* texture);
 
-// Draws one recorded Im3D primitive / one atomic render (the PSGL immediate and atomic pipelines).
-void RwDevice_DrawIm3D(const RwIm3DDraw& draw);
+// Draws one Im3D primitive / one atomic render (the PSGL immediate and atomic pipelines). The Im3D primitive: `draw` is
+// its header (primitive type, flags, LTM, states), the geometry the pool's arrays (numIndices 0: not indexed, or an
+// indexed primitive without indices, which draws nothing).
+void RwDevice_DrawIm3D(const RwIm3DDraw& draw, const RwIm3DVertex* vertices, size_t numVertices, const RwImVertexIndex* indices,
+                       size_t numIndices);
 void RwDevice_DrawAtomic(const RpAtomicDraw& draw);
 // Draws Im2D vertices (pixels of the current camera's raster, y down) with the render states in force.
 void RwDevice_DrawIm2D(RwPrimitiveType primType, const RwIm2DVertex* vertices, RwInt32 numVertices,

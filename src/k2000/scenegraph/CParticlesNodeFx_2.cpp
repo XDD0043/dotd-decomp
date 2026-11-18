@@ -4,17 +4,17 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0xe5fb8  CParticlesNodeFx_RecursiveRegistration
+//   [x] 0xe5fb8  CParticlesNodeFx_RecursiveRegistration  (INodeFx's (returns 1, registers nothing): CSGLeaf's)
 //   [x] 0xe5fe0  EnqueueParticleNodeRenderWork
 //   [x] 0xe6160  CParticlesNodeFx_DeleteArray
 //   [x] 0xe6200  CreateCParticlesNodeFx
 //   [ ] 0xe6278  CParticlesNodeFx_CopyEmitPointArrays_maybe  [dead]
 //   [ ] 0xe6370  FUN_000e6370  [dead]
-//   [ ] 0xe64b0  CParticlesNodeFx_TransformEmitPointsToWorld_maybe
-//   [ ] 0xe6598  CParticlesNodeFx_Destroy
+//   [x] 0xe64b0  CParticlesNodeFx_TransformEmitPointsToWorld_maybe
+//   [x] 0xe6598  CParticlesNodeFx_Destroy
 //   [x] 0xe65f0  CParticlesNodeFx_PostLoad
 //   [x] 0xe6768  CParticlesNodeFx_CreateArray
-//   [ ] 0xe6868  CParticlesNodeFx_MessageProc
+//   [x] 0xe6868  CParticlesNodeFx_MessageProc
 //   [x] 0xe6938  ParticleFxNode_StopEmitting_maybe
 //   [x] 0xe6a00  CParticlesNodeFx_Load
 //   [x] 0xe6ba8  UpdateParticleNodeSimulation
@@ -40,9 +40,11 @@
 #include "k2000/misc/Engine.h"
 #include "k2000/render/CRenderer.h"
 #include "k2000/system/IKTime.h"
-#include "k2000/core/Stub.h"
+#include "k2000/misc/ClassRegistry.h"
+#include "k2000/scenegraph/CAnimatedNode.h"
 #include "k2000/geometry/CGeometry.h"
 #include "k2000/io/IKFile.h"
+#include "k2000/misc/Mat4.h"
 
 // Inlined in 0x000e6200 CreateCParticlesNodeFx (InitializeCNode, the INodeFx vtable, then these).
 CParticlesNodeFx::CParticlesNodeFx() {
@@ -72,20 +74,14 @@ int32_t CParticlesNodeFx::Load(IKFile* file, int32_t type) {
 // flags follow scene flag 0x400 (ACTIVE | EMIT, 0xa), flag 0x2000 is set when there is a point list, and
 // the emission speed adjustment is cleared.
 int32_t CParticlesNodeFx::PostLoad(int32_t type) {
-    // 0x000eca78 CNodeFx_PostLoadBase_maybe (INodeFx): the geometries' render bits 22, 23, 25 from
-    // +0x28..+0x2a and their vt+0x80, then CNode_PostLoad 0xcc340 (the atomics on the node's frame).
-    // STUB(C2): not ported; the base's PostLoad (CNode_PostLoad: the frame under its parent's, the atomics
-    // on the frame) stands in.
+    // 0x000eca78 CNodeFx_PostLoadBase_maybe (INodeFx, k2000/fx/CNodeFx.cpp): the geometries' render bits 22,
+    // 23, 25 from +0x28..+0x2a and their vt+0x80, then CNode_PostLoad 0xcc340 (the atomics on the node's frame).
     INodeFx::PostLoad(type);
-    CGeometry* geometry = static_cast<CGeometry*>(m_lGeometryList);
-    RpAtomic* atomic = geometry != nullptr ? geometry->m_pRpAtomic : nullptr;
-    RpPrtStdEmitter* emitter = atomic != nullptr ? RpPrtStdAtomicGetEmitter(atomic) : nullptr;
+    // BUG(original): neither the first geometry nor its atomic's emitter is checked (every particle node's
+    // atomic has one).
+    RpAtomic* atomic = static_cast<CGeometry*>(m_lGeometryList)->m_pRpAtomic;
+    RpPrtStdEmitter* emitter = RpPrtStdAtomicGetEmitter(atomic);
     m_pRpPrtStdEmitter = emitter;
-    if (emitter == nullptr) {
-        // Port-only guard: the original dereferences the emitter (every particle node's atomic has one).
-        DOTD_STUB_ONCE("CParticlesNodeFx_PostLoad: a particle node without an RpPrtStd emitter");
-        return 1;
-    }
     const int32_t offset =
         RpPrtStdPropTabGetPropOffset(emitter->emtClass->propTab, rpPRTADVPROPERTYCODEEMITTERPOINTLIST);
     if (offset == -1) {
@@ -132,7 +128,16 @@ float NodeFrameTime(uint32_t flags, const IKTime* frameClock) {
     return 0.0f;
 }
 
-const RwV3d* FramePosition(RwFrame* frame) { return &RwFrameGetLTM(frame)->pos; }
+// The node frame's stored LTM position (RwFrame +0x80, read directly; no hierarchy sync).
+const RwV3d* FramePosition(RwFrame* frame) { return &FrameLtm(frame)->pos; }
+
+// 0x0023f878 Mat4_Invert_maybe: RwMatrixInvert through its TOC bridge (0x98e1e0).
+void Mat4_Invert(RwMatrix* out, const RwMatrix* in) { RwMatrixInvert(out, in); }
+// 0x0023f7b0 Mat4_TransformVectors(matrix, out, in, count): RwV3dTransformVectors(out, in, count, matrix) through its
+// TOC bridge (0x98e1f0).
+void Mat4_TransformVectors(const RwMatrix* matrix, RwV3d* out, const RwV3d* in, int32_t count) {
+    RwV3dTransformVectors(out, in, count, matrix);
+}
 
 }  // namespace
 
@@ -242,12 +247,10 @@ void PrepareParticleNodeForRendering(CParticlesNodeFx* node, RenderQueue** stage
                 std->prtInitDir.x = scale * std->prtInitDir.x;
                 std->prtInitDir.z = scale * std->prtInitDir.z;
                 std->prtInitDir.y = scale * std->prtInitDir.y;
-                // 0x0023f878 Mat4_Invert_maybe + 0x0023f7b0 Mat4_TransformVectors (the direction into the
-                // frame's space). STUB(C2): the K matrix routines are not ported; RW's stand in.
-                DOTD_STUB_ONCE("PrepareParticleNodeForRendering: Mat4_Invert / Mat4_TransformVectors (RW stand-ins, C2)");
+                // The direction into the frame's space: the inverse of the frame's stored LTM (+0x50).
                 RwMatrix inverse;
-                RwMatrixInvert(&inverse, RwFrameGetLTM(node->m_pRwFrame));
-                RwV3dTransformVector(&std->prtInitDir, &std->prtInitDir, &inverse);
+                Mat4_Invert(&inverse, FrameLtm(node->m_pRwFrame));
+                Mat4_TransformVectors(&inverse, &std->prtInitDir, &std->prtInitDir, 1);
                 std->prtInitDir.y = ppc::fmadds(savedDir.y, savedVel, std->prtInitDir.y);
                 std->prtInitDir.x = ppc::fmadds(savedDir.x, savedVel, std->prtInitDir.x);
                 std->prtInitDir.z = ppc::fmadds(savedDir.z, savedVel, std->prtInitDir.z);
@@ -274,12 +277,58 @@ void PrepareParticleNodeForRendering(CParticlesNodeFx* node, RenderQueue** stage
         if (list == nullptr) {
             emit = true;
         } else {
-            uint8_t count = node->m_ui8NbActivePoints;
+            uint32_t count = node->m_ui8NbActivePoints;
             if (node->m_pParent != nullptr && (node->m_sgProperties & 0x10000) != 0) {
-                // The points from the animated parent's bone positions (CAnimatedNode_GetSubtreeBoneCount
-                // 0xc8bf0 / GetBoneMatrix 0xc8bd8, in order or at random (0x20000) skipping the four excluded
-                // bones); flag 0x2000 when the count changed. STUB(C2): no animated nodes yet.
-                DOTD_STUB_ONCE("PrepareParticleNodeForRendering: bone emission points (C2)");
+                // The points from the (animated) parent's bone positions: at most its subtree's bone count, in
+                // order from the last bone down, or at random (0x20000: one rand() draw per point, bone =
+                // (rand & 0xffff) * bones >> 16), skipping the four excluded bones (each skip one point less);
+                // flag 0x2000 when the count changed. BUG(original): the parent is not checked to be animated.
+                const CAnimatedNode* parent = static_cast<const CAnimatedNode*>(static_cast<CSGLeaf*>(node->m_pParent));
+                const uint32_t loaded = count;
+                uint32_t points = loaded;
+                if (!(parent->GetSubtreeBoneCount(0) > loaded)) points = parent->GetSubtreeBoneCount(0);
+                const int8_t* excluded = node->m_ai8BoneExclusion;
+                float* out = reinterpret_cast<float*>(list->pointList);
+                auto isExcluded = [excluded](int8_t bone) {
+                    return excluded[0] == bone || excluded[1] == bone || excluded[2] == bone || excluded[3] == bone;
+                };
+                if ((node->m_sgProperties & 0x20000) == 0) {
+                    uint32_t bone = points - 1;
+                    for (uint32_t left = points; left != 0;) {
+                        --left;
+                        if (isExcluded(static_cast<int8_t>(bone))) {
+                            --points;
+                            --bone;
+                            continue;
+                        }
+                        const RwMatrix* matrix = parent->GetBoneMatrix(left);
+                        out[2] = matrix->pos.z;
+                        out[0] = matrix->pos.x;
+                        out[1] = matrix->pos.y;
+                        out += 3;
+                        --bone;
+                    }
+                } else {
+                    const uint32_t bones = parent->GetSubtreeBoneCount(0);
+                    for (uint32_t left = points; left != 0;) {
+                        --left;
+                        const uint32_t product = (static_cast<uint32_t>(Rand_Int()) & 0xffffu) * bones;
+                        const uint32_t bone = (product >> 16) & 0xffffu;
+                        if (isExcluded(static_cast<int8_t>(bone))) {
+                            --points;
+                            continue;
+                        }
+                        const RwMatrix* matrix = parent->GetBoneMatrix(bone & 0xffu);
+                        out[2] = matrix->pos.z;
+                        out[0] = matrix->pos.x;
+                        out[1] = matrix->pos.y;
+                        out += 3;
+                    }
+                }
+                if (points != loaded) {
+                    node->m_sgProperties = (node->m_sgProperties & ~0x2000u) | 0x2000u;
+                    count = points;
+                }
             }
             if (count == 0) {
                 emit = false;
@@ -382,6 +431,25 @@ void PrepareParticleNodeForRendering(CParticlesNodeFx* node, RenderQueue** stage
     node->m_oldPosition.z = pos->z;
 }
 
+// 0x000e64b0 CParticlesNodeFx_TransformEmitPointsToWorld_maybe
+uint32_t CParticlesNodeFx::TransformEmitPointsToWorld(CVector3* points, uint32_t maxPoints, CVector3* dirs,
+                                                      uint32_t maxDirs) {
+    RpPrtAdvEmtPointList* list = m_pAdvEmtPointList;
+    uint32_t count = 0;
+    const CMatrix34* ltm = reinterpret_cast<const CMatrix34*>(FrameLtm(m_pRwFrame));  // node +0x04, +0x50
+    if (points != nullptr) {
+        count = m_ui8NbActivePoints;
+        if (count > maxPoints) count = maxPoints;  // cmplw / bgt
+        Mat4_TransformPoints(ltm, points, reinterpret_cast<const CVector3*>(list->pointList), static_cast<int32_t>(count));  // 0x0023f7e8
+    }
+    if (dirs != nullptr) {
+        count = m_ui8NbActivePoints;
+        if (count > maxDirs) count = maxDirs;
+        Mat4_TransformVectors(ltm, dirs, reinterpret_cast<const CVector3*>(list->directionList), static_cast<int32_t>(count));  // 0x0023f7b0
+    }
+    return count;
+}
+
 // 0x000e6938 ParticleFxNode_StopEmitting_maybe
 void CParticlesNodeFx::StopEmitting() {
     RpPrtStdEmitter* emitter = m_pRpPrtStdEmitter;
@@ -396,4 +464,35 @@ void CParticlesNodeFx::StopEmitting() {
     emitter->flag &= ~rpPRTSTDEMITTERFLAGEMIT;
     RpPrtStdAtomicUpdateAndEmit(atomic, &deltaTime);  // RW_UpdateParticleAtomic_2
     atomic->boundingSphere[3] = atomic->boundingSphere[3] + m_fBoundingRadius;
+}
+
+// 0x000e6598 CParticlesNodeFx_Destroy
+void CParticlesNodeFx::Destroy() {
+    ParticleUpdateScheduler* scheduler = g_pEngine->m_particleScheduler;
+    scheduler->workCount = 0;
+    scheduler->activeCount = 0;
+    CNode::Destroy();
+    m_pRpPrtStdEmitter = nullptr;
+    m_pAdvEmtPointList = nullptr;
+}
+
+// C2.8 port-all P11.
+
+// 0x000e6868 CParticlesNodeFx_MessageProc
+int32_t CParticlesNodeFx::MessageProc(uint16_t message, void* data) {
+    if (message == 0x1a00) {
+        const uint8_t emit = *static_cast<const uint8_t*>(data);
+        m_sgProperties = (m_sgProperties & 0xfff7fbffu) | (static_cast<uint32_t>(emit) << 10);
+        if (emit == 0) {
+            m_pRpPrtStdEmitter->flag &= 0xfffffff7u;  // the emit flag (0x8) off
+            return 0;
+        }
+    } else if (message == 0x1a01) {
+        m_sgProperties = (m_sgProperties & 0xfff7f9ffu) | 0x200u | 0x400u;
+    } else {
+        return 1;
+    }
+    m_fEmissionSpeedAdjustment = 0.0f;
+    m_pRpPrtStdEmitter->flag |= rpPRTSTDEMITTERFLAGACTIVE | rpPRTSTDEMITTERFLAGEMIT;  // 0xa
+    return 0;
 }

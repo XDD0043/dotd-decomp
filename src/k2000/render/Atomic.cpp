@@ -3,7 +3,7 @@
 //
 // Checklist, address order. [dead] = unreferenced duplicate, do not port.
 // [inline] = out-of-line copy of an inline/template method: belongs in the class header.
-//   [ ] 0xc2848  Atomic_RenderIm3DSoftwareSkinned_maybe  [dead: its descriptor 0xb4d418 is never referenced]
+//   [ ] 0xc2848  Atomic_RenderIm3DSoftwareSkinned_maybe  [dead: no pointer to its descriptor 0xb4d418, no call]
 //
 // Animation checkpoint, step 5: a software-skinned Im3D render callback (Skin_ComputeBoneMatrixPalette_maybe 0xc2278 into the matrix
 // buffer 0xc5d290, Skin_BlendVerticesSoftware_maybe 0xc1b50, RwIm3DTransform / RenderIndexedPrimitive). No atomic

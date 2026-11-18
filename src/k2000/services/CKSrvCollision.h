@@ -6,7 +6,9 @@
 //
 // The loader asks it for the 50 projectile volumes (FindNonRecreableInstances) that InitializeService
 // creates; the level file then gives the projectile targets, the colliding lives and the contacts to
-// test. The collision tests themselves (m_IntersectionMatrix, UpdateCKSrvCollision) are STUB(C1.6).
+// test. UpdateCKSrvCollision (0x194440) and the test table (m_IntersectionMatrix, set by InitializeService) are ported;
+// of the 36 pair tests (k2000/physics/CollisionTest*.cpp) the five whose shape pairs no LVL010 volume pair has are C2.9
+// stubs there, as are the wall / collision-mesh ray casts (none in the game's files).
 #pragma once
 #include <cstdint>
 
@@ -146,6 +148,9 @@ public:
 class CKSrvCollision : public IKService {
 public:
     DOTD_CLASS_KEY(kCategoryService, 0x2)
+    int32_t IsKindOfClass(uint32_t key) override {  // vt+0x08 0x9aa6c8
+        return key == 0x81 || key == 0x1 || key == 0x3fe || key == 0xc;
+    }
     DOTD_DECLARE_FACTORIES(CKSrvCollision)
 
     static constexpr uint32_t kProjectileCount = 50;
@@ -153,7 +158,12 @@ public:
     static constexpr uint32_t kBVListingCount = 400;
 
     CKSrvCollision();  // inlined in 0x001949d8 CKSrvCollision_Create (0x191e60 Construct has the same stores)
-    ~CKSrvCollision() override {}
+    // 0x00195620 CKSrvCollision_Destructor (0x1944e8 DeletingDestructor + delete): the four global array pointers
+    // (0xcea8b8, 0xcea8ac, 0xcea8b0, 0xcea8b4) cleared; the collision arrays' elements only take their base vtable.
+    ~CKSrvCollision() override;
+    // vt+0x24 0x00191fb8 CKSrvCollision_RecursiveRegistration: type 0: the service registered, then the 50 projectile
+    // bounding volumes (m_aProjectile[i].m_pBoundingVolume) get RecursiveRegistration(0).
+    void RecursiveRegistration(int32_t type) override;
 
     // vt+0x20 0x00191f60 CKSrvCollision_FindNonRecreableInstances: the 50 projectile volumes, only when
     // exactly 50 of class 11:6 are asked for.
@@ -245,6 +255,9 @@ public:
     // 0x00192a70 CKSrvCollision_AcquireDynSphere_maybe (XXL2 GetProjectile): the next free projectile volume, reset
     // (moving and on, at its frame's position, no owner), or null when the 50 are used.
     IKSerializable* AcquireDynSphere();
+    // 0x00191a38 CKSrvCollision_ReleaseDynSphere_maybe (XXL2 ReleaseProjectile; it sits in the CKGroundCpnt.cpp unit): a
+    // used projectile volume (infos bit 1) loses the bit; ProcessDynamicVolumes then takes it out of the used part.
+    void ReleaseDynSphere(IKBoundingVolume* volume);
     // 0x00192bc0 CKSrvCollision_RemoveVolume_maybe: a registered volume (infos bit 0) loses the bit; the service's
     // m_Infos bit 1 (a volume was removed) set.
     void RemoveVolume(IKBoundingVolume* volume);
