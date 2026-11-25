@@ -16,8 +16,15 @@ namespace dotd::gfx {
 bool Init(int internalWidth, int internalHeight);
 void Shutdown();
 bool IsReady();  // Init succeeded (false when running without a window, e.g. in tests)
-int InternalWidth();
+int InternalWidth();   // the internal target's size as the game knows it (1280x720 whatever the resolution scale)
 int InternalHeight();
+// The resolution scale (DOTD_RES_SCALE=0.25..1 from the start, or at run time): the internal target and every
+// render target asked for at its size have that fraction of its pixels in each direction, and the present scales
+// the picture up. Other targets keep their size.
+float ResolutionScale();
+void SetResolutionScale(float scale);
+// The colour writes on or off (glColorMask): off for a depth-only pass (gpuprof.h, the opaque depth pre-pass).
+void SetColorWrite(bool on);
 
 void BeginFrame();  // binds the current render target (the internal one unless SetRenderTarget chose another)
 void Clear(float r, float g, float b, float a);
@@ -47,7 +54,13 @@ enum class TextureFormat : uint8_t {
     kBC2,    // DXT3
     kBC3,    // DXT5
     kR8,     // one 8-bit channel (video planes)
+    kASTC4x4,  // ASTC 4x4 blocks (16 bytes each): the DXT textures transcoded for a GPU without S3TC (raster.cpp)
 };
+// True when the DXT textures are to be transcoded to ASTC 4x4 (texture_transcode.h): the web build on a GPU without
+// S3TC whose browser has ASTC, unless DOTD_ASTC=0. Set by Init; the loader thread reads it.
+bool TranscodeDxtToAstc();
+// DOTD_ASTC=bench (a GPU with S3TC): the transcoding is done and timed, the DXT data kept (raster.cpp).
+bool AstcBenchOnly();
 // One mip level: its bytes (tightly packed rows for the uncompressed formats).
 struct TextureLevel {
     const void* data;

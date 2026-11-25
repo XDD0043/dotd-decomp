@@ -5,18 +5,22 @@
 //   dotd [--usrdir PATH]          boot the game (checkpoint C1.1: boot skeleton, stand-in subsystems)
 //   dotd --frames N               stop after N frames through the game's exit path, log the frame rate
 //   dotd --frame-rate N           pace to N fps instead of 60 (0 = uncapped; experiments only: per-update systems speed up)
+//   F2 (while it runs)            the frame rate between 60 and no cap (the same switch as --fps 0)
 //   dotd --fps N                  run at N fps (0 = no cap) with the 60 Hz timing calculation (platform/fps.h), so the
 //                                 game's timings stay those of 60 fps; dotd.ini: fps = N
 //   dotd --headless               no window (boot logic only)
 //   dotd --no-shader-list         no shader variant list (platform/gfx/cg_program.h): every program built at its first draw
 //   dotd --test-pattern           the C1.0 window/input test pattern instead of the game
 //   dotd --selftest-fs            read GAME.KP3 and list USRDIR through the cellFs shim, then exit
+//   dotd --check-game             check the configured USRDIR (game files, the shader sources from EBOOT.elf or the
+//                                 disc's EBOOT.BIN) and that this build plays videos, then exit (0 = ready; setup.ps1)
 #include <SDL3/SDL_main.h>
 
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 #include <vector>
 
 #include "k2000/misc/ClassRegistry.h"
@@ -30,6 +34,7 @@
 #include "platform/gfx/device.h"
 #include "platform/log.h"
 #include "platform/sdl/app.h"
+#include "platform/video/bink.h"
 #ifdef __EMSCRIPTEN__
 #include "platform/web/web.h"
 #endif
@@ -37,6 +42,40 @@
 namespace {
 
 bool g_windowOpen = false;
+
+// --check-game: what a player's install needs, checked without opening a window. The lines start with "ok" or "error".
+int CheckGame(const dotd::platform::Config& cfg) {
+    int problems = 0;
+    if (cfg.usrdir.empty()) {
+        std::printf("error: no usrdir configured (dotd.ini usrdir=... or --usrdir PATH)\n");
+        return 1;
+    }
+    std::printf("usrdir: %s\n", cfg.usrdir.c_str());
+    for (const char* name : {"GAME.KP3", "00GLC.KP3", "LVL000", "MOVIE"}) {
+        CellFsStat st;
+        const std::string path = std::string("/dev_bdvd/PS3_GAME/USRDIR/") + name;
+        if (cellFsStat(path.c_str(), &st) == CELL_OK) continue;
+        std::printf("error: %s is missing from the game folder\n", name);
+        ++problems;
+    }
+    const std::string eboot = dotd::gfx::cg::GameExecutablePath(cfg.usrdir);
+    std::string error;
+    if (dotd::gfx::cg::InitSources(eboot.c_str(), &error)) {
+        std::printf("ok: shader sources read from %s\n", eboot.substr(eboot.find_last_of('/') + 1).c_str());
+    } else {
+        std::printf("error: shader sources: %s\n", error.c_str());
+        ++problems;
+    }
+    if (dotd::video::HasBinkDecoder()) {
+        std::printf("ok: video decoder built in\n");
+    } else {
+        std::printf("error: this build has no video decoder (FFmpeg source missing at configure time)\n");
+        ++problems;
+    }
+    if (problems == 0) std::printf("ok: ready to play\n");
+    std::fflush(stdout);
+    return problems == 0 ? 0 : 1;
+}
 
 int SelfTestFs() {
     const char* path = "/dev_bdvd/PS3_GAME/USRDIR/GAME.KP3";
@@ -154,6 +193,7 @@ int main(int argc, char** argv) {
     bool noShaderList = false;
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--selftest-fs") == 0) return SelfTestFs();
+        if (std::strcmp(argv[i], "--check-game") == 0) return CheckGame(cfg);
         if (std::strcmp(argv[i], "--frames") == 0 && i + 1 < argc) frameLimit = std::atol(argv[++i]);
         if (std::strcmp(argv[i], "--headless") == 0) headless = true;
         if (std::strcmp(argv[i], "--test-pattern") == 0) testPattern = true;

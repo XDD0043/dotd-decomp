@@ -48,8 +48,10 @@ compile_commands.json
 # Explicitly included README screenshot.
 !/docs/media/web-build.webp
 
-# FFmpeg and zstd are fetched separately; SDL is a Git submodule.
+# FFmpeg and zstd are fetched separately; SDL is a Git submodule. CMake downloads SDL and FFmpeg
+# into thirdparty/.fetched/ when they are missing (cmake/FetchDeps.cmake).
 /thirdparty/ffmpeg/
+/thirdparty/.fetched/
 /thirdparty/zstd/
 # Local Emscripten SDK for the web build (tools/build_wasm.bat).
 /toolchain/

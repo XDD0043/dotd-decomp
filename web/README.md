@@ -7,20 +7,37 @@ small local server here. Nothing is converted, packed or copied.
 ## Build and run
 
 ```
-tools\build_wasm.bat     ->  build\wasm\{dotd.js, dotd.wasm, index.html, serve.py}
-tools\run_wasm.bat       ->  serves it on http://localhost:8080/ and opens the browser
+build_wasm.bat          (repo root; = work\build_wasm.cmd)   ->  dotd\build\wasm\{dotd.js, dotd.wasm, index.html, serve.py}
+run_wasm.bat            (repo root)                          ->  serves it on http://localhost:8080/ and opens Chrome
 ```
 
-- **Toolchain:** the Emscripten SDK in `toolchain\emsdk` (git-ignored), or wherever `EMSDK` points. To fetch it again:
+- **Toolchain:** the Emscripten SDK in `toolchain\emsdk` (git-ignored). To fetch it again:
   `git clone https://github.com/emscripten-core/emsdk toolchain\emsdk`, then in that folder `emsdk install latest`
-  and `emsdk activate latest`. Built and tested with Emscripten 7.0.0. `tools\build_wasm.bat` sets the environment
+  and `emsdk activate latest`. Built and tested with Emscripten 7.0.0. `work\build_wasm.cmd` sets the environment
   itself (`EMSDK`, which the `wasm` CMake preset's toolchain file path uses); nothing is added to the system PATH.
 - **Game files:** `serve.py --usrdir PATH`; without it `DOTD_USRDIR`, then the `usrdir` of a `dotd.ini` (current
   folder, the build folder, the native build folders). `EBOOT.elf` must be in that folder, as for the native build
   (the Cg shader sources are read from it).
 - **Options:** URL parameters become command-line options: `http://localhost:8080/?fps=0&lang=3` is
   `dotd --fps 0 --lang 3`. `fps=0` runs one game frame per browser animation frame (the display's refresh, with the
-  60 Hz timing calculation of `platform/fps.h`); the default is 60 like the native build.
+  60 Hz timing calculation of `platform/fps.h`). **The page starts the game with `--fps 0`** unless the address
+  says `?fps=N` or the "60 fps cap" box was ticked on an earlier visit: the web build's default is the display's
+  rate, not the native build's 60.
+- **60 fps cap** (a check box, off by default): off, every animation frame is a game frame; on, 60 a second as on
+  the PS3. It switches while the game runs (`dotd_web_set_fps` -> `platform::SetFps`: the pacing and the 60 Hz
+  timing calculation change between two frames; the game keeps its speed) and is kept in the browser for the next
+  visit. The native build has the same switch on F2 (and `--fps 0` / `fps = 0` at the start, as before; its
+  default stays 60).
+- **Vsync** (a check box, on by default; `?novsync` starts with it off): on, the game's frames are the browser's
+  animation frames, so without the cap the game runs at the display's refresh rate. Off, the page runs the
+  frames from its own queue (`index.html`, "vsync"): without the cap as fast as the game goes (at most 1000
+  frames a second: a menu alone ran 13,000), with it the 60 fps grid from a 1 ms timer. The browser still shows
+  one picture per refresh; the others are made and dropped. Kept in the browser like the cap. Not measured on a
+  phone (a 120 Hz one should show 120 with vsync on and more with it off).
+- **Full screen:** the "Full screen" check box puts the whole page full screen and fits the picture to the screen
+  (below, "Phones").
+- What is on or off on the page is a check box (full screen, the 60 fps cap, vsync, the log); "Delete downloaded data"
+  is a button, and only on the desktop page (on a phone it is too easy to hit).
 - **Frame rate counter:** the presented frame rate is drawn in the top right corner of the picture, in the game's
   own font through its own text drawing (`DrawFpsCounter`, CManager2d.cpp). On by default here, `?show-fps=0`
   turns it off; the native build has it too (`--show-fps`, `show_fps = 1` in dotd.ini; off by default).
@@ -32,9 +49,97 @@ tools\run_wasm.bat       ->  serves it on http://localhost:8080/ and opens the b
   shader variant list; `?DOTD_SHADER_SALT=word` makes every shader new to the browser's shader cache (the timings
   of a first visit). The log is under the picture ("Show log") and in the browser's console.
 - **Input:** the same as the native build (SDL: keyboard in RPCS3's default layout, gamepads through the browser's
-  Gamepad API). Click the page once so the browser lets the sound start.
+  Gamepad API), and a pad drawn on a touch screen ("Phones"). Click the page once so the browser lets the sound
+  start.
+- The window's title is not rewritten with the frame rate any more (the native window's still is): the page
+  keeps its title, the counter in the picture stays.
 - **A first full build** compiles about 1000 files (a few minutes); the link takes under a minute.
   `-DDOTD_WEB_LINK_OPT=-O1` (through `DOTD_WASM_CMAKE_ARGS` before the first configure) links faster.
+
+## Phones (2026-11-18): the picture fitted to the screen, a pad on the touch screen
+
+On a device whose main pointer is a finger (`(pointer: coarse)` with touch points; `?touch=1` / `?touch=0` says
+so by hand, for example to try it on a desktop) the page changes (`index.html`, the `body.fit` and `body.touch`
+styles and the "pad" script):
+
+- **The picture** is the largest 16:9 that fits the screen, centred (at the top in portrait), with nothing else
+  on the page: the status and download lines lie over its bottom edge, the buttons that were under it are a
+  panel behind the &#9776; button. The game still renders at its own 1280x720: the page only scales the canvas.
+  (SDL takes a canvas that CSS sizes when the window is created for a window of that CSS size and would render
+  at 693x390 on a phone: the scaling style applies after `main()` made the window, `body.sized`.)
+- **Full screen** is the default: the "Full screen" box in the panel is ticked, and while it is, any tap that
+  finds the page out of full screen asks the browser for full screen and landscape (Android; a browser only lets
+  a page ask from a tap, so the page cannot open in full screen by itself). Unticking the box is kept for the
+  next visit. The page's own full-screen events are kept from SDL, which would give the canvas the
+  screen's resolution. An iPhone has no full screen for pages: there, and anywhere else, "Add to Home Screen"
+  opens the page without the browser's bars (`manifest.webmanifest`: display fullscreen, landscape; `icon.svg`).
+- **The pad** is a DualShock 3 laid out for two thumbs:
+
+  | On the screen | Pad | In the game |
+  |---|---|---|
+  | left half: a stick that starts where the thumb lands | left stick (analog) | move; menus |
+  | right half, the same | right stick | camera |
+  | four round buttons, bottom right (`btn-*.png`, half transparent) | &#9651; &#9675; &#10005; &#9633; | attacks, grab, jump; &#10005; accepts and &#9675; goes back in menus |
+  | L1 over L2 at the top left edge, R1 over R2 at the top right | shoulders | block, switch dragon, element (R2) |
+  | small cross under L2 | d-pad | choose the element; menus |
+  | SELECT, &#9776;, START at the top | select, the page's panel, start | pause |
+
+  L3 / R3 have no button (the game does not need them). A stick is at full deflection 13 (camera: 16) hundredths
+  of the screen's short side from where the thumb landed, with a small dead zone. Past that the move stick's base
+  stays where the thumb landed (full deflection, the knob on the rim; the user found a base that follows the thumb
+  uncomfortable: holding forward dragged it ever further out, 2026-11-19); the camera stick's base follows the
+  thumb. Several buttons and both sticks work at once (pointer events, one capture per finger).
+- **A real pad** (a DualShock over Bluetooth or USB, any pad the browser's Gamepad API knows): the drawn pad
+  goes away but for the &#9776; button, and comes back when the last real pad is disconnected. A browser tells a
+  page about a pad at its first button press, so the drawn pad is there until then.
+- **Into the game:** the page keeps the pad as CellPadData words and calls `dotd_web_touch` when they change;
+  `sdl::SetTouchPad` / `ReadTouch` (app.cpp) merge them into port 0 like the keyboard, with the pressure words.
+- **Checked** in the browser pane at 844x390 and 390x844 with `?touch=1`: the canvas stays 1280x720 and is shown
+  693x390 with no page scroll; START, &#10005;, the d-pad and the left stick drive the front end into LVL010's first
+  fight; both sticks send their values; the frame rate cap switches while the game runs. **Not checked on a real phone:**
+  the full-screen request, the orientation lock, the home-screen app, the feel of the sticks, the speed.
+- **Textures on a GPU without S3TC (2026-11-19):** most phone GPUs lack S3TC (a Xiaomi with an Adreno 730 offers
+  ASTC, ETC2 and ETC1). Where the browser has ASTC, each DXT texture is rewritten as ASTC 4x4 where the level file is
+  read (the loader thread, with up to 3 helper threads for large mip levels), and the loading screen only uploads it:
+  a quarter of the RGBA8 bytes it uploaded before, and the GPU reads 4 to 8 times less memory per texel. No search:
+  each DXT block becomes one ASTC block directly (`platform/gfx/texture_transcode.h`, the block layout by ARM's
+  astc-encoder, `thirdparty/README.md`). Against the RGBA8 decode, on LVL010's 5.2 M blocks
+  (`tests/astc_transcode_test.cpp`, every block decoded by astc-encoder): DXT1 and the DXT5 blocks of one alpha
+  within 2 of 255 per channel; the DXT5 blocks of varying alpha (64 %) keep 4 alpha levels instead of 8: colour
+  within 4, alpha 3.9 off on average (1.7 % of their texels more than 16). 63 ns a block natively with the helpers,
+  97 ns in wasm on this PC. A desktop with S3TC is unchanged; `DOTD_ASTC=0` in the address keeps the RGBA8 path,
+  `DOTD_ASTC=bench` (a GPU with S3TC) transcodes and times without using the result.
+- **Half precision (2026-11-19, `?DOTD_FP16=1`, off by default):** the PS3 game compiles its pixel shaders with
+  `-fastprecision -fastmath` (`ShaderGen_BuildCompilerArgs_maybe` 0xfe518 -> the built-in Cg compiler, profile
+  `sce_fp_rsx`): float maths at the RSX's 16-bit precision. With the switch the translated pixel GLSL gets
+  `precision mediump float` (phone GPUs run it at twice the rate; desktops ignore it) and stays `highp` for the
+  varyings, every struct field, every `vec2` (the uber-shader's texture coordinates, its helpers take them as
+  `float2`), every uniform but a list of colours and directions, and every uniform the vertex stage shares
+  (`cg_program.cpp`, `PixelAtHalfPrecision`). Integers and samplers stay `highp`. Measured on the Adreno 730 phone
+  in LVL010's slow spot: no gain (28 fps with and without). `DOTD_ALPHATEST=0` (a measurement only: no alpha-test
+  `discard` in any pixel shader, cut-outs draw solid) gained nothing either (~28-29 fps, both switches on): the cost
+  is the visible world pixels' shading itself, not precision, early depth rejection or the draw order.
+- **Still open for phones:** the page asks for 1 GB of wasm memory at the start; the video decoding speed (above).
+
+### Trying it on a phone without a host
+
+`run_wasm_phone.bat` serves the site folder to the local network (`serve.py --site ... --lan`) and prints the
+address, for example `http://192.168.1.20:8081/`. Windows asks once whether Python may accept connections: allow
+it for private networks. While it runs, every device on the network can fetch the folder.
+
+A browser only gives a page threads (which the game needs) and a service worker on a "secure" address: https,
+or localhost. A plain `http://192.168...` address is neither, and the page then says it must be opened through
+serve.py. Two ways round it, both for Chrome on Android:
+
+- **Mark the address as secure:** on the phone open `chrome://flags/#unsafely-treat-insecure-origin-as-secure`,
+  enter the printed address (with `http://` and the port), set the flag to Enabled, relaunch Chrome, open the
+  address. Take the entry out again afterwards.
+- **Or forward the port over USB:** with USB debugging on and the phone plugged in, open `chrome://inspect` in
+  the desktop Chrome, "Port forwarding", port 8081 -> `localhost:8081`; the phone then opens
+  `http://localhost:8081/`, which is secure as it is (`--lan` is not needed for this).
+
+An iPhone has neither: Safari needs a real https address (a host, or a certificate the phone trusts). Not tried
+with a phone from here: only that the folder is reachable on the network address.
 
 ## Download mode (2026-11-18): the game's files sent by the site
 
@@ -42,10 +147,10 @@ The mode above reads your own USRDIR. A web site's players have no files, so in 
 downloaded, kept in the browser and fetched ahead level by level; nobody waits for more than one level's worth.
 
 ```
-tools\pack_wasm.bat       ->  build\web-data\       the pack (pack.py: about 12 minutes for the level data, 55 for
+pack_wasm.bat             ->  dotd\build\web-data\  the pack (pack.py: about 12 minutes for the level data, 55 for
                               the videos, 1 for the music), then
-                              build\site\           the folder a static host serves (make_site.py): 828 files, 3.2 GB
-tools\run_wasm_download.bat ->  http://localhost:8081/  serves that folder as a host would (add --rate 50 to send the
+                              dotd\build\site\      the folder a static host serves (make_site.py): 828 files, 3.2 GB
+run_wasm_download.bat     ->  http://localhost:8081/  serves that folder as a host would (add --rate 50 to send the
                               data over one 50 Mbit/s line, --no-range to answer like a host without range requests)
 ```
 
@@ -124,7 +229,7 @@ else, or with `--video-crf 0`, the videos stay as they are and are streamed at t
 - Checked: LVL010's two tracks start "re-encoded" in the first scene and fight, output level 0.11 to 0.19, 60 fps.
   Not listened to.
 
-**The site folder** (`make_site.py` -> `build/site`): what is uploaded to a static host, as it is.
+**The site folder** (`make_site.py` -> `dotd/build/site`): what is uploaded to a static host, as it is.
 
 - **What the hosts ask for** (looked up 2026-11-18): Cloudflare Pages takes no file over 25 MiB and at most
   20,000 files (1,000 by drag and drop); Netlify has no hard limits but serves large files badly and its free
@@ -143,7 +248,7 @@ else, or with `--video-crf 0`, the videos stay as they are and are streamed at t
   `--no-range --rate 100`: the game starts, LVL010's 105 MB arrive from seven parts in 9.5 s, the differences
   apply, the videos and their voice track play from the store, the music plays.
 - **To put it online:** upload the folder `dotd\build\site` itself (Netlify: "Deploy manually", drag the folder;
-  Cloudflare Pages: "Upload assets", or `wrangler pages deploy build/site`). Nothing else is needed: no
+  Cloudflare Pages: "Upload assets", or `wrangler pages deploy dotd/build/site`). Nothing else is needed: no
   server code, no build step on the host. Not done from here: no deploy was made, so the two hosts' own
   behaviour (upload of 3.2 GB, their caches, their headers) is untested.
 
@@ -184,9 +289,12 @@ were that much too good):
 
 - The site folder was only served locally (`serve.py --site`), not deployed to a host.
 - The music is streamed each visit (the browser's own cache may keep its parts; it is not put in the store).
-- **Phones** were not tried. Known gaps besides the decoding speed above: the input is keyboard and gamepad only;
-  most phone GPUs lack S3TC, so the textures would take the CPU-decoded path; the page asks for 1 GB of wasm
-  memory at the start.
+- **Phones:** the page and the pad are there ("Phones"), not tried on a real phone; S3TC, the 1 GB of wasm
+  memory and the decoding speed are open.
+- **The title screen and the attract video** (looked into, no fault): the title waits 30 s for START, then plays
+  the attract video; START during it only brings the title back, and from then on the title waits 10 s (the
+  original's two constants, `CKS08MenuPressStart::OnMenuState`). A START that seems ignored was pressed while the
+  attract video played.
 - Only the videos up to the intro and the next one were played re-encoded (front end, PS3_019; PS3_020 was
   fetched, not watched); the sound was not checked by ear.
 - A download that is interrupted (the tab closed) starts again from zero. Nothing is ever removed from the store
@@ -204,7 +312,7 @@ were that much too good):
 | Window, input, sound | SDL3 | SDL3's Emscripten backends (canvas `#canvas`) |
 | Main loop | `for (;;) Run();` in the game's main | one `Run()` per `requestAnimationFrame` (`platform/frame_loop.cpp`): a browser must get control back every frame. Frames are held to 60 per second on a fixed time grid whatever the display's refresh |
 | Threads | `std::thread` | the same (pthreads on web workers, a pool of 12 created before `main`), so the level loader still runs beside the frames. This needs a cross-origin isolated page: `serve.py` sends the COOP / COEP headers |
-| Game files | read from disk (`platform/hostfs.cpp`) | read from disk by `serve.py`, fetched with HTTP range requests (`platform/web/hostfs_web.cpp`): a listing fetched once answers stat / directory listing; reads are synchronous, from a worker (the main thread hands its reads to an I/O thread); a 64 MB cache of 1 MB blocks with read-ahead for the small sequential reads (videos, sound streams) |
+| Game files | read from disk (`platform/hostfs.cpp`) | read from disk by `serve.py`, fetched with HTTP range requests (`platform/web/hostfs_web.cpp`): a listing fetched once answers stat / directory listing; reads are synchronous, from a worker (the main thread hands its reads to an I/O thread; in Firefox it reads by itself, "Firefox" below); a 64 MB cache of 1 MB blocks with read-ahead for the small sequential reads (videos, sound streams) |
 | Videos, speech | FFmpeg's Bink / ATRAC3 decoders | the same, compiled to wasm; in download mode the videos are VP9 re-encodes decoded on a thread of their own ("Videos") |
 | Shader programs | built at the first draw that needs them (7 ms each), or on the loading screen from the variant list | built by the browser in the background (`KHR_parallel_shader_compile`, `cg_program.h`): a first draw never waits, what uses a program still building is not drawn for those few frames; on the loading screen from the variant list as natively, all started at once and then waited for |
 | Textures | the device texture made at a texture's first use | all of a level's made on its loading screen (`MakeRasterTexturesAhead`, raster.h) |
@@ -237,6 +345,66 @@ Boot, the copyright / logo videos, press start, the main and game menus, a new g
 about 1 s), the opening video and its skip dialog, the in-engine scene, the first fight with the tutorial, moving,
 jumping and attacking. 60 fps, about 1.9 ms of CPU per game frame in the fight, no shader or GL error in the log;
 the fight's picture matches the native build's by eye (`work/scratch-c27/capD/control+300.png`).
+
+## Diagnostics (2026-11-19): performance reports from a phone
+
+`?diag` in the address (e.g. `http://192.168.1.5:8081/?diag` with `run_wasm_phone.bat`) makes the page post a report
+to `serve.py` every 5 s (`POST /diag`, written to `dotd/build/diag/<session>.jsonl`, one console line each; the
+line in the picture's top left shows the gist). `python dotd/web/diag_report.py [SESSION.jsonl]` (the newest session
+without one) prints a timeline and compares the slow windows (`--slow 30` fps) with the fast ones.
+- Per game frame: the main thread's time in the animation frame callback, the time between frames, and whether the
+  GPU had finished the previous frame when the next one began (a WebGL fence checked at the next frame: "gpu late";
+  Android's browsers seldom have GPU timer queries). A main thread that is quick while frames are slow and the GPU
+  is late = GPU bound.
+- The browser's sampling profiler (JS Self-Profiling API; `serve.py` sends `Document-Policy: js-profiling`) on the
+  main thread: self and total samples per function, the wasm functions by their C++ names (`--profiling-funcs`),
+  samples with no stack = the main thread idle. Workers (loader, video, music) are not sampled.
+- Long animation frames (render / layout time), the game's own `gfxstats` lines (`DOTD_GFX_STATS=120` unless the
+  address gives one: draws, programs, uploads per frame), memory, battery and CPU pressure where the browser tells,
+  the device, its GPU and the canvas size once.
+- **GPU test** (a button in the page's panel, `?diag` only; stand still about 80 s): the frame rate with each switch
+  of the renderer against baselines taken in between: the picture at 75 % and 50 % of its pixels, each render stage
+  that draws something switched off, all 3D stages (0-16) off; then 14 s of measured frames. The table of frame time
+  saved per switch goes to the log, the server and `diag_report.py` ("GPU test").
+- **Fix test** (the next button, ~35 s): the opaque queues near to far, with a depth pre-pass (the same items first
+  with the colour writes off), and both, each twice, against baselines and "stage 5 off" as the best case. The
+  original sorts every sorted queue far to near (`CompareFarToNear`: squared distance, descending), so a phone's GPU
+  shades hidden world pixels again and again; neither mode changes the picture (LVL010: 1 pixel of 227,840 differed).
+  `DOTD_OPAQUE=reverse,prepass` in the address sets them from the start.
+- The switches (also as address parameters, natively too): `DOTD_SKIP_STAGES=5,9` (stages not drawn:
+  `platform/gfx/gpuprof.h`, the hook in `RenderQueue::Execute`), `DOTD_RES_SCALE=0.5` (the internal target and every
+  render target of its size at that fraction of the pixels; the game still sees 1280x720: `gfx::SetResolutionScale`),
+  `DOTD_GPU_PROF=N` (every Nth frame measured: a glFinish at the start and end of each render stage, so each segment's
+  time is its whole cost, CPU issue plus the wait for the GPU; "gpuprof" log lines with draws and the item classes of
+  each stage; Android's WebGL has no GPU timer queries, this does not need them).
+
+## Firefox (2026-11-19)
+
+The game stopped in Firefox (160) right after `00GLC.KP3` and the page froze: **Firefox carries out a worker's
+request (synchronous XHR or fetch, a service worker's answer included) on the page's main thread.** Measured with a
+worker's 8 KB request while the main thread was busy for 3 s: Chromium 3 ms, Firefox 3055 ms (it ended when the main
+thread was free). A main thread that waits for a worker that is in a request therefore waits for ever. Three such
+waits were met: the main thread's file reads (handed to the I/O thread), `BinkDoFrame` waiting for the decoder
+thread at the new game's video, and `RenderLock_Lock` while the level loader reads LVL010. What
+`platform/web/hostfs_web.cpp` does about it, in Firefox only (`navigator.userAgentData` names no Chromium;
+`?DOTD_WEB_MAIN_PUMP=1` or `=0` forces it):
+- the main thread reads by itself: a synchronous range request read as text in the x-user-defined charset (a
+  synchronous request may not be an arraybuffer on the main thread);
+- a busy wait of the main thread that lasts 50 ms is pumped: synchronous requests of a `data:` URL until it ends.
+  Firefox runs the waiting work, the workers' requests included, while one is in progress (a worker's request:
+  21 ms instead of never; about 20 microseconds per pump, no network). The hook is Emscripten's
+  `_emscripten_check_timers`, which every turn of the main thread's futex spin calls (a weak no-op unless setitimer
+  is linked). The log names each pumped wait's functions (`[web] the main thread waited 50 ms ...`, the first 8).
+  Pumping in every wait was tried first: the game's own 5 ms sleep per menu frame then made the page crawl (input
+  20 s late), hence the 50 ms and the reset at each animation frame (`web::NoteMainThreadTask`).
+
+Checked in Firefox 160 (a fresh profile driven over WebDriver BiDi): the site folder from nothing and again from
+the store, boot, logos, title, menus, a new game, LVL010's load (one pumped wait, `RenderLock_Lock`), the opening
+video, the skip dialog, the first fight at the display's 165 fps with the music; the local USRDIR mode (port 8080)
+to the title. Chromium unchanged (its log line: "the main thread's reads go through the I/O thread"). Firefox has no
+`KHR_parallel_shader_compile` here, so shader programs are built at their first use (20 variants took 1.1 s on
+LVL010's loading screen). Not tried: Safari (WebKit also does a worker's network on the main thread; whether the
+pump works there is unknown), Firefox on Android.
 
 ## Not done yet
 

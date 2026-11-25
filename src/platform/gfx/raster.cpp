@@ -1,15 +1,17 @@
 // raster.cpp - see raster.h. New platform code.
 #include "platform/gfx/raster.h"
 
+#include <atomic>
+#include <chrono>
 #include <utility>
 #ifdef __EMSCRIPTEN__
-#include <chrono>
 #include <mutex>
 #include <set>
 #endif
 
 #include "platform/gfx/device.h"
 #include "platform/gfx/perf.h"
+#include "platform/gfx/texture_transcode.h"
 #include "platform/log.h"
 
 namespace dotd::gfx {
@@ -37,6 +39,55 @@ struct RasterTexture {
 
 namespace {
 
+constexpr uint32_t kAstc4x4 = 0x93b0;  // GL_COMPRESSED_RGBA_ASTC_4x4_KHR: a DXT texture transcoded (TranscodeToAstc)
+
+// The DXT textures transcoded to ASTC since MakeRasterTexturesAhead last said so (the loader thread adds).
+std::atomic<uint32_t> g_astcTextures{0};
+std::atomic<uint64_t> g_astcBlocks{0};
+std::atomic<uint64_t> g_astcMicroseconds{0};
+
+// A GPU without S3TC (gfx::TranscodeDxtToAstc): the DDS mip chain of a DXT texture rewritten as ASTC 4x4 blocks where
+// it is read (the level loader's thread), so that the main thread only uploads them. False: kept as it is.
+bool TranscodeToAstc(RasterTexture* texture) {
+    TextureFormat format;
+    size_t blockBytes = 16;
+    switch (texture->referenceFormat) {
+        case 0x83f1: format = TextureFormat::kBC1; blockBytes = 8; break;
+        case 0x83f2: format = TextureFormat::kBC2; break;
+        case 0x83f3: format = TextureFormat::kBC3; break;
+        default: return false;
+    }
+    const auto start = std::chrono::steady_clock::now();
+    std::vector<uint8_t> astc;
+    uint32_t w = static_cast<uint32_t>(texture->referenceWidth), h = static_cast<uint32_t>(texture->referenceHeight);
+    size_t offset = 0;
+    int levels = 0;
+    uint64_t blocks = 0;
+    for (int m = 0; m < texture->referenceLevels; ++m) {
+        const size_t count = static_cast<size_t>((w + 3) / 4) * ((h + 3) / 4);
+        if (offset + count * blockBytes > texture->referenceData.size()) break;
+        const std::vector<uint8_t> level = TranscodeS3tcToAstc4x4(format, static_cast<int>(w), static_cast<int>(h),
+                                                                  texture->referenceData.data() + offset, nullptr);
+        astc.insert(astc.end(), level.begin(), level.end());
+        offset += count * blockBytes;
+        blocks += count;
+        ++levels;
+        w = w > 1 ? w >> 1 : 1;
+        h = h > 1 ? h >> 1 : 1;
+    }
+    if (levels == 0) return false;
+    if (!AstcBenchOnly()) {
+        texture->referenceFormat = kAstc4x4;
+        texture->referenceLevels = levels;
+        texture->referenceData = std::move(astc);
+    }
+    g_astcTextures.fetch_add(1, std::memory_order_relaxed);
+    g_astcBlocks.fetch_add(blocks, std::memory_order_relaxed);
+    g_astcMicroseconds.fetch_add(static_cast<uint64_t>(
+        std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - start).count()), std::memory_order_relaxed);
+    return true;
+}
+
 void DropDevice(RasterTexture* texture) {
     if (texture->device != 0) DestroyTexture(texture->device);
     texture->device = 0;
@@ -56,6 +107,9 @@ uint32_t MakeReferencedTexture(const RasterTexture& t) {
             break;
         case 0x83f3:  // GL_COMPRESSED_RGBA_S3TC_DXT5_EXT
             format = TextureFormat::kBC3;
+            break;
+        case kAstc4x4:  // a DXT texture transcoded for a GPU without S3TC (TranscodeToAstc)
+            format = TextureFormat::kASTC4x4;
             break;
         default:
             DOTD_LOG("gfx: raster texture format %04x not supported", t.referenceFormat);
@@ -128,6 +182,7 @@ void RasterTextureReferenceDds(RasterTexture* texture, uint32_t format, int leve
     texture->referenceWidth = width;
     texture->referenceHeight = height;
     texture->referenceData = std::move(data);
+    if (TranscodeDxtToAstc()) TranscodeToAstc(texture);
     DropDevice(texture);
 }
 
@@ -259,6 +314,12 @@ int MakeRasterTexturesAhead() {
     if (made != 0) {
         const double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
         DOTD_LOG("gfx: %d texture(s) made ahead in %.0f ms", made, ms);
+    }
+    if (const uint32_t transcoded = g_astcTextures.exchange(0)) {
+        const uint64_t blocks = g_astcBlocks.exchange(0);
+        const double ms = static_cast<double>(g_astcMicroseconds.exchange(0)) / 1000.0;
+        DOTD_LOG("gfx: %u DXT texture(s) transcoded to ASTC 4x4 on the loader thread: %.1f M blocks in %.0f ms (%.0f ns each)",
+                 transcoded, blocks / 1e6, ms, blocks ? ms * 1e6 / static_cast<double>(blocks) : 0.0);
     }
     return made;
 #else

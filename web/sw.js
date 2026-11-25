@@ -37,18 +37,28 @@ channel.onmessage = (event) => {
   }
 };
 
+// A page this worker does not control yet (after a hard reload) asks it to (a message wakes a stopped worker).
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'claim') event.waitUntil(self.clients.claim());
+});
+
 function scopePath() { return new URL(self.registration.scope).pathname; }
 
+// The pack's manifest; null when the site has none (404: serve.py's USRDIR mode, the reads go to the network).
+// A manifest that could not be fetched (the network, a 5xx) is undefined and is not kept: asked again next time.
 function getManifest() {
   if (!manifestPromise) {
-    manifestPromise = fetch(scopePath() + 'pack/manifest.json', {cache: 'no-store'}).then(async (response) => {
-      if (!response.ok) return null;
+    const promise = fetch(scopePath() + 'pack/manifest.json', {cache: 'no-store'}).then(async (response) => {
+      if (response.status === 404) return null;
+      if (!response.ok) return undefined;
       const manifest = await response.json();
       if (manifest.version !== 2) return null;
       const lower = new Map();
       for (const path of Object.keys(manifest.files)) lower.set(path.toLowerCase(), path);
       return {files: manifest.files, streams: manifest.streams, lower};
-    }).catch(() => null);
+    }).catch(() => undefined);
+    manifestPromise = promise;
+    promise.then((manifest) => { if (manifest === undefined && manifestPromise === promise) manifestPromise = null; });
   }
   return manifestPromise;
 }
@@ -140,6 +150,9 @@ function fromFile(request, file) {
 
 async function serve(request, path) {
   const manifest = await getManifest();
+  if (manifest === undefined) {  // (the game's file layer asks again, as for a file not stored yet)
+    return new Response('', {status: 503, headers: {'Retry-After': '1', 'Cache-Control': 'no-store'}});
+  }
   if (!manifest) return fetch(request);
   const real = manifest.lower.get(path.toLowerCase());
   if (!real) return new Response('', {status: 404});

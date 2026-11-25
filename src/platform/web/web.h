@@ -22,5 +22,8 @@ void TakeMainThreadReadWait(double* ms, int* reads, double* megabytes);
 // for a megabyte on a slow connection (a video's header, platform/video/bink.cpp). False: not a served file, or
 // the request failed.
 bool ReadHead(const std::string& path, size_t bytes, std::vector<uint8_t>* out);
+// Called at the start of each browser task that runs the game (an animation frame): the main thread's next busy
+// wait is a new one. Firefox only matters (web/hostfs_web.cpp, "Firefox"): its waits that last long are pumped.
+void NoteMainThreadTask();
 
 }  // namespace dotd::platform::web

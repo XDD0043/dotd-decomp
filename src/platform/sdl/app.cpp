@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL.h>
 
+#include <atomic>
 #include <cstdio>
 #include <cstring>
 #include <mutex>
@@ -145,6 +146,37 @@ void ReadKeyboard(uint16_t w[24]) {
     if (k[SDL_SCANCODE_D]) w[6] = 255;
     if (k[SDL_SCANCODE_W]) w[7] = 0;
     if (k[SDL_SCANCODE_S]) w[7] = 255;
+}
+
+// The touch pad (SetTouchPad): word 2 | word 3 << 16, and the sticks left x | left y << 8 | right x << 16 |
+// right y << 24. A pressed button also sets its pressure word, a stick off its centre replaces the pad's.
+std::atomic<uint32_t> g_touchButtons{0};
+std::atomic<uint32_t> g_touchSticks{0x80808080u};
+
+void ReadTouch(uint16_t w[24]) {
+    const uint32_t buttons = g_touchButtons.load(std::memory_order_relaxed);
+    const uint32_t sticks = g_touchSticks.load(std::memory_order_relaxed);
+    if (buttons == 0 && sticks == 0x80808080u) return;
+    struct Map { int word; uint16_t bit; int pressure; };
+    static const Map kMap[] = {
+        {2, kUp, 10},       {2, kRight, 8},   {2, kDown, 11},  {2, kLeft, 9},
+        {3, kTriangle, 12}, {3, kCircle, 13}, {3, kCross, 14}, {3, kSquare, 15},
+        {3, kL1, 16},       {3, kR1, 17},     {3, kL2, 18},    {3, kR2, 19},
+    };
+    w[2] |= static_cast<uint16_t>(buttons & 0xffffu);
+    w[3] |= static_cast<uint16_t>(buttons >> 16);
+    for (const Map& m : kMap) {
+        if (((m.word == 2 ? buttons : buttons >> 16) & m.bit) != 0) w[m.pressure] = 255;
+    }
+    const uint16_t lx = sticks & 0xffu, ly = (sticks >> 8) & 0xffu, rx = (sticks >> 16) & 0xffu, ry = sticks >> 24;
+    if (lx != 0x80 || ly != 0x80) {
+        w[6] = lx;
+        w[7] = ly;
+    }
+    if (rx != 0x80 || ry != 0x80) {
+        w[4] = rx;
+        w[5] = ry;
+    }
 }
 
 // ---- frame pacing --------------------------------------------------------------------------------
@@ -334,6 +366,10 @@ void PumpEvents() {
         case SDL_EVENT_KEY_DOWN:
         case SDL_EVENT_KEY_UP:
             freecam::OnKey(static_cast<int>(e.key.scancode), e.type == SDL_EVENT_KEY_DOWN);
+            // F2: the frame rate between 60 and no cap (--fps 0), while the game runs.
+            if (e.type == SDL_EVENT_KEY_DOWN && !e.key.repeat && e.key.scancode == SDL_SCANCODE_F2) {
+                SetFps(GetConfig().fps == 60 ? 0 : 60);
+            }
             break;
         case SDL_EVENT_MOUSE_MOTION:
             freecam::OnMouseMotion(e.motion.xrel, e.motion.yrel, (e.motion.state & SDL_BUTTON_RMASK) != 0);
@@ -371,7 +407,8 @@ void RecordFrame() {
 }
 
 // The window title shows the presented frame rate and the average frame time, refreshed every half second
-// (like RPCS3's "FPS: 59.94" title). Host-side only: the game never sees it.
+// (like RPCS3's "FPS: 59.94" title). Host-side only: the game never sees it. The web build only measures (for
+// the counter on the screen): the page keeps its title.
 void UpdateTitleFps() {
     static Uint64 s_windowStart = 0;
     static long s_windowFrames = 0;
@@ -382,9 +419,11 @@ void UpdateTitleFps() {
     if (elapsed < 500000000ull) return;
     const double fps = s_windowFrames * 1e9 / static_cast<double>(elapsed);
     dotd::platform::g_presentedFps = static_cast<float>(fps);
+#ifndef __EMSCRIPTEN__
     char title[256];
     std::snprintf(title, sizeof(title), "%s | FPS: %.2f | %.2f ms", g_baseTitle.c_str(), fps, 1000.0 / fps);
     SDL_SetWindowTitle(g_window, title);
+#endif
     s_windowStart = now;
     s_windowFrames = 0;
 }
@@ -414,6 +453,11 @@ void LogFrameStats() {
              g_minInterval / 1e6, g_maxInterval / 1e6, g_late);
 }
 
+void SetFrameRate(int frameRate) {
+    g_frameRate = frameRate;
+    if (g_window != nullptr) ChoosePacing();
+}
+
 void GetDrawableSize(int* width, int* height) { SDL_GetWindowSizeInPixels(g_window, width, height); }
 
 // The FPS counter is appended to `title` at the next refresh.
@@ -439,9 +483,18 @@ bool ReadPad(int port, uint16_t words[24]) {
     }
     if (port == 0) {
         ReadKeyboard(words);
+        ReadTouch(words);
         present = true;
     }
     return present;
+}
+
+void SetTouchPad(uint16_t digital1, uint16_t digital2, uint8_t leftX, uint8_t leftY, uint8_t rightX, uint8_t rightY) {
+    g_touchButtons.store(static_cast<uint32_t>(digital1) | static_cast<uint32_t>(digital2) << 16,
+                         std::memory_order_relaxed);
+    g_touchSticks.store(static_cast<uint32_t>(leftX) | static_cast<uint32_t>(leftY) << 8 |
+                            static_cast<uint32_t>(rightX) << 16 | static_cast<uint32_t>(rightY) << 24,
+                        std::memory_order_relaxed);
 }
 
 int ConnectedPadCount() {

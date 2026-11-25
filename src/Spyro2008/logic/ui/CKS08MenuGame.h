@@ -37,6 +37,16 @@ public:
     // states 0, 2 and 4 chosen from m_pText: entry 2 with the game structure's +0x24a, else entry 1 when
     // a dragon's play time (+0x144 / +0x148) reached 1.0, else entry 0 (New / Continue game_maybe).
     void VfEC(IKSerializable* button) override;
+    // 0x00554de8 CKS08MenuGame_UpdateSecretCodeInput_maybe: dead in the original (no call, no descriptor reference;
+    // OnMenuState still clears its state). dotd calls it from OnMenuState's update phase, the way CKS08MenuPause's
+    // live copy runs (outputs/hidden-debug-features.md section 3). One code, pad 0: hold kSecretFirst (L1), then
+    // the five kSecretSteps (left stick left, right, right, up, up), no other of the actions 0..0x17 pressed,
+    // 0.3 s between steps; the fifth calls SetAllUnlockFlags(0).
+    void UpdateSecretCodeInput();
+    // 0x00553ee0 CKS08MenuGame_SetAllUnlockFlags_maybe (dead in the original, reached only from the above): with
+    // `which` 0 the game structure's twelve unlock bytes (+0x23f..+0x24a) set, items 0 and 1 enabled (vt+0x84),
+    // the game manager's sound 0xb (dictionary +0xbdc) played centred. Other values do nothing.
+    void SetAllUnlockFlags(int32_t which);
 
     WidgetSlot m_aWidgetSlots[5];                // +0x94
     IKSerializable* m_apMessageIns[6];           // +0xbc
@@ -44,9 +54,9 @@ public:
     uint8_t m_padda[2];
     IKSerializable* m_apMessageOuts[1];          // +0xdc
     IKSerializable* m_pText;                     // +0xe0 CKLocTextAccessor (file key 0xe46)
-    uint8_t m_unke4;                             // +0xe4 OnMenuState (enter) clears it
+    uint8_t m_ui8SecretStep;                     // +0xe4 the secret code's progress (0..4); OnMenuState (enter) clears it
     uint8_t m_pade5[3];
-    uint32_t m_unke8;                            // +0xe8 OnMenuState (enter) clears it
+    float m_fSecretTimer;                        // +0xe8 the delay after a step (0.3 s); OnMenuState (enter) clears it
 };
 DOTD_ASSERT_SIZE(CKS08MenuGame, 0xec);
 DOTD_ASSERT_OFFSET(CKS08MenuGame, m_aWidgetSlots, 0x94);

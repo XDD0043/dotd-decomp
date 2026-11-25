@@ -502,7 +502,7 @@ bool g_lastProgramValid = false;
 
 const dotd::gfx::cg::Program* ShaderVariant_GetProgram(const ShaderVariantKey& key) {
     if (!dotd::gfx::cg::SourcesLoaded()) {
-        const std::string path = dotd::platform::GetConfig().usrdir + "/EBOOT.elf";
+        const std::string path = dotd::gfx::cg::GameExecutablePath(dotd::platform::GetConfig().usrdir);
         std::string error;
         if (!dotd::gfx::cg::InitSources(path.c_str(), &error)) {
             DOTD_LOG("shader: cannot read the Cg sources: %s", error.c_str());

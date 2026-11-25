@@ -1134,7 +1134,7 @@ Everything from C2.6 / C2.7, with the C2.7 rules:
    - **Platform:** a `platform/cell` save data layer replaces `cellSaveData`. The game's own buffer is written as it is, into a folder of the user's profile, never the game folder. Loading it is the C1.6 load-game path (`platform/cell/msgdialog`, the select-slot menu).
 2. `CKS08MenuPause`'s 7 open lines, if capture G opens the pause menu in ways the C2.7 recordings did not.
 3. **Exit:**
-   - at capture G's save point frames, dotd's save buffer equals the game data RPCS3 wrote for the same save. Read RPCS3's save from RPCS3's `dev_hdd0\home\00000001\savedata\` (`BLUS30205-SPYRO08-SAVE-<n>`, one folder per slot; slot 1 exists already, so note its date before G; compare the file the game writes, with the timestamps and PARAM.SFO left out);
+   - at capture G's save point frames, dotd's save buffer equals the game data RPCS3 wrote for the same save. Read RPCS3's save from `<RPCS3 folder>\dev_hdd0\home\00000001\savedata\` (`BLUS30205-SPYRO08-SAVE-<n>`, one folder per slot; slot 1 exists already, so note its date before G; compare the file the game writes, with the timestamps and PARAM.SFO left out);
    - in `dotd.exe`, saving at a save point, quitting, and Load game from the main menu puts the heroes at that save point with the same statistics.
 
 #### Step 7. The end of the level and LVL020

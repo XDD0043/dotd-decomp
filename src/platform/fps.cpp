@@ -27,6 +27,15 @@ void Configure(bool unlocked) {
 
 bool Unlocked() { return g_unlocked; }
 
+void SetUnlocked(bool unlocked) {
+    if (g_unlocked == unlocked) return;
+    g_unlocked = unlocked;
+    g_phase = 0.0;
+    g_ticks = 1;
+    g_scale = 1.0f;
+    g_tickDelta[0] = g_tickDelta[1] = g_tickDelta[2] = 0.0f;
+}
+
 void OnClockUpdate(const float delta[3]) {
     if (!g_unlocked) return;
     if (g_ticks > 0) g_tickDelta[0] = g_tickDelta[1] = g_tickDelta[2] = 0.0f;  // the last frame used them up

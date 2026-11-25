@@ -9,13 +9,31 @@ A behaviour-exact reimplementation of *The Legend of Spyro: Dawn of the Dragon*
 configuration, documentation and the build/run tools. It builds as a native
 Windows executable and as a WebAssembly + WebGL2 page.
 
-## Build on Windows
+## Play it on Windows
 
-Requires Git, CMake 3.25 or newer, Ninja, and Visual Studio with the C++ tools.
+1. Download this repository (a git clone or the zip).
+2. Double-click **`setup.cmd`**. It:
+   - finds Visual Studio's C++ tools, or offers to install the free Build Tools for you (winget);
+   - builds `dotd.exe`; CMake downloads the SDL and FFmpeg **source** archives itself (each checked by SHA-256)
+     and compiles them with the same compiler, so nothing else needs installing;
+   - asks for your copy of the game: the disc dump's folder (the one holding `PS3_GAME`) or a decrypted `.iso`;
+   - writes `dotd.ini`, checks everything (`dotd.exe --check-game`) and offers a desktop shortcut.
+3. Play with `launch.cmd` or the shortcut.
+
+You need your own **BLUS30205** (USA) disc dump. The disc's encrypted `EBOOT.BIN` is enough: the port decrypts it
+in memory to read the game's shaders (`src/platform/self_decrypt.h`), so RPCS3 is not needed. A decrypted
+`EBOOT.elf` is used when it is there. Game files are only ever read. An encrypted (redump-style) `.iso` must be
+decrypted with its disc key first, or use a folder dump.
+
+`setup.cmd -GamePath "D:/Games/DotD"` skips the folder picker; run it again any time to rebuild or change the game
+folder.
+
+## Build by hand
+
+Requires CMake 3.25 or newer, Ninja, and Visual Studio with the C++ tools.
 Run these commands from an x64 Visual Studio developer command prompt:
 
 ```sh
-git submodule update --init --recursive
 cmake --preset windows-msvc
 cmake --build --preset windows-msvc-release
 ```
@@ -29,14 +47,10 @@ cmake --build --preset windows-msvc-debug
 ctest --preset windows-msvc-debug
 ```
 
-SDL3 is pinned as a submodule. Optional FFmpeg source provides Bink video/audio
-and ATRAC3 decoding; fetch it **before configuring** for video and speech support:
-
-```sh
-git clone --depth 1 --branch n7.1.2 -c core.autocrlf=false https://github.com/FFmpeg/FFmpeg.git thirdparty/ffmpeg
-```
-
-See [thirdparty/README.md](thirdparty/README.md) for dependency details.
+SDL3 (a submodule) and FFmpeg 7.1.2 (Bink video/audio, ATRAC3 speech) are downloaded as source at configure time
+when they are missing; `git submodule update --init` or a local FFmpeg clone in `thirdparty/ffmpeg` are used instead
+when present. A build without FFmpeg is refused unless `-DDOTD_NO_VIDEO=ON` asks for one. See
+[thirdparty/README.md](thirdparty/README.md) for dependency details.
 
 `tools\build_release.bat` does the configure and Release build in one step
 (it finds Visual Studio with vswhere), and `tools\run_release.bat` starts the
@@ -57,10 +71,9 @@ downloads the game data level by level. The zstd source is needed for that mode
 
 ## Game data
 
-Supply your own copy of the game. Copy `dotd.ini.example` to `dotd.ini` in the
-working directory or next to the executable, and set `usrdir` to your local
-`PS3_GAME/USRDIR` directory. Game data is read only. Tests requiring it skip when
-it is not configured.
+Supply your own copy of the game (`setup.cmd` does the rest). By hand: copy `dotd.ini.example` to `dotd.ini` in the
+working directory or next to the executable, and set `usrdir` to your local `PS3_GAME/USRDIR` directory. Game data is
+read only. Tests requiring it skip when it is not configured.
 
 Game data, binaries, screenshots, build output and local settings are excluded
 from this repository. The reverse-engineering workspace and its Git history

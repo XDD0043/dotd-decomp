@@ -145,7 +145,7 @@ public:
     GolemPhaseCondHeroActivator();  // 0x004c5b00 GolemPhaseCondHeroActivator_Construct_maybe
     void Load(IKFile* file, int32_t type) override;  // vt+0x20 0x004c7038 GolemPhaseCondHeroActivator_Load_maybe
     uint8_t IsMet(CKGolemAttackCommon* attack) override;  // vt+0x28 0x004c55a0 GolemPhaseCondHeroActivator_IsMet_maybe
-    // vt+0x2c 0x004c5838 GolemPhaseCondHeroActivator_ResetBaseline_maybe: CKHkHeroActivator_CallSetEnabled.
+    // vt+0x2c 0x004c5838 GolemPhaseCondHeroActivator_ResetBaseline_maybe: CKHkHeroActivator_CallSetEnabled(0).
     void ResetBaseline(CKGolemAttackCommon* attack) override;
 
     IKSerializable* m_unk08;  // +0x08 object reference

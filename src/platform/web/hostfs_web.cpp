@@ -4,12 +4,30 @@
 //     and time) is fetched by the page before main() and answers Stat and List, so opening a directory or
 //     building the game's file index costs no request. Names are matched without case, as on the Windows disk
 //     the native build reads.
-//   - Reads are HTTP range requests, synchronous as the callers expect. A synchronous binary request is only
-//     allowed off the browser's main thread: the game's worker threads (the level loader) make their own, the
-//     main thread hands its request to the I/O thread below and waits for it.
+//   - Reads are HTTP range requests, synchronous as the callers expect. The game's worker threads (the level
+//     loader, a video's decoder) make their own. How the browser's main thread reads depends on the browser:
+//       Chromium: it hands its request to the I/O thread below and waits for it (a synchronous request may not
+//       be an arraybuffer on the main thread).
+//       Firefox: it makes the request itself, a synchronous one read as text in the x-user-defined charset (one
+//       byte per character). See "Firefox" below for why.
+//   - Firefox carries out a worker's request (XHR or fetch, the service worker's answer included) on the page's
+//     main thread. A main thread that waits for a worker that is in a request therefore waits for ever: the game
+//     stopped after 00GLC.KP3 (the main thread waiting for the I/O thread), and again at the new game's video
+//     (BinkDoFrame waiting for the decoder thread's read). While the main thread is in a synchronous request of
+//     its own, Firefox runs the waiting work, the workers' requests included, so (WorkersNeedMainThread):
+//       the main thread reads by itself (above), and
+//       each busy wait of the main thread (Emscripten spins there: a mutex, a condition variable, a join) that
+//       lasts more than kPumpAfterMs makes synchronous requests of a data: URL until it ends (PumpWhileWaiting,
+//       about 20 microseconds each, no network). Chromium does a worker's requests on the worker's own thread
+//       and needs neither. DOTD_WEB_MAIN_PUMP=1 or =0 (a page URL parameter, as every DOTD_* variable) forces it.
 //   - Small reads go through a cache of 1 MB blocks (the least recently used block is dropped), and reading a
 //     block asks the I/O thread for the one after it, so a file read in sequence (a video, a sound stream)
 //     does not stall the frame once per block. A read of a block or more goes straight into the caller's buffer.
+//   - A listed file the server answers with 4xx (404: the site has no usrdir/ folder, so a read the download
+//     mode's service worker did not answer reaches the host) means the game cannot get its files: every later
+//     read fails at once, without a request, and the page is told (Module.onGameFilesGone). The game's loader
+//     goes on reading after a failed read, so without this one stuck page sent ~60 requests a second to the
+//     host for hours (Cloudflare Pages, 2026-11-20: all of them GET /usrdir/GAME.KP3, 404).
 // Paths outside the served root (saves, caches) go to the C library, which is Emscripten's in-memory file system.
 #ifdef __EMSCRIPTEN__
 
@@ -66,6 +84,117 @@ EM_JS(int, dotd_web_fetch_range, (const char* url, double offset, int length, ui
         return -1;
     }
 });
+// The same from the browser's main thread: a synchronous request may not be an arraybuffer there, so the body is
+// read as text in the x-user-defined charset, whose characters are the bytes (0xf780 + byte above 0x7f).
+EM_JS(int, dotd_web_fetch_range_main, (const char* url, double offset, int length, uint8_t* dst), {
+    try {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', UTF8ToString(url), false);
+        xhr.overrideMimeType('text/plain; charset=x-user-defined');
+        xhr.setRequestHeader('Range', 'bytes=' + offset + '-' + (offset + length - 1));
+        xhr.send(null);
+        if (xhr.status !== 206 && xhr.status !== 200) return -xhr.status;
+        var text = xhr.responseText;
+        var begin = xhr.status === 200 ? offset : 0;  // the server ignored the range
+        var n = Math.max(0, Math.min(length, text.length - begin));
+        var heap = HEAPU8;
+        for (var i = 0; i < n; ++i) heap[dst + i] = text.charCodeAt(begin + i) & 0xff;
+        return n;
+    } catch (e) {
+        return -1;
+    }
+});
+// True when the browser carries out a worker's requests without its main thread: Chromium (desktop and Android;
+// Chrome on iOS is WebKit and has no userAgentData).
+EM_JS(int, dotd_web_is_chromium, (), {
+    var data = typeof navigator !== 'undefined' ? navigator.userAgentData : undefined;
+    return data && data.brands && data.brands.some(function(b) { return b.brand === 'Chromium'; }) ? 1 : 0;
+});
+// One synchronous request that needs no network: while it runs, Firefox runs the main thread's waiting work.
+EM_JS(void, dotd_web_pump, (), {
+    try {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', 'data:,', false);
+        xhr.send(null);
+    } catch (e) {
+    }
+});
+
+namespace dotd::platform::hostfs {
+namespace {
+int g_workersNeedMain = -1;  // -1: not looked yet
+}
+
+// Whether a worker's request needs the browser's main thread (Firefox; see the top of the file).
+bool WorkersNeedMainThread() {
+    if (g_workersNeedMain < 0) {
+        const char* forced = std::getenv("DOTD_WEB_MAIN_PUMP");
+        if (forced != nullptr && (std::strcmp(forced, "1") == 0 || std::strcmp(forced, "0") == 0)) {
+            g_workersNeedMain = forced[0] == '1' ? 1 : 0;
+        } else {
+            g_workersNeedMain = dotd_web_is_chromium() ? 0 : 1;
+        }
+    }
+    return g_workersNeedMain == 1;
+}
+
+namespace {
+// A wait counts as one while its spin comes back here within kWaitGapMs and no new frame began
+// (web::NoteMainThreadTask); pumping starts once it lasted kPumpAfterMs. The game's own sleeps on the main thread (5 ms per frame in the menus, CKGameLoop::Run; the frame
+// slot of the 60 fps cap) stay below it: pumping inside them made Firefox's page crawl (each pump runs whatever
+// waits for the main thread, and the page's own events wait until the pump ends). So a wait for a worker that is
+// in a request costs kPumpAfterMs once instead of never ending.
+constexpr double kWaitGapMs = 2.0;
+constexpr double kPumpAfterMs = 50.0;
+constexpr int kLoggedWaits = 8;
+bool g_inPump = false;
+double g_waitStartMs = 0.0, g_waitSeenMs = 0.0, g_pumpedWaitMs = -1.0;
+int g_pumpedWaits = 0;
+
+// The game's functions on the stack (the wasm frames of the JS stack, by name), innermost first.
+EM_JS(void, dotd_web_log_wait_stack, (double waitedMs), {
+    var names = [];
+    // (No backslash in here: an EM_JS body is not a C string with escapes.)
+    String(new Error().stack).split(String.fromCharCode(10)).forEach(function(line) {
+        var at = line.indexOf('dotd.wasm.');
+        if (at < 0) return;
+        var name = line.substring(at + 10);
+        ['wasm-function', '@', ' ('].forEach(function(end) {
+            var cut = name.indexOf(end);
+            if (cut >= 0) name = name.substring(0, cut);
+        });
+        if (!/emscripten|futex|nanosleep|PumpWhileWaiting|check_timers/.test(name)) names.push(name);
+    });
+    var text = '[web] the main thread waited ' + waitedMs.toFixed(0) + ' ms (pumping from now): ' +
+               names.slice(0, 8).join(' < ');
+    if (Module['printErr']) Module['printErr'](text); else console.log(text);
+});
+
+// Called by each turn of a busy wait of the main thread (below): pumps once the wait lasts kPumpAfterMs.
+void PumpWhileWaiting(double now) {
+    if (g_inPump || !WorkersNeedMainThread()) return;
+    if (now == 0.0) now = emscripten_get_now();
+    if (now - g_waitSeenMs > kWaitGapMs) g_waitStartMs = now;  // a new wait
+    g_waitSeenMs = now;
+    if (now - g_waitStartMs < kPumpAfterMs) return;
+    g_inPump = true;
+    if (g_pumpedWaitMs != g_waitStartMs) {  // the first pump of this wait
+        g_pumpedWaitMs = g_waitStartMs;
+        if (++g_pumpedWaits <= kLoggedWaits) dotd_web_log_wait_stack(now - g_waitStartMs);
+    }
+    dotd_web_pump();
+    g_waitSeenMs = emscripten_get_now();
+    g_inPump = false;
+}
+}  // namespace
+}  // namespace dotd::platform::hostfs
+
+// Emscripten's hook in the main thread's busy waits: _emscripten_yield (system/lib/pthread/emscripten_yield.c),
+// which every turn of the main thread's futex spin, the end of each futex wait and sched_yield call, calls
+// _emscripten_check_timers(now), a weak no-op unless setitimer / alarm are linked (this would then be a duplicate
+// definition: the link fails). `now` is 0 when the caller has no time at hand. Main thread only. It must stay in
+// a file the link always takes (a library member would not be pulled in to replace a weak definition).
+extern "C" void _emscripten_check_timers(double now) { dotd::platform::hostfs::PumpWhileWaiting(now); }
 
 namespace dotd::platform::hostfs {
 
@@ -87,6 +216,7 @@ struct Entry {
 std::string g_root;                              // Config::usrdir, e.g. "/usrdir"
 std::unordered_map<std::string, Entry> g_entries;  // by lower-case path below the root ("" = the root); fixed after Init
 std::atomic<uint64_t> g_requests(0), g_requestBytes(0);
+std::atomic<bool> g_filesGone(false);  // a listed file was answered with 4xx: no more requests (the top of the file)
 double g_mainWaitMs = 0.0;      // main thread only: see web::TakeMainThreadReadWait
 int g_mainWaitReads = 0;
 uint64_t g_mainWaitBytes = 0;
@@ -156,10 +286,27 @@ std::list<BlockKey> g_lru;  // most recent first
 std::map<BlockKey, std::pair<std::shared_ptr<Block>, std::list<BlockKey>::iterator>> g_cache;
 std::set<BlockKey> g_pending;  // read-ahead blocks asked for and not yet in the cache
 
+// The first 4xx answer for a listed file: the reads stop and the page shows why (Module.onGameFilesGone).
+void FilesGone(const Entry* entry, int status) {
+    if (g_filesGone.exchange(true)) return;
+    DOTD_LOG("hostfs: %s answered HTTP %d: the game's files cannot be read, no more requests", entry->url.c_str(),
+             status);
+    static std::string url;
+    url = entry->url;  // (read by the main thread later: kept)
+    MAIN_THREAD_ASYNC_EM_ASM({
+        if (Module['onGameFilesGone']) Module['onGameFilesGone'](UTF8ToString($0), $1);
+    }, url.c_str(), status);
+}
+
 bool FetchDirect(const Entry* entry, uint64_t offset, size_t length, uint8_t* dst) {
+    const bool onMain = emscripten_is_main_browser_thread();
     double waitedMs = 0.0, loggedMs = 0.0;
     for (int attempt = 0; attempt < 3; ++attempt) {
-        const int got = dotd_web_fetch_range(entry->url.c_str(), static_cast<double>(offset), static_cast<int>(length), dst);
+        if (g_filesGone.load(std::memory_order_relaxed)) return false;
+        const int got = onMain ? dotd_web_fetch_range_main(entry->url.c_str(), static_cast<double>(offset),
+                                                           static_cast<int>(length), dst)
+                               : dotd_web_fetch_range(entry->url.c_str(), static_cast<double>(offset),
+                                                      static_cast<int>(length), dst);
         if (got == static_cast<int>(length)) {
             g_requests.fetch_add(1, std::memory_order_relaxed);
             g_requestBytes.fetch_add(length, std::memory_order_relaxed);
@@ -173,10 +320,17 @@ bool FetchDirect(const Entry* entry, uint64_t offset, size_t length, uint8_t* ds
                 DOTD_LOG("hostfs: waiting for %s to download", entry->url.c_str());
                 loggedMs = waitedMs;
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            waitedMs += 100.0;
+            // (On a main thread that makes its own requests, the download only goes on in Firefox while one of
+            // them runs: asked again sooner.)
+            const int pauseMs = onMain ? 10 : 100;
+            std::this_thread::sleep_for(std::chrono::milliseconds(pauseMs));
+            waitedMs += pauseMs;
             --attempt;
             continue;
+        }
+        if (got <= -400 && got > -500) {  // (not asked again: the answer would be the same)
+            FilesGone(entry, -got);
+            return false;
         }
         DOTD_LOG("hostfs: request %s +%llu len %zu failed (%d), attempt %d", entry->url.c_str(),
                  static_cast<unsigned long long>(offset), length, got, attempt + 1);
@@ -250,6 +404,7 @@ bool Fetch(const Entry* entry, uint64_t offset, size_t length, uint8_t* dst) {
             g_mainWaitBytes += length;
         }
     } waited{start, length};
+    if (WorkersNeedMainThread()) return FetchDirect(entry, offset, length, dst);  // (Firefox: the top of the file)
     std::unique_lock<std::mutex> lock(g_ioMutex);
     // Before the read-ahead, after the callers already waiting.
     auto at = g_ioQueue.begin();
@@ -511,6 +666,10 @@ bool InitHostFs(const std::string& root) {
     }
     std::free(text);
     DOTD_LOG("hostfs: %s = %s, %zu files, %.1f MB listed", root.c_str(), baseUrl.c_str(), files, total / 1048576.0);
+    DOTD_LOG("hostfs: %s", WorkersNeedMainThread()
+                               ? "workers' requests need the main thread (Firefox): it reads by itself and pumps in "
+                                 "its waits"
+                               : "the main thread's reads go through the I/O thread");
     if (!g_ioStarted) {
         g_ioStarted = true;
         std::thread(IoThreadMain).detach();
@@ -541,6 +700,8 @@ void TakeMainThreadReadWait(double* ms, int* reads, double* megabytes) {
     g_mainWaitReads = 0;
     g_mainWaitBytes = 0;
 }
+
+void NoteMainThreadTask() { dotd::platform::hostfs::g_waitSeenMs = -1.0e9; }
 
 void LogHostFsStats() {
     DOTD_LOG("hostfs: %llu requests, %.1f MB read",

@@ -324,7 +324,7 @@ void ShaderManagerPSGL_PrewarmLevelPrograms(int32_t level) {
     if (!dotd::gfx::IsReady()) return;
     dotd::gfx::MakeRasterTexturesAhead();  // (the web build: the level's textures too, platform/gfx/raster.h)
     if (!cg::SourcesLoaded()) {  // (as ShaderVariant_GetProgram's first call)
-        const std::string path = dotd::platform::GetConfig().usrdir + "/EBOOT.elf";
+        const std::string path = cg::GameExecutablePath(dotd::platform::GetConfig().usrdir);
         std::string error;
         if (!cg::InitSources(path.c_str(), &error)) return;
     }

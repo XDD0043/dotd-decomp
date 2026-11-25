@@ -7,7 +7,7 @@
 //   [ ] 0x553c18  CKS08MenuGame_Construct  [dead]
 //   [ ] 0x553cc0  FUN_00553cc0  [dead]
 //   [ ] 0x553d70  CKS08MenuGame_IsOnlyComboButtonPressed_maybe  [dead]
-//   [ ] 0x553ee0  CKS08MenuGame_SetAllUnlockFlags_maybe  [dead]
+//   [x] 0x553ee0  CKS08MenuGame_SetAllUnlockFlags_maybe  (dead in the original; dotd reaches it, see UpdateSecretCodeInput)
 //   [x] 0x554148  CKS08MenuGame_RecursiveRegistration
 //   [x] 0x5541b8  CKS08MenuGame_Destroy  (inherited: CKMenuBase114c::Destroy)
 //   [x] 0x5541e0  CKS08MenuGame_DeleteArray
@@ -22,7 +22,7 @@
 //   [x] 0x5549d0  CKS08MenuGame_Load
 //   [ ] 0x554ab0  CKS08MenuGame_Save
 //   [x] 0x554b90  CKS08MenuGame_vfEC
-//   [ ] 0x554de8  CKS08MenuGame_UpdateSecretCodeInput_maybe  [dead]
+//   [x] 0x554de8  CKS08MenuGame_UpdateSecretCodeInput_maybe  (dead in the original; dotd calls it from OnMenuState)
 //   [x] 0x555120  CKS08MenuGame_DeletingDestructor  (implicit destructor: CKMenuBase114c's inlined)
 //   [x] 0x555258  CKS08MenuGame_Destructor  (implicit destructor: CKMenuBase114c's inlined)
 //   [x] 0x555390  CKS08MenuGame_Destructor_2  (implicit destructor: CKMenuBase114c's inlined)
@@ -58,6 +58,12 @@
 #include "k2000/logic/IKPlayer.h"
 #include "k2000/misc/IKGameStructure.h"
 
+#include "k2000/dictionaries/CKSoundDictionaryID.h"
+#include "k2000/logic/sound/CKSound.h"
+#include "k2000/misc/Engine.h"
+#include "k2000/system/CTimeManager.h"
+#include "k2000/system/IKTime.h"
+
 // 0x005549d0 CKS08MenuGame_Load: no type test of its own, so its fields are read whatever the type.
 int32_t CKS08MenuGame::Load(IKFile* file, int32_t type) {
     CKMenuBase114c::Load(file, type);
@@ -81,10 +87,82 @@ uint8_t CKS08MenuGame::OnMenuState(int32_t phase, uint8_t /*other*/) {
         button->SetDisabled(static_cast<uint8_t>(structure->m_unk1f0[0x23f - 0x1f0] ^ 1));  // +0x23f
         manager->SetPlayerActive(0, 1);
         manager->SetPlayerActive(1, manager->GetPlayerCount() == 2 ? 1 : 0);
-        m_unke4 = 0;
-        m_unke8 = 0;
+        m_ui8SecretStep = 0;
+        m_fSecretTimer = 0.0f;  // stw of 0: the same bits
+    } else if (phase == 0) {
+        // DOTD ADDITION: the original's OnMenuState has no update phase code; the secret code below is dead there.
+        UpdateSecretCodeInput();
     }
     return static_cast<uint8_t>(GetMenuId());
+}
+
+namespace {
+// 0x00c40c90 (TOC1 +0x7f00): the held action (1 byte), then (+1) its five steps. Actions of the "IKCommonGameManager"
+// input project (GAME.KP3): 6 L1, 0xa / 0xb / 0xc left stick left / right / up.
+const uint8_t kSecretFirst = 6;
+const uint8_t kSecretSteps[5] = {0xa, 0xb, 0xb, 0xc, 0xc};
+}  // namespace
+
+// 0x00554de8 CKS08MenuGame_UpdateSecretCodeInput_maybe (dead in the original; see the header)
+void CKS08MenuGame::UpdateSecretCodeInput() {
+    if (0.0f < m_fSecretTimer) {  // fcmpu + ble against 0 (TOC1 +0x7eac)
+        m_fSecretTimer = m_fSecretTimer - g_pEngine->m_timeManager->m_pTime->m_afDeltaTime[1];  // fsubs
+        return;
+    }
+    CKS08GameManager* manager = static_cast<CKS08GameManager*>(m_pGameManager);
+    // The original's loop over the codes runs once (cmpwi r21,0 / beq after the first).
+    const uint8_t current = m_ui8SecretStep;
+    uint32_t held = kSecretFirst;
+    uint32_t next = kSecretSteps[current];
+    bool restart = manager->GetActionValue(held, 0) == 0.0f;  // vt+0x164
+    for (uint32_t k = 0; !restart && k <= 0x17; ++k) {
+        if (k == held || k == next) continue;
+        if (manager->IsActionPressed(k, 0) > 0x80) restart = true;  // vt+0x160
+    }
+    if (!restart) {
+        if (manager->IsActionPressed(next, 0) > 0x80) {
+            m_ui8SecretStep = static_cast<uint8_t>(current + 1);
+            m_fSecretTimer = 0.3f;  // TOC1 +0x7f04
+            if (m_ui8SecretStep == 5) {
+                SetAllUnlockFlags(0);  // 0x553ee0
+                m_ui8SecretStep = 0;
+            }
+        }
+        return;
+    }
+    // A wrong press (or L1 released): the code starts again, at its first step when that is pressed.
+    next = kSecretSteps[0];
+    if (manager->GetActionValue(held, 0) == 0.0f) {
+        m_ui8SecretStep = 0;
+        return;
+    }
+    for (uint32_t k = 0; k <= 0x17; ++k) {
+        if (k == held || k == next) continue;
+        if (manager->IsActionPressed(k, 0) > 0x80) {
+            m_ui8SecretStep = 0;
+            return;
+        }
+    }
+    m_ui8SecretStep = manager->IsActionPressed(next, 0) > 0x80 ? 1 : 0;
+}
+
+// 0x00553ee0 CKS08MenuGame_SetAllUnlockFlags_maybe (dead in the original; see the header)
+void CKS08MenuGame::SetAllUnlockFlags(int32_t which) {
+    if (which != 0) return;
+    CKS08GameManager* manager = static_cast<CKS08GameManager*>(m_pGameManager);
+    for (int32_t index = 0; index <= 0xb; ++index) {
+        static_cast<CKS08GameStructure*>(manager->m_gameStructure)->SetUnlockFlagByte(index, 1);  // 0x5106c0
+    }
+    // BUG(original): no test of the button count; with no buttons the calls go through null (as in OnMenuState).
+    CKInterfaceButtonBase* button =
+        static_cast<CKInterfaceButtonBase*>(m_apButtons.m_ui32NbUsedElt != 0 ? m_apButtons.m_pBlock[0] : nullptr);
+    button->SetDisabled(0);  // vt+0x84
+    button = static_cast<CKInterfaceButtonBase*>(m_apButtons.m_ui32NbUsedElt > 1 ? m_apButtons.m_pBlock[1] : nullptr);
+    button->SetDisabled(0);
+    CKSound* sound = static_cast<CKSoundDictionaryID*>(manager->m_unkBDC)->GetSound2(0xb);  // 0x112bd8
+    if (sound == nullptr) return;
+    sound->ResetPan(1);  // 0x111b70
+    sound->Play(0.0f);   // 0x111230; TOC1 +0x7eac
 }
 
 // 0x005545b0 CKS08MenuGame_OnItemEvent

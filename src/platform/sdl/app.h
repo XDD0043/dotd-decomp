@@ -24,6 +24,8 @@ void PumpEvents();
 void SwapWindow();
 // Frame timing measured at SwapWindow, after a 60-frame warm-up; LogFrameStats prints it.
 void LogFrameStats();
+// The frame rate while the game runs (platform SetFps): the pacing is chosen again.
+void SetFrameRate(int frameRate);
 void GetDrawableSize(int* width, int* height);
 void SetWindowTitle(const char* title);
 void* GetGLProcAddress(const char* name);
@@ -32,6 +34,9 @@ void* GetGLProcAddress(const char* name);
 //   words[2] digital1, [3] digital2, [4..7] analog RX, RY, LX, LY, [8..19] pressure, [20..23] sensors.
 // Port 0 combines the first gamepad and the keyboard. Returns false when nothing is on that port.
 bool ReadPad(int port, uint16_t words[24]);
+// A pad drawn on a touch screen (the web page's controls): the digital words and the stick bytes (centre 128),
+// merged into port 0 like the keyboard. Any thread.
+void SetTouchPad(uint16_t digital1, uint16_t digital2, uint8_t leftX, uint8_t leftY, uint8_t rightX, uint8_t rightY);
 int ConnectedPadCount();
 void Rumble(int port, uint8_t smallMotor, uint8_t largeMotor);
 

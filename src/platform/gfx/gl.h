@@ -121,6 +121,9 @@ enum : GLenum {
     X(void, glScissor, (GLint x, GLint y, GLsizei w, GLsizei h))                                        \
     X(void, glClearColor, (GLfloat r, GLfloat g, GLfloat b, GLfloat a))                                 \
     X(void, glClear, (GLbitfield mask))                                                                 \
+    X(void, glFinish, ())                                                                               \
+    X(void, glFlush, ())                                                                                \
+    X(void, glColorMask, (GLboolean r, GLboolean g, GLboolean b, GLboolean a))                          \
     X(void, glEnable, (GLenum cap))                                                                     \
     X(void, glDisable, (GLenum cap))                                                                    \
     X(void, glBlendFunc, (GLenum s, GLenum d))                                                          \

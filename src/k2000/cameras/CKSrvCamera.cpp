@@ -1602,9 +1602,6 @@ static void PushShake(CKSrvCamera* camera, CKQuakeCpntUpdater* effect, CKQuakeCa
     node->m_pNext = camera->m_unk8e8;
     camera->m_unk8e8 = node;
     effect->Start();  // CKQuakeCpntUpdater_Start 0x24f770
-    // DEV: the start frame of every camera shake (the replay compares it with the recording's: LVL010's first fight intro
-    // starts quake #141 at +585 and +617, from its CKExplosionFxData launchers).
-    DOTD_LOG("camera: shake started (quake %p, launcher %p)", static_cast<void*>(effect->m_pQuake), static_cast<void*>(source));
 }
 
 // 0x0012c7d0 CKSrvCamera_FindIndexByKey_maybe

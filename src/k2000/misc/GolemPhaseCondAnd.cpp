@@ -519,11 +519,10 @@ uint8_t GolemPhaseCondHeroActivator::IsMet(CKGolemAttackCommon* /*attack*/) {
     return static_cast<uint8_t>((static_cast<IKLife*>(m_unk08)->m_bitArray >> 10) & 1u);
 }
 
-// 0x004c5838 GolemPhaseCondHeroActivator_ResetBaseline_maybe: CKHkHeroActivator_CallSetEnabled with the caller's r4
-// passed on. BUG(original): that is the attack's address (its low byte becomes the activator's "enabled" byte); dotd
-// passes the x64 address's low word (no LVL010 golem step has this condition type).
-void GolemPhaseCondHeroActivator::ResetBaseline(CKGolemAttackCommon* attack) {
-    CKHkHeroActivator_CallSetEnabled(m_unk08, static_cast<int32_t>(reinterpret_cast<uintptr_t>(attack)));
+// 0x004c5838 GolemPhaseCondHeroActivator_ResetBaseline_maybe: the activator switched off (li r4,0 at 0x4c5840, then
+// CKHkHeroActivator_CallSetEnabled). Used by LVL050's golem[3] (phase attack 11, step 15, before its two QTE phases).
+void GolemPhaseCondHeroActivator::ResetBaseline(CKGolemAttackCommon* /*attack*/) {
+    CKHkHeroActivator_CallSetEnabled(m_unk08, 0);
 }
 
 // 0x004c57c8 GolemPhaseCondRandom_IsMet_maybe: one draw (Rand_Int 0x00011500, its low 16 bits: fcfid, frsp) as a

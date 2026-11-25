@@ -17,6 +17,7 @@
 #include <sstream>
 
 #include "platform/hostfs.h"
+#include "platform/self_decrypt.h"
 
 namespace dotd::gfx::cg {
 namespace {
@@ -1780,6 +1781,13 @@ private:
             // 0x207 in that order) on the first colour output's alpha. Platform addition:
             // the host sets dotd_alphaFunc / dotd_alphaRef (0..1) per draw (RwDevice's render states).
             decl += "uniform int dotd_alphaFunc;\nuniform float dotd_alphaRef;\n";
+            // DEV (DOTD_ALPHATEST=0, a measurement only: the cut-out materials then draw solid): no alpha test, so no
+            // discard in any pixel shader (a discard anywhere in a shader turns a phone GPU's early depth test off).
+            static const bool noAlphaTest = [] {
+                const char* env = std::getenv("DOTD_ALPHATEST");
+                return env != nullptr && std::strcmp(env, "0") == 0;
+            }();
+            if (!noAlphaTest)
             main += "  if (dotd_alphaFunc >= 1 && dotd_alphaFunc <= 7) {\n    float a = " + out->colorOutputs[0] +
                     ".a;\n    bool keep = dotd_alphaFunc == 1 ? false : dotd_alphaFunc == 2 ? a < dotd_alphaRef : "
                     "dotd_alphaFunc == 3 ? a == dotd_alphaRef : dotd_alphaFunc == 4 ? a <= dotd_alphaRef : "
@@ -1817,6 +1825,34 @@ bool LoadGameSources(const char* ebootPath, Sources* out, std::string* error) {
         std::FILE* f;
         ~Closer() { std::fclose(f); }
     } closer{file};
+    // The disc's EBOOT.BIN (a SELF) is decrypted in memory into the ELF the offsets below are in
+    // (platform/self_decrypt.h); a decrypted EBOOT.elf is read in place (only the two blocks: on the web the file is
+    // fetched by range).
+    std::vector<uint8_t> elf;
+    uint8_t magic[4] = {};
+    const bool isSelf = std::fread(magic, 1, sizeof magic, file) == sizeof magic && dotd::platform::IsSelf(magic, sizeof magic);
+    if (isSelf) {
+        std::vector<uint8_t> self;
+        std::fseek(file, 0, SEEK_SET);
+        uint8_t chunk[1 << 16];
+        for (size_t got; (got = std::fread(chunk, 1, sizeof chunk, file)) != 0;) self.insert(self.end(), chunk, chunk + got);
+        std::string why;
+        if (!dotd::platform::DecryptSelf(self, &elf, &why)) {
+            *error = std::string("cannot decrypt ") + ebootPath + ": " + why;
+            return false;
+        }
+    }
+    const auto readAt = [&](size_t offset, size_t at, char* buffer, size_t bytes) -> size_t {
+        if (isSelf) {
+            const size_t from = offset + at;
+            if (from >= elf.size()) return 0;
+            const size_t n = std::min(bytes, elf.size() - from);
+            std::memcpy(buffer, elf.data() + from, n);
+            return n;
+        }
+        if (at == 0) std::fseek(file, static_cast<long>(offset), SEEK_SET);
+        return std::fread(buffer, 1, bytes, file);
+    };
     struct Block {
         size_t offset;
         const char* firstLine;
@@ -1826,19 +1862,19 @@ bool LoadGameSources(const char* ebootPath, Sources* out, std::string* error) {
     const Block blocks[] = {{0xc26750, "#pragma pack_matrix (row_major)", "VertexShaderMain", &out->vertex},
                             {0xc19848, "#ifndef externBasicShader", "PixelShaderMain", &out->pixel}};
     for (const Block& b : blocks) {
-        std::fseek(file, static_cast<long>(b.offset), SEEK_SET);
         std::string text;
         char chunk[4096];
         bool terminated = false;
         while (!terminated && text.size() < (1u << 20)) {
-            const size_t got = std::fread(chunk, 1, sizeof chunk, file);
+            const size_t got = readAt(b.offset, text.size(), chunk, sizeof chunk);
             if (got == 0) break;
             const char* nul = static_cast<const char*>(std::memchr(chunk, 0, got));
             text.append(chunk, nul != nullptr ? static_cast<size_t>(nul - chunk) : got);
             terminated = nul != nullptr;
         }
         if (!terminated || text.compare(0, std::strlen(b.firstLine), b.firstLine) != 0 || text.find(b.entry) == std::string::npos) {
-            *error = std::string("the Cg block at file offset ") + std::to_string(b.offset) + " is not the expected " + b.entry + " source";
+            *error = std::string("the Cg block at file offset ") + std::to_string(b.offset) + " is not the expected " + b.entry +
+                     " source (not the BLUS30205 executable?)";
             return false;
         }
         *b.target = text;

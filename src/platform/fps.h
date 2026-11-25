@@ -26,6 +26,9 @@ namespace dotd::fps {
 // --fps N / dotd.ini fps = N (config.h): any N but 60 turns the calculation on.
 void Configure(bool unlocked);
 bool Unlocked();
+// The same switch while the game runs (platform SetFps): the 60 Hz phase starts again, the count of 60 Hz frames
+// (TickCount) goes on from where it is, so what was asked for before the switch still comes due.
+void SetUnlocked(bool unlocked);
 
 // Called by CTimeManager::Update right after the frame clock updates, with this frame's deltas (IKTime
 // m_afDeltaTime: scaled game, unscaled game, real). Advances the 60 Hz phase on the real delta. Nothing while locked.

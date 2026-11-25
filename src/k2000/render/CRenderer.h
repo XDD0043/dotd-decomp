@@ -46,6 +46,7 @@ public:
     // priority first), each item's rendering properties applied (types 0 and 6) and its vt+0x5c called;
     // then the queue is empty.
     void Execute(IKTime* frameClock);
+    void ExecuteItems(IKTime* frameClock, int stage);  // DEV: Execute's body (CRenderer.cpp: Execute adds the GPU test's marks)
 
     Type m_type;
     IRendableObject** m_ppItems = nullptr;  // +0x04

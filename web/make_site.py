@@ -14,6 +14,8 @@ What a static host asks for, and how the folder meets it:
 
 The folder:
   index.html dotd.js dotd.wasm sw.js pack-worker.js zstddec.js zstddec.wasm   the page (from --web)
+  manifest.webmanifest icon.svg                                                the page as a home-screen app
+  btn-*.png                                                                    the touch pad's face buttons
   _headers 404.html                                                            for the host
   pack/manifest.json     every file the game can ask for and where its bytes are (below)
   pack/usrdir.manifest   the listing the game's file layer reads
@@ -51,8 +53,12 @@ BLOB_PART = 16 * MB      # a blob is downloaded whole: parts as large as a host 
 VIDEO_PART = 4 * MB      # a video may be streamed: a part is what a read waits for
 VIDEO_FIRST = 256 * 1024  # its header and first second: what opening it waits for
 MUSIC_PART = 2 * MB
-WEB_FILES = ['index.html', 'dotd.js', 'dotd.wasm', 'sw.js', 'pack-worker.js', 'zstddec.js', 'zstddec.wasm']
-PAGE_FILES = ['index.html', 'sw.js', 'pack-worker.js']  # not built: taken from this folder, where they are edited
+WEB_FILES = ['index.html', 'dotd.js', 'dotd.wasm', 'sw.js', 'pack-worker.js', 'zstddec.js', 'zstddec.wasm',
+             'manifest.webmanifest', 'icon.svg',
+             'btn-triangle.png', 'btn-circle.png', 'btn-cross.png', 'btn-square.png']
+# not built: taken from this folder, where they are edited
+PAGE_FILES = ['index.html', 'sw.js', 'pack-worker.js', 'manifest.webmanifest', 'icon.svg',
+              'btn-triangle.png', 'btn-circle.png', 'btn-cross.png', 'btn-square.png']
 
 HEADERS = '''# The game runs on threads (SharedArrayBuffer): the page must be cross-origin isolated.
 /*

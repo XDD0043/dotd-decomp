@@ -2,7 +2,7 @@
 """serve.py - local server for the web build of dotd (dotd.js / dotd.wasm / index.html).
 
     python serve.py [--usrdir PATH] [--port 8080] [--dir FOLDER]
-    python serve.py --site FOLDER [--port 8081] [--rate MBIT] [--no-range]
+    python serve.py --site FOLDER [--port 8081] [--rate MBIT] [--no-range] [--lan]
 
 It serves two things on 127.0.0.1 only:
   /                  the page and the wasm build (the folder this script is in, or --dir)
@@ -23,10 +23,15 @@ the native build folders next to it).
 
 Every response carries the cross-origin isolation headers the wasm build needs for its threads
 (SharedArrayBuffer): Cross-Origin-Opener-Policy / Cross-Origin-Embedder-Policy.
+
+POST /diag takes the performance reports of the page's ?diag (index.html, README.md "Diagnostics"): appended to
+--diag-dir/<session>.jsonl (default dotd/build/diag), one console line each.
 """
 import argparse
 import os
+import json
 import posixpath
+import re
 import sys
 import threading
 import time
@@ -57,6 +62,8 @@ MIME = {
     '.png': 'image/png',
     '.ico': 'image/x-icon',
     '.txt': 'text/plain; charset=utf-8',
+    '.svg': 'image/svg+xml',
+    '.webmanifest': 'application/manifest+json',
 }
 
 
@@ -114,6 +121,40 @@ def build_manifest(root):
     return ('\n'.join(lines) + '\n').encode('utf-8')
 
 
+DIAG_MAX_BYTES = 4 << 20
+# dotd/build/diag, from dotd/web (the source) or dotd/build/wasm (the copy the build makes)
+DEFAULT_DIAG_DIR = os.path.join(HERE, '..', 'build', 'diag') if os.path.basename(HERE) == 'web' else os.path.join(HERE, '..', 'diag')
+
+
+def diag_summary(report):
+    """One console line for a /diag report."""
+    if report.get('type') == 'device':
+        ua = report.get('uaData') or {}
+        return 'device %s, %s cores, %s GB, GPU %s, canvas %s, profiler %s, timer queries %s' % (
+            ua.get('model') or report.get('userAgent', '?')[:60], report.get('cores'), report.get('memoryGB'),
+            report.get('glRenderer'), report.get('canvas'), report.get('profiler'), report.get('timerQuery'))
+    if report.get('type') == 'gputest':
+        rows = sorted((r for r in report.get('results', []) if r.get('name') != 'baseline'),
+                      key=lambda r: r.get('msSaved') or 0, reverse=True)
+        return 'GPU test, frame time saved: ' + '; '.join(
+            '%s %.1f ms (%s fps)' % (r['name'], r.get('msSaved') or 0, r.get('fps')) for r in rows[:8])
+    if report.get('type') != 'window':
+        return report.get('type', '?')
+    cpu = (report.get('frames') or {}).get('cpu') or {}
+    line = '%s %5.1f fps, cpu %s ms/frame (p90 %s), cpu %s%%' % (
+        report.get('level') or '-', report.get('fps', 0), cpu.get('avg', '-'), cpu.get('p90', '-'), report.get('cpuPct'))
+    if report.get('gpuKnown'):
+        line += ', gpu late %d%%' % round(100 * report['gpuBehind'] / report['gpuKnown'])
+    profile = report.get('profile')
+    if profile and profile.get('samples'):
+        n = profile['samples']
+        line += ', main busy %d%%; top: %s' % (round(100 * (1 - profile['idle'] / n)), ', '.join(
+            '%s %d%%' % (name[:40], round(100 * count / n)) for name, count in profile['self'][:3]))
+    if not report.get('visible', True):
+        line += ' (page hidden)'
+    return line
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'  # keep-alive: the game makes many range requests
     web_root = HERE
@@ -125,6 +166,8 @@ class Handler(BaseHTTPRequestHandler):
     rate_free = 0.0    # --rate: when the connection is free again (one budget for all responses)
     manifest = b''
     quiet = True
+    diag_dir = ''      # where /diag reports go (--diag-dir)
+    diag_lock = threading.Lock()
 
     def log_message(self, fmt, *args):
         if not self.quiet:
@@ -134,7 +177,33 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Cross-Origin-Opener-Policy', 'same-origin')
         self.send_header('Cross-Origin-Embedder-Policy', 'require-corp')
         self.send_header('Cross-Origin-Resource-Policy', 'same-origin')
+        self.send_header('Document-Policy', 'js-profiling')  # the page's ?diag may run the browser's sampling profiler
         super().end_headers()
+
+    def do_POST(self):
+        """/diag: a performance report of the page's ?diag (index.html), appended to <diag dir>/<session>.jsonl."""
+        if urllib.parse.urlsplit(self.path).path != '/diag':
+            return self.fail(HTTPStatus.NOT_FOUND)
+        try:
+            length = int(self.headers.get('Content-Length', '0'))
+        except ValueError:
+            length = -1
+        if not 0 < length <= DIAG_MAX_BYTES:
+            return self.fail(HTTPStatus.BAD_REQUEST)
+        body = self.rfile.read(length)
+        try:
+            report = json.loads(body)
+        except ValueError:
+            return self.fail(HTTPStatus.BAD_REQUEST)
+        session = re.sub(r'[^0-9A-Za-z-]', '', str(report.get('session', '')))[:40] or 'unknown'
+        os.makedirs(self.diag_dir, exist_ok=True)
+        with Handler.diag_lock:
+            with open(os.path.join(self.diag_dir, session + '.jsonl'), 'ab') as f:
+                f.write(json.dumps(report, separators=(',', ':')).encode('utf-8') + b'\n')
+        print('diag %s %s: %s' % (session, self.client_address[0], diag_summary(report)), flush=True)
+        self.send_response(HTTPStatus.NO_CONTENT)
+        self.send_header('Content-Length', '0')
+        self.end_headers()
 
     def fail(self, status):
         body = ('%d %s\n' % (status.value, status.phrase)).encode()
@@ -253,8 +322,12 @@ def main():
     ap.add_argument('--rate', '--pack-rate', dest='rate', type=float, default=0, metavar='MBIT',
                     help="--site: send the site's pack over one connection of this many megabits per second")
     ap.add_argument('--no-range', action='store_true', help='--site: answer range requests with the whole file')
+    ap.add_argument('--lan', action='store_true',
+                    help='--site: answer every device on this network (a phone), not only this computer')
     ap.add_argument('--verbose', action='store_true', help='log every request')
+    ap.add_argument('--diag-dir', default=DEFAULT_DIAG_DIR, help="where the page's ?diag reports go (POST /diag)")
     args = ap.parse_args()
+    Handler.diag_dir = os.path.abspath(args.diag_dir)
 
     if args.site:
         Handler.site = True
@@ -265,11 +338,27 @@ def main():
         if not os.path.isfile(os.path.join(Handler.web_root, 'pack', 'manifest.json')):
             print('serve.py: %s is not a site folder (make_site.py writes one)' % Handler.web_root, file=sys.stderr)
             return 1
-        server = ThreadingHTTPServer(('127.0.0.1', args.port), Handler)
+        server = ThreadingHTTPServer(('0.0.0.0' if args.lan else '127.0.0.1', args.port), Handler)
         server.daemon_threads = True
         print('serve.py: site   %s%s%s' % (Handler.web_root, ', %g Mbit/s' % args.rate if args.rate else '',
                                           ', no range requests' if args.no_range else ''))
         print('serve.py: open http://localhost:%d/ in Chrome (Ctrl+C stops)' % args.port, flush=True)
+        if args.lan:
+            # --lan: the folder is served to the whole local network while this runs. A browser only gives a page
+            # threads and a service worker on a "secure" address: https, or localhost. The address below is
+            # neither, so the phone's browser has to be told to trust it (README.md "Trying it on a phone").
+            import socket
+            try:
+                addresses = sorted(set(a for a in socket.gethostbyname_ex(socket.gethostname())[2]
+                                       if not a.startswith('127.')))
+            except OSError:
+                addresses = []
+            for address in addresses:
+                print('serve.py: on this network: http://%s:%d/' % (address, args.port))
+            if not addresses:
+                print('serve.py: on this network: http://<this computer\'s address>:%d/' % args.port)
+            print('serve.py: a phone needs that address marked as secure first (dotd/web/README.md, '
+                  '"Trying it on a phone")', flush=True)
         try:
             server.serve_forever()
         except KeyboardInterrupt:

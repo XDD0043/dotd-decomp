@@ -31,7 +31,10 @@ struct Program {
     bool building = false;
 };
 
-// The Cg sources (EBOOT.elf, read once). False with `error` when the file does not match.
+// The executable the Cg sources are read from: `usrdir`/EBOOT.elf (decrypted, e.g. by RPCS3) when there is one, else
+// the disc's own `usrdir`/EBOOT.BIN (decrypted in memory, platform/self_decrypt.h).
+std::string GameExecutablePath(const std::string& usrdir);
+// The Cg sources (read once from GameExecutablePath). False with `error` when the file does not match.
 bool InitSources(const char* ebootPath, std::string* error);
 bool SourcesLoaded();
 const Sources& GameSources();

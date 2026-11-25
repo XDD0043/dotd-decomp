@@ -1,6 +1,7 @@
 // cg_program.cpp - see cg_program.h.
 #include "platform/gfx/cg_program.h"
 
+#include <cctype>
 #include <chrono>
 #include <cstdlib>
 #include <cstring>
@@ -10,15 +11,118 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <sstream>
 
 #include "platform/gfx/device.h"
 #include "platform/gfx/gl.h"
 #include "platform/gfx/mesh.h"
 #include "platform/gfx/perf.h"
+#include "platform/hostfs.h"
 #include "platform/log.h"
 
 namespace dotd::gfx::cg {
 namespace {
+
+// ---- the pixel shaders at half precision (DOTD_FP16=1) ---------------------------------------------------------
+// The PS3 game compiles its pixel shaders with -fastprecision -fastmath (ShaderGen_BuildCompilerArgs_maybe 0xfe518
+// builds the arguments, ShaderGen_CompileCgSource_maybe 0xfe818 hands them to the built-in Cg compiler for
+// sce_fp_rsx): float arithmetic at the RSX's faster 16-bit precision. GLSL ES says the same with mediump, which phone
+// GPUs run at twice the rate (a desktop GPU ignores it). The translated pixel GLSL gets a default "precision mediump
+// float" and stays highp where 16 bits would show:
+//   - the varyings and every struct field (the interpolated texture coordinates and positions as they come in);
+//   - every vec2: the uber-shader's 2-vectors are texture coordinates (its helpers take them as float2 parameters
+//     and locals: GetNormalTextureVector(float2 texCoord), f2Basetex, ...);
+//   - every uniform but a few colours and directions (kHalfUniforms), and those too when the vertex stage declares
+//     them (GLSL ES: a uniform of both stages has one precision).
+// Integers and samplers keep the header's highp. Off unless DOTD_FP16=1 (README "Half precision").
+const std::set<std::string> kHalfUniforms = {
+    "u_f4PixelDirLight", "u_f4PixelDirLightColor", "u_f4PixelAmbientColor", "u_f4PixelPointLightColor",
+    "u_f4SpecularColor", "u_f4PixelMaterialColor", "u_f4PixelMatFx", "u_f4SpecialLight", "u_f3MinMaxShadow",
+    "u_af4Gauss5x5", "dotd_alphaRef",
+};
+
+bool HalfPrecision() {
+    static const int on = [] {
+        const char* env = std::getenv("DOTD_FP16");
+        return env != nullptr && std::strcmp(env, "1") == 0 ? 1 : 0;
+    }();
+    return on == 1;
+}
+
+bool IsFloatType(const std::string& t) { return t == "float" || t.rfind("vec", 0) == 0 || t.rfind("mat", 0) == 0; }
+
+// "  TYPE name..." after `prefix` (e.g. "uniform "): the type and the name (empty when the line is not one).
+void SplitDeclaration(const std::string& line, size_t at, std::string* type, std::string* name) {
+    type->clear();
+    name->clear();
+    const size_t t0 = line.find_first_not_of(' ', at);
+    if (t0 == std::string::npos) return;
+    const size_t t1 = line.find(' ', t0);
+    if (t1 == std::string::npos) return;
+    *type = line.substr(t0, t1 - t0);
+    const size_t n0 = line.find_first_not_of(' ', t1);
+    size_t n1 = n0;
+    while (n1 < line.size() && (std::isalnum(static_cast<unsigned char>(line[n1])) != 0 || line[n1] == '_')) ++n1;
+    if (n0 != std::string::npos) *name = line.substr(n0, n1 - n0);
+}
+
+// Every "vec2 <identifier>" (a declaration, a parameter, a return type; not a constructor "vec2(") as highp.
+std::string HighpVec2(const std::string& line) {
+    std::string out;
+    size_t i = 0;
+    while (i < line.size()) {
+        const size_t at = line.find("vec2", i);
+        if (at == std::string::npos) break;
+        const bool startsWord = at == 0 || !(std::isalnum(static_cast<unsigned char>(line[at - 1])) != 0 || line[at - 1] == '_');
+        size_t next = at + 4;
+        const bool endsWord = next >= line.size() || !(std::isalnum(static_cast<unsigned char>(line[next])) != 0 || line[next] == '_');
+        while (next < line.size() && line[next] == ' ') ++next;
+        const bool declares = next < line.size() && (std::isalpha(static_cast<unsigned char>(line[next])) != 0 || line[next] == '_');
+        const bool qualified = at >= 6 && line.compare(at - 6, 6, "highp ") == 0;
+        out += line.substr(i, at - i);
+        if (startsWord && endsWord && declares && !qualified) out += "highp ";
+        out += "vec2";
+        i = at + 4;
+    }
+    return out + line.substr(i);
+}
+
+// The pixel GLSL with the half precision above; `vertexUniforms` are the vertex stage's.
+std::string PixelAtHalfPrecision(const std::string& glsl, const std::vector<UniformInfo>& vertexUniforms) {
+    std::set<std::string> shared;
+    for (const UniformInfo& u : vertexUniforms) shared.insert(u.name);
+    std::istringstream in(glsl);
+    std::string line, out, type, name;
+    bool inStruct = false;
+    while (std::getline(in, line)) {
+        if (line.rfind("#version", 0) == 0) {
+            out += line + "\nprecision mediump float;\n";
+            continue;
+        }
+        if (line.rfind("struct ", 0) == 0) {
+            inStruct = true;
+        } else if (inStruct && line.rfind("};", 0) == 0) {
+            inStruct = false;
+        } else if (inStruct) {
+            SplitDeclaration(line, 0, &type, &name);
+            if (IsFloatType(type)) line.insert(line.find(type), "highp ");
+        } else if (line.rfind("uniform ", 0) == 0) {
+            SplitDeclaration(line, 8, &type, &name);
+            const bool half = kHalfUniforms.count(name) != 0 && shared.count(name) == 0;
+            if (IsFloatType(type) && !half) line.insert(8, "highp ");
+        } else if (line.rfind("in ", 0) == 0) {
+            SplitDeclaration(line, 3, &type, &name);
+            if (IsFloatType(type)) line.insert(3, "highp ");
+        }
+        out += HighpVec2(line) + "\n";
+    }
+    return out;
+}
+
+// After both stages of a variant are translated.
+void ApplyPrecision(Program* program) {
+    if (HalfPrecision()) program->pixel.glsl = PixelAtHalfPrecision(program->pixel.glsl, program->vertex.uniforms);
+}
 
 Sources g_sources;
 bool g_sourcesLoaded = false;
@@ -205,6 +309,11 @@ bool BackgroundBuilds() {
         }
         DOTD_LOG("cg: shader programs are built %s",
                  g_backgroundBuilds ? "in the background (KHR_parallel_shader_compile)" : "at their first use");
+        if (HalfPrecision()) DOTD_LOG("cg: pixel shaders at half precision (DOTD_FP16=1)");
+        const char* alphaTest = std::getenv("DOTD_ALPHATEST");
+        if (alphaTest != nullptr && std::strcmp(alphaTest, "0") == 0) {
+            DOTD_LOG("cg: no alpha test in the pixel shaders (DOTD_ALPHATEST=0: a measurement, cut-outs draw solid)");
+        }
     }
     return g_backgroundBuilds == 1;
 }
@@ -261,6 +370,7 @@ void StartBuild(Build& b) {
         if (translated) {
             translated = BuildStage(g_sources, Stage::kPixel, b.defines, &b.program->pixel, &error);
             if (!translated) error = "pixel stage: " + error;
+            if (translated) ApplyPrecision(b.program);
         }
     }
     if (!translated) {
@@ -378,6 +488,13 @@ void FlushBuilds() {
 #endif
 }
 
+std::string GameExecutablePath(const std::string& usrdir) {
+    const std::string elf = usrdir + "/EBOOT.elf";
+    dotd::platform::hostfs::Info info;
+    if (dotd::platform::hostfs::Stat(elf, &info)) return elf;
+    return usrdir + "/EBOOT.BIN";
+}
+
 bool InitSources(const char* ebootPath, std::string* error) {
     if (g_sourcesLoaded) return true;
     if (!LoadGameSources(ebootPath, &g_sources, error)) return false;
@@ -422,6 +539,7 @@ const Program* GetProgram(const std::vector<Define>& defines) {
         const perf::Scope translate(perf::kWorkShaderTranslate);
         if (!BuildStage(g_sources, Stage::kVertex, defines, &program->vertex, &error)) return fail("vertex stage: " + error);
         if (!BuildStage(g_sources, Stage::kPixel, defines, &program->pixel, &error)) return fail("pixel stage: " + error);
+        ApplyPrecision(program.get());
     }
     if (const char* dumpDir = std::getenv("DOTD_DUMP_GLSL")) {  // DEV: the generated GLSL of every variant, for debugging
         static int dumped = 0;

@@ -1,6 +1,8 @@
 // device.cpp - the OpenGL 3.3 core backend (see device.h). New platform code.
 #include "platform/gfx/device.h"
 
+#include <algorithm>
+#include <atomic>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -11,9 +13,11 @@
 #include "platform/cell/videoout.h"
 #include "platform/gfx/cg_program.h"
 #include "platform/gfx/gl.h"
+#include "platform/gfx/gpuprof.h"
 #include "platform/gfx/mesh.h"
 #include "platform/gfx/perf.h"
 #include "platform/gfx/png.h"
+#include "platform/gfx/texture_transcode.h"
 #include "platform/log.h"
 #include "platform/sdl/app.h"
 
@@ -22,8 +26,13 @@ using namespace dotd::gfx::gl;
 namespace dotd::gfx {
 
 namespace {
+// The internal target: g_baseWidth x g_baseHeight is the size the game knows (InternalWidth / InternalHeight, the
+// PS3's 1280x720), g_width x g_height its pixels, smaller under a resolution scale (SetResolutionScale).
 int g_width = 0;
 int g_height = 0;
+int g_baseWidth = 0;
+int g_baseHeight = 0;
+float g_scale = 1.0f;
 GLuint g_fbo = 0;
 GLuint g_colorTex = 0;
 GLuint g_depthRb = 0;
@@ -38,6 +47,8 @@ GLint g_blitTex = -1;
 GLuint g_vao = 0;  // attribute-less draws (quads, blit)
 bool g_ready = false;
 bool g_s3tc = false;
+std::atomic<bool> g_transcodeAstc{false};
+std::atomic<bool> g_astcBench{false};  // TranscodeDxtToAstc (device.h): set by Init, read by the loader thread
 uint32_t g_frames = 0;
 
 // The immediate-geometry program.
@@ -57,8 +68,9 @@ float g_viewProj[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
 struct RenderTarget {
     GLuint fbo = 0;
     GLuint texture = 0;
-    int width = 0;
+    int width = 0;   // pixels
     int height = 0;
+    bool screenSized = false;  // asked for at the internal target's size: follows the resolution scale
 };
 std::vector<RenderTarget> g_targets;
 uint32_t g_currentTarget = 0;
@@ -362,74 +374,6 @@ GLenum GlPrimitive(Primitive p) {
 }
 
 // ---- S3TC decoding (when the driver lacks EXT_texture_compression_s3tc, e.g. GLES/WebGL) ----------
-void Rgb565(uint16_t c, uint8_t out[3]) {
-    out[0] = static_cast<uint8_t>(((c >> 11) & 0x1f) * 255 / 31);
-    out[1] = static_cast<uint8_t>(((c >> 5) & 0x3f) * 255 / 63);
-    out[2] = static_cast<uint8_t>((c & 0x1f) * 255 / 31);
-}
-
-void DecodeColorBlock(const uint8_t* b, bool dxt1, uint8_t out[16][4]) {
-    const uint16_t c0 = static_cast<uint16_t>(b[0] | (b[1] << 8));
-    const uint16_t c1 = static_cast<uint16_t>(b[2] | (b[3] << 8));
-    uint8_t pal[4][4];
-    Rgb565(c0, pal[0]);
-    Rgb565(c1, pal[1]);
-    pal[0][3] = pal[1][3] = 255;
-    if (!dxt1 || c0 > c1) {
-        for (int k = 0; k < 3; ++k) {
-            pal[2][k] = static_cast<uint8_t>((2 * pal[0][k] + pal[1][k]) / 3);
-            pal[3][k] = static_cast<uint8_t>((pal[0][k] + 2 * pal[1][k]) / 3);
-        }
-        pal[2][3] = pal[3][3] = 255;
-    } else {
-        for (int k = 0; k < 3; ++k) pal[2][k] = static_cast<uint8_t>((pal[0][k] + pal[1][k]) / 2);
-        pal[2][3] = 255;
-        pal[3][0] = pal[3][1] = pal[3][2] = pal[3][3] = 0;
-    }
-    const uint32_t bits = static_cast<uint32_t>(b[4]) | (static_cast<uint32_t>(b[5]) << 8) |
-                          (static_cast<uint32_t>(b[6]) << 16) | (static_cast<uint32_t>(b[7]) << 24);
-    for (int i = 0; i < 16; ++i) std::memcpy(out[i], pal[(bits >> (2 * i)) & 3], 4);
-}
-
-std::vector<uint8_t> DecodeS3tc(TextureFormat format, int width, int height, const uint8_t* data) {
-    std::vector<uint8_t> rgba(static_cast<size_t>(width) * height * 4, 0);
-    const int bw = (width + 3) / 4, bh = (height + 3) / 4;
-    const int blockBytes = format == TextureFormat::kBC1 ? 8 : 16;
-    for (int by = 0; by < bh; ++by) {
-        for (int bx = 0; bx < bw; ++bx) {
-            const uint8_t* b = data + (static_cast<size_t>(by) * bw + bx) * blockBytes;
-            uint8_t px[16][4];
-            DecodeColorBlock(format == TextureFormat::kBC1 ? b : b + 8, format == TextureFormat::kBC1, px);
-            if (format == TextureFormat::kBC2) {
-                for (int i = 0; i < 16; ++i) {
-                    const uint8_t nib = static_cast<uint8_t>((b[i / 2] >> ((i & 1) * 4)) & 0xf);
-                    px[i][3] = static_cast<uint8_t>(nib * 17);
-                }
-            } else if (format == TextureFormat::kBC3) {
-                const uint8_t a0 = b[0], a1 = b[1];
-                uint8_t pal[8];
-                pal[0] = a0;
-                pal[1] = a1;
-                if (a0 > a1) {
-                    for (int k = 1; k < 7; ++k) pal[k + 1] = static_cast<uint8_t>(((7 - k) * a0 + k * a1) / 7);
-                } else {
-                    for (int k = 1; k < 5; ++k) pal[k + 1] = static_cast<uint8_t>(((5 - k) * a0 + k * a1) / 5);
-                    pal[6] = 0;
-                    pal[7] = 255;
-                }
-                uint64_t bits = 0;
-                for (int k = 0; k < 6; ++k) bits |= static_cast<uint64_t>(b[2 + k]) << (8 * k);
-                for (int i = 0; i < 16; ++i) px[i][3] = pal[(bits >> (3 * i)) & 7];
-            }
-            for (int i = 0; i < 16; ++i) {
-                const int x = bx * 4 + (i & 3), y = by * 4 + (i >> 2);
-                if (x < width && y < height) std::memcpy(&rgba[(static_cast<size_t>(y) * width + x) * 4], px[i], 4);
-            }
-        }
-    }
-    return rgba;
-}
-
 void SetDefaultSampler(GLint filter) {
     GlTexParameter2D(GL_TEXTURE_MIN_FILTER, filter);
     GlTexParameter2D(GL_TEXTURE_MAG_FILTER, filter);
@@ -485,10 +429,37 @@ bool Init(int internalWidth, int internalHeight) {
     if (!gl::Load(platform::sdl::GetGLProcAddress)) return false;
     DOTD_LOG("gfx: %s / %s", reinterpret_cast<const char*>(glGetString(GL_RENDERER)),
              reinterpret_cast<const char*>(glGetString(GL_VERSION)));
-    g_width = internalWidth;
-    g_height = internalHeight;
+    g_baseWidth = g_width = internalWidth;
+    g_baseHeight = g_height = internalHeight;
+    g_scale = 1.0f;
+    if (const char* scale = std::getenv("DOTD_RES_SCALE")) {  // the resolution scale from the start (device.h)
+        g_scale = std::min(1.0f, std::max(0.25f, static_cast<float>(std::atof(scale))));
+        g_width = std::max(1, static_cast<int>(g_baseWidth * g_scale + 0.5f));
+        g_height = std::max(1, static_cast<int>(g_baseHeight * g_scale + 0.5f));
+    }
+    gpuprof::Init();
     // (WebGL2 names the same formats WEBGL_compressed_texture_s3tc.)
     g_s3tc = HasExtension("GL_EXT_texture_compression_s3tc") || HasExtension("GL_WEBGL_compressed_texture_s3tc");
+#ifdef __EMSCRIPTEN__
+    {
+        // No S3TC (a phone): the DXT textures as ASTC 4x4 where the browser has it (texture_transcode.h).
+        const char* astc = std::getenv("DOTD_ASTC");
+        const bool wanted = astc == nullptr || std::strcmp(astc, "0") != 0;
+        const bool astcThere = HasExtension("GL_WEBGL_compressed_texture_astc") || HasExtension("GL_KHR_texture_compression_astc_ldr");
+        g_transcodeAstc = !g_s3tc && wanted && astcThere && AstcTranscodeReady();
+        g_astcBench = g_s3tc && astc != nullptr && std::strcmp(astc, "bench") == 0 && AstcTranscodeReady();
+        if (g_astcBench) {
+            g_transcodeAstc = true;
+            DOTD_LOG("gfx: DOTD_ASTC=bench: the DXT textures are transcoded to ASTC and timed, the DXT kept");
+        }
+        if (!g_s3tc) {
+            DOTD_LOG("gfx: no S3TC: the DXT textures go to the GPU %s",
+                     g_transcodeAstc ? "as ASTC 4x4, transcoded on the loader thread"
+                                     : !astcThere ? "as RGBA8 (no ASTC either)" : !wanted ? "as RGBA8 (DOTD_ASTC=0)"
+                                                                                           : "as RGBA8 (no transcoder in this build)");
+        }
+    }
+#endif
     ForgetGlState();
     ForgetVertexAttribDefaults(~0u);
     perf::Init(platform::sdl::GetGLProcAddress);
@@ -551,14 +522,57 @@ bool Init(int internalWidth, int internalHeight) {
     GlUseProgram(g_imProgram);
     glUniform1i(g_imTex, 0);  // the sampler's unit: set once
 
-    DOTD_LOG("gfx: internal target %dx%d, S3TC %s", g_width, g_height, g_s3tc ? "native" : "decoded on the CPU");
+    DOTD_LOG("gfx: internal target %dx%d (%dx%d pixels), S3TC %s", g_baseWidth, g_baseHeight, g_width, g_height,
+             g_s3tc ? "native" : TranscodeDxtToAstc() ? "absent (ASTC 4x4 instead)" : "decoded on the CPU");
     g_ready = glGetError() == GL_NO_ERROR;
     return g_ready;
 }
 
 bool IsReady() { return g_ready; }
-int InternalWidth() { return g_width; }
-int InternalHeight() { return g_height; }
+bool TranscodeDxtToAstc() { return g_transcodeAstc.load(std::memory_order_acquire); }
+bool AstcBenchOnly() { return g_astcBench.load(std::memory_order_acquire); }
+
+int InternalWidth() { return g_baseWidth; }
+int InternalHeight() { return g_baseHeight; }
+
+float ResolutionScale() { return g_scale; }
+
+void SetColorWrite(bool on) {
+    if (g_ready) glColorMask(on ? 1 : 0, on ? 1 : 0, on ? 1 : 0, on ? 1 : 0);
+}
+
+void SetResolutionScale(float scale) {
+    if (!g_ready) return;
+    scale = std::min(1.0f, std::max(0.25f, scale));
+    const int width = std::max(1, static_cast<int>(g_baseWidth * scale + 0.5f));
+    const int height = std::max(1, static_cast<int>(g_baseHeight * scale + 0.5f));
+    g_scale = scale;
+    if (width == g_width && height == g_height) return;
+    g_width = width;
+    g_height = height;
+    // The storage of the internal target, its depth buffer and every screen-sized target made again at the new size
+    // (the ids, textures and frame buffers stay: the game does not notice; the contents are lost for one frame).
+    auto resize = [&](GLuint texture, GLuint fbo) {
+        GlBindTexture2D(texture);
+        GlFlushActiveTexture();
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        GlBindFramebuffer(fbo);
+        GlViewport(0, 0, width, height);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+    };
+    glBindRenderbuffer(GL_RENDERBUFFER, g_depthRb);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+    resize(g_colorTex, g_fbo);
+    for (RenderTarget& t : g_targets) {
+        if (t.fbo == 0 || !t.screenSized) continue;
+        t.width = width;
+        t.height = height;
+        resize(t.texture, t.fbo);
+    }
+    BindCurrent();
+    DOTD_LOG("gfx: resolution scale %.2f: %dx%d pixels", scale, width, height);
+}
 
 void Shutdown() {
     if (!g_ready) return;
@@ -599,6 +613,11 @@ void Clear(float r, float g, float b, float a) { ClearTarget(true, true, r, g, b
 uint32_t CreateRenderTarget(int width, int height) {
     if (!g_ready || width <= 0 || height <= 0) return 0;
     RenderTarget t;
+    t.screenSized = width == g_baseWidth && height == g_baseHeight;
+    if (t.screenSized) {  // (the resolution scale)
+        width = g_width;
+        height = g_height;
+    }
     t.width = width;
     t.height = height;
     glGenTextures(1, &t.texture);
@@ -610,7 +629,7 @@ uint32_t CreateRenderTarget(int width, int height) {
     glGenFramebuffers(1, &t.fbo);
     GlBindFramebuffer(t.fbo);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, t.texture, 0);
-    if (width == g_width && height == g_height)
+    if (t.screenSized)
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, g_depthRb);
     const bool complete = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
     if (complete) {
@@ -697,6 +716,9 @@ uint32_t CreateTexture(TextureFormat format, int width, int height, int levelCou
                 break;
             case TextureFormat::kR8:
                 glTexImage2D(GL_TEXTURE_2D, level, GL_R8, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, data);
+                break;
+            case TextureFormat::kASTC4x4:  // (GL_COMPRESSED_RGBA_ASTC_4x4_KHR)
+                glCompressedTexImage2D(GL_TEXTURE_2D, level, 0x93B0, w, h, 0, static_cast<GLsizei>(levels[level].size), data);
                 break;
             case TextureFormat::kBC1:
             case TextureFormat::kBC2:
@@ -1109,19 +1131,30 @@ bool ReadTarget(uint8_t* rgba) {
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
     glReadPixels(0, 0, g_width, g_height, GL_RGBA, GL_UNSIGNED_BYTE, rows.data());
     const size_t stride = static_cast<size_t>(g_width) * 4;
-    for (int y = 0; y < g_height; ++y)  // GL's row 0 is the bottom
-        std::memcpy(rgba + static_cast<size_t>(y) * stride, rows.data() + static_cast<size_t>(g_height - 1 - y) * stride, stride);
+    if (g_width == g_baseWidth && g_height == g_baseHeight) {
+        for (int y = 0; y < g_height; ++y)  // GL's row 0 is the bottom
+            std::memcpy(rgba + static_cast<size_t>(y) * stride, rows.data() + static_cast<size_t>(g_height - 1 - y) * stride, stride);
+        return true;
+    }
+    for (int y = 0; y < g_baseHeight; ++y) {  // under a resolution scale: the nearest pixel, at the size the game knows
+        const int sy = g_height - 1 - y * g_height / g_baseHeight;
+        for (int x = 0; x < g_baseWidth; ++x) {
+            const int sx = x * g_width / g_baseWidth;
+            std::memcpy(rgba + (static_cast<size_t>(y) * g_baseWidth + x) * 4, rows.data() + sy * stride + sx * 4, 4);
+        }
+    }
     return true;
 }
 
 bool SaveScreenshot(const char* path) {
     if (!g_ready) return false;
-    std::vector<uint8_t> rgba(static_cast<size_t>(g_width) * g_height * 4);
+    const size_t n = static_cast<size_t>(g_baseWidth) * g_baseHeight;
+    std::vector<uint8_t> rgba(n * 4);
     if (!ReadTarget(rgba.data())) return false;
     perf::CaptureNextFrame();  // DOTD_RDOC_ON_SHOT (perf.h)
-    std::vector<uint8_t> rgb(static_cast<size_t>(g_width) * g_height * 3);
-    for (size_t i = 0, n = static_cast<size_t>(g_width) * g_height; i < n; ++i) std::memcpy(&rgb[i * 3], &rgba[i * 4], 3);
-    return WritePngRgb(path, g_width, g_height, rgb.data());
+    std::vector<uint8_t> rgb(n * 3);
+    for (size_t i = 0; i < n; ++i) std::memcpy(&rgb[i * 3], &rgba[i * 4], 3);
+    return WritePngRgb(path, g_baseWidth, g_baseHeight, rgb.data());
 }
 
 uint32_t FrameCount() { return g_frames; }
@@ -1141,10 +1174,10 @@ void EndFrame() {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     // letterbox: keep the internal aspect ratio
-    int vw = ww, vh = ww * g_height / g_width;
+    int vw = ww, vh = ww * g_baseHeight / g_baseWidth;
     if (vh > wh) {
         vh = wh;
-        vw = wh * g_width / g_height;
+        vw = wh * g_baseWidth / g_baseHeight;
     }
     GlViewport((ww - vw) / 2, (wh - vh) / 2, vw, vh);
     GlUseProgram(g_blitProgram);
@@ -1156,6 +1189,7 @@ void EndFrame() {
     perf::Add(perf::kUniforms, 2);
     perf::Add(perf::kDraws);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    gpuprof::FrameEnd();
     perf::BeforePresent();
     platform::sdl::SwapWindow();
     perf::AfterPresent();

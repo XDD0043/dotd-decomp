@@ -4,6 +4,15 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# ---- no build-machine paths in the binaries -------------------------------------------------------
+# __FILE__ (asserts, FFmpeg's av_log/av_assert) and debug info would otherwise hold the checkout's
+# absolute path, the build machine's user folder included; the published dotd.wasm must not. The paths
+# become relative to the folder above dotd/ (dotd/src/..., dotd/thirdparty/ffmpeg/..., toolchain/...).
+if(NOT MSVC)
+  get_filename_component(DOTD_PATH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
+  add_compile_options("-ffile-prefix-map=${DOTD_PATH_ROOT}/=" "-ffile-prefix-map=${DOTD_PATH_ROOT}=.")
+endif()
+
 # ---- the web build (Emscripten: wasm32 + WebGL2, preset "wasm"; web/README.md) --------------------
 # The game keeps its threads (the load-request worker, the particle threads), so every object, SDL and
 # FFmpeg included, is built with -pthread (shared memory: the page must be served cross-origin isolated,
@@ -22,20 +31,54 @@ set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
 set(SDL_TESTS OFF CACHE BOOL "" FORCE)
 set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
-# A git worktree has no submodule checkout: point DOTD_SDL_DIR at the main checkout's thirdparty/SDL.
+# SDL and FFmpeg come from the submodule / clone when they are there (a git worktree can point DOTD_SDL_DIR and
+# DOTD_FFMPEG_DIR at the main checkout's copies), else from their release source archives, downloaded and checked by
+# cmake/FetchDeps.cmake (the same sources: SDL release-3.4.18 = the submodule's commit 829a65d, FFmpeg 7.1.2 = tag
+# n7.1.2).
+include(cmake/FetchDeps.cmake)
 set(DOTD_SDL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/SDL" CACHE PATH "SDL3 source tree")
+dotd_fetch_source(SDL3 "https://github.com/libsdl-org/SDL/releases/download/release-3.4.18/SDL3-3.4.18.tar.gz"
+                  9c75cf16330322c217dedd2e0609f1124f1b54b8633e763467b4684d0f4334a3 SDL3-3.4.18 CMakeLists.txt DOTD_SDL_DIR)
+if(NOT EXISTS "${DOTD_SDL_DIR}/CMakeLists.txt")
+  message(FATAL_ERROR "dotd: no SDL3 source at ${DOTD_SDL_DIR}. Run 'git submodule update --init' or configure with "
+                      "DOTD_FETCH_DEPS=ON and an internet connection (thirdparty/README.md).")
+endif()
 add_subdirectory("${DOTD_SDL_DIR}" "${CMAKE_BINARY_DIR}/thirdparty/SDL" EXCLUDE_FROM_ALL)
-# Bink video: FFmpeg's Bink decoders, built from a source clone of FFmpeg (thirdparty/README.md) by
-# thirdparty/ffmpeg-bink. Without the clone everything still builds and videos are not played. A git
-# worktree can point DOTD_FFMPEG_DIR at the main checkout's clone.
+# Bink video, Bink audio and the levels' ATRAC3 speech: FFmpeg's decoders, built from the FFmpeg source by
+# thirdparty/ffmpeg-bink. Without them the game runs with no videos and no speech, so a build without FFmpeg is
+# refused unless DOTD_NO_VIDEO=ON asks for one.
+option(DOTD_NO_VIDEO "Build without FFmpeg (no videos, no speech)" OFF)
 set(DOTD_FFMPEG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/ffmpeg" CACHE PATH "FFmpeg source tree (tag n7.1.2)")
-if(EXISTS "${DOTD_FFMPEG_DIR}/libavcodec/bink.c")
+if(NOT DOTD_NO_VIDEO)
+  dotd_fetch_source(FFmpeg "https://ffmpeg.org/releases/ffmpeg-7.1.2.tar.xz"
+                    089bc60fb59d6aecc5d994ff530fd0dcb3ee39aa55867849a2bbc4e555f9c304 ffmpeg-7.1.2 libavcodec/bink.c
+                    DOTD_FFMPEG_DIR)
+endif()
+if(NOT DOTD_NO_VIDEO AND EXISTS "${DOTD_FFMPEG_DIR}/libavcodec/bink.c")
   set(FFMPEG_BINK_SOURCE_DIR "${DOTD_FFMPEG_DIR}")
   add_subdirectory(thirdparty/ffmpeg-bink "${CMAKE_BINARY_DIR}/ff" EXCLUDE_FROM_ALL)
   set(DOTD_HAVE_FFMPEG_BINK 1)
-else()
-  message(STATUS "dotd: no FFmpeg clone at ${DOTD_FFMPEG_DIR}: Bink videos are not played")
+elseif(DOTD_NO_VIDEO)
+  message(STATUS "dotd: DOTD_NO_VIDEO=ON: built without FFmpeg, videos and speech are not played")
   set(DOTD_HAVE_FFMPEG_BINK 0)
+else()
+  message(FATAL_ERROR "dotd: no FFmpeg source at ${DOTD_FFMPEG_DIR} and the download failed: without it there are no "
+                      "videos and no speech. Configure again with an internet connection, clone FFmpeg n7.1.2 there "
+                      "(thirdparty/README.md), or pass -DDOTD_NO_VIDEO=ON for a build without them.")
+endif()
+
+# ASTC block packing: ARM's astc-encoder, a source clone (thirdparty/README.md). Only the web build links it: there a
+# GPU without S3TC gets the DXT textures rewritten as ASTC 4x4 (platform/gfx/texture_transcode.h); natively it is only
+# the transcoder test's. Scalar code (no SSE / NEON paths: the same everywhere, wasm included).
+set(DOTD_ASTCENC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/astc-encoder" CACHE PATH "astc-encoder source tree (tag 5.5.0)")
+if(EXISTS "${DOTD_ASTCENC_DIR}/Source/astcenc_symbolic_physical.cpp")
+  file(GLOB DOTD_ASTCENC_SOURCES "${DOTD_ASTCENC_DIR}/Source/astcenc_*.cpp")
+  add_library(astcenc_pack STATIC EXCLUDE_FROM_ALL ${DOTD_ASTCENC_SOURCES})
+  target_include_directories(astcenc_pack PUBLIC "${DOTD_ASTCENC_DIR}/Source")
+  target_compile_definitions(astcenc_pack PUBLIC ASTCENC_SSE=0 ASTCENC_AVX=0 ASTCENC_NEON=0 ASTCENC_SVE=0
+                             ASTCENC_POPCNT=0 ASTCENC_F16C=0)
+else()
+  message(STATUS "dotd: no astc-encoder clone at ${DOTD_ASTCENC_DIR}: phones without S3TC get RGBA8 textures")
 endif()
 
 # ---- our code: floating point must match the PS3 (outputs/decompilation-plan.md section 4) ------
@@ -70,6 +113,10 @@ target_compile_definitions(dotd_platform PRIVATE DOTD_HAVE_FFMPEG_BINK=${DOTD_HA
 if(DOTD_HAVE_FFMPEG_BINK)
   target_link_libraries(dotd_platform PRIVATE ffbink)
 endif()
+if(EMSCRIPTEN AND TARGET astcenc_pack)
+  target_link_libraries(dotd_platform PRIVATE astcenc_pack)
+  target_compile_definitions(dotd_platform PRIVATE DOTD_HAVE_ASTCENC=1)
+endif()
 
 # Game and engine sources (one .cpp per reconstructed original translation unit)
 file(GLOB_RECURSE DOTD_GAME_SOURCES CONFIGURE_DEPENDS src/crt/*.cpp src/k2000/*.cpp src/Spyro2008/*.cpp
@@ -97,7 +144,8 @@ if(EMSCRIPTEN)
     -sENVIRONMENT=web,worker -sEXIT_RUNTIME=0
     -lidbfs.js
     "-sEXPORTED_RUNTIME_METHODS=['callMain','FS','IDBFS','ENV','addRunDependency','removeRunDependency']" -sINVOKE_RUN=0)
-  foreach(web_file index.html serve.py sw.js pack-worker.js)
+  foreach(web_file index.html serve.py sw.js pack-worker.js manifest.webmanifest icon.svg
+          btn-triangle.png btn-circle.png btn-cross.png btn-square.png)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/web/${web_file} ${CMAKE_CURRENT_BINARY_DIR}/${web_file} COPYONLY)
   endforeach()
   if(TARGET zstddec)
@@ -153,10 +201,27 @@ add_test(NAME ppc_ops COMMAND ppc_ops_test)
 
 dotd_runner_test(kclock ${CMAKE_CURRENT_SOURCE_DIR}/tests/kclock_test.cpp)
 
+# The DXT to ASTC transcoder against astc-encoder's decoder, on the textures of a level (DOTD_USRDIR; skipped without).
+if(TARGET astcenc_pack)
+  add_executable(astc_transcode_test tests/astc_transcode_test.cpp src/platform/gfx/texture_transcode.cpp)
+  dotd_test_setup(astc_transcode_test)
+  target_link_libraries(astc_transcode_test PRIVATE astcenc_pack)
+  target_compile_definitions(astc_transcode_test PRIVATE DOTD_HAVE_ASTCENC=1)
+  add_test(NAME astc_transcode COMMAND astc_transcode_test)
+  set_tests_properties(astc_transcode PROPERTIES SKIP_RETURN_CODE 77)
+endif()
+
 add_executable(platform_test tests/platform_test.cpp)
 dotd_test_setup(platform_test)
 target_link_libraries(platform_test PRIVATE dotd_platform)
 add_test(NAME platform COMMAND platform_test)
+
+# The disc's EBOOT.BIN decrypted in memory against RPCS3's EBOOT.elf (DOTD_USRDIR; skipped without).
+add_executable(self_decrypt_test tests/self_decrypt_test.cpp)
+dotd_test_setup(self_decrypt_test)
+target_link_libraries(self_decrypt_test PRIVATE dotd_platform)
+add_test(NAME self_decrypt COMMAND self_decrypt_test)
+set_tests_properties(self_decrypt PROPERTIES SKIP_RETURN_CODE 77)
 
 dotd_runner_test(boot ${CMAKE_CURRENT_SOURCE_DIR}/tests/boot_test.cpp)
 set_tests_properties(boot PROPERTIES SKIP_RETURN_CODE 77)

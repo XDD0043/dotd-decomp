@@ -110,9 +110,11 @@
 //   [x] 0x9a0068  RenderQueueType6_TransparentATest_Execute  [inline]
 #include "k2000/render/CRenderer.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
 #include "Renderware/rpworld/RpGeometry.h"
 #include "Renderware/rpworld/RpWorld.h"
@@ -122,6 +124,8 @@
 #include "Renderware/rwcore/RwMatrix.h"
 #include "crt/Ps3Qsort.h"
 #include "platform/capture_camera.h"
+#include "platform/gfx/device.h"
+#include "platform/gfx/gpuprof.h"
 #include "platform/log.h"
 #include "k2000/cameras/CameraContext.h"
 #include "k2000/core/Stub.h"
@@ -284,11 +288,61 @@ void RenderQueue::BeginPass() {
 // 0x009a0068 Type6 / 0x0099f510 Type1 / 0x0099f130 Type0 / 0x0099f690 Type2 / 0x0099f810 Type3 / 0x0099fa80 Type4 /
 // 0x0099fe18 Type5 / 0x0099e478 Type7 Execute: BeginPass, the items sorted, each item's states, its lighting and its
 // vt+0x5c.
+namespace {
+// DEV (platform/gfx/gpuprof.h, not in the original): the renderer's 23 stage queues, so that a queue knows its
+// stage number for the GPU measurements and the page's stage switches.
+RenderQueue* s_stageQueues[dotd::gfx::gpuprof::kStages] = {};
+
+int StageOf(const RenderQueue* queue) {
+    for (int i = 0; i < dotd::gfx::gpuprof::kStages; ++i) {
+        if (s_stageQueues[i] == queue) return i;
+    }
+    return -1;
+}
+
+const char* ItemClassName(IRendableObject* item) {
+    const KClassInfo* info = FindClassInfo(MakeClassKey(static_cast<uint32_t>(item->GetClassType()),
+                                                        static_cast<uint32_t>(item->GetClassID())));
+    return info != nullptr ? info->name : "?";
+}
+
+}  // namespace
+
+// DEV (gpuprof.h): what identifies an item of a described stage (RenderQueueDebug.cpp).
+std::string RenderQueueItemDescription(IRendableObject* item);
+
 void RenderQueue::Execute(IKTime* frameClock) {
+    // DEV (gpuprof.h): a stage the page switched off is emptied undrawn; a measured frame marks its start and end.
+    const int stage = StageOf(this);
+    if (dotd::gfx::gpuprof::StageSkipped(stage)) {
+        m_count = 0;
+        return;
+    }
+    dotd::gfx::gpuprof::BeginStage(stage, m_count);
+    if (m_type == kOpaque && (dotd::gfx::gpuprof::OpaqueMode() & dotd::gfx::gpuprof::kOpaquePrepass) != 0 && m_count != 0) {
+        // DEV (gpuprof.h): the depth pre-pass, the same items with the colour writes off; the pass below then shades
+        // only the visible pixels (the device's depth test is GL_LEQUAL).
+        const uint32_t count = m_count;
+        dotd::gfx::SetColorWrite(false);
+        ExecuteItems(frameClock, stage);
+        dotd::gfx::SetColorWrite(true);
+        m_count = count;
+    }
+    ExecuteItems(frameClock, stage);
+    dotd::gfx::gpuprof::EndStage(stage);
+}
+
+void RenderQueue::ExecuteItems(IKTime* frameClock, int stage) {
+    const int measuredStage = dotd::gfx::gpuprof::Measuring() ? stage : -1;  // DEV (gpuprof.h)
+    const bool describing = dotd::gfx::gpuprof::Describing(stage);
     BeginPass();
     const QueueClass& c = kQueueClasses[m_type];
     if (c.sorted) {
         SortItems(m_ppItems, m_count, m_type == kTransparentATestPrio || m_type == kTransparentPrio);
+        // DEV (gpuprof.h): the opaque queue near to far instead (the GPU's depth test then rejects hidden pixels).
+        if (m_type == kOpaque && (dotd::gfx::gpuprof::OpaqueMode() & dotd::gfx::gpuprof::kOpaqueReverse) != 0) {
+            std::reverse(m_ppItems, m_ppItems + m_count);
+        }
     }
     for (uint32_t i = 0; i < m_count; ++i) {
         IRendableObject* item = m_ppItems[i];
@@ -341,6 +395,10 @@ void RenderQueue::Execute(IKTime* frameClock) {
                 lighting->ApplyLightingZone(static_cast<const CLightSet*>(item->m_pLightSet), flat);
             }
         }
+        // DEV (gpuprof.h): the GPU test's item switches and the measured frames' notes.
+        if (dotd::gfx::gpuprof::ItemSkipped(stage, i)) continue;
+        if (measuredStage >= 0) dotd::gfx::gpuprof::NoteItem(measuredStage, ItemClassName(item));
+        if (describing) dotd::gfx::gpuprof::NoteItemDescription(i, RenderQueueItemDescription(item).c_str());
         item->Render(frameClock);  // vt+0x5c (under the render mutex 0x00cf9c90)
     }
     m_count = 0;
@@ -516,6 +574,7 @@ int32_t CRenderer::InitializeStages(void* startupContext) {
         RenderQueue::kTransparentATest, RenderQueue::kTransparentATestPrio, RenderQueue::kTransparentATest,     // 20-22
     };
     for (uint32_t i = 0; i < 23; ++i) m_aStages[i] = new RenderQueue(kStageTypes[i]);
+    for (uint32_t i = 0; i < 23; ++i) s_stageQueues[i] = m_aStages[i];  // DEV (gpuprof.h)
     for (RenderQueue* stage : m_aStages) stage->AllocBuffer();
     // The stage managers, in the original's order and slots.
     m_cloneManager = static_cast<IKSerializable*>(ClassRegistry_CreateObjectByKey(0xcd));
@@ -932,6 +991,7 @@ void CRenderer::ExecuteRenderStages7CTo90(IKTime* frameClock) {
 void CRenderer::RenderGameFrame(IKTime* frameClock) {
     CameraContext* context = m_cameraContext;
     if (context->m_pFinalColorRaster == nullptr || context->m_pDepthRaster == nullptr) return;
+    dotd::gfx::gpuprof::FrameStart();  // DEV (platform/gfx/gpuprof.h): a measured frame begins here
     RwIm3DBeginFrame();
     RpAtomicBeginFrame();
     ParticleUpdateScheduler* scheduler = g_pEngine->m_particleScheduler;

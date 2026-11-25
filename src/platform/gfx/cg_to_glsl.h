@@ -76,9 +76,10 @@ struct Sources {
     std::string vertex;  // shaderdefine + commonshadertools + VertexShaderMain (EBOOT.elf file offset 0xc26750)
     std::string pixel;   // the same with PixelShaderMain (file offset 0xc19848)
 };
-// Reads EBOOT.elf and takes the blocks at their file offsets after verifying each block's first line and that
-// it contains its entry function (the offsets were measured on the US EBOOT, BLUS30205). The text is NUL
-// terminated in the file. False with `error` when the file or a block does not match.
+// Reads EBOOT.elf (or the disc's EBOOT.BIN, decrypted in memory first: platform/self_decrypt.h) and takes the
+// blocks at their ELF file offsets after verifying each block's first line and that it contains its entry function
+// (the offsets were measured on the US EBOOT, BLUS30205). The text is NUL terminated in the file. False with `error`
+// when the file or a block does not match.
 bool LoadGameSources(const char* ebootPath, Sources* out, std::string* error);
 
 // Preprocess + Translate for one stage of a variant.
