@@ -16,16 +16,17 @@ Windows executable and as a WebAssembly + WebGL2 page.
    - **Game:** (the button before the folder): your copy of the game, the disc dump's folder (the one holding
      `PS3_GAME`) or a decrypted `.iso` (copied out once to `%LOCALAPPDATA%\dotd\game`); it checks the files
      (`dotd.exe --check-game`).
-   - **Start**: builds `dotd.exe` the first time (several minutes: it offers to install the free Visual Studio Build
-     Tools with winget when there is no C++ compiler, and CMake downloads the SDL and FFmpeg **source** archives
-     itself, each checked by SHA-256), and before every start brings it up to date (seconds when nothing changed).
-     The game's log shows in the window; the button turns into **Stop** while the game runs. **Build** only builds.
+   - **Start**: starts `dotd.exe`, building it the first time (several minutes: it offers to install the free Visual
+     Studio Build Tools with winget when there is no C++ compiler, and CMake downloads the SDL and FFmpeg **source**
+     archives itself, each checked by SHA-256). The game's log shows in the window; the button turns into **Stop**
+     while the game runs. **Build** brings `dotd.exe` up to date after the source changes.
    - **Graphics** and **Game**: resolution, full screen (borderless or exclusive), MSAA with smooth leaves
      (alpha-to-coverage), FXAA, frame rate, vsync, the FPS counter, language and confirm button, saved to `dotd.ini`
      (next to `dotd.exe`) as soon as they change.
    - **Controls...**: the keyboard key of every pad button and stick direction, set the way RPCS3 does it (click a
      button, press the key). Gamepads need no setup.
-3. `launch.cmd` starts the built game directly and passes command-line options (`launch.cmd --msaa 8`).
+3. Command-line options (`dotd.exe --msaa 8`) are for starting `dotd.exe` by hand from `build/windows-msvc/Release`;
+   most have a `dotd.ini` line too, which the launcher writes.
 
 In the game: **F11** (or Alt+Enter) full screen, Shift+F11 borderless or exclusive; **F3** steps MSAA, Shift+F3
 FXAA, Ctrl+F3 alpha-to-coverage; F2 switches the 60 fps cap. `--resolution 2560x1440` renders more pixels (16:9
@@ -48,7 +49,6 @@ cmake --build --preset windows-msvc-release
 ```
 
 The executable is `build/windows-msvc/Release/dotd.exe`.
-Use `launch.cmd` to start it with a fixed console title that hides the executable's local path. The launcher can also sit next to `dotd.exe`.
 For a debug build and tests:
 
 ```sh

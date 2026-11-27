@@ -5,8 +5,8 @@
 
 .DESCRIPTION
   A plain Windows Forms window (part of Windows: nothing to install).
-  - Start: brings dotd.exe up to date first (an incremental build: a few seconds when nothing changed), then starts
-    it. The game's log shows in the window; while the game runs the button stops it.
+  - Start: starts dotd.exe as it is built (it builds it first only when there is none yet; Build brings it up to
+    date). The game's log shows in the window; while the game runs the button stops it.
   - Build: configures and builds dotd.exe (the first build takes several minutes; CMake fetches the SDL and FFmpeg
     sources itself). Without Visual Studio's C++ tools it offers to install the free Build Tools (winget).
   - Game: (the button before the folder): the disc dump's folder (the one holding PS3_GAME, PS3_GAME itself or USRDIR) or a decrypted .iso,
@@ -14,7 +14,7 @@
   - Graphics / Game: written to dotd.ini next to dotd.exe as soon as they change (README "Resolution",
     "Full screen", "Anti-aliasing").
   - Controls: the keyboard pad, the way RPCS3 sets it (click a button, press its key): dotd.ini key_<button> lines.
-  Command-line options still work through launch.cmd (README).
+  Command-line options are for starting dotd.exe by hand (README); most have a dotd.ini line too.
 
 .PARAMETER SelfTest
   (development) Checks the parts that need no window (dotd.ini editing, the key tables) and exits.
@@ -806,7 +806,7 @@ function Update-Buttons {
 
 # ---- build -----------------------------------------------------------------------------------------------------------
 # A build in a batch file: Visual Studio's x64 environment (vcvars64.bat), then CMake. $configure: configure first
-# (always for Build; for Start only when the build folder is new). $then runs after a successful build.
+# (otherwise only when the build folder is new). $then runs after a successful build.
 $script:AfterBuild = $null
 function Start-Build([bool]$configure, [scriptblock]$then) {
     $vs = Find-VisualStudio
@@ -844,16 +844,10 @@ function Start-Build([bool]$configure, [scriptblock]$then) {
         } else {
             $script:AfterBuild = $null
             Set-Status "The build failed (see the log)"
-            if ((Test-Path -LiteralPath $Exe) -and $script:StartAfterFailedBuild) {
-                if (Ask-YesNo "The build failed (see the log). Start the last built dotd.exe anyway?") { Start-Game }
-            } else {
-                Show-Message "The build failed: the log shows why." "Warning"
-            }
+            Show-Message "The build failed: the log shows why." "Warning"
         }
-        $script:StartAfterFailedBuild = $false
     })
 }
-$script:StartAfterFailedBuild = $false
 
 function Offer-BuildTools {
     $winget = Get-Command winget -ErrorAction SilentlyContinue
@@ -901,9 +895,7 @@ function On-Start {
         Start-Build $true { Start-Game }
         return
     }
-    if ($null -eq (Find-VisualStudio)) { Start-Game; return }  # (no compiler here: the exe as it is)
-    $script:StartAfterFailedBuild = $true
-    Start-Build $false { Start-Game }  # (up to date: Ninja finds nothing to do)
+    Start-Game  # (the exe as it is: no build first, Build brings it up to date)
 }
 
 # ---- the game folder -------------------------------------------------------------------------------------------------
