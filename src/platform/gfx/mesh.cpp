@@ -233,6 +233,7 @@ void DrawMesh(uint32_t id, uint32_t mode, bool indexed, uint32_t minIndex, uint3
             g_defaultsApplied |= bit;
         }
     }
+    ApplyAlphaCoverage();  // (device.cpp: on for this draw only when its SetAlphaTest asked for it)
     if (indexed && mesh.ibo != 0) {
         glDrawRangeElements(mode, minIndex, maxIndex, static_cast<GLsizei>(count), GL_UNSIGNED_INT, nullptr);
     } else {

@@ -27,6 +27,8 @@ void LogFrameStats();
 // The frame rate while the game runs (platform SetFps): the pacing is chosen again.
 void SetFrameRate(int frameRate);
 void GetDrawableSize(int* width, int* height);
+// The window's size while the game runs (the web page: the canvas's pixels, which the page then scales).
+void SetWindowSize(int width, int height);
 void SetWindowTitle(const char* title);
 void* GetGLProcAddress(const char* name);
 

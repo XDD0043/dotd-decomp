@@ -302,8 +302,9 @@ void CameraContext::DestroyCamerasAndRasters() {
 }
 
 // 0x000a4d18 CameraContext_RecreateFrameBuffers_maybe. The raster sizes: the config's when its +0x14 byte
-// is 0, else the current video mode's (written back into the config). STUB: the video mode is the
-// device's internal target (1280x720x32); the PS3 asks RwEngineGetVideoModeInfo.
+// is 0, else the current video mode's (RwEngineGetCurrentVideoMode, RwEngineGetVideoModeInfo: width, height,
+// depth written back into the config). The device's mode is its internal target as the game knows it
+// (1280x720x32 as on the PS3, or the game's size for --resolution: platform/gfx/device.h ScreenSize).
 int32_t CameraContext::RecreateFrameBuffers() {
     if (m_pFinalColorRaster != nullptr) {
         RwRasterDestroy(m_pFinalColorRaster);
@@ -333,9 +334,11 @@ int32_t CameraContext::RecreateFrameBuffers() {
         height = m_pConfig->height;
         depth = m_pConfig->bitsPerPixel;
     } else {
-        width = 1280;
-        height = 720;
-        depth = 32;
+        RwVideoMode mode = {};
+        RwEngineGetVideoModeInfo(&mode, RwEngineGetCurrentVideoMode());
+        width = mode.width;
+        height = mode.height;
+        depth = mode.depth;
         m_pConfig->width = width;
         m_pConfig->height = height;
         m_pConfig->bitsPerPixel = depth;

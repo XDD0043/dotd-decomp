@@ -12,21 +12,30 @@ Windows executable and as a WebAssembly + WebGL2 page.
 ## Play it on Windows
 
 1. Download this repository (a git clone or the zip).
-2. Double-click **`setup.cmd`**. It:
-   - finds Visual Studio's C++ tools, or offers to install the free Build Tools for you (winget);
-   - builds `dotd.exe`; CMake downloads the SDL and FFmpeg **source** archives itself (each checked by SHA-256)
-     and compiles them with the same compiler, so nothing else needs installing;
-   - asks for your copy of the game: the disc dump's folder (the one holding `PS3_GAME`) or a decrypted `.iso`;
-   - writes `dotd.ini`, checks everything (`dotd.exe --check-game`) and offers a desktop shortcut.
-3. Play with `launch.cmd` or the shortcut.
+2. Double-click **`launcher.cmd`**. The launcher (a plain Windows window, nothing to install):
+   - **Game:** (the button before the folder): your copy of the game, the disc dump's folder (the one holding
+     `PS3_GAME`) or a decrypted `.iso` (copied out once to `%LOCALAPPDATA%\dotd\game`); it checks the files
+     (`dotd.exe --check-game`).
+   - **Start**: builds `dotd.exe` the first time (several minutes: it offers to install the free Visual Studio Build
+     Tools with winget when there is no C++ compiler, and CMake downloads the SDL and FFmpeg **source** archives
+     itself, each checked by SHA-256), and before every start brings it up to date (seconds when nothing changed).
+     The game's log shows in the window; the button turns into **Stop** while the game runs. **Build** only builds.
+   - **Graphics** and **Game**: resolution, full screen (borderless or exclusive), MSAA with smooth leaves
+     (alpha-to-coverage), FXAA, frame rate, vsync, the FPS counter, language and confirm button, saved to `dotd.ini`
+     (next to `dotd.exe`) as soon as they change.
+   - **Controls...**: the keyboard key of every pad button and stick direction, set the way RPCS3 does it (click a
+     button, press the key). Gamepads need no setup.
+3. `launch.cmd` starts the built game directly and passes command-line options (`launch.cmd --msaa 8`).
+
+In the game: **F11** (or Alt+Enter) full screen, Shift+F11 borderless or exclusive; **F3** steps MSAA, Shift+F3
+FXAA, Ctrl+F3 alpha-to-coverage; F2 switches the 60 fps cap. `--resolution 2560x1440` renders more pixels (16:9
+sizes keep the original picture exactly, other aspects widen the view). An unknown or malformed option is reported,
+never silently ignored.
 
 You need your own **BLUS30205** (USA) disc dump. The disc's encrypted `EBOOT.BIN` is enough: the port decrypts it
 in memory to read the game's shaders (`src/platform/self_decrypt.h`), so RPCS3 is not needed. A decrypted
 `EBOOT.elf` is used when it is there. Game files are only ever read. An encrypted (redump-style) `.iso` must be
 decrypted with its disc key first, or use a folder dump.
-
-`setup.cmd -GamePath "D:/Games/DotD"` skips the folder picker; run it again any time to rebuild or change the game
-folder.
 
 ## Build by hand
 
@@ -56,7 +65,8 @@ when present. A build without FFmpeg is refused unless `-DDOTD_NO_VIDEO=ON` asks
 (it finds Visual Studio with vswhere), and `tools\run_release.bat` starts the
 result. Keyboard: RPCS3's default pad layout (Enter START, X cross, C circle,
 Z square, V triangle, WASD move, arrows d-pad, Q/E L1/R1, R/T L2/R2, Space
-select); a gamepad works too. `--fps N` (or `fps = N` in `dotd.ini`) unlocks
+select), changed with the launcher's Controls dialog or `key_<button>` lines in
+`dotd.ini`; a gamepad works too. `--fps N` (or `fps = N` in `dotd.ini`) unlocks
 the frame rate; the default 60 is the original's timing.
 
 ## Web build (WebAssembly + WebGL2)
@@ -71,7 +81,7 @@ downloads the game data level by level. The zstd source is needed for that mode
 
 ## Game data
 
-Supply your own copy of the game (`setup.cmd` does the rest). By hand: copy `dotd.ini.example` to `dotd.ini` in the
+Supply your own copy of the game (the launcher's **Game:** button does the rest). By hand: copy `dotd.ini.example` to `dotd.ini` in the
 working directory or next to the executable, and set `usrdir` to your local `PS3_GAME/USRDIR` directory. Game data is
 read only. Tests requiring it skip when it is not configured.
 

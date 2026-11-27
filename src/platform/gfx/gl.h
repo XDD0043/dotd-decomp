@@ -114,6 +114,13 @@ enum : GLenum {
     GL_STATIC_DRAW = 0x88E4,
     GL_TEXTURE1 = 0x84C1,
     GL_MAX_VERTEX_ATTRIBS = 0x8869,
+    GL_MAX_TEXTURE_SIZE = 0x0D33,
+    GL_MAX_RENDERBUFFER_SIZE = 0x84E8,
+    // Anti-aliasing (device.h SetAntialiasing): multisampled render buffers resolved by a blit.
+    GL_READ_FRAMEBUFFER = 0x8CA8,
+    GL_DRAW_FRAMEBUFFER = 0x8CA9,
+    GL_MAX_SAMPLES = 0x8D57,
+    GL_SAMPLE_ALPHA_TO_COVERAGE = 0x809E,
 };
 
 #define DOTD_GL_FUNCTIONS(X)                                                                            \
@@ -195,6 +202,9 @@ enum : GLenum {
     X(void, glBindRenderbuffer, (GLenum target, GLuint r))                                              \
     X(void, glRenderbufferStorage, (GLenum target, GLenum ifmt, GLsizei w, GLsizei h))                  \
     X(void, glFramebufferRenderbuffer, (GLenum target, GLenum att, GLenum rbtarget, GLuint r))\
+    X(void, glRenderbufferStorageMultisample, (GLenum target, GLsizei samples, GLenum ifmt, GLsizei w, GLsizei h))\
+    X(void, glBlitFramebuffer, (GLint sx0, GLint sy0, GLint sx1, GLint sy1, GLint dx0, GLint dy0, GLint dx1, GLint dy1,\
+                                GLbitfield mask, GLenum filter))\
     X(void, glVertexAttrib4f, (GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w))\
     X(void, glDisableVertexAttribArray, (GLuint index))\
     X(void, glDrawRangeElements, (GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void* indices))

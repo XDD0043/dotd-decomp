@@ -1,7 +1,8 @@
 // device.h - the graphics device (OpenGL 3.3 core backend; new platform code, not a port).
 //
-// The game renders into a fixed internal target of the PS3's output size (1280x720 RGBA8, plus a depth
-// buffer); EndFrame composites it into the window (letterboxed, with the video-out gamma) and swaps.
+// The game renders into an internal target (RGBA8, plus a depth buffer) of the PS3's output size, 1280x720, unless
+// --resolution asks for other pixels (ScreenSizeFor below); EndFrame composites it into the window (letterboxed, with
+// the video-out gamma) and swaps.
 // On top of it sit the RenderWare device replacement (Renderware/rwcore/RwDevice.cpp: RW render states,
 // rasters and cameras turned into the calls below) and the video planes (video_planes.h, family video).
 //
@@ -13,16 +14,69 @@
 
 namespace dotd::gfx {
 
+// ---- the screen's two sizes ---------------------------------------------------------------------------------
+// The game's size is the frame buffer the game knows: RwEngineGetVideoModeInfo answers it, the camera context makes its
+// rasters at it, and everything the game computes on the screen follows from them (the camera's aspect, the 2D
+// metric, the Flash layout, the projections to pixels, the post effects' texel offsets). The pixel size is what the
+// internal target really has. The device maps one onto the other: the internal target and every render target of a
+// screen size (the game's size, or its half, quarter or eighth: the post effects' rasters) get pixels in the ratio of
+// the two, so a pass reads and writes the same parts of the screen as on the PS3, with more (or fewer) pixels.
+struct ScreenSize {
+    int gameWidth = 1280;
+    int gameHeight = 720;
+    int pixelWidth = 1280;
+    int pixelHeight = 720;
+};
+// The sizes for a picture of width x height pixels (--resolution; 0 x 0: the PS3's 1280x720). Within 0.5 % of 16:9
+// the game keeps 1280x720, so its computations are bit for bit the original's (only the pixel count changes, and a
+// stretch of at most 0.5 % that nobody sees); another aspect gets 720 rows and that aspect's width (2560x1080: 1707x720),
+// what the original does on a frame buffer of that shape (its camera widens the view, Hor+ against its 4:3 reference;
+// the Flash screens keep their height and anchor left, centre or right; videos letterbox or pillarbox).
+ScreenSize ScreenSizeFor(int width, int height);
+// The sizes from now on (before Init; without a device InternalWidth / InternalHeight still answer the game's size).
+// Init(w, h) with the configured game size takes the configured pixels, any other size has as many pixels as it says.
+void ConfigureScreen(const ScreenSize& size);
+
 bool Init(int internalWidth, int internalHeight);
 void Shutdown();
 bool IsReady();  // Init succeeded (false when running without a window, e.g. in tests)
-int InternalWidth();   // the internal target's size as the game knows it (1280x720 whatever the resolution scale)
+int InternalWidth();   // the internal target's size as the game knows it (the game's size, whatever its pixels)
 int InternalHeight();
+int PixelWidth();      // the internal target's pixels now (the pixel size times the resolution scale)
+int PixelHeight();
 // The resolution scale (DOTD_RES_SCALE=0.25..1 from the start, or at run time): the internal target and every
-// render target asked for at its size have that fraction of its pixels in each direction, and the present scales
-// the picture up. Other targets keep their size.
+// render target of a screen size have that fraction of their pixels in each direction, and the present scales the
+// picture up. Other targets keep their size.
 float ResolutionScale();
 void SetResolutionScale(float scale);
+// Other pixels while the game runs, for the same game size (a 16:9 width x height while the game has 1280x720; 0 x 0:
+// 1280x720 pixels): the internal target and the screen-sized targets are made again at the new size, as for the
+// resolution scale (which still applies on top). False, and nothing changes, when the size needs another game size
+// (another aspect: only --resolution at the start gives that).
+bool SetPixelSize(int width, int height);
+
+// ---- anti-aliasing (not in the original: its PSGL device had no multisampling) ---------------------------------
+// MSAA `samples` (0 off, 2 / 4 / 8 / 16: brought down to the driver's GL_MAX_SAMPLES, or further while the surfaces
+// cannot be made) and FXAA, from Init (--msaa / --fxaa) or while the game runs. With samples the internal target and every
+// render target sharing its depth buffer (the scene colour raster the world is drawn into, the post effects' full-size
+// rasters) draw into multisampled surfaces, resolved into their textures before a pass samples them, before the present
+// and before a screenshot; the other targets (half size and smaller, no depth) stay single-sampled. Returns the samples
+// in use. Cut-out (alpha-tested) textures such as foliage would keep hard edges under MSAA alone (a sample's coverage is
+// the triangle's, not the texture's): alpha-to-coverage below gives them the samples too.
+int SetAntialiasing(int samples, bool fxaa);
+int MsaaSamples();
+bool FxaaEnabled();
+const char* AntialiasingName();  // "off", "FXAA", "MSAA 4x", "MSAA 4x + A2C", "MSAA 4x + A2C + FXAA"
+// Alpha-to-coverage under MSAA (on by default; nothing without samples): a draw whose alpha test keeps the alpha above
+// (or below) the reference, without blending, takes its samples' coverage from its alpha instead of discarding, the
+// alpha sharpened to 0.5 at the reference over one pixel (the pixel shaders' dotd_alphaCoverage, cg_to_glsl.cpp; the
+// device's own geometry program likewise). The shape is the alpha test's, the edges get MSAA's smoothing. The colour
+// buffer's alpha there is the coverage instead of the texture's alpha.
+void SetAlphaToCoverage(bool on);
+bool AlphaToCoverageEnabled();
+// FXAA on the internal target as it is: CRenderer::RenderGameFrame calls it after the 3D picture (the far, main and post
+// groups) and before the 2D group, so the HUD, menus, text and videos are not filtered. Nothing while FXAA is off.
+void AntialiasScene();
 // The colour writes on or off (glColorMask): off for a depth-only pass (gpuprof.h, the opaque depth pre-pass).
 void SetColorWrite(bool on);
 
@@ -34,7 +88,8 @@ void ClearTarget(bool color, bool depth, float r, float g, float b, float a);
 
 // ---- render targets (the PS3's camera-texture rasters, rwRASTERTYPECAMERATEXTURE, as GL frame buffers) -----
 // An RGBA8 colour texture with its frame buffer object; a target of the internal size shares the internal depth
-// buffer (the PS3's depth raster is one, attached to whichever colour raster the camera draws into). Returns an id
+// buffer (the PS3's depth raster is one, attached to whichever colour raster the camera draws into). The size is the
+// game's (a raster's); a screen-sized target gets its pixels as the internal target does (ScreenSize). Returns an id
 // (0 on failure or without a device). Id 0 always names the internal target.
 uint32_t CreateRenderTarget(int width, int height);
 void DestroyRenderTarget(uint32_t target);
@@ -145,7 +200,7 @@ void DrawPrimitive(Primitive primitive, const Vertex* vertices, int count, const
                    const float* model, const float* colorScale, const DrawState& state);
 
 // ---- C1.0 test path -----------------------------------------------------------------------------------
-// Axis-aligned quad in internal-target pixels (origin top-left), texture modulated by colour
+// Axis-aligned quad in the internal target's game-size pixels (origin top-left), texture modulated by colour
 // (0xRRGGBBAA). texture 0 = colour only. Alpha blending on.
 void DrawQuad(uint32_t texture, float x0, float y0, float x1, float y1, uint32_t rgba);
 
@@ -156,9 +211,11 @@ void DrawQuad(uint32_t texture, float x0, float y0, float x1, float y1, uint32_t
 void EndFrame();
 // Frames presented so far.
 uint32_t FrameCount();
-// Saves the internal target (1280x720, top row first) as an RGB PNG. False without a device.
+// Saves the internal target (top row first) as an RGB PNG: its own pixels (PixelWidth x PixelHeight), or the game's
+// size under a resolution scale below 1. False without a device.
 bool SaveScreenshot(const char* path);
-// Reads the internal target as RGBA8, top row first (width * height * 4 bytes). False without a device.
+// Reads the internal target as RGBA8 at the game's size, top row first (InternalWidth * InternalHeight * 4 bytes;
+// with other pixels, the nearest one of each). False without a device.
 bool ReadTarget(uint8_t* rgba);
 
 }  // namespace dotd::gfx

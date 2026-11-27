@@ -141,10 +141,10 @@ RwCamera* RwShim_CreateUICamera() {
     RwRaster* raster = static_cast<RwRaster*>(RwMalloc(sizeof(RwRaster), 0x30000));
     std::memset(raster, 0, sizeof(RwRaster));
     raster->parent = raster;
-    raster->width = 1280;
-    raster->height = 720;
+    raster->width = dotd::gfx::InternalWidth();  // (1280x720, the live values; the game's size for --resolution)
+    raster->height = dotd::gfx::InternalHeight();
     raster->depth = 32;
-    raster->stride = 0x1400;
+    raster->stride = raster->width * 4;          // (0x1400)
     raster->cType = 2;  // rwRASTERTYPECAMERA (the live word +0x20 is 0x02000005)
     camera->frameBuffer = raster;
     camera->viewWindow = RwV2d{0.5f, 0.5f};
@@ -242,6 +242,19 @@ RwUInt16 g_renderFrame = 1;  // RWSRCGLOBAL(renderFrame), 1 after the world plug
 }  // namespace
 
 RwUInt16 RwEngineRenderFrame() { return g_renderFrame; }
+
+RwInt32 RwEngineGetCurrentVideoMode() { return 0; }
+
+RwVideoMode* RwEngineGetVideoModeInfo(RwVideoMode* modeinfo, RwInt32 modeIndex) {
+    if (modeinfo == nullptr || modeIndex != 0) return nullptr;
+    modeinfo->width = dotd::gfx::InternalWidth();
+    modeinfo->height = dotd::gfx::InternalHeight();
+    modeinfo->depth = 32;
+    modeinfo->flags = 0x1;
+    modeinfo->refRate = 60;
+    modeinfo->format = 0x500;
+    return modeinfo;
+}
 
 RwCamera* RwCameraBeginUpdate(RwCamera* camera) {
     ++g_renderFrame;  // WorldCameraBeginUpdate, before the chained begin update

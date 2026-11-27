@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL.h>
 
+#include <algorithm>
 #include <atomic>
 #include <cstdio>
 #include <cstring>
@@ -12,6 +13,7 @@
 #include "platform/cell/sysutil.h"
 #include "platform/config.h"
 #include "platform/frame_loop.h"
+#include "platform/gfx/device.h"
 #include "platform/log.h"
 #include "platform/sdl/freecam.h"
 
@@ -91,9 +93,11 @@ void ReadGamepad(SDL_Gamepad* gp, uint16_t w[24]) {
     w[7] = AxisToByte(SDL_GetGamepadAxis(gp, SDL_GAMEPAD_AXIS_LEFTY));
 }
 
-// Keyboard on port 0 (merged into port 0's words; a pressed key overrides the gamepad's value). The layout is RPCS3's
-// default keyboard pad (the user plays the original that way; 2026-11-14: R / T were R3 / the right stick here, so the
-// dragon switch L2 and the abilities R2 could not be pressed), plus a few extra keys:
+// Keyboard on port 0 (merged into port 0's words; a pressed key overrides the gamepad's value). The keys of each pad
+// button and stick direction are dotd.ini's key_<action> lines (key_cross = X, several keys comma-separated, SDL's key
+// names; the launcher's Controls dialog writes them); an action without a line keeps its default below. The defaults
+// are RPCS3's default keyboard pad (the user plays the original that way; 2026-11-14: R / T were R3 / the right stick
+// here, so the dragon switch L2 and the abilities R2 could not be pressed), plus a few extra keys:
 //   left stick (move)    W / A / S / D            right stick (camera)  Home / Delete / End / Page Down (up / left /
 //                                                                       down / right), or numpad 8 / 4 / 5 / 6
 //   d-pad (elements)     arrows                   L3 / R3               F / G (also Tab / numpad 0)
@@ -103,49 +107,113 @@ void ReadGamepad(SDL_Gamepad* gp, uint16_t w[24]) {
 //   start / select       Enter / Space (also Backspace)
 // Sticks are full deflection (0 / 255, centre 128; up = 0 as the DS3's CellPadData). The front end reads cross as
 // validate and circle as back (the "Flash Manager" input project, entries 4 and 5). With the debug free camera on
-// (F1) WASD fly it and do not move the left stick.
+// (F1) WASD fly it and the left stick's keys are not read.
 // An SDL gamepad on port n is read as a DualShock 3 (ReadGamepad): positional face buttons (south = cross, east =
 // circle, west = square, north = triangle), shoulders L1 / R1, triggers L2 / R2 (analog 0..255 into the pressure
 // words 18 / 19, digital above 64), stick clicks L3 / R3, back = select, start, the d-pad, both sticks (0..255, centre
 // 128, up = 0), the pressure words 8..17 at 255 while pressed; rumble: Rumble() below.
+struct KeyAction {
+    const char* name;      // dotd.ini key_<name>
+    int word;              // 2 / 3: the digital words; 4..7: right stick x, y, left stick x, y
+    uint16_t bit;          // a digital word's bit
+    uint8_t axis;          // a stick direction: the axis value while held (0 left / up, 255 right / down)
+    int pressure;          // the pressure word set to 255 while held (-1: none)
+    const char* defaults;  // SDL key names
+};
+// (Within a stick axis a later action wins when both are held: right over left, down over up, as before.)
+const KeyAction kKeyActions[] = {
+    {"dpad_up", 2, kUp, 0, 10, "Up"},
+    {"dpad_down", 2, kDown, 0, 11, "Down"},
+    {"dpad_left", 2, kLeft, 0, 9, "Left"},
+    {"dpad_right", 2, kRight, 0, 8, "Right"},
+    {"cross", 3, kCross, 0, 14, "X, K"},
+    {"circle", 3, kCircle, 0, 13, "C, Escape, L"},
+    {"square", 3, kSquare, 0, 15, "Z, J"},
+    {"triangle", 3, kTriangle, 0, 12, "V, I"},
+    {"l1", 3, kL1, 0, 16, "Q"},
+    {"l2", 3, kL2, 0, 18, "R, 1"},
+    {"l3", 2, kL3, 0, -1, "F, Tab"},
+    {"r1", 3, kR1, 0, 17, "E"},
+    {"r2", 3, kR2, 0, 19, "T, 3"},
+    {"r3", 2, kR3, 0, -1, "G, Keypad 0"},
+    {"start", 2, kStart, 0, -1, "Return"},
+    {"select", 2, kSelect, 0, -1, "Space, Backspace"},
+    {"lstick_left", 6, 0, 0, -1, "A"},
+    {"lstick_right", 6, 0, 255, -1, "D"},
+    {"lstick_up", 7, 0, 0, -1, "W"},
+    {"lstick_down", 7, 0, 255, -1, "S"},
+    {"rstick_left", 4, 0, 0, -1, "Delete, Keypad 4"},
+    {"rstick_right", 4, 0, 255, -1, "PageDown, Keypad 6"},
+    {"rstick_up", 5, 0, 0, -1, "Home, Keypad 8"},
+    {"rstick_down", 5, 0, 255, -1, "End, Keypad 5, Keypad 2"},
+};
+constexpr size_t kKeyActionCount = sizeof(kKeyActions) / sizeof(kKeyActions[0]);
+struct KeyBinding {
+    SDL_Scancode scancode;
+    uint8_t action;  // index into kKeyActions
+};
+std::vector<KeyBinding> g_keyBindings;  // made by Init (BuildKeyBindings), only read afterwards (the pad reads)
+
+// The bindings: each action's keys from its dotd.ini line or its defaults. An unknown key name or action is reported
+// (a config warning) and skipped; an empty line unbinds the action.
+void BuildKeyBindings(const Config& cfg) {
+    g_keyBindings.clear();
+    std::vector<bool> used(cfg.keyBindings.size(), false);
+    for (size_t a = 0; a < kKeyActionCount; ++a) {
+        std::string keys = kKeyActions[a].defaults;
+        for (size_t i = 0; i < cfg.keyBindings.size(); ++i) {
+            if (cfg.keyBindings[i].first == kKeyActions[a].name) {
+                keys = cfg.keyBindings[i].second;
+                used[i] = true;
+            }
+        }
+        size_t at = 0;
+        while (at <= keys.size()) {
+            size_t comma = keys.find(',', at);
+            if (comma == std::string::npos) comma = keys.size();
+            std::string key = keys.substr(at, comma - at);
+            at = comma + 1;
+            const size_t first = key.find_first_not_of(" \t"), last = key.find_last_not_of(" \t");
+            if (first == std::string::npos) continue;
+            key = key.substr(first, last - first + 1);
+            const SDL_Scancode scancode = SDL_GetScancodeFromName(key.c_str());
+            if (scancode == SDL_SCANCODE_UNKNOWN) {
+                DOTD_LOG("config: WARNING: key_%s: unknown key '%s'; ignored", kKeyActions[a].name, key.c_str());
+                continue;
+            }
+            g_keyBindings.push_back({scancode, static_cast<uint8_t>(a)});
+        }
+    }
+    for (size_t i = 0; i < cfg.keyBindings.size(); ++i) {
+        if (!used[i]) DOTD_LOG("config: WARNING: dotd.ini key_%s: no such pad button; ignored", cfg.keyBindings[i].first.c_str());
+    }
+    if (!cfg.keyBindings.empty()) {
+        DOTD_LOG("sdl: keyboard pad: %d key(s), %d action(s) set by dotd.ini", static_cast<int>(g_keyBindings.size()),
+                 static_cast<int>(cfg.keyBindings.size()));
+    }
+}
+
 void ReadKeyboard(uint16_t w[24]) {
     int count = 0;
     const bool* k = SDL_GetKeyboardState(&count);
     if (!k) return;
-    struct Map { SDL_Scancode s; int word; uint16_t bit; int pressure; };
-    static const Map kMap[] = {
-        // RPCS3's default keyboard pad.
-        {SDL_SCANCODE_UP, 2, kUp, 10},          {SDL_SCANCODE_RIGHT, 2, kRight, 8},
-        {SDL_SCANCODE_DOWN, 2, kDown, 11},      {SDL_SCANCODE_LEFT, 2, kLeft, 9},
-        {SDL_SCANCODE_RETURN, 2, kStart, -1},   {SDL_SCANCODE_SPACE, 2, kSelect, -1},
-        {SDL_SCANCODE_X, 3, kCross, 14},        {SDL_SCANCODE_C, 3, kCircle, 13},
-        {SDL_SCANCODE_Z, 3, kSquare, 15},       {SDL_SCANCODE_V, 3, kTriangle, 12},
-        {SDL_SCANCODE_Q, 3, kL1, 16},           {SDL_SCANCODE_E, 3, kR1, 17},
-        {SDL_SCANCODE_R, 3, kL2, 18},           {SDL_SCANCODE_T, 3, kR2, 19},
-        {SDL_SCANCODE_F, 2, kL3, -1},           {SDL_SCANCODE_G, 2, kR3, -1},
-        // Extra keys.
-        {SDL_SCANCODE_BACKSPACE, 2, kSelect, -1}, {SDL_SCANCODE_K, 3, kCross, 14},
-        {SDL_SCANCODE_ESCAPE, 3, kCircle, 13},  {SDL_SCANCODE_L, 3, kCircle, 13},
-        {SDL_SCANCODE_J, 3, kSquare, 15},       {SDL_SCANCODE_I, 3, kTriangle, 12},
-        {SDL_SCANCODE_1, 3, kL2, 18},           {SDL_SCANCODE_3, 3, kR2, 19},
-        {SDL_SCANCODE_TAB, 2, kL3, -1},         {SDL_SCANCODE_KP_0, 2, kR3, -1},
-    };
-    for (const Map& m : kMap) {
-        if (m.s < count && k[m.s]) {
-            w[m.word] |= m.bit;
-            if (m.pressure >= 0) w[m.pressure] = 255;
+#ifndef __EMSCRIPTEN__
+    const bool alt = (SDL_GetModState() & SDL_KMOD_ALT) != 0;  // (Alt+Enter is the full screen key, not START)
+#else
+    const bool alt = false;
+#endif
+    const bool freecamOn = freecam::Enabled();  // (WASD fly the debug camera: the left stick's keys are not read)
+    for (const KeyBinding& b : g_keyBindings) {
+        if (b.scancode >= count || !k[b.scancode]) continue;
+        if (alt && b.scancode == SDL_SCANCODE_RETURN) continue;
+        const KeyAction& a = kKeyActions[b.action];
+        if (a.word >= 4) {
+            if (!(freecamOn && a.word >= 6)) w[a.word] = a.axis;
+            continue;
         }
+        w[a.word] |= a.bit;
+        if (a.pressure >= 0) w[a.pressure] = 255;
     }
-    // The right stick (words 4 / 5: x, y).
-    if (k[SDL_SCANCODE_DELETE] || k[SDL_SCANCODE_KP_4]) w[4] = 0;
-    if (k[SDL_SCANCODE_PAGEDOWN] || k[SDL_SCANCODE_KP_6]) w[4] = 255;
-    if (k[SDL_SCANCODE_HOME] || k[SDL_SCANCODE_KP_8]) w[5] = 0;
-    if (k[SDL_SCANCODE_END] || k[SDL_SCANCODE_KP_5] || k[SDL_SCANCODE_KP_2]) w[5] = 255;
-    if (freecam::Enabled()) return;  // WASD fly the debug camera instead
-    if (k[SDL_SCANCODE_A]) w[6] = 0;
-    if (k[SDL_SCANCODE_D]) w[6] = 255;
-    if (k[SDL_SCANCODE_W]) w[7] = 0;
-    if (k[SDL_SCANCODE_S]) w[7] = 255;
 }
 
 // The touch pad (SetTouchPad): word 2 | word 3 << 16, and the sticks left x | left y << 8 | right x << 16 |
@@ -259,6 +327,90 @@ void ChoosePacing() {
     SetTimerPacing(why);
 }
 
+#ifndef __EMSCRIPTEN__
+// ---- full screen (native) ------------------------------------------------------------------------
+// Two kinds (Config::exclusiveFullscreen). Borderless: SDL's desktop full screen, a window covering the display in
+// the desktop's mode; anything may show over it. Exclusive: SDL's display mode full screen: the display is set to
+// the mode below and the window is kept on top of everything; SDL minimises it when it loses the focus (its
+// SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS "auto"). (Windows has no exclusive ownership of the display for OpenGL as
+// for Direct3D; a window covering the display is presented directly by the driver either way.)
+// F11 / Alt+Enter switch full screen on and off, Shift+F11 the kind (at once when full screen).
+bool g_exclusiveFullscreen = false;
+
+// The display mode of exclusive full screen: the render resolution's (--resolution) when the window's display has a
+// mode at least that large (SDL picks the closest), at the desktop's refresh rate; otherwise the desktop's mode.
+bool ExclusiveMode(SDL_DisplayMode* mode) {
+    const SDL_DisplayID display = SDL_GetDisplayForWindow(g_window);
+    if (display == 0) return false;
+    const Config& cfg = GetConfig();
+    if (cfg.renderWidth > 0 &&
+        SDL_GetClosestFullscreenDisplayMode(display, cfg.renderWidth, cfg.renderHeight, 0.0f, false, mode)) {
+        return true;
+    }
+    const SDL_DisplayMode* desktop = SDL_GetDesktopDisplayMode(display);
+    if (desktop == nullptr) return false;
+    *mode = *desktop;
+    return true;
+}
+
+// The kind of full screen the window takes (now, when it is full screen).
+void ApplyFullscreenKind() {
+    SDL_DisplayMode mode;
+    if (g_exclusiveFullscreen && ExclusiveMode(&mode)) {
+        if (SDL_SetWindowFullscreenMode(g_window, &mode)) {
+            DOTD_LOG("sdl: exclusive full screen, %dx%d at %.2f Hz", mode.w, mode.h, mode.refresh_rate);
+            return;
+        }
+        DOTD_LOG("sdl: exclusive full screen %dx%d refused (%s): borderless", mode.w, mode.h, SDL_GetError());
+    }
+    SDL_SetWindowFullscreenMode(g_window, nullptr);
+    DOTD_LOG("sdl: borderless full screen");
+}
+
+bool IsFullscreen() { return g_window != nullptr && (SDL_GetWindowFlags(g_window) & SDL_WINDOW_FULLSCREEN) != 0; }
+
+void SetFullscreen(bool on) {
+    if (on) ApplyFullscreenKind();
+    if (!SDL_SetWindowFullscreen(g_window, on)) {
+        DOTD_LOG("sdl: SDL_SetWindowFullscreen(%d) failed: %s", on ? 1 : 0, SDL_GetError());
+        return;
+    }
+    if (!on) DOTD_LOG("sdl: windowed");
+}
+
+// F11 / Alt+Enter and Shift+F11 (PumpEvents).
+void OnFullscreenKey(const SDL_KeyboardEvent& key) {
+    if (key.repeat) return;
+    const bool f11 = key.scancode == SDL_SCANCODE_F11;
+    const bool altEnter = (key.scancode == SDL_SCANCODE_RETURN || key.scancode == SDL_SCANCODE_KP_ENTER) &&
+                          (key.mod & SDL_KMOD_ALT) != 0;
+    if (f11 && (key.mod & SDL_KMOD_SHIFT) != 0) {
+        g_exclusiveFullscreen = !g_exclusiveFullscreen;
+        if (IsFullscreen()) ApplyFullscreenKind();
+        else DOTD_LOG("sdl: full screen kind: %s (F11 turns it on)", g_exclusiveFullscreen ? "exclusive" : "borderless");
+    } else if (f11 || altEnter) {
+        SetFullscreen(!IsFullscreen());
+    }
+}
+
+// F3: MSAA off -> 2x -> 4x -> 8x -> 16x -> off (a step past what the driver has goes back to off); Shift+F3: FXAA on / off;
+// Ctrl+F3: alpha-to-coverage on / off (platform/gfx/device.h). The window's title shows the setting.
+void OnAntialiasingKey(const SDL_KeyboardEvent& key) {
+    if (key.repeat || key.scancode != SDL_SCANCODE_F3) return;
+    const int now = gfx::MsaaSamples();
+    if ((key.mod & SDL_KMOD_CTRL) != 0) {
+        gfx::SetAlphaToCoverage(!gfx::AlphaToCoverageEnabled());
+        return;
+    }
+    if ((key.mod & SDL_KMOD_SHIFT) != 0) {
+        gfx::SetAntialiasing(now, !gfx::FxaaEnabled());
+        return;
+    }
+    const int next = now == 0 ? 2 : now * 2;
+    if (next > 16 || gfx::SetAntialiasing(next, gfx::FxaaEnabled()) <= now) gfx::SetAntialiasing(0, gfx::FxaaEnabled());
+}
+#endif
+
 // kTimer: called after the swap. Sleeps until the next slot on the frame grid.
 void WaitForSlot() {
     const Uint64 now = SDL_GetTicksNS();
@@ -315,11 +467,35 @@ bool Init(const Config& cfg) {
 #endif
     if (cfg.fullscreen) flags |= SDL_WINDOW_FULLSCREEN;
     if (cfg.hiddenWindow) flags |= SDL_WINDOW_HIDDEN;
-    g_window = SDL_CreateWindow(g_baseTitle.c_str(), cfg.windowWidth, cfg.windowHeight, flags);
+    int windowWidth = cfg.windowWidth, windowHeight = cfg.windowHeight;
+#ifndef __EMSCRIPTEN__
+    // Exclusive full screen from the start: the window is shown once its display mode is set (below).
+    const bool showLater = cfg.fullscreen && cfg.exclusiveFullscreen && !cfg.hiddenWindow;
+    if (showLater) flags |= SDL_WINDOW_HIDDEN;
+    // A window sized after --resolution (no window size given) shrinks to 90 % of the display's usable area, keeping
+    // its aspect (a 4K picture on a smaller display: the present scales it down). Also when it starts full screen:
+    // it is the window F11 goes back to.
+    if (!cfg.windowSizeSet && cfg.renderWidth != 0) {
+        SDL_Rect usable;
+        if (SDL_GetDisplayUsableBounds(SDL_GetPrimaryDisplay(), &usable) && usable.w > 0 && usable.h > 0) {
+            const double fit = std::min({1.0, 0.9 * usable.w / windowWidth, 0.9 * usable.h / windowHeight});
+            if (fit < 1.0) {
+                windowWidth = std::max(1, static_cast<int>(windowWidth * fit));
+                windowHeight = std::max(1, static_cast<int>(windowHeight * fit));
+            }
+        }
+    }
+#endif
+    g_window = SDL_CreateWindow(g_baseTitle.c_str(), windowWidth, windowHeight, flags);
     if (!g_window) {
         DOTD_LOG("sdl: SDL_CreateWindow failed: %s", SDL_GetError());
         return false;
     }
+#ifndef __EMSCRIPTEN__
+    g_exclusiveFullscreen = cfg.exclusiveFullscreen;
+    if (cfg.fullscreen) ApplyFullscreenKind();
+    if (showLater) SDL_ShowWindow(g_window);
+#endif
     g_context = SDL_GL_CreateContext(g_window);
     if (!g_context) {
         DOTD_LOG("sdl: SDL_GL_CreateContext failed: %s", SDL_GetError());
@@ -333,7 +509,8 @@ bool Init(const Config& cfg) {
     SDL_JoystickID* ids = SDL_GetGamepads(&count);
     for (int i = 0; i < count; ++i) OpenGamepad(ids[i]);
     SDL_free(ids);
-    DOTD_LOG("sdl: window %dx%d, vsync %d, %d gamepad(s)", cfg.windowWidth, cfg.windowHeight, cfg.vsync ? 1 : 0, count);
+    DOTD_LOG("sdl: window %dx%d, vsync %d, %d gamepad(s)", windowWidth, windowHeight, cfg.vsync ? 1 : 0, count);
+    BuildKeyBindings(cfg);
     return true;
 }
 
@@ -370,6 +547,10 @@ void PumpEvents() {
             if (e.type == SDL_EVENT_KEY_DOWN && !e.key.repeat && e.key.scancode == SDL_SCANCODE_F2) {
                 SetFps(GetConfig().fps == 60 ? 0 : 60);
             }
+#ifndef __EMSCRIPTEN__
+            if (e.type == SDL_EVENT_KEY_DOWN) OnFullscreenKey(e.key);  // F11 / Alt+Enter, Shift+F11
+            if (e.type == SDL_EVENT_KEY_DOWN) OnAntialiasingKey(e.key);  // F3, Shift+F3
+#endif
             break;
         case SDL_EVENT_MOUSE_MOTION:
             freecam::OnMouseMotion(e.motion.xrel, e.motion.yrel, (e.motion.state & SDL_BUTTON_RMASK) != 0);
@@ -421,7 +602,9 @@ void UpdateTitleFps() {
     dotd::platform::g_presentedFps = static_cast<float>(fps);
 #ifndef __EMSCRIPTEN__
     char title[256];
-    std::snprintf(title, sizeof(title), "%s | FPS: %.2f | %.2f ms", g_baseTitle.c_str(), fps, 1000.0 / fps);
+    const char* aa = gfx::AntialiasingName();  // (F3 / Shift+F3: shown while not off)
+    std::snprintf(title, sizeof(title), "%s | FPS: %.2f | %.2f ms%s%s", g_baseTitle.c_str(), fps, 1000.0 / fps,
+                  std::strcmp(aa, "off") != 0 ? " | " : "", std::strcmp(aa, "off") != 0 ? aa : "");
     SDL_SetWindowTitle(g_window, title);
 #endif
     s_windowStart = now;
@@ -459,6 +642,12 @@ void SetFrameRate(int frameRate) {
 }
 
 void GetDrawableSize(int* width, int* height) { SDL_GetWindowSizeInPixels(g_window, width, height); }
+
+void SetWindowSize(int width, int height) {
+    if (g_window != nullptr && !SDL_SetWindowSize(g_window, width, height)) {
+        DOTD_LOG("sdl: SDL_SetWindowSize %dx%d failed: %s", width, height, SDL_GetError());
+    }
+}
 
 // The FPS counter is appended to `title` at the next refresh.
 void SetWindowTitle(const char* title) {

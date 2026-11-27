@@ -36,20 +36,31 @@
   #downloadBar { height: 100%; width: 0; background: #e6b422; }
   #downloadText { margin-top: 3px; color: #8a8a98; font-size: 12px; }
   #download.waiting #downloadText { color: #ffe680; }
-  #keys { color: #8a8a98; max-width: min(1280px, 96vw); text-align: center; }
+  #keys { color: #8a8a98; max-width: min(1280px, 96vw); margin-top: 6px; text-align: center; }  /* (a line of its own under the bar) */
   #touch, #menuClose { display: none; }
+  button:disabled { opacity: 0.4; cursor: default; }
+  /* (The resolution: a drop-down list on a desktop, < > in a touch screen's menu.) */
+  .pick { display: inline-flex; align-items: center; gap: 6px; }
+  .pick select { background: #1c1c26; color: inherit; border: 1px solid #34344a; border-radius: 4px; padding: 2px 4px;
+                 font: inherit; cursor: pointer; }
+  #resStep { display: none; align-items: center; gap: 8px; }
+  #resValue { min-width: 6.5em; text-align: center; font-variant-numeric: tabular-nums; }
+  body.touch #resSelect { display: none; }
+  body.touch #resStep { display: inline-flex; }
 
   /* ---- the picture fitted to the screen (body.fit): a phone or tablet, and full screen on a desktop ---------
-     The canvas keeps its 16:9 and its own resolution; the page scales it to the largest size that fits. What was
-     under the picture lies over it: the status at the bottom, the buttons as a panel. */
+     The canvas keeps its aspect (--ar, set by the page from the canvas: 16:9 unless ?resolution asked for another)
+     and its own resolution; the page scales it to the largest size that fits. What was under the picture lies over
+     it: the status at the bottom, the buttons as a panel. */
+  body { --ar: 1.7777778; }
   body.fit { overflow: hidden; background: #000; overscroll-behavior: none; }
   body.fit #stage { position: fixed; inset: 0; padding: 0; display: block; }
   body.fit #canvas { position: absolute; left: 0; top: 0; max-width: none; visibility: hidden; }
   /* (.sized: the game has made its window. SDL takes a canvas that CSS sizes at that moment for a window of that
      size and would render at the screen's CSS size, not at the game's 1280x720: the scaling starts after it.) */
   body.fit.sized #canvas { visibility: visible; left: 50%; top: 50%; transform: translate(-50%, -50%);
-                     width: min(100vw, 100vh * 16 / 9) !important; height: min(100vh, 100vw * 9 / 16) !important;
-                     width: min(100vw, 100dvh * 16 / 9) !important; height: min(100dvh, 100vw * 9 / 16) !important; }
+                     width: min(100vw, 100vh * var(--ar)) !important; height: min(100vh, 100vw / var(--ar)) !important;
+                     width: min(100vw, 100dvh * var(--ar)) !important; height: min(100dvh, 100vw / var(--ar)) !important; }
   body.fit #info { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); z-index: 3; width: 90vw;
                    pointer-events: none; text-shadow: 0 0 3px #000, 0 0 3px #000; }
   body.fit #status { margin: 0; min-height: 0; }
@@ -63,6 +74,7 @@
   body.fit #bar button { padding: 9px 18px; font-size: 15px; }
   body.fit .check { gap: 12px; padding: 7px 6px; font-size: 16px; }
   body.fit .check input { width: 24px; height: 24px; }
+  body.fit .pick { justify-content: space-between; gap: 12px; padding: 2px 6px; font-size: 16px; }
   body.fit #log { position: absolute; left: 4vw; top: 8vh; width: 92vw; height: 70vh; margin: 0; z-index: 5; opacity: 0.92; }
 
   /* ---- the pad on a touch screen (body.touch) ---------------------------------------------------------------
@@ -111,9 +123,9 @@
   body.gamepad #menuButton { opacity: 0.5; }
   @media (orientation: portrait) {  /* the picture at the top, the pad under it */
     body.fit.sized #canvas { top: 0; transform: translateX(-50%); }
-    body.touch #dpad { top: calc(100vw * 9 / 16 + var(--u) * 29); }
-    body.touch .shoulder, body.touch #mid { top: calc(100vw * 9 / 16 + var(--u) * 3); }
-    body.touch .shoulder.low { top: calc(100vw * 9 / 16 + var(--u) * 15); }
+    body.touch #dpad { top: calc(100vw / var(--ar) + var(--u) * 29); }
+    body.touch .shoulder, body.touch #mid { top: calc(100vw / var(--ar) + var(--u) * 3); }
+    body.touch .shoulder.low { top: calc(100vw / var(--ar) + var(--u) * 15); }
   }
 </style>
 </head>
@@ -159,13 +171,17 @@
     <label class="check"><input id="fullscreenToggle" type="checkbox"> Full screen</label>
     <label class="check"><input id="fpsToggle" type="checkbox"> 60 fps cap</label>
     <label class="check"><input id="vsyncToggle" type="checkbox" checked> Vsync</label>
+    <div class="pick" id="resPick"><span>Resolution</span>
+      <select id="resSelect" aria-label="Resolution"></select>
+      <span id="resStep"><button type="button" id="resPrev" aria-label="Lower resolution">&#9664;</button><span id="resValue"></span><button type="button" id="resNext" aria-label="Higher resolution">&#9654;</button></span>
+    </div>
     <label class="check"><input id="logToggle" type="checkbox"> Show log</label>
     <button id="gpuTest" type="button" style="display: none">GPU test (stand still ~2.5 min)</button>
     <button id="fixTest" type="button" style="display: none">Fix test (stand still ~35 s)</button>
     <button id="clearData" type="button" style="display: none">Delete downloaded data</button>
     <button id="menuClose" type="button">Close</button>
-    <span id="keys">Enter START · X cross · C circle · Z square · V triangle · WASD move · arrows d-pad · Q/E L1/R1 · R/T L2/R2 · Space select · F2 60 fps cap (a gamepad works too)</span>
   </div>
+  <div id="keys">Enter START · X cross · C circle · Z square · V triangle · WASD move · arrows d-pad · Q/E L1/R1 · R/T L2/R2 · Space select · F2 60 fps cap (a gamepad works too)</div>
   <pre id="log"></pre>
 </div>
 <script>
@@ -246,6 +262,7 @@ for (const type of ['fullscreenchange', 'webkitfullscreenchange']) {
     event.stopImmediatePropagation();
     if (!touchMode) document.body.classList.toggle('fit', isFullscreen());
     if (!touchMode) document.getElementById('fullscreenToggle').checked = isFullscreen();
+    if (!touchMode) fitCanvas();
   }, true);
 }
 // On a phone full screen is a setting, on by default: the box shows the setting, and while it is ticked every
@@ -304,6 +321,137 @@ for (const [key, value] of pageParams) {
   if (value !== '') gameArgs.push(value);
 }
 if (!pageParams.has('fps') && storedFps() !== '60') gameArgs.push('--fps', '0');  // no cap unless it was ticked
+
+// ---- the resolution --------------------------------------------------------------------------------------------
+// The game's pixels and the canvas's (the game's --resolution), from a list of 16:9 sizes. At 16:9 the game keeps
+// its own 1280x720 frame buffer and only the pixel count changes, so a choice is switched while the game runs
+// (dotd_web_set_resolution) and play stays the original's. The list stops at the screen's pixels (its size times
+// the device pixel ratio without the page zoom, screenPixels), and the largest 16:9 picture the screen holds is
+// added when no preset is it. A desktop has a drop-down list, a touch screen < >
+// in its menu. The choice is kept for the next visit (brought down to the largest that fits a smaller screen, the
+// stored one kept); ?resolution=WxH in the address goes first and is not changed by the page.
+const RESOLUTIONS = [[1280, 720], [1600, 900], [1920, 1080], [2560, 1440], [3200, 1800], [3840, 2160], [5120, 2880], [7680, 4320]];
+const resolutionFromAddress = pageParams.has('resolution');
+function parseResolution(text) {
+  const m = /^\s*(\d+)\s*[x*,]\s*(\d+)\s*$/i.exec(text || '');
+  return m && Number(m[1]) > 0 && Number(m[2]) > 0 ? [Number(m[1]), Number(m[2])] : null;
+}
+// The page zoom (Ctrl + / -) where the device pixel ratio has it and the screen's size does not: Chrome at 125 % on
+// a 2560x1440 screen says 2560 x 1440 at a ratio of 1.25, and the list went up to 3200x1800. Chrome's outerWidth
+// is in screen pixels and its innerWidth in page pixels, so the zoom is the level of Chrome's list that makes them
+// meet, give or take the window's frame (0 maximized or full screen, about 16 px otherwise). Where none does (a side
+// panel, docked developer tools) or both are page pixels (Firefox, whose screen size already has the zoom): 1.
+const ZOOM_LEVELS = [0.25, 1 / 3, 0.5, 2 / 3, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5];
+function pageZoom() {
+  const outer = window.outerWidth, inner = window.innerWidth;
+  if (!(outer > 0 && inner > 0)) return 1;
+  let best = 1, bestFrame = Infinity;
+  for (const zoom of ZOOM_LEVELS) {
+    const frame = outer - inner * zoom;
+    if (frame >= -2 && frame <= 24 && Math.abs(frame) < bestFrame) {
+      best = zoom;
+      bestFrame = Math.abs(frame);
+    }
+  }
+  return best;
+}
+function screenPixels() {  // [long side, short side] in device pixels
+  const ratio = (window.devicePixelRatio || 1) / pageZoom();
+  const a = Math.round(screen.width * ratio), b = Math.round(screen.height * ratio);
+  return [Math.max(a, b), Math.min(a, b)];
+}
+// [{w, h, note}], smallest first: the 1280x720 of the PS3 always, the presets that fit the screen, the screen's own.
+function resolutionChoices() {
+  const [long, short] = screenPixels();
+  const list = RESOLUTIONS.filter(([w, h], i) => i === 0 || (w <= long && h <= short)).map(([w, h], i) => ({w, h, note: i === 0 ? 'PS3' : ''}));
+  const w = Math.min(long, Math.round(short * 16 / 9)), h = Math.round(w * 9 / 16);  // the largest 16:9 on the screen
+  const same = list.find((c) => c.w === w && c.h === h);
+  if (same) same.note = same.note ? same.note + ', screen' : 'screen';
+  else if (w > 1280) list.push({w, h, note: 'screen'});
+  return list.sort((a, b) => a.w - b.w || a.h - b.h);
+}
+function storedResolution() { try { return parseResolution(localStorage.getItem('dotdResolution')); } catch (e) { return null; } }
+let resolution = [1280, 720];  // the chosen one: passed to the game at its start, then switched in it
+let resolutionLive = false;    // the game's window exists: a choice goes to the game at once
+if (resolutionFromAddress) {
+  resolution = parseResolution(pageParams.get('resolution')) || resolution;
+} else {
+  const stored = storedResolution();
+  if (stored && screenPixels()[1] <= 0) {
+    resolution = stored;  // (no screen size yet: a page loaded without a view; nothing to bring it down to)
+  } else if (stored) {
+    const fits = resolutionChoices().filter((c) => c.w <= stored[0] && c.h <= stored[1]);
+    if (fits.length) resolution = [fits[fits.length - 1].w, fits[fits.length - 1].h];
+  }
+}
+const resSelect = document.getElementById('resSelect');
+const resPrev = document.getElementById('resPrev'), resNext = document.getElementById('resNext');
+let resShown = [];  // the choices the controls show
+function resolutionLabel(c) { return c.w + ' × ' + c.h + (c.note ? ' (' + c.note + ')' : ''); }
+function showResolution() {
+  const choices = resolutionChoices();
+  if (!choices.some((c) => c.w === resolution[0] && c.h === resolution[1])) {  // (the address's, or another screen's)
+    choices.push({w: resolution[0], h: resolution[1], note: resolutionFromAddress ? 'address' : ''});
+    choices.sort((a, b) => a.w - b.w || a.h - b.h);
+  }
+  resShown = choices;
+  const value = resolution[0] + 'x' + resolution[1];
+  if (resSelect.options.length !== choices.length || Array.from(resSelect.options).some((o, i) => o.text !== resolutionLabel(choices[i]))) {
+    resSelect.replaceChildren(...choices.map((c) => new Option(resolutionLabel(c), c.w + 'x' + c.h)));
+  }
+  resSelect.value = value;
+  const i = choices.findIndex((c) => c.w === resolution[0] && c.h === resolution[1]);
+  document.getElementById('resValue').textContent = resolution[0] + ' × ' + resolution[1];
+  resSelect.disabled = resolutionFromAddress;
+  resPrev.disabled = resolutionFromAddress || i <= 0;
+  resNext.disabled = resolutionFromAddress || i >= choices.length - 1;
+  if (resolutionFromAddress) document.getElementById('resPick').title = 'Set by ?resolution in the address';
+}
+function chooseResolution(w, h) {
+  if (resolutionFromAddress || (w === resolution[0] && h === resolution[1])) return;
+  if (resolutionLive && !Module._dotd_web_set_resolution(w, h)) {
+    addLog('page: the game did not take ' + w + 'x' + h);
+    showResolution();
+    return;
+  }
+  resolution = [w, h];
+  try { localStorage.setItem('dotdResolution', w + 'x' + h); } catch (e) {}
+  showResolution();
+  fitCanvas();
+}
+resSelect.onchange = () => {
+  const r = parseResolution(resSelect.value);
+  if (r) chooseResolution(r[0], r[1]);
+  resSelect.blur();  // (the game's keys go to the canvas again)
+  document.getElementById('canvas').focus();
+};
+const stepResolution = (by) => {
+  const i = resShown.findIndex((c) => c.w === resolution[0] && c.h === resolution[1]);
+  const next = resShown[i + by];
+  if (next) chooseResolution(next.w, next.h);
+};
+resPrev.onclick = () => stepResolution(-1);
+resNext.onclick = () => stepResolution(1);
+showResolution();
+// The canvas on the page. Fitted to the screen (body.fit) the style sheet sizes it. Otherwise it is as wide as the
+// chosen pixels are on the screen (resolution / device pixel ratio) while the page has room for it and the bar under
+// it, and never narrower than the 1280 page pixels it had before there was a choice (or the page's width).
+function fitCanvas() {
+  const canvas = document.getElementById('canvas');
+  const aspect = canvas.width > 0 && canvas.height > 0 ? canvas.width / canvas.height : 16 / 9;
+  document.body.style.setProperty('--ar', String(aspect));
+  if (document.body.classList.contains('fit') || !document.body.classList.contains('sized')) {
+    canvas.style.removeProperty('width');
+    return;
+  }
+  const room = document.getElementById('stage').clientWidth;
+  const below = Math.max(0, document.getElementById('keys').getBoundingClientRect().bottom - canvas.getBoundingClientRect().bottom);
+  const tall = (innerHeight - 24 - below) * aspect;
+  const width = Math.max(Math.min(1280, room), Math.min(canvas.width / (window.devicePixelRatio || 1), room, tall));
+  canvas.style.width = Math.floor(width) + 'px';
+}
+window.addEventListener('resize', () => { showResolution(); fitCanvas(); });
+if (screen.addEventListener) screen.addEventListener('change', showResolution);  // (another screen: Chrome tells)
 
 // ---- the pad of a touch screen -------------------------------------------------------------------------------
 // The buttons and the two sticks are kept as a DualShock 3's words and handed to the game whenever they change
@@ -724,6 +872,7 @@ function startDiagnostics() {
     } else {
       style.removeProperty('width');
       style.removeProperty('height');
+      fitCanvas();
     }
   };
   // The fix test (`fixes`): only the opaque queues' draw experiments (gpuprof.h OpaqueMode), each twice, with stage 5
@@ -947,12 +1096,16 @@ var Module = {
   }],
   onRuntimeInitialized: () => {
     setStatus('');
+    const args = gameArgs.slice();  // (the address's own ?resolution is in gameArgs already)
+    if (!resolutionFromAddress && (resolution[0] !== 1280 || resolution[1] !== 720)) args.push('--resolution', resolution.join('x'));
     try {
-      Module.callMain(gameArgs);
+      Module.callMain(args);
     } catch (e) {
       if (e !== 'unwind' && !(e && e.name === 'ExitStatus')) throw e;
     }
+    resolutionLive = typeof Module._dotd_web_set_resolution === 'function';
     document.body.classList.add('sized');  // the window exists: the page may scale the canvas now (the style sheet)
+    fitCanvas();
   },
 };
 window.addEventListener('error', (e) => { addLog('page error: ' + e.message); });

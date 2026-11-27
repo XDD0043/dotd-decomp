@@ -95,6 +95,14 @@ extern "C" {
 // The "60 fps cap" check box: 0 = every animation frame (the page's default), 60 = the original's pacing.
 EMSCRIPTEN_KEEPALIVE void dotd_web_set_fps(int fps) { SetFps(fps); }
 EMSCRIPTEN_KEEPALIVE int dotd_web_get_fps() { return GetConfig().fps; }
+// The page's resolution list: the game's pixels and the canvas's become width x height while the game runs (0 x 0:
+// 1280x720). Only a size the game keeps its frame buffer for (16:9: gfx::SetPixelSize); 0 = refused, nothing changed.
+EMSCRIPTEN_KEEPALIVE int dotd_web_set_resolution(int width, int height) {
+    if (!gfx::SetPixelSize(width, height)) return 0;
+    const gfx::ScreenSize size = gfx::ScreenSizeFor(width, height);
+    sdl::SetWindowSize(size.pixelWidth, size.pixelHeight);
+    return 1;
+}
 // The page's GPU test (?diag, index.html): the render stages switched off (bit n = stage n), one measured frame every
 // `measureEvery` frames (0: none; platform/gfx/gpuprof.h), the resolution scale in percent (device.h).
 EMSCRIPTEN_KEEPALIVE void dotd_web_gpu_test(int skipMask, int measureEvery, int scalePercent) {

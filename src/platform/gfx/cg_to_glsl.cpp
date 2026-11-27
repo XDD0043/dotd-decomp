@@ -1780,7 +1780,12 @@ private:
             // greater, not-equal, greater-equal; 8 = always: the driver's table 0xa72540 is GL_NEVER 0x200 .. GL_ALWAYS
             // 0x207 in that order) on the first colour output's alpha. Platform addition:
             // the host sets dotd_alphaFunc / dotd_alphaRef (0..1) per draw (RwDevice's render states).
-            decl += "uniform int dotd_alphaFunc;\nuniform float dotd_alphaRef;\n";
+            // Alpha-to-coverage (platform addition, MSAA only: device.cpp SetAlphaTest sets dotd_alphaCoverage to 1 for a
+            // test keeping the alpha above the reference, -1 below, with GL_SAMPLE_ALPHA_TO_COVERAGE on): no discard; the
+            // alpha becomes the coverage, 0.5 at the reference and steep over one pixel's change of the alpha
+            // (fwidth), so the samples are covered where the test would keep them and the cut-out's edge is smooth.
+            // (Uniform control flow: fwidth is defined.)
+            decl += "uniform int dotd_alphaFunc;\nuniform float dotd_alphaRef;\nuniform int dotd_alphaCoverage;\n";
             // DEV (DOTD_ALPHATEST=0, a measurement only: the cut-out materials then draw solid): no alpha test, so no
             // discard in any pixel shader (a discard anywhere in a shader turns a phone GPU's early depth test off).
             static const bool noAlphaTest = [] {
@@ -1788,7 +1793,10 @@ private:
                 return env != nullptr && std::strcmp(env, "0") == 0;
             }();
             if (!noAlphaTest)
-            main += "  if (dotd_alphaFunc >= 1 && dotd_alphaFunc <= 7) {\n    float a = " + out->colorOutputs[0] +
+            main += "  if (dotd_alphaCoverage != 0) {\n    float a = " + out->colorOutputs[0] + ".a;\n    " +
+                    out->colorOutputs[0] + ".a = clamp(float(dotd_alphaCoverage) * (a - dotd_alphaRef) / "
+                    "max(fwidth(a), 1e-4) + 0.5, 0.0, 1.0);\n  } else"
+                    "  if (dotd_alphaFunc >= 1 && dotd_alphaFunc <= 7) {\n    float a = " + out->colorOutputs[0] +
                     ".a;\n    bool keep = dotd_alphaFunc == 1 ? false : dotd_alphaFunc == 2 ? a < dotd_alphaRef : "
                     "dotd_alphaFunc == 3 ? a == dotd_alphaRef : dotd_alphaFunc == 4 ? a <= dotd_alphaRef : "
                     "dotd_alphaFunc == 5 ? a > dotd_alphaRef : dotd_alphaFunc == 6 ? a != dotd_alphaRef : a >= dotd_alphaRef;\n"

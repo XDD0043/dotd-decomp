@@ -213,9 +213,17 @@ int main(int argc, char** argv) {
 #endif
     if (cfg.usrdir.empty()) DOTD_LOG("main: no usrdir configured (dotd.ini usrdir=... or --usrdir PATH)");
 
+    // The game's frame buffer and its pixels (--resolution WxH; platform/gfx/device.h ScreenSize). Also headless: the
+    // game makes its rasters at the game's size either way.
+    const dotd::gfx::ScreenSize screen = dotd::gfx::ScreenSizeFor(cfg.renderWidth, cfg.renderHeight);
+    dotd::gfx::ConfigureScreen(screen);
+    if (cfg.renderWidth != 0) {
+        DOTD_LOG("main: rendering %dx%d pixels, the game's frame buffer %dx%d", screen.pixelWidth, screen.pixelHeight,
+                 screen.gameWidth, screen.gameHeight);
+    }
     if (!headless) {
         if (!dotd::platform::sdl::Init(cfg)) return 1;
-        if (!dotd::gfx::Init(1280, 720)) return 1;
+        if (!dotd::gfx::Init(screen.gameWidth, screen.gameHeight)) return 1;
         g_windowOpen = true;
         // The shader variant list (platform/gfx/cg_program.h): the programs a level used before are built while it
         // loads. --no-shader-list or DOTD_SHADER_LIST=off: every program at its first draw, as without the list.

@@ -61,8 +61,13 @@ void BindTarget();
 void UseProgram(uint32_t program);
 // The alpha test of the uber-shader programs' draws: the program's uniforms dotd_alphaFunc (RenderWare's function, 8 =
 // always) and dotd_alphaRef (0..1). The locations are looked up once per program and a value the program already holds
-// is not uploaded again (nothing else writes these two uniforms).
+// is not uploaded again (nothing else writes these two uniforms). Under MSAA with alpha-to-coverage (device.h
+// SetAlphaToCoverage) it also decides the draw's coverage: the program's dotd_alphaCoverage and, for the next draw call,
+// GL_SAMPLE_ALPHA_TO_COVERAGE.
 void SetAlphaTest(uint32_t program, int func, float ref);
+// Sets GL_SAMPLE_ALPHA_TO_COVERAGE for the draw call that follows: on when the SetAlphaTest (or DrawPrimitive) just
+// before asked for it, off for any other draw. Every draw call of the backend calls it first.
+void ApplyAlphaCoverage();
 // The uber-shader programs are about to be deleted (cg::DestroyPrograms): what the backend keeps per GL program is
 // dropped and no program stays current.
 void ForgetPrograms();

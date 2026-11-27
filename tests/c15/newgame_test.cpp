@@ -883,13 +883,22 @@ int main() {
         if (g_frameHash == nullptr) std::printf("newgame: cannot write %s\n", hashPath);
     }
     if (replay && !LoadReplay(replayPath)) return 1;
+    // DOTD_RESOLUTION=WxH (platform/config.cpp): the game's frame buffer and its pixels as dotd --resolution makes them.
+    dotd::gfx::ScreenSize screen;
+    if (const char* resolution = std::getenv("DOTD_RESOLUTION")) {
+        int w = 0, h = 0;
+        if (std::sscanf(resolution, "%dx%d", &w, &h) == 2) screen = dotd::gfx::ScreenSizeFor(w, h);
+        dotd::gfx::ConfigureScreen(screen);
+        std::printf("newgame: %dx%d pixels, the game's frame buffer %dx%d\n", screen.pixelWidth, screen.pixelHeight,
+                    screen.gameWidth, screen.gameHeight);
+    }
     if (shotsDir != nullptr) {
         dotd::platform::Config& config = dotd::platform::MutableConfig();
         dotd::platform::LoadConfig(0, nullptr, config);
         config.hiddenWindow = true;
         config.vsync = false;
         config.frameRate = 0;
-        if (!(dotd::platform::sdl::Init(config) && dotd::gfx::Init(1280, 720))) {
+        if (!(dotd::platform::sdl::Init(config) && dotd::gfx::Init(screen.gameWidth, screen.gameHeight))) {
             std::printf("newgame: no OpenGL 3.3 device\n");
             return 77;
         }

@@ -34,6 +34,21 @@ run_wasm.bat            (repo root)                          ->  serves it on ht
   frames a second: a menu alone ran 13,000), with it the 60 fps grid from a 1 ms timer. The browser still shows
   one picture per refresh; the others are made and dropped. Kept in the browser like the cap. Not measured on a
   phone (a 120 Hz one should show 120 with vsync on and more with it off).
+- **Resolution** (2026-11-27; a drop-down list on a desktop, < > in a touch screen's menu; 1280x720 by default):
+  the game's pixels and the canvas's, from 16:9 sizes (1280x720, 1600x900, 1920x1080, 2560x1440, 3200x1800, 3840x2160,
+  5120x2880, 7680x4320) up to what the screen has (`screen` size times `devicePixelRatio`; Chrome's page zoom above
+  100 % inflates that), plus the largest 16:9 picture the screen holds when it is none of them (marked "screen"). At
+  16:9 the game keeps its 1280x720 frame buffer (the native `--resolution`, top README), so a choice switches while
+  the game runs (`dotd_web_set_resolution` -> `gfx::SetPixelSize` + `sdl::SetWindowSize`) and play is unchanged.
+  Kept in the browser for the next visit (a smaller screen then gets the largest that fits, the stored choice
+  stays). Not full screen, the canvas is as wide as its pixels are on the screen while the page has room for it and
+  the bar, never narrower than its old 1280 page pixels; full screen it is fitted as before. `?resolution=WxH` in the
+  address goes first and is not changed by the page (another aspect works there: the game's frame buffer changes as
+  natively, and the fitted canvas keeps that aspect).
+- **Anti-aliasing** (2026-11-27): `?msaa=4` and `?fxaa=1` in the address, the native `--msaa` / `--fxaa` (top README,
+  "Anti-aliasing"; off by default as on the PS3). WebGL 2 allows the browser's MAX_SAMPLES (8 in desktop Chrome, often
+  4 on phones). With MSAA, alpha-to-coverage smooths the cut-out leaves and grass (`?alpha-to-coverage=0` turns it off).
+  No control on the page yet; the native F3 / Shift+F3 / Ctrl+F3 keys are not read here.
 - **Full screen:** the "Full screen" check box puts the whole page full screen and fits the picture to the screen
   (below, "Phones").
 - What is on or off on the page is a check box (full screen, the 60 fps cap, vsync, the log); "Delete downloaded data"

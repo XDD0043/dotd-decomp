@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -11,6 +12,7 @@
 #include <vector>
 
 #include "platform/cell/videoout.h"
+#include "platform/config.h"
 #include "platform/gfx/cg_program.h"
 #include "platform/gfx/gl.h"
 #include "platform/gfx/gpuprof.h"
@@ -26,16 +28,47 @@ using namespace dotd::gfx::gl;
 namespace dotd::gfx {
 
 namespace {
-// The internal target: g_baseWidth x g_baseHeight is the size the game knows (InternalWidth / InternalHeight, the
-// PS3's 1280x720), g_width x g_height its pixels, smaller under a resolution scale (SetResolutionScale).
+// The internal target: g_baseWidth x g_baseHeight is the size the game knows (InternalWidth / InternalHeight: the
+// PS3's 1280x720, or the game's size for --resolution, device.h ScreenSize), g_pixelBaseWidth x g_pixelBaseHeight its
+// pixels at the resolution scale 1, g_width x g_height its pixels now (fewer under a resolution scale,
+// SetResolutionScale).
+ScreenSize g_screen;  // ConfigureScreen
 int g_width = 0;
 int g_height = 0;
-int g_baseWidth = 0;
-int g_baseHeight = 0;
+int g_baseWidth = 1280;
+int g_baseHeight = 720;
+int g_pixelBaseWidth = 1280;
+int g_pixelBaseHeight = 720;
+int g_pixelLimit = 0;  // the most pixels per side the driver makes (Init; 0: not known yet)
 float g_scale = 1.0f;
 GLuint g_fbo = 0;
 GLuint g_colorTex = 0;
 GLuint g_depthRb = 0;
+// Anti-aliasing (SetAntialiasing). With samples, the internal target and every target sharing its depth buffer draw into a
+// multisampled surface of their own (g_msFbo / RenderTarget::msFbo: a colour render buffer and the internal depth buffer,
+// which then has as many samples), and the colour is resolved into the target's texture (its frame buffer then holds
+// only the texture) before anything reads it: a pass sampling the target (RenderTargetTexture), the present, a
+// screenshot. "Dirty": drawn into since the last resolve (BindCurrent).
+int g_msaaWanted = 0;    // the samples asked for (0 / 2 / 4 / 8 / 16)
+int g_msaaSamples = 0;   // the samples the surfaces have (0: none; the targets' own frame buffers are drawn into)
+GLuint g_msFbo = 0;      // the internal target's multisampled surface
+GLuint g_msColor = 0;
+bool g_msDirty = false;
+bool g_fxaa = false;     // FXAA on the 3D picture (AntialiasScene)
+// Alpha-to-coverage under MSAA (SetAlphaToCoverage): a draw with an alpha test of the "greater" or "less" kind and no
+// blending takes its samples' coverage from the alpha, sharpened in the shader to the test's edge, instead of discarding
+// below the reference: cut-out leaves and grass get MSAA's smooth edges with the alpha test's shape. Decided per draw by
+// SetAlphaTest / DrawPrimitive (g_coverageNext), set in GL by ApplyAlphaCoverage just before the draw call.
+bool g_alphaToCoverage = true;
+bool g_coverageNext = false;
+int8_t g_coverageOn = -1;  // GL_SAMPLE_ALPHA_TO_COVERAGE as last set (-1: not known)
+GLuint g_fxaaProgram = 0;
+GLint g_fxaaTex = -1;
+GLint g_fxaaTexel = -1;
+GLuint g_fxaaTempTex = 0;  // FXAA without samples: the pass's output, copied back into the internal target
+GLuint g_fxaaTempFbo = 0;
+int g_fxaaTempWidth = 0;
+int g_fxaaTempHeight = 0;
 GLuint g_whiteTex = 0;
 GLuint g_quadProgram = 0;
 GLint g_quadRect = -1;
@@ -44,6 +77,10 @@ GLint g_quadTex = -1;
 GLuint g_blitProgram = 0;
 GLint g_blitGamma = -1;
 GLint g_blitTex = -1;
+GLint g_blitTaps = -1;
+GLint g_blitTapStep = -1;
+int g_blitTapsSet = 1;  // the present filter's uniforms as last set (a new program has 0 = one tap)
+float g_blitTapStepSet[2] = {0.0f, 0.0f};
 GLuint g_vao = 0;  // attribute-less draws (quads, blit)
 bool g_ready = false;
 bool g_s3tc = false;
@@ -70,8 +107,42 @@ struct RenderTarget {
     GLuint texture = 0;
     int width = 0;   // pixels
     int height = 0;
-    bool screenSized = false;  // asked for at the internal target's size: follows the resolution scale
+    // k when the target was asked for at the game's size >> k (ScreenShiftOf): its pixels are the internal target's >> k,
+    // and follow the resolution scale; 0 shares the internal depth buffer. -1: any other size, its pixels as asked.
+    int screenShift = -1;
+    // Screen shift 0 under multisampling: the surface draws and clears go to, resolved into `texture` before it is read.
+    GLuint msFbo = 0;
+    GLuint msColor = 0;
+    bool msDirty = false;
 };
+
+// A render target's screen shift (RenderTarget::screenShift) from the size the game asks for: the screen itself and
+// the post effects' rasters, CameraContext_RecreateFrameBuffers_maybe's quarter (width / 4) and CKPBuffer's half,
+// quarter and eighth (width >> k).
+int ScreenShiftOf(int width, int height) {
+    for (int k = 0; k <= 3; ++k) {
+        if (width == (g_baseWidth >> k) && height == (g_baseHeight >> k)) return k;
+    }
+    return -1;
+}
+
+// The pixels of the internal target at the scale `scale` (rounded, at least 1).
+void ScaledPixels(float scale, int* width, int* height) {
+    *width = std::max(1, static_cast<int>(g_pixelBaseWidth * scale + 0.5f));
+    *height = std::max(1, static_cast<int>(g_pixelBaseHeight * scale + 0.5f));
+}
+
+// Pixels the driver cannot make (a texture or render buffer side above its limit, g_pixelLimit): the largest picture of
+// the same aspect it can.
+void FitPixelsToLimit(int* width, int* height) {
+    const int side = std::max(*width, *height);
+    if (g_pixelLimit <= 0 || side <= g_pixelLimit) return;
+    const double fit = static_cast<double>(g_pixelLimit) / side;
+    const int w = std::max(1, static_cast<int>(*width * fit)), h = std::max(1, static_cast<int>(*height * fit));
+    DOTD_LOG("gfx: %dx%d pixels are more than the driver's %d per side: %dx%d instead", *width, *height, g_pixelLimit, w, h);
+    *width = w;
+    *height = h;
+}
 std::vector<RenderTarget> g_targets;
 uint32_t g_currentTarget = 0;
 bool g_frontCW = false;
@@ -148,10 +219,13 @@ GLuint g_boundVao = 0;
 struct AlphaTestUniforms {
     GLint funcLocation = -1;
     GLint refLocation = -1;
+    GLint coverageLocation = -1;  // dotd_alphaCoverage (cg_to_glsl.cpp): 1 / -1 = alpha-to-coverage, 0 = the test
     int func = 0;
     float ref = 0.0f;
+    int coverage = 0;
     bool funcKnown = false;
     bool refKnown = false;
+    bool coverageKnown = false;
 };
 std::unordered_map<GLuint, AlphaTestUniforms> g_alphaTest;  // (node-based: entries never move)
 GLuint g_alphaTestLastProgram = 0;
@@ -163,13 +237,14 @@ struct ImUniforms {
     float viewProj[16];
     float model[16];
     float colorScale[4];
-    float alphaTest[2];
+    float alphaTest[3];  // function, reference, alpha-to-coverage sign
     int useTex = -1;
     bool known = false;
 };
 ImUniforms g_imUniforms;
 
 void ForgetGlState() {
+    g_coverageOn = -1;
     g_fboKnown = false;
     g_viewportKnown = false;
     g_activeUnit = -1;
@@ -200,13 +275,116 @@ void FlushActiveUnit() {
 // without a draw into it is a switch for nothing (costly on tile-based GPUs).
 void BindCurrent() {
     if (g_currentTarget != 0 && g_currentTarget <= g_targets.size() && g_targets[g_currentTarget - 1].fbo != 0) {
-        const RenderTarget& t = g_targets[g_currentTarget - 1];
-        GlBindFramebuffer(t.fbo);
+        RenderTarget& t = g_targets[g_currentTarget - 1];
+        if (t.msFbo != 0) {  // (multisampled: drawn into, to be resolved before it is read)
+            GlBindFramebuffer(t.msFbo);
+            t.msDirty = true;
+        } else {
+            GlBindFramebuffer(t.fbo);
+        }
         GlViewport(0, 0, t.width, t.height);
         return;
     }
-    GlBindFramebuffer(g_fbo);
+    if (g_msFbo != 0) {
+        GlBindFramebuffer(g_msFbo);
+        g_msDirty = true;
+    } else {
+        GlBindFramebuffer(g_fbo);
+    }
     GlViewport(0, 0, g_width, g_height);
+}
+
+// The draw target BindCurrent binds is a multisampled surface.
+bool CurrentTargetMultisampled() {
+    if (g_currentTarget != 0 && g_currentTarget <= g_targets.size() && g_targets[g_currentTarget - 1].fbo != 0) {
+        return g_targets[g_currentTarget - 1].msFbo != 0;
+    }
+    return g_msFbo != 0;
+}
+
+// Alpha-to-coverage for a draw now: +1 for a test that keeps the alpha above the reference, -1 for one that keeps it
+// below, 0 when it does not apply (off, no samples, blending, an equal / not-equal / never / always test).
+int CoverageSign(bool blending, bool keepsAbove, bool keepsBelow) {
+    if (!g_alphaToCoverage || g_msaaSamples == 0 || blending || !CurrentTargetMultisampled()) return 0;
+    return keepsAbove ? 1 : keepsBelow ? -1 : 0;
+}
+
+// The colour of a multisampled surface into its texture's frame buffer (the driver averages the samples); the frame
+// buffer binding is left as it was. (A blit is not affected by the colour mask; the game never enables the scissor.)
+void ResolveSurface(GLuint msFbo, GLuint fbo, int width, int height) {
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, msFbo);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+    glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    glBindFramebuffer(GL_FRAMEBUFFER, g_fboKnown ? g_boundFbo : 0);
+    g_boundFbo = g_fboKnown ? g_boundFbo : 0;
+    g_fboKnown = true;
+    perf::Add(perf::kTargetBinds, 3);
+}
+
+// The internal target's picture in g_colorTex (and g_fbo) for whatever reads it next.
+void ResolveInternal() {
+    if (g_msFbo == 0 || !g_msDirty) return;
+    ResolveSurface(g_msFbo, g_fbo, g_width, g_height);
+    g_msDirty = false;
+}
+
+void DropMsSurface(GLuint* fbo, GLuint* color) {
+    if (*fbo != 0) GlDeleteFramebuffer(*fbo);
+    if (*color != 0) glDeleteRenderbuffers(1, color);
+    *fbo = 0;
+    *color = 0;
+}
+
+// A multisampled surface of width x height: a colour render buffer and the internal depth buffer (which has `samples`
+// samples already), cleared. False when the driver cannot complete it.
+bool MakeMsSurface(GLuint* fbo, GLuint* color, int width, int height, int samples) {
+    glGenRenderbuffers(1, color);
+    glBindRenderbuffer(GL_RENDERBUFFER, *color);
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_RGBA8, width, height);
+    glGenFramebuffers(1, fbo);
+    GlBindFramebuffer(*fbo);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, *color);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, g_depthRb);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) return false;
+    GlViewport(0, 0, width, height);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    GlDepthMask(true);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    return true;
+}
+
+// The draw surfaces for `samples` (0: none). The internal depth buffer gets that many samples; with samples the internal
+// target and every target of screen shift 0 get a multisampled surface, and their texture frame buffers lose the depth
+// buffer (attachments of one frame buffer must have the same samples); without, the depth buffer is attached to them
+// again. False (and the single-sampled set-up back) when the driver cannot complete one. The pictures are lost (black
+// for a frame).
+bool BuildSurfaces(int samples) {
+    DropMsSurface(&g_msFbo, &g_msColor);
+    g_msDirty = false;
+    for (RenderTarget& t : g_targets) {
+        DropMsSurface(&t.msFbo, &t.msColor);
+        t.msDirty = false;
+    }
+    glBindRenderbuffer(GL_RENDERBUFFER, g_depthRb);
+    if (samples > 0) glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_DEPTH24_STENCIL8, g_width, g_height);
+    else glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, g_width, g_height);
+    const GLuint textureDepth = samples > 0 ? 0 : g_depthRb;
+    GlBindFramebuffer(g_fbo);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, textureDepth);
+    for (RenderTarget& t : g_targets) {
+        if (t.fbo == 0 || t.screenShift != 0) continue;
+        GlBindFramebuffer(t.fbo);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, textureDepth);
+    }
+    if (samples <= 0) return true;
+    bool ok = MakeMsSurface(&g_msFbo, &g_msColor, g_width, g_height, samples);
+    for (RenderTarget& t : g_targets) {
+        if (!ok) break;
+        if (t.fbo != 0 && t.screenShift == 0) ok = MakeMsSurface(&t.msFbo, &t.msColor, t.width, t.height, samples);
+    }
+    if (ok) return true;
+    BuildSurfaces(0);
+    return false;
 }
 
 // GLSL 3.30 core; written so it ports to GLSL ES 3.00 by changing the version line.
@@ -234,14 +412,28 @@ const char* kBlitVS =
     "  vUV = c;\n"
     "  gl_Position = vec4(c * 2.0 - 1.0, 0.0, 1.0);\n"
     "}\n";
+// The present: one bilinear tap per window pixel while the picture is shown at most twice smaller than its pixels
+// (uTaps 1: the 720p path as before), else uTaps x uTaps taps uTapStep apart, a box over the window pixel's footprint
+// (a 4K picture in a 1080p window: 2 x 2 taps two texels apart, each the mean of 2 x 2 texels).
 const char* kBlitFS =
     "#version 330 core\n"
     "uniform sampler2D uTex;\n"
     "uniform float uGamma;\n"
+    "uniform int uTaps;\n"
+    "uniform vec2 uTapStep;\n"
     "in vec2 vUV;\n"
     "out vec4 oColor;\n"
     "void main() {\n"
-    "  vec4 c = texture(uTex, vUV);\n"
+    "  vec4 c;\n"
+    "  if (uTaps <= 1) {\n"
+    "    c = texture(uTex, vUV);\n"
+    "  } else {\n"
+    "    c = vec4(0.0);\n"
+    "    vec2 first = vUV - uTapStep * (float(uTaps - 1) * 0.5);\n"
+    "    for (int y = 0; y < uTaps; ++y)\n"
+    "      for (int x = 0; x < uTaps; ++x) c += texture(uTex, first + uTapStep * vec2(float(x), float(y)));\n"
+    "    c /= float(uTaps * uTaps);\n"
+    "  }\n"
     "  oColor = vec4(pow(c.rgb, vec3(1.0 / uGamma)), 1.0);\n"
     "}\n";
 
@@ -274,6 +466,11 @@ const char* kImFS =
     "  if (uUseTex != 0) c *= texture(uTex, vUV);\n"
     "  int f = int(uAlphaTest.x);\n"
     "  float r = uAlphaTest.y;\n"
+    "  if (uAlphaTest.z != 0.0) {\n"  // alpha-to-coverage (device.cpp g_alphaToCoverage)
+    "    c.a = clamp(uAlphaTest.z * (c.a - r) / max(fwidth(c.a), 1e-4) + 0.5, 0.0, 1.0);\n"
+    "    oColor = c;\n"
+    "    return;\n"
+    "  }\n"
     "  bool pass = true;\n"
     "  if (f == 0) pass = false;\n"
     "  else if (f == 1) pass = c.a < r;\n"
@@ -321,9 +518,9 @@ GLuint Link(const char* vs, const char* fs) {
     return p;
 }
 
-void ToNdc(float x, float y, float* nx, float* ny) {
-    *nx = x / static_cast<float>(g_width) * 2.0f - 1.0f;
-    *ny = 1.0f - y / static_cast<float>(g_height) * 2.0f;
+void ToNdc(float x, float y, float* nx, float* ny) {  // (x, y in the game's pixels: DrawQuad)
+    *nx = x / static_cast<float>(g_baseWidth) * 2.0f - 1.0f;
+    *ny = 1.0f - y / static_cast<float>(g_baseHeight) * 2.0f;
 }
 
 bool HasExtension(const char* name) {
@@ -425,18 +622,49 @@ void MaybeScreenshot() {
 
 void ApplySamplerState(uint32_t texture, const DrawState& state);  // below
 
+ScreenSize ScreenSizeFor(int width, int height) {
+    ScreenSize size;  // 1280x720, both
+    if (width <= 0 || height <= 0) return size;
+    size.pixelWidth = width;
+    size.pixelHeight = height;
+    const double aspect = static_cast<double>(width) / static_cast<double>(height);
+    if (std::fabs(aspect / (16.0 / 9.0) - 1.0) <= 0.005) return size;  // 16:9: the game keeps 1280x720
+    size.gameHeight = 720;
+    size.gameWidth = std::max(1, static_cast<int>(std::lround(720.0 * aspect)));
+    return size;
+}
+
+void ConfigureScreen(const ScreenSize& size) {
+    g_screen = size;
+    if (g_ready) return;  // (the device keeps the sizes it was made with)
+    g_baseWidth = size.gameWidth;
+    g_baseHeight = size.gameHeight;
+}
+
 bool Init(int internalWidth, int internalHeight) {
     if (!gl::Load(platform::sdl::GetGLProcAddress)) return false;
     DOTD_LOG("gfx: %s / %s", reinterpret_cast<const char*>(glGetString(GL_RENDERER)),
              reinterpret_cast<const char*>(glGetString(GL_VERSION)));
-    g_baseWidth = g_width = internalWidth;
-    g_baseHeight = g_height = internalHeight;
+    g_baseWidth = internalWidth;
+    g_baseHeight = internalHeight;
+    g_pixelBaseWidth = internalWidth;
+    g_pixelBaseHeight = internalHeight;
+    if (internalWidth == g_screen.gameWidth && internalHeight == g_screen.gameHeight) {  // ConfigureScreen's pixels
+        g_pixelBaseWidth = g_screen.pixelWidth;
+        g_pixelBaseHeight = g_screen.pixelHeight;
+    }
+    {
+        GLint maxTexture = 0, maxRenderbuffer = 0;
+        glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTexture);
+        glGetIntegerv(GL_MAX_RENDERBUFFER_SIZE, &maxRenderbuffer);
+        g_pixelLimit = std::min(maxTexture > 0 ? maxTexture : 4096, maxRenderbuffer > 0 ? maxRenderbuffer : 4096);
+        FitPixelsToLimit(&g_pixelBaseWidth, &g_pixelBaseHeight);
+    }
     g_scale = 1.0f;
     if (const char* scale = std::getenv("DOTD_RES_SCALE")) {  // the resolution scale from the start (device.h)
         g_scale = std::min(1.0f, std::max(0.25f, static_cast<float>(std::atof(scale))));
-        g_width = std::max(1, static_cast<int>(g_baseWidth * g_scale + 0.5f));
-        g_height = std::max(1, static_cast<int>(g_baseHeight * g_scale + 0.5f));
     }
+    ScaledPixels(g_scale, &g_width, &g_height);
     gpuprof::Init();
     // (WebGL2 names the same formats WEBGL_compressed_texture_s3tc.)
     g_s3tc = HasExtension("GL_EXT_texture_compression_s3tc") || HasExtension("GL_WEBGL_compressed_texture_s3tc");
@@ -498,6 +726,10 @@ bool Init(int internalWidth, int internalHeight) {
     g_blitProgram = Link(kBlitVS, kBlitFS);
     g_blitGamma = glGetUniformLocation(g_blitProgram, "uGamma");
     g_blitTex = glGetUniformLocation(g_blitProgram, "uTex");
+    g_blitTaps = glGetUniformLocation(g_blitProgram, "uTaps");
+    g_blitTapStep = glGetUniformLocation(g_blitProgram, "uTapStep");
+    g_blitTapsSet = 1;
+    g_blitTapStepSet[0] = g_blitTapStepSet[1] = 0.0f;
     glGenVertexArrays(1, &g_vao);  // core profile needs a bound VAO even without attributes
 
     g_imProgram = Link(kImVS, kImFS);
@@ -525,6 +757,12 @@ bool Init(int internalWidth, int internalHeight) {
     DOTD_LOG("gfx: internal target %dx%d (%dx%d pixels), S3TC %s", g_baseWidth, g_baseHeight, g_width, g_height,
              g_s3tc ? "native" : TranscodeDxtToAstc() ? "absent (ASTC 4x4 instead)" : "decoded on the CPU");
     g_ready = glGetError() == GL_NO_ERROR;
+    if (g_ready) {
+        // --msaa N / --fxaa (platform/config.h); the PS3 game had neither (its PSGL device: no multisampling).
+        const platform::Config& cfg = platform::GetConfig();
+        g_alphaToCoverage = cfg.alphaToCoverage;
+        if (cfg.msaa != 0 || cfg.fxaa) SetAntialiasing(cfg.msaa, cfg.fxaa);
+    }
     return g_ready;
 }
 
@@ -534,6 +772,8 @@ bool AstcBenchOnly() { return g_astcBench.load(std::memory_order_acquire); }
 
 int InternalWidth() { return g_baseWidth; }
 int InternalHeight() { return g_baseHeight; }
+int PixelWidth() { return g_width; }
+int PixelHeight() { return g_height; }
 
 float ResolutionScale() { return g_scale; }
 
@@ -541,37 +781,270 @@ void SetColorWrite(bool on) {
     if (g_ready) glColorMask(on ? 1 : 0, on ? 1 : 0, on ? 1 : 0, on ? 1 : 0);
 }
 
-void SetResolutionScale(float scale) {
-    if (!g_ready) return;
-    scale = std::min(1.0f, std::max(0.25f, scale));
-    const int width = std::max(1, static_cast<int>(g_baseWidth * scale + 0.5f));
-    const int height = std::max(1, static_cast<int>(g_baseHeight * scale + 0.5f));
-    g_scale = scale;
+namespace {
+// The internal target and every screen-sized target with width x height pixels (at the shift's fraction) from now on.
+void ResizePixels(int width, int height) {
     if (width == g_width && height == g_height) return;
     g_width = width;
     g_height = height;
     // The storage of the internal target, its depth buffer and every screen-sized target made again at the new size
     // (the ids, textures and frame buffers stay: the game does not notice; the contents are lost for one frame).
-    auto resize = [&](GLuint texture, GLuint fbo) {
+    auto resize = [&](GLuint texture, GLuint fbo, int w, int h) {
         GlBindTexture2D(texture);
         GlFlushActiveTexture();
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
         GlBindFramebuffer(fbo);
-        GlViewport(0, 0, width, height);
+        GlViewport(0, 0, w, h);
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT);
     };
-    glBindRenderbuffer(GL_RENDERBUFFER, g_depthRb);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-    resize(g_colorTex, g_fbo);
+    resize(g_colorTex, g_fbo, width, height);
     for (RenderTarget& t : g_targets) {
-        if (t.fbo == 0 || !t.screenSized) continue;
-        t.width = width;
-        t.height = height;
-        resize(t.texture, t.fbo);
+        if (t.fbo == 0 || t.screenShift < 0) continue;
+        t.width = std::max(1, width >> t.screenShift);
+        t.height = std::max(1, height >> t.screenShift);
+        resize(t.texture, t.fbo, t.width, t.height);
+    }
+    // The depth buffer and the multisampled surfaces at the new size.
+    if (!BuildSurfaces(g_msaaSamples)) {
+        DOTD_LOG("gfx: MSAA %dx at %dx%d pixels failed: off", g_msaaSamples, width, height);
+        g_msaaSamples = 0;
     }
     BindCurrent();
+}
+}  // namespace
+
+void SetResolutionScale(float scale) {
+    if (!g_ready) return;
+    scale = std::min(1.0f, std::max(0.25f, scale));
+    int width = 0, height = 0;
+    ScaledPixels(scale, &width, &height);
+    g_scale = scale;
+    if (width == g_width && height == g_height) return;
+    ResizePixels(width, height);
     DOTD_LOG("gfx: resolution scale %.2f: %dx%d pixels", scale, width, height);
+}
+
+bool SetPixelSize(int width, int height) {
+    if (!g_ready) return false;
+    const ScreenSize size = ScreenSizeFor(width, height);
+    if (size.gameWidth != g_baseWidth || size.gameHeight != g_baseHeight) {
+        DOTD_LOG("gfx: %dx%d pixels need a frame buffer of %dx%d, the game has %dx%d: only at the start (--resolution)",
+                 size.pixelWidth, size.pixelHeight, size.gameWidth, size.gameHeight, g_baseWidth, g_baseHeight);
+        return false;
+    }
+    int w = size.pixelWidth, h = size.pixelHeight;
+    FitPixelsToLimit(&w, &h);
+    g_pixelBaseWidth = w;
+    g_pixelBaseHeight = h;
+    g_screen.pixelWidth = w;
+    g_screen.pixelHeight = h;
+    int scaledW = 0, scaledH = 0;
+    ScaledPixels(g_scale, &scaledW, &scaledH);
+    ResizePixels(scaledW, scaledH);
+    DOTD_LOG("gfx: %dx%d pixels (the game's frame buffer %dx%d)", scaledW, scaledH, g_baseWidth, g_baseHeight);
+    return true;
+}
+
+// ---- anti-aliasing (device.h SetAntialiasing) -----------------------------------------------------------------------
+namespace {
+// FXAA (the method of T. Lottes' FXAA 3.11 "quality" path, written for this backend): the luma contrast of each pixel
+// with its four neighbours; where it is over the threshold, the edge's direction (horizontal or vertical, from the
+// second differences of the 3 x 3 block), its two ends searched along it (up to 11 steps, longer ones further out), and
+// the pixel sampled again moved across the edge by how far it is from the nearer end (a staircase becomes a slope), or
+// by the sub-pixel amount for a contrast inside one pixel (thin lines, single bright texels), whichever is larger.
+const char* kFxaaFS =
+    "#version 330 core\n"
+    "uniform sampler2D uTex;\n"
+    "uniform vec2 uTexel;\n"  // 1 / the picture's size in pixels
+    "in vec2 vUV;\n"
+    "out vec4 oColor;\n"
+    "float Luma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }\n"
+    "float LumaAt(vec2 uv) { return Luma(textureLod(uTex, uv, 0.0).rgb); }\n"
+    "void main() {\n"
+    "  vec4 center = textureLod(uTex, vUV, 0.0);\n"
+    "  float lM = Luma(center.rgb);\n"
+    "  float lS = Luma(textureLodOffset(uTex, vUV, 0.0, ivec2(0, -1)).rgb);\n"
+    "  float lN = Luma(textureLodOffset(uTex, vUV, 0.0, ivec2(0, 1)).rgb);\n"
+    "  float lW = Luma(textureLodOffset(uTex, vUV, 0.0, ivec2(-1, 0)).rgb);\n"
+    "  float lE = Luma(textureLodOffset(uTex, vUV, 0.0, ivec2(1, 0)).rgb);\n"
+    "  float lMin = min(lM, min(min(lS, lN), min(lW, lE)));\n"
+    "  float lMax = max(lM, max(max(lS, lN), max(lW, lE)));\n"
+    "  float range = lMax - lMin;\n"
+    "  if (range < max(0.0312, lMax * 0.125)) { oColor = center; return; }\n"  // no edge here
+    "  float lSW = Luma(textureLodOffset(uTex, vUV, 0.0, ivec2(-1, -1)).rgb);\n"
+    "  float lNE = Luma(textureLodOffset(uTex, vUV, 0.0, ivec2(1, 1)).rgb);\n"
+    "  float lNW = Luma(textureLodOffset(uTex, vUV, 0.0, ivec2(-1, 1)).rgb);\n"
+    "  float lSE = Luma(textureLodOffset(uTex, vUV, 0.0, ivec2(1, -1)).rgb);\n"
+    "  float lSN = lS + lN;\n"
+    "  float lWE = lW + lE;\n"
+    "  float edgeH = abs(-2.0 * lW + lNW + lSW) + abs(-2.0 * lM + lSN) * 2.0 + abs(-2.0 * lE + lNE + lSE);\n"
+    "  float edgeV = abs(-2.0 * lS + lSW + lSE) + abs(-2.0 * lM + lWE) * 2.0 + abs(-2.0 * lN + lNW + lNE);\n"
+    "  bool horizontal = edgeH >= edgeV;\n"
+    "  float l1 = horizontal ? lS : lW;\n"
+    "  float l2 = horizontal ? lN : lE;\n"
+    "  float g1 = l1 - lM;\n"
+    "  float g2 = l2 - lM;\n"
+    "  bool steeper1 = abs(g1) >= abs(g2);\n"
+    "  float gScaled = 0.25 * max(abs(g1), abs(g2));\n"
+    "  float stepLength = horizontal ? uTexel.y : uTexel.x;\n"
+    "  float lLocal;\n"
+    "  if (steeper1) { stepLength = -stepLength; lLocal = 0.5 * (l1 + lM); } else { lLocal = 0.5 * (l2 + lM); }\n"
+    "  vec2 uv = vUV;\n"
+    "  if (horizontal) uv.y += stepLength * 0.5; else uv.x += stepLength * 0.5;\n"
+    "  vec2 along = horizontal ? vec2(uTexel.x, 0.0) : vec2(0.0, uTexel.y);\n"
+    "  vec2 uv1 = uv - along;\n"
+    "  vec2 uv2 = uv + along;\n"
+    "  float e1 = LumaAt(uv1) - lLocal;\n"
+    "  float e2 = LumaAt(uv2) - lLocal;\n"
+    "  bool done1 = abs(e1) >= gScaled;\n"
+    "  bool done2 = abs(e2) >= gScaled;\n"
+    "  if (!done1) uv1 -= along;\n"
+    "  if (!done2) uv2 += along;\n"
+    "  const float kStep[11] = float[11](1.0, 1.0, 1.0, 1.0, 1.5, 2.0, 2.0, 2.0, 2.0, 4.0, 8.0);\n"
+    "  for (int i = 0; i < 11; ++i) {\n"
+    "    if (done1 && done2) break;\n"
+    "    if (!done1) e1 = LumaAt(uv1) - lLocal;\n"
+    "    if (!done2) e2 = LumaAt(uv2) - lLocal;\n"
+    "    done1 = abs(e1) >= gScaled;\n"
+    "    done2 = abs(e2) >= gScaled;\n"
+    "    if (!done1) uv1 -= along * kStep[i];\n"
+    "    if (!done2) uv2 += along * kStep[i];\n"
+    "  }\n"
+    "  float d1 = horizontal ? vUV.x - uv1.x : vUV.y - uv1.y;\n"
+    "  float d2 = horizontal ? uv2.x - vUV.x : uv2.y - vUV.y;\n"
+    "  bool nearer1 = d1 < d2;\n"
+    "  float pixelOffset = 0.5 - min(d1, d2) / (d1 + d2);\n"
+    "  bool centerSmaller = lM < lLocal;\n"
+    "  bool slope = ((nearer1 ? e1 : e2) < 0.0) != centerSmaller;\n"
+    "  float offset = slope ? pixelOffset : 0.0;\n"
+    "  float lAverage = (1.0 / 12.0) * (2.0 * (lSN + lWE) + lNW + lNE + lSW + lSE);\n"
+    "  float sub = clamp(abs(lAverage - lM) / range, 0.0, 1.0);\n"
+    "  sub = (-2.0 * sub + 3.0) * sub * sub;\n"
+    "  offset = max(offset, sub * sub * 0.75);\n"
+    "  vec2 uvOut = vUV;\n"
+    "  if (horizontal) uvOut.y += offset * stepLength; else uvOut.x += offset * stepLength;\n"
+    "  oColor = vec4(textureLod(uTex, uvOut, 0.0).rgb, center.a);\n"
+    "}\n";
+
+// The FXAA pass's output without samples: a texture of the picture's pixels (made again when they change).
+bool EnsureFxaaTemp() {
+    if (g_fxaaTempFbo != 0 && g_fxaaTempWidth == g_width && g_fxaaTempHeight == g_height) return true;
+    if (g_fxaaTempFbo != 0) GlDeleteFramebuffer(g_fxaaTempFbo);
+    if (g_fxaaTempTex != 0) GlDeleteTexture(g_fxaaTempTex);
+    glGenTextures(1, &g_fxaaTempTex);
+    GlBindTexture2D(g_fxaaTempTex);
+    GlFlushActiveTexture();
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, g_width, g_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    SetDefaultSampler(GL_NEAREST);
+    glGenFramebuffers(1, &g_fxaaTempFbo);
+    GlBindFramebuffer(g_fxaaTempFbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_fxaaTempTex, 0);
+    g_fxaaTempWidth = g_width;
+    g_fxaaTempHeight = g_height;
+    return glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+}
+}  // namespace
+
+int SetAntialiasing(int samples, bool fxaa) {
+    g_msaaWanted = std::max(0, samples);
+    g_fxaa = fxaa;
+    if (!g_ready) return 0;
+    // The samples: a power of two from 2, at most what the driver has (GL_MAX_SAMPLES: 8 on AMD's OpenGL, more on some
+    // NVIDIA drivers; WebGL 2: 4 or more), fewer while it cannot complete the surfaces (memory).
+    GLint most = 0;
+    glGetIntegerv(GL_MAX_SAMPLES, &most);
+    int wanted = 0;
+    if (g_msaaWanted >= 2) {
+        wanted = 2;
+        while (wanted * 2 <= g_msaaWanted && wanted < 16) wanted *= 2;
+    }
+    int use = std::min(wanted, static_cast<int>(most));
+    if (use < 2) use = 0;
+    if (wanted > use) DOTD_LOG("gfx: MSAA %dx: the driver has at most %d samples", wanted, static_cast<int>(most));
+    if (use != g_msaaSamples) {
+        while (use >= 2 && !BuildSurfaces(use)) {
+            DOTD_LOG("gfx: MSAA %dx: the surfaces could not be made (%dx%d pixels)", use, g_width, g_height);
+            use /= 2;
+        }
+        if (use < 2) {
+            use = 0;
+            BuildSurfaces(0);
+        }
+        g_msaaSamples = use;
+        BindCurrent();
+    }
+    DOTD_LOG("gfx: anti-aliasing %s", AntialiasingName());
+    return g_msaaSamples;
+}
+
+int MsaaSamples() { return g_msaaSamples; }
+bool FxaaEnabled() { return g_fxaa; }
+
+const char* AntialiasingName() {
+    static char name[40];
+    if (g_msaaSamples > 0) {
+        std::snprintf(name, sizeof(name), "MSAA %dx%s%s", g_msaaSamples, g_alphaToCoverage ? " + A2C" : "", g_fxaa ? " + FXAA" : "");
+        return name;
+    }
+    return g_fxaa ? "FXAA" : "off";
+}
+
+void SetAlphaToCoverage(bool on) {
+    if (g_alphaToCoverage == on) return;
+    g_alphaToCoverage = on;
+    if (g_ready) DOTD_LOG("gfx: alpha-to-coverage %s%s", on ? "on" : "off", g_msaaSamples == 0 ? " (with MSAA only)" : "");
+}
+
+bool AlphaToCoverageEnabled() { return g_alphaToCoverage; }
+
+void AntialiasScene() {
+    if (!g_ready || !g_fxaa) return;
+    if (g_fxaaProgram == 0) {
+        g_fxaaProgram = Link(kBlitVS, kFxaaFS);
+        GLint linked = 0;
+        glGetProgramiv(g_fxaaProgram, GL_LINK_STATUS, &linked);
+        if (!linked) {
+            DOTD_LOG("gfx: FXAA unavailable (its program did not link)");
+            glDeleteProgram(g_fxaaProgram);
+            g_fxaaProgram = 0;
+            g_fxaa = false;
+            return;
+        }
+        g_fxaaTex = glGetUniformLocation(g_fxaaProgram, "uTex");
+        g_fxaaTexel = glGetUniformLocation(g_fxaaProgram, "uTexel");
+    }
+    // The picture to read: g_colorTex (resolved first under multisampling). The output: the multisampled surface itself
+    // (every sample of a pixel gets the pass's colour; nothing reads g_colorTex meanwhile), or without samples a texture
+    // of its own, copied back into the internal target (the pass cannot write the texture it reads).
+    ResolveInternal();
+    const bool multisampled = g_msFbo != 0;
+    if (!multisampled && !EnsureFxaaTemp()) {
+        DOTD_LOG("gfx: FXAA unavailable (no frame buffer for its output)");
+        g_fxaa = false;
+        return;
+    }
+    GlBindFramebuffer(multisampled ? g_msFbo : g_fxaaTempFbo);
+    GlViewport(0, 0, g_width, g_height);
+    GlCap(GL_BLEND, false);
+    GlCap(GL_DEPTH_TEST, false);
+    GlCap(GL_CULL_FACE, false);
+    GlUseProgram(g_fxaaProgram);
+    glUniform1i(g_fxaaTex, 0);
+    const float texel[2] = {1.0f / static_cast<float>(g_width), 1.0f / static_cast<float>(g_height)};
+    glUniform2fv(g_fxaaTexel, 1, texel);
+    GlActiveTexture(0);
+    GlBindTexture2D(g_colorTex);
+    GlBindVertexArray(g_vao);
+    perf::Add(perf::kDraws);
+    ApplyAlphaCoverage();
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    if (multisampled) {
+        g_msDirty = true;
+    } else {
+        ResolveSurface(g_fxaaTempFbo, g_fbo, g_width, g_height);  // (a plain copy: both single-sampled)
+    }
+    BindCurrent();
 }
 
 void Shutdown() {
@@ -590,9 +1063,17 @@ void Shutdown() {
     if (g_colorTex) GlDeleteTexture(g_colorTex);
     if (g_depthRb) glDeleteRenderbuffers(1, &g_depthRb);
     if (g_fbo) GlDeleteFramebuffer(g_fbo);
+    DropMsSurface(&g_msFbo, &g_msColor);
+    if (g_fxaaProgram) glDeleteProgram(g_fxaaProgram);
+    if (g_fxaaTempFbo) GlDeleteFramebuffer(g_fxaaTempFbo);
+    if (g_fxaaTempTex) GlDeleteTexture(g_fxaaTempTex);
+    g_fxaaProgram = g_fxaaTempFbo = g_fxaaTempTex = 0;
+    g_fxaaTempWidth = g_fxaaTempHeight = 0;
+    g_msaaSamples = 0;
     for (RenderTarget& t : g_targets) {
         if (t.fbo) GlDeleteFramebuffer(t.fbo);
         if (t.texture) GlDeleteTexture(t.texture);
+        DropMsSurface(&t.msFbo, &t.msColor);
     }
     g_targets.clear();
     ForgetGlState();
@@ -613,10 +1094,10 @@ void Clear(float r, float g, float b, float a) { ClearTarget(true, true, r, g, b
 uint32_t CreateRenderTarget(int width, int height) {
     if (!g_ready || width <= 0 || height <= 0) return 0;
     RenderTarget t;
-    t.screenSized = width == g_baseWidth && height == g_baseHeight;
-    if (t.screenSized) {  // (the resolution scale)
-        width = g_width;
-        height = g_height;
+    t.screenShift = ScreenShiftOf(width, height);
+    if (t.screenShift >= 0) {  // (the pixel size and the resolution scale)
+        width = std::max(1, g_width >> t.screenShift);
+        height = std::max(1, g_height >> t.screenShift);
     }
     t.width = width;
     t.height = height;
@@ -629,7 +1110,7 @@ uint32_t CreateRenderTarget(int width, int height) {
     glGenFramebuffers(1, &t.fbo);
     GlBindFramebuffer(t.fbo);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, t.texture, 0);
-    if (t.screenSized)
+    if (t.screenShift == 0 && g_msaaSamples == 0)
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, g_depthRb);
     const bool complete = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
     if (complete) {
@@ -644,6 +1125,12 @@ uint32_t CreateRenderTarget(int width, int height) {
         GlDeleteFramebuffer(t.fbo);
         GlDeleteTexture(t.texture);
         return 0;
+    }
+    if (t.screenShift == 0 && g_msaaSamples > 0 && !MakeMsSurface(&t.msFbo, &t.msColor, width, height, g_msaaSamples)) {
+        // (Unexpected: the internal target's surface of the same size and samples was made.) Drawn single-sampled,
+        // without the depth buffer.
+        DOTD_LOG("gfx: render target %dx%d: no %dx multisampled surface", width, height, g_msaaSamples);
+        DropMsSurface(&t.msFbo, &t.msColor);
     }
     for (size_t i = 0; i < g_targets.size(); ++i) {
         if (g_targets[i].fbo == 0) {
@@ -660,14 +1147,23 @@ void DestroyRenderTarget(uint32_t target) {
     RenderTarget& t = g_targets[target - 1];
     if (t.fbo != 0) GlDeleteFramebuffer(t.fbo);
     if (t.texture != 0) GlDeleteTexture(t.texture);
+    DropMsSurface(&t.msFbo, &t.msColor);
     t = RenderTarget();
     if (g_currentTarget == target) g_currentTarget = 0;
 }
 
 uint32_t RenderTargetTexture(uint32_t target) {
-    if (target == 0) return g_colorTex;
+    if (target == 0) {
+        ResolveInternal();
+        return g_colorTex;
+    }
     if (target > g_targets.size()) return 0;
-    return g_targets[target - 1].texture;
+    RenderTarget& t = g_targets[target - 1];
+    if (t.msFbo != 0 && t.msDirty) {  // (the pass about to sample it sees what was drawn: SetAntialiasing)
+        ResolveSurface(t.msFbo, t.fbo, t.width, t.height);
+        t.msDirty = false;
+    }
+    return t.texture;
 }
 
 void SetRenderTarget(uint32_t target) {
@@ -913,6 +1409,7 @@ void SetAlphaTest(uint32_t program, int func, float ref) {
             AlphaTestUniforms entry;
             entry.funcLocation = glGetUniformLocation(program, "dotd_alphaFunc");
             entry.refLocation = glGetUniformLocation(program, "dotd_alphaRef");
+            entry.coverageLocation = glGetUniformLocation(program, "dotd_alphaCoverage");
             found = g_alphaTest.emplace(program, entry).first;
         }
         u = &found->second;
@@ -933,6 +1430,26 @@ void SetAlphaTest(uint32_t program, int func, float ref) {
         u->ref = ref;
         u->refKnown = true;
     }
+    // Alpha-to-coverage: RenderWare's tests 5 / 7 (greater, greater-equal) keep the alpha above the reference, 2 / 4
+    // (less, less-equal) below it. (ApplyState came first: the blend cap is this draw's.)
+    const int sign = u->coverageLocation < 0 ? 0 : CoverageSign(g_fixed.blend != 0, func == 5 || func == 7, func == 2 || func == 4);
+    if (u->coverageLocation >= 0 && !(u->coverageKnown && u->coverage == sign)) {
+        GlUseProgram(program);
+        glUniform1i(u->coverageLocation, sign);
+        perf::Add(perf::kUniforms);
+        u->coverage = sign;
+        u->coverageKnown = true;
+    }
+    g_coverageNext = sign != 0;
+}
+
+void ApplyAlphaCoverage() {
+    const bool on = g_coverageNext;
+    g_coverageNext = false;  // (one draw: a draw that did not ask for it has it off)
+    if (g_coverageOn == (on ? 1 : 0)) return;
+    if (on) glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+    else glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+    g_coverageOn = on ? 1 : 0;
 }
 
 void GlBindTexture2D(uint32_t texture) {
@@ -1053,7 +1570,10 @@ void DrawPrimitive(Primitive primitive, const Vertex* vertices, int count, const
     ImUniforms& u = g_imUniforms;
     const float* modelMatrix = model != nullptr ? model : kIdentity;
     const float* scale = colorScale != nullptr ? colorScale : kOne;
-    const float alphaTest[2] = {state.alphaTest ? static_cast<float>(state.alphaFunc) : 7.0f, state.alphaRef};
+    const bool test = state.alphaTest;
+    const int coverage = CoverageSign(state.blend, test && (state.alphaFunc == Compare::kGreater || state.alphaFunc == Compare::kGreaterEqual),
+                                      test && (state.alphaFunc == Compare::kLess || state.alphaFunc == Compare::kLessEqual));
+    const float alphaTest[3] = {test ? static_cast<float>(state.alphaFunc) : 7.0f, state.alphaRef, static_cast<float>(coverage)};
     const int useTex = state.texture != 0 ? 1 : 0;
     if (!u.known || std::memcmp(u.viewProj, g_viewProj, sizeof u.viewProj) != 0) {
         glUniformMatrix4fv(g_imViewProj, 1, 0, g_viewProj);
@@ -1076,7 +1596,7 @@ void DrawPrimitive(Primitive primitive, const Vertex* vertices, int count, const
         perf::Add(perf::kUniforms);
     }
     if (!u.known || std::memcmp(u.alphaTest, alphaTest, sizeof u.alphaTest) != 0) {
-        glUniform4f(g_imAlphaTest, alphaTest[0], alphaTest[1], 0, 0);
+        glUniform4f(g_imAlphaTest, alphaTest[0], alphaTest[1], alphaTest[2], 0);
         std::memcpy(u.alphaTest, alphaTest, sizeof u.alphaTest);
         perf::Add(perf::kUniforms);
     }
@@ -1092,6 +1612,8 @@ void DrawPrimitive(Primitive primitive, const Vertex* vertices, int count, const
     perf::Add(perf::kBufferUploads, indices != nullptr ? 2 : 1);
     perf::Add(perf::kBufferBytes,
               static_cast<uint64_t>(count) * sizeof(Vertex) + (indices != nullptr ? static_cast<uint64_t>(indexCount) * 2 : 0));
+    g_coverageNext = coverage != 0;
+    ApplyAlphaCoverage();
     if (indices != nullptr) {
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(indexCount) * sizeof(uint16_t), indices,
                      GL_STREAM_DRAW);
@@ -1121,12 +1643,14 @@ void DrawQuad(uint32_t texture, float x0, float y0, float x1, float y1, uint32_t
     GlActiveTexture(0);
     GlBindTexture2D(texture ? texture : g_whiteTex);
     GlBindVertexArray(g_vao);
+    ApplyAlphaCoverage();
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
 bool ReadTarget(uint8_t* rgba) {
     if (!g_ready) return false;
     std::vector<uint8_t> rows(static_cast<size_t>(g_width) * g_height * 4);
+    ResolveInternal();
     GlBindFramebuffer(g_fbo);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
     glReadPixels(0, 0, g_width, g_height, GL_RGBA, GL_UNSIGNED_BYTE, rows.data());
@@ -1148,6 +1672,23 @@ bool ReadTarget(uint8_t* rgba) {
 
 bool SaveScreenshot(const char* path) {
     if (!g_ready) return false;
+    if (g_scale == 1.0f && (g_width != g_baseWidth || g_height != g_baseHeight)) {
+        // Other pixels than the game's size (--resolution): the picture as it is, every pixel.
+        const size_t pixels = static_cast<size_t>(g_width) * g_height;
+        std::vector<uint8_t> rows(pixels * 4);
+        ResolveInternal();
+        GlBindFramebuffer(g_fbo);
+        glPixelStorei(GL_PACK_ALIGNMENT, 1);
+        glReadPixels(0, 0, g_width, g_height, GL_RGBA, GL_UNSIGNED_BYTE, rows.data());
+        perf::CaptureNextFrame();  // DOTD_RDOC_ON_SHOT (perf.h)
+        std::vector<uint8_t> rgb(pixels * 3);
+        for (int y = 0; y < g_height; ++y) {  // GL's row 0 is the bottom
+            const uint8_t* src = rows.data() + static_cast<size_t>(g_height - 1 - y) * g_width * 4;
+            uint8_t* dst = rgb.data() + static_cast<size_t>(y) * g_width * 3;
+            for (int x = 0; x < g_width; ++x) std::memcpy(dst + x * 3, src + x * 4, 3);
+        }
+        return WritePngRgb(path, g_width, g_height, rgb.data());
+    }
     const size_t n = static_cast<size_t>(g_baseWidth) * g_baseHeight;
     std::vector<uint8_t> rgba(n * 4);
     if (!ReadTarget(rgba.data())) return false;
@@ -1164,6 +1705,7 @@ void EndFrame() {
     cg::PollBuilds();  // (the web build: the shader programs the browser finished building; nothing natively)
     ++g_frames;
     MaybeScreenshot();
+    ResolveInternal();  // (multisampled: the picture into g_colorTex)
     int ww = 0, wh = 0;
     platform::sdl::GetDrawableSize(&ww, &wh);
     GlBindFramebuffer(0);
@@ -1183,11 +1725,26 @@ void EndFrame() {
     GlUseProgram(g_blitProgram);
     glUniform1f(g_blitGamma, platform::GetVideoOutGamma());
     glUniform1i(g_blitTex, 0);
+    {
+        // The filter (kBlitFS): texels per window pixel; above 2, ceil(ratio / 2) taps per axis (at most 4), spaced so
+        // their 2 x 2 texel means tile the window pixel's footprint.
+        const float ratio = std::max(static_cast<float>(g_width) / std::max(1, vw), static_cast<float>(g_height) / std::max(1, vh));
+        const int taps = ratio > 2.0f ? std::min(4, static_cast<int>(std::ceil(ratio * 0.5f))) : 1;
+        const float step[2] = {taps > 1 ? 1.0f / (taps * std::max(1, vw)) : 0.0f, taps > 1 ? 1.0f / (taps * std::max(1, vh)) : 0.0f};
+        if (taps != g_blitTapsSet || step[0] != g_blitTapStepSet[0] || step[1] != g_blitTapStepSet[1]) {
+            glUniform1i(g_blitTaps, taps);
+            glUniform2fv(g_blitTapStep, 1, step);
+            g_blitTapsSet = taps;
+            g_blitTapStepSet[0] = step[0];
+            g_blitTapStepSet[1] = step[1];
+        }
+    }
     GlActiveTexture(0);
     GlBindTexture2D(g_colorTex);
     GlBindVertexArray(g_vao);
     perf::Add(perf::kUniforms, 2);
     perf::Add(perf::kDraws);
+    ApplyAlphaCoverage();
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     gpuprof::FrameEnd();
     perf::BeforePresent();

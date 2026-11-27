@@ -1043,6 +1043,8 @@ void CRenderer::RenderGameFrame(IKTime* frameClock) {
     ExecuteRenderStages38To48(frameClock);
     ExecuteRenderStages4CTo74(frameClock);
     ExecuteRenderStage78(frameClock);
+    // Not in the original (platform/gfx/device.h, --fxaa): FXAA on the 3D picture, before the 2D group draws over it.
+    if ((m_bitProperties & 2) == 0) dotd::gfx::AntialiasScene();
     if (GetGlobalUpdateInhibitByte() != 0) m_bitProperties = (m_bitProperties & 0xfffffffbu) | 4;
     ExecuteRenderStages7CTo90(frameClock);
     RwCamera* mainCamera = context->m_pMainCamera;

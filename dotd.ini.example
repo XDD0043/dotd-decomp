@@ -9,9 +9,37 @@ language = 1
 enter_button = 1
 pad_rumble = 1
 
-window_width = 1280
-window_height = 720
+# The pixels the game is rendered at (default 1280x720, the PS3's). 16:9 sizes keep the game's own 1280x720
+# view (only sharper); other aspects widen or narrow the view as the original engine does. Command line:
+# --resolution WxH.
+# resolution = 1920x1080
+# The window's size; without it the window takes the resolution's size (fitted to the screen).
+# Command line: --window WxH.
+# window_width = 1280
+# window_height = 720
+# Start full screen (1), or in a window (0). F11 or Alt+Enter switches while the game runs. Command line:
+# --fullscreen [borderless|exclusive], --windowed.
 fullscreen = 0
+# The kind of full screen (Shift+F11 switches it while the game runs). borderless: a window covering the screen;
+# other windows and notifications can show over it, Alt+Tab is instant. exclusive: the screen is set to the
+# resolution's display mode (when the screen has one; otherwise its own), the game stays on top of everything
+# and is minimised when it loses the focus. Command line: --fullscreen-mode KIND.
+# fullscreen_mode = borderless
+
+# Anti-aliasing (the PS3 game had none, so both are off by default). F3 steps MSAA through off / 2 / 4 / 8 / 16
+# while the game runs, Shift+F3 switches FXAA. Command line: --msaa N, --fxaa.
+# msaa: multisampling, 2 / 4 / 8 / 16 samples (at most what the graphics driver has: 8 on AMD).
+# alpha_to_coverage: with MSAA, the cut-out leaves and grass get smooth edges too (1, the default; Ctrl+F3).
+# fxaa: an edge filter on the 3D picture (not on the HUD and text).
+# msaa = 4
+# alpha_to_coverage = 1
+# fxaa = 1
+
+# Keyboard controls (the launcher's Controls dialog writes them): key_<button> = Key[, Key...], SDL's key names
+# (X, Return, Space, PageDown, Keypad 0, Left Shift, ...). Buttons: dpad_up dpad_down dpad_left dpad_right cross
+# circle square triangle l1 l2 l3 r1 r2 r3 start select lstick_up lstick_down lstick_left lstick_right rstick_up
+# rstick_down rstick_left rstick_right. A button without a line keeps RPCS3's default keyboard pad.
+# key_cross = X, K
 
 # Frames per second the game runs at. The original runs at 60 and some of its systems step once per
 # frame, so anything else changes behaviour. 0 = uncapped (experiments only).

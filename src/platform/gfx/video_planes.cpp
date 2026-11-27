@@ -165,6 +165,7 @@ void DrawVideoPlanes(uint32_t y, uint32_t cr, uint32_t cb, uint32_t a, const flo
     }
     GlActiveTexture(0);
     GlBindVertexArray(g_vao);
+    ApplyAlphaCoverage();  // (off: platform/gfx/mesh.h)
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 

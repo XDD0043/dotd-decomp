@@ -163,6 +163,21 @@ RwCamera* RwCameraBeginUpdate(RwCamera* camera);
 RwCamera* RwCameraEndUpdate(RwCamera* camera);
 // RWSRCGLOBAL(renderFrame) (RWEngineInstance +8, a 16-bit count of camera updates; RpWorldPluginAttach sets it to 1).
 RwUInt16 RwEngineRenderFrame();
+// RW 3.7 badevice.c RwEngineGetCurrentVideoMode / RwEngineGetVideoModeInfo (the device's rwDEVICESYSTEMGETMODE /
+// rwDEVICESYSTEMGETMODEINFO). The PSGL driver answers the PS3's output mode (1280x720, 32 bits); the device here has one
+// mode, index 0: the internal target's size as the game knows it (platform/gfx/device.h InternalWidth / InternalHeight:
+// 1280x720, or the game's size for --resolution), 32 bits. CameraContext_RecreateFrameBuffers_maybe makes its rasters
+// at it.
+struct RwVideoMode {
+    RwInt32 width;
+    RwInt32 height;
+    RwInt32 depth;
+    RwUInt32 flags;    // RwVideoModeFlag (rwVIDEOMODEEXCLUSIVE 0x1: the PS3's mode is full screen)
+    RwInt32 refRate;   // approximate refresh rate (60)
+    RwInt32 format;    // the raster format (rwRASTERFORMAT8888 0x500)
+};
+RwInt32 RwEngineGetCurrentVideoMode();
+RwVideoMode* RwEngineGetVideoModeInfo(RwVideoMode* modeinfo, RwInt32 modeIndex);
 // 0x007471c8 _rwCameraSync_maybe (RW 3.7 bacamera.c CameraSync, the camera's frame-object sync): the view matrix from
 // the frame's stored LTM, the reciprocal view window and the view offset (CameraBuildPerspViewMatrix /
 // CameraBuildParallelViewMatrix: x and y scaled into [0, 1] with y flipped, z along `at`), then RwMatrixOptimize; the
