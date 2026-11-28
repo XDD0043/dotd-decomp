@@ -70,7 +70,7 @@
 //   [x] 0x3f0b48  CKS08HeroAbilityHost_maybe_IsAbilityAnimPhaseDone_maybe
 //   [x] 0x3f0ec8  CKS08HeroAbilityHost_maybe_Construct
 //   [x] 0x3f0f40  CKS08HeroAbilityHost_maybe_GetAbilityMana
-//   [x] 0x3f0fa0  CKS08HeroAbilityHost_maybe_IsAirborne_maybe
+//   [x] 0x3f0fa0  CKS08HeroAbilityHost_maybe_IsOnGround_maybe
 //   [x] 0x3f1040  CKS08HeroAbilityHost_maybe_SetAbilityHeroMode
 //   [ ] 0x3f13d0  CKS08HeroAbilityHost_maybe_Destructor_2  [dead]
 //   [x] 0x3f13e0  CKS08HeroAbilityHost_maybe_DeletingDestructor  (C++ deleting destructor)
@@ -127,20 +127,20 @@ constexpr uint8_t kAbilityElementOfId[2][21] = {
     {0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
     {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 255, 1, 1, 2, 4, 3, 3, 4, 2},
 };
-// The ability animations [context][dragon][slot][phase 0..4] (0xffff: none): TOC +0x43c8 flying, +0x43d0 airborne,
-// +0x43d8 on the ground.
+// The ability animations [context][dragon][slot][phase 0..4] (0xffff: none): TOC +0x43c8 flying, +0x43d0 on the
+// ground (vt+0x30 set), +0x43d8 in the air.
 constexpr uint16_t kAbilityAnims[3][2][10][5] = {
     // flying (0x00b01058)
     {
         {{0xffff, 0xe7, 0xffff, 0xffff, 0xffff}, {0xec, 0xed, 0xee, 0xffff, 0xef}, {0xffff, 0xe5, 0xffff, 0xffff, 0xffff}, {0xf0, 0xf4, 0xffff, 0xf2, 0xf3}, {0xffff, 0xe2, 0xffff, 0xffff, 0xe3}, {0xf0, 0xf1, 0xffff, 0xf2, 0xf3}, {0xffff, 0xe4, 0xffff, 0xffff, 0xffff}, {0xec, 0xed, 0xee, 0xffff, 0xef}, {0xffff, 0xe7, 0xffff, 0xffff, 0xffff}, {0xec, 0xed, 0xee, 0xffff, 0xef}},
         {{0xffff, 0xe7, 0xffff, 0xffff, 0xffff}, {0xf0, 0xf1, 0xffff, 0xf2, 0xf3}, {0xe2, 0xe3, 0xffff, 0xffff, 0xe4}, {0xec, 0xed, 0xffff, 0xffff, 0xef}, {0xf0, 0xf1, 0xffff, 0xf2, 0xf3}, {0xec, 0xed, 0xffff, 0xffff, 0xef}, {0xffff, 0xe5, 0xffff, 0xffff, 0xffff}, {0xec, 0xed, 0xffff, 0xffff, 0xef}, {0xffff, 0xe7, 0xffff, 0xffff, 0xffff}, {0xf0, 0xf1, 0xffff, 0xf2, 0xf3}},
     },
-    // airborne (0x00b01060)
+    // on the ground (0x00b01060)
     {
         {{0xffff, 0xe7, 0xffff, 0xffff, 0xffff}, {0xd9, 0xda, 0xdb, 0xffff, 0xdc}, {0xffff, 0xe5, 0xffff, 0xffff, 0xffff}, {0xdd, 0xe1, 0xffff, 0xdf, 0xe0}, {0xffff, 0xe2, 0xffff, 0xffff, 0xe3}, {0xdd, 0xde, 0xffff, 0xdf, 0xe0}, {0xffff, 0xe4, 0xffff, 0xffff, 0xffff}, {0xd9, 0xda, 0xea, 0xffff, 0xdc}, {0xffff, 0xe7, 0xffff, 0xffff, 0xffff}, {0xd9, 0xda, 0xdb, 0xffff, 0xdc}},
         {{0xffff, 0xe7, 0xffff, 0xffff, 0xffff}, {0xdd, 0xde, 0xffff, 0xdf, 0xe0}, {0xe2, 0xe3, 0xffff, 0xffff, 0xe4}, {0xd9, 0xda, 0xdb, 0xffff, 0xdc}, {0xdd, 0xde, 0xffff, 0xdf, 0xe0}, {0xd9, 0xda, 0xdb, 0xffff, 0xdc}, {0xffff, 0xe5, 0xffff, 0xffff, 0xffff}, {0xd9, 0xda, 0xdb, 0xffff, 0xdc}, {0xffff, 0xe7, 0xffff, 0xffff, 0xffff}, {0xdd, 0xde, 0xffff, 0xdf, 0xe0}},
     },
-    // ground (0x00b01068)
+    // in the air (0x00b01068)
     {
         {{0xffff, 0xe7, 0xffff, 0xffff, 0xffff}, {0xf5, 0xf6, 0xffff, 0xffff, 0xf7}, {0xffff, 0xe5, 0xffff, 0xffff, 0xffff}, {0xf8, 0xfc, 0xffff, 0xfa, 0xfb}, {0xffff, 0xe2, 0xffff, 0xffff, 0xe3}, {0xf8, 0xf9, 0xffff, 0xfa, 0xfb}, {0xffff, 0xe4, 0xffff, 0xffff, 0xffff}, {0xf5, 0xf6, 0xffff, 0xffff, 0xf7}, {0xffff, 0xe7, 0xffff, 0xffff, 0xffff}, {0xf5, 0xf6, 0xffff, 0xffff, 0xf7}},
         {{0xffff, 0xe7, 0xffff, 0xffff, 0xffff}, {0xf8, 0xf9, 0xffff, 0xfa, 0xfb}, {0xe2, 0xe3, 0xffff, 0xffff, 0xe4}, {0xf5, 0xf6, 0xffff, 0xffff, 0xf7}, {0xf8, 0xf9, 0xffff, 0xfa, 0xfb}, {0xf5, 0xf6, 0xffff, 0xffff, 0xf7}, {0xffff, 0xe5, 0xffff, 0xffff, 0xffff}, {0xf5, 0xf6, 0xffff, 0xffff, 0xf7}, {0xffff, 0xe7, 0xffff, 0xffff, 0xffff}, {0xf8, 0xf9, 0xffff, 0xfa, 0xfb}},
@@ -158,7 +158,7 @@ uint16_t AbilityAnim(CKS08HeroAbilityHost* host, CKAbilityElement* ability, uint
     if (static_cast<int8_t>(hero->GetMovementMode()) == 1) {  // 0x003401b8
         context = 0;
     } else {
-        context = host->IsAirborne() != 0 ? 1 : 2;  // vt+0x30
+        context = host->IsOnGround() != 0 ? 1 : 2;  // vt+0x30
     }
     return kAbilityAnims[context][hero->m_ui8Hero][slot][phase];
 }
@@ -172,8 +172,8 @@ bool HeroHasAnim(const CKHkS08Hero* hero, uint16_t anim) {
 }
 }  // namespace
 
-// 0x003f0fa0 CKS08HeroAbilityHost_maybe_IsAirborne_maybe (the height above the ground it asks first is unused)
-uint8_t CKS08HeroAbilityHost::IsAirborne() {
+// 0x003f0fa0 CKS08HeroAbilityHost_maybe_IsOnGround_maybe (the height above the ground it asks first is unused)
+uint8_t CKS08HeroAbilityHost::IsOnGround() {
     const uint8_t contact = static_cast<int8_t>(m_pHero->GetMovementMode()) == 1 ? m_pHero->m_unk13d1 : m_pHero->m_unk1511;
     if (contact != 0) return 0;
     return static_cast<uint8_t>(((m_pHero->m_unkec4 >> 18) & 1u) ^ 1u);
@@ -213,7 +213,7 @@ CVector3 CKS08HeroAbilityHost::GetAimDirection(int32_t raw) {
 // 0x003eef28 CKS08HeroAbilityHost_maybe_CanUseAltLoopAnim_maybe
 uint8_t CKS08HeroAbilityHost::CanUseAltLoopAnim() {
     if (static_cast<int8_t>(m_pHero->GetMovementMode()) == 1) {
-        return m_pHero->m_unk12c4 < m_pHero->m_unk964 ? 1 : 0;
+        return m_pHero->m_fCurrentHorizSpeed < m_pHero->m_unk964 ? 1 : 0;
     }
     if (m_pHero->m_unk150c != 0) return 0;
     return m_pHero->m_unk150d == 0 ? 1 : 0;
@@ -238,9 +238,9 @@ uint8_t CKS08HeroAbilityHost::IsAbilityButtonDown(int32_t button) {
 }
 
 // 0x003eee50 CKS08HeroAbilityHost_maybe_SelectByMovementContext
-uint8_t CKS08HeroAbilityHost::SelectByMovementContext(uint8_t air, uint8_t ground, uint8_t flying) {
+uint8_t CKS08HeroAbilityHost::SelectByMovementContext(uint8_t ground, uint8_t air, uint8_t flying) {
     if (static_cast<int8_t>(m_pHero->GetMovementMode()) == 1) return flying;
-    return IsAirborne() != 0 ? air : ground;  // vt+0x30
+    return IsOnGround() != 0 ? ground : air;  // vt+0x30
 }
 
 // 0x003ee270 CKS08HeroAbilityHost_maybe_Slot40Switch_maybe (the jump table 0x003ee2a4, TOC +0x43a0)
@@ -251,12 +251,12 @@ uint8_t CKS08HeroAbilityHost::Vf40(CKAbilityElement* ability, uint32_t index) {
     case 1: return static_cast<uint8_t>((hero->m_unkec4 >> 12) & 1u);
     case 2: return static_cast<uint8_t>((hero->m_unkec4 >> 11) & 1u);
     case 3:
-        if ((hero->m_unk354 & 0x800u) != 0) return 1;
-        return static_cast<uint8_t>((hero->m_unk35c >> 1) & 1u);
+        if ((hero->m_ui32HeroFlags354 & 0x800u) != 0) return 1;
+        return static_cast<uint8_t>((hero->m_ui32HeroFlags35C >> 1) & 1u);
     case 4: return static_cast<uint8_t>((hero->m_unkec4 >> 9) & 1u);
     case 5: return hero->m_unk1d11;
     case 6: return static_cast<uint8_t>((hero->m_unkec8 >> 28) & 1u);
-    case 7: return static_cast<uint8_t>((hero->m_unk354 >> 6) & 1u);
+    case 7: return static_cast<uint8_t>((hero->m_ui32HeroFlags354 >> 6) & 1u);
     case 8: return static_cast<uint8_t>(hero->m_unkecc >> 31);
     case 9: return static_cast<uint8_t>((hero->m_unkec4 >> 13) & 1u);
     case 10: return ability->GetAbilityId() == 0xf ? 1 : 0;  // vt+0x50
@@ -282,8 +282,8 @@ uint8_t CKS08HeroAbilityHost::IsAbilityAnimPhaseDone(CKAbilityElement* ability, 
     const uint16_t anim = AbilityAnim(this, ability, phase, &hasSlot);
     if (anim == 0xffff || !HeroHasAnim(m_pHero, anim)) return 1;
     // 0x003013a0 CKHkS08Hero_IsAnimFinishedOrOther: another current animation, or +0x354 bit 15.
-    if (m_pHero->m_unk160 != anim) return 1;
-    return static_cast<uint8_t>((m_pHero->m_unk354 >> 15) & 1u);
+    if (m_pHero->m_i16CurAnimIndex != anim) return 1;
+    return static_cast<uint8_t>((m_pHero->m_ui32HeroFlags354 >> 15) & 1u);
 }
 
 // 0x003efe70 CKS08HeroAbilityHost_maybe_IsAbilityButtonReleased_maybe
@@ -370,7 +370,7 @@ uint32_t CKS08HeroAbilityHost::ConsumeAbilityMana(CKAbilityElement* ability, uin
 // 0x003ee9f0 CKS08HeroAbilityHost_maybe_GetManaCostScale (0x0030b110 CKHkS08Hero_GetAbilityManaCostScale: +0xe84 with
 // +0xed0 bit 8, else 1)
 float CKS08HeroAbilityHost::GetManaCostScale() {
-    return (m_pHero->m_unked0 & 0x100u) != 0 ? m_pHero->m_unke84 : 1.0f;
+    return (m_pHero->m_ui32StatusFlagsED0 & 0x100u) != 0 ? m_pHero->m_unke84 : 1.0f;
 }
 
 // 0x003ef8f0 CKS08HeroAbilityHost_maybe_GetAbilityLevelIndex
@@ -424,17 +424,17 @@ float Length(const CVector3& v) {  // 0x00010690 Math_Sqrtf of the fused sum
 // 0x003efb48 CKS08HeroAbilityHost_maybe_GetTargetAimPoint_maybe
 CVector3 CKS08HeroAbilityHost::GetTargetAimPoint(int32_t fromHotSpot, uint8_t clampHeight) {
     CKHkS08Hero* hero = m_pHero;
-    if (hero->m_unk124 == nullptr) {
-        if (hero->m_unk12c != nullptr) return hero->GetAimPointOnHook(hero->m_unk12c, clampHeight);  // 0x002fd7c0
+    if (hero->m_pTargetedEnemy == nullptr) {
+        if (hero->m_pTargetedMecaHook != nullptr) return hero->GetAimPointOnHook(hero->m_pTargetedMecaHook, clampHeight);  // 0x002fd7c0
         return kNoAimPoint;
     }
     if (fromHotSpot != 0) {
         CVector3 from;
         static_cast<CSGHotSpot*>(GetHotspot(1))->GetWorldPosition(&from);  // vt+0xcc, 0x000ce790
-        return hero->GetAimPointOnEnemy(hero->m_unk124, &from, 1, clampHeight);  // 0x002fdec8
+        return hero->GetAimPointOnEnemy(hero->m_pTargetedEnemy, &from, 1, clampHeight);  // 0x002fdec8
     }
     // The enemy node's world position (its frame's LTM, +0x1c -> +0x04 -> +0x80).
-    const CSGMovable* node = static_cast<const CSGMovable*>(static_cast<IKHook*>(hero->m_unk124)->m_pKGLObject);
+    const CSGMovable* node = static_cast<const CSGMovable*>(static_cast<IKHook*>(hero->m_pTargetedEnemy)->m_pKGLObject);
     const RwV3d& pos = FrameLtm(node->m_pRwFrame)->pos;
     return CVector3{pos.x, pos.y, pos.z};
 }
@@ -581,21 +581,21 @@ CVector3 CKS08HeroAbilityHost::ComputeAimDirection(float maxTurn, CKAbilityEleme
 }
 
 // 0x003f18f8 CKS08HeroAbilityHost_maybe_SetHeroActionPermission (three jump tables of 13: TOC +0x4428 flying, +0x4430
-// airborne, +0x4434 on the ground)
-void CKS08HeroAbilityHost::SetHeroActionPermission(uint32_t index, uint8_t air, uint8_t flying, uint8_t ground) {
+// on the ground, +0x4434 in the air)
+void CKS08HeroAbilityHost::SetHeroActionPermission(uint32_t index, uint8_t ground, uint8_t flying, uint8_t air) {
     CKHkS08Hero* hero = m_pHero;
-    if (static_cast<int8_t>(hero->GetMovementMode()) == 1 && IsAirborne() != 0) hero->SetMovementMode(0);  // 0x00340c18
+    if (static_cast<int8_t>(hero->GetMovementMode()) == 1 && IsOnGround() != 0) hero->SetMovementMode(0);  // 0x00340c18
     uint8_t value;
-    uint8_t value7;  // the case 7 test: the flying table's entry is the airborne one's (it reads `air`)
+    uint8_t value7;  // the case 7 test: the flying table's entry is the on-ground one's (it reads `ground`)
     if (static_cast<int8_t>(hero->GetMovementMode()) == 1) {
         value = flying;
-        value7 = air;
-    } else if (IsAirborne() != 0) {  // vt+0x30
-        value = air;
-        value7 = air;
-    } else {
+        value7 = ground;
+    } else if (IsOnGround() != 0) {  // vt+0x30
         value = ground;
         value7 = ground;
+    } else {
+        value = air;
+        value7 = air;
     }
     if (index > 12) return;
     const uint32_t v = value;
@@ -615,7 +615,7 @@ void CKS08HeroAbilityHost::SetHeroActionPermission(uint32_t index, uint8_t air, 
         setBit(hero->m_unkec4, 11);
         break;
     case 3:
-        setBit(hero->m_unk354, 11);
+        setBit(hero->m_ui32HeroFlags354, 11);
         break;
     case 4:
         setBit(hero->m_unkec4, 9);
@@ -630,10 +630,10 @@ void CKS08HeroAbilityHost::SetHeroActionPermission(uint32_t index, uint8_t air, 
         // The hero's second bounding volume (+0x54[1]) answers hits or not (its flag 0x10), +0x354 bit 6.
         IKBoundingVolume* volume = static_cast<IKBoundingVolume*>(hero->m_apBoundings[1]);
         if (value7 == 0) {
-            hero->m_unk354 &= ~0x40u;
+            hero->m_ui32HeroFlags354 &= ~0x40u;
             volume->m_ui16PropertiesFlags = static_cast<uint16_t>(volume->m_ui16PropertiesFlags | 0x10u);
         } else {
-            hero->m_unk354 |= 0x40u;
+            hero->m_ui32HeroFlags354 |= 0x40u;
             volume->m_ui16PropertiesFlags = static_cast<uint16_t>(volume->m_ui16PropertiesFlags & ~0x10u);
         }
         break;
@@ -659,17 +659,17 @@ void CKS08HeroAbilityHost::SetHeroActionPermission(uint32_t index, uint8_t air, 
 float CKS08HeroAbilityHost::GetHeroSpeedForAbility() {
     const CVector3 at = GetHeroForward();  // vt+0x18
     const float along = m_pHero->m_unk1284 * at.z + (m_pHero->m_unk127c * at.x + m_pHero->m_unk1280 * at.y);
-    return 0.0f <= along ? m_pHero->m_unk12c4 * 1.0f : m_pHero->m_unk12c4 * -1.0f;  // TOC +0x43a8 / +0x4398 / +0x43ec
+    return 0.0f <= along ? m_pHero->m_fCurrentHorizSpeed * 1.0f : m_pHero->m_fCurrentHorizSpeed * -1.0f;  // TOC +0x43a8 / +0x4398 / +0x43ec
 }
 
 // 0x003eed48 CKS08HeroAbilityHost_maybe_SetAbilityMoveSpeed
-void CKS08HeroAbilityHost::SetAbilityMoveSpeed(float air, float flying, float ground) {
+void CKS08HeroAbilityHost::SetAbilityMoveSpeed(float ground, float flying, float air) {
     if (static_cast<int8_t>(m_pHero->GetMovementMode()) == 1) {
         m_pHero->m_unk1d14 = flying;
-    } else if (IsAirborne() != 0) {
-        m_pHero->m_unk1d14 = air;
-    } else {
+    } else if (IsOnGround() != 0) {
         m_pHero->m_unk1d14 = ground;
+    } else {
+        m_pHero->m_unk1d14 = air;
     }
 }
 
@@ -677,8 +677,8 @@ void CKS08HeroAbilityHost::SetAbilityMoveSpeed(float air, float flying, float gr
 void CKS08HeroAbilityHost::SetAbilityMoveSpeedEnabled(uint8_t on) { m_pHero->m_unk1d10 = on; }
 
 // 0x003eeaf8 CKS08HeroAbilityHost_maybe_SetAbilityTurnParams_maybe
-void CKS08HeroAbilityHost::SetAbilityTurnParams(float airA, float airB, float flyA, float flyB, float groundA, float groundB,
-                                                uint8_t gateAir, uint8_t gateFly, uint8_t gateGround) {
+void CKS08HeroAbilityHost::SetAbilityTurnParams(float groundA, float groundB, float flyA, float flyB, float airA, float airB,
+                                                uint8_t gateGround, uint8_t gateFly, uint8_t gateAir) {
     CKHkS08Hero* hero = m_pHero;
     auto set = [hero](float a, float b) {
         hero->m_unk1d04 = a;
@@ -690,12 +690,12 @@ void CKS08HeroAbilityHost::SetAbilityTurnParams(float airA, float airB, float fl
         set(flyA, flyB);
         return;
     }
-    if (static_cast<int8_t>(hero->GetMovementMode()) == 0 && gateAir != 0 && IsAirborne() != 0) {
-        set(airA, airB);
+    if (static_cast<int8_t>(hero->GetMovementMode()) == 0 && gateGround != 0 && IsOnGround() != 0) {
+        set(groundA, groundB);
         return;
     }
-    if (static_cast<int8_t>(hero->GetMovementMode()) == 0 && gateGround != 0 && IsAirborne() == 0) {
-        set(groundA, groundB);
+    if (static_cast<int8_t>(hero->GetMovementMode()) == 0 && gateAir != 0 && IsOnGround() == 0) {
+        set(airA, airB);
         return;
     }
     hero->m_unk1d0c = hero->m_unkaf8;
@@ -703,16 +703,16 @@ void CKS08HeroAbilityHost::SetAbilityTurnParams(float airA, float airB, float fl
 }
 
 // 0x003efef8 CKS08HeroAbilityHost_maybe_SetAbilityParam11f8_maybe
-void CKS08HeroAbilityHost::SetAbilityParam11f8(float air, float flying, float ground, uint8_t gateAir, uint8_t gateFly,
-                                               uint8_t gateGround) {
+void CKS08HeroAbilityHost::SetAbilityParam11f8(float ground, float flying, float air, uint8_t gateGround, uint8_t gateFly,
+                                               uint8_t gateAir) {
     CKHkS08Hero* hero = m_pHero;
     float value;
     if (static_cast<int8_t>(hero->GetMovementMode()) == 1 && gateFly != 0) {
         value = flying;
-    } else if (static_cast<int8_t>(hero->GetMovementMode()) == 0 && gateAir != 0 && IsAirborne() != 0) {
-        value = air;
-    } else if (static_cast<int8_t>(hero->GetMovementMode()) == 0 && gateGround != 0 && IsAirborne() == 0) {
+    } else if (static_cast<int8_t>(hero->GetMovementMode()) == 0 && gateGround != 0 && IsOnGround() != 0) {
         value = ground;
+    } else if (static_cast<int8_t>(hero->GetMovementMode()) == 0 && gateAir != 0 && IsOnGround() == 0) {
+        value = air;
     } else {
         hero->m_unkec8 &= 0xfbffffffu;
         return;
@@ -728,8 +728,8 @@ CVector3 CKS08HeroAbilityHost::GetOwnerVelocity() {
 
 // 0x003ee460 CKS08HeroAbilityHost_maybe_SetHeroEd4Bit0_maybe (the earth boulder's ApplyHeroControl)
 void CKS08HeroAbilityHost::SetHeroEd4Bit0(CKAbilityElement* /*ability*/, uint8_t on, float value) {
-    m_pHero->m_unked4 = (m_pHero->m_unked4 & 0xfffffffeu) | on;
-    m_pHero->m_unk1b2c = value;
+    m_pHero->m_ui32StatusFlagsED4 = (m_pHero->m_ui32StatusFlagsED4 & 0xfffffffeu) | on;
+    m_pHero->m_fExtraMass = value;
 }
 
 // 0x003ee438 CKS08HeroAbilityHost_maybe_SetHeroEc4Bit27
@@ -744,7 +744,7 @@ void CKS08HeroAbilityHost::SetAbilityHeroMode(CKAbilityElement* ability, uint8_t
         hero->m_unkec8 &= 0xfffdffffu;
         SetHeroEc4Bit27(0);  // vt+0x6c
         hero->m_unkec8 &= 0xfffffeffu;
-        hero->m_unked0 &= 0xbfffffffu;
+        hero->m_ui32StatusFlagsED0 &= 0xbfffffffu;
         hero->m_unkec4 &= 0xfffffeffu;
         if (ability->GetAbilityId() == 6) {  // vt+0x50: CKElectricSphere
             SetAbilityParam11f8(0.1f, 0.1f, 0.1f, 0, 0, 0);  // vt+0x68
@@ -768,26 +768,26 @@ void CKS08HeroAbilityHost::SetAbilityHeroMode(CKAbilityElement* ability, uint8_t
     }
     const uint8_t family = ability->GetFamilyId();  // vt+0x54
     if ((family == 0x15 || family == 0x16) && static_cast<int8_t>(hero->GetMovementMode()) == 1) {
-        hero->m_unked0 = (hero->m_unked0 & 0xbfffffffu) | 0x40000000u;
+        hero->m_ui32StatusFlagsED0 = (hero->m_ui32StatusFlagsED0 & 0xbfffffffu) | 0x40000000u;
         hero->m_unk11e8 = hero->m_unk8cc;
     }
 }
 
 // 0x003ee488 CKS08HeroAbilityHost_maybe_SetHero1d20
-void CKS08HeroAbilityHost::SetHero1d20(float value) { m_pHero->m_unk1d20 = value; }
+void CKS08HeroAbilityHost::SetHero1d20(float value) { m_pHero->m_fAbilityAnimSpeedScale = value; }
 
 // 0x003ee498 CKS08HeroAbilityHost_maybe_SetHero1d11
 void CKS08HeroAbilityHost::SetHero1d11(uint8_t value) { m_pHero->m_unk1d11 = value; }
 
 // 0x003eea68 CKS08HeroAbilityHost_maybe_GetDamageScale
 float CKS08HeroAbilityHost::GetDamageScale() {
-    return (m_pHero->m_unked0 & 0x1000u) != 0 ? m_pHero->m_unke80 : 1.0f;  // 0x0030b0d0
+    return (m_pHero->m_ui32StatusFlagsED0 & 0x1000u) != 0 ? m_pHero->m_unke80 : 1.0f;  // 0x0030b0d0
 }
 
 // 0x003eea18 CKS08HeroAbilityHost_maybe_GetEffectScale
 float CKS08HeroAbilityHost::GetEffectScale() {
-    if ((m_pHero->m_unked0 & 0x10u) == 0) return 1.0f;
-    return (m_pHero->m_unked0 & 0x80u) != 0 ? m_pHero->m_unke78 : 1.0f;  // 0x0030b0f0
+    if ((m_pHero->m_ui32StatusFlagsED0 & 0x10u) == 0) return 1.0f;
+    return (m_pHero->m_ui32StatusFlagsED0 & 0x80u) != 0 ? m_pHero->m_unke78 : 1.0f;  // 0x0030b0f0
 }
 
 // 0x003ef6f8 CKS08HeroAbilityHost_maybe_GetHotspot
@@ -811,7 +811,7 @@ CVector3 CKS08HeroAbilityHost::GetHotspotPosition(uint32_t index) {
 
 // 0x003ee4d8 CKS08HeroAbilityHost_maybe_GetLockedTarget
 IKSerializable* CKS08HeroAbilityHost::GetLockedTarget() {
-    return m_pHero->m_unk124 != nullptr ? m_pHero->m_unk124 : m_pHero->m_unk12c;
+    return m_pHero->m_pTargetedEnemy != nullptr ? m_pHero->m_pTargetedEnemy : m_pHero->m_pTargetedMecaHook;
 }
 
 // 0x003ef880 CKS08HeroAbilityHost_maybe_GetHeroUp_maybe
@@ -967,15 +967,15 @@ uint8_t CKS08HeroAbilityHost::CanGrabTarget(CKAbilityElement* ability, IKSeriali
 
 // 0x003ee6c0 CKS08HeroAbilityHost_maybe_GetGrabState_maybe (vt+0xe4). The held target (+0x124) is taken as an enemy.
 IKSerializable* CKS08HeroAbilityHost::GetGrabHotspot(CKAbilityElement* ability) {
-    CKHkS08Enemy* enemy = static_cast<CKHkS08Enemy*>(m_pHero->m_unk124);
+    CKHkS08Enemy* enemy = static_cast<CKHkS08Enemy*>(m_pHero->m_pTargetedEnemy);
     if (enemy != nullptr) {
         if (ability->GetAbilityId() == kAbilityElectricGrab) {  // vt+0x50
-            if (enemy->m_unk524 != nullptr) return enemy->GetGrabHotSpot();  // 0x0028a1c8
-            if (enemy->m_unk520 != nullptr) return enemy->GetHotSpot(2);     // 0x002892e8
+            if (enemy->m_pHeldShield != nullptr) return enemy->GetGrabHotSpot();  // 0x0028a1c8
+            if (enemy->m_pHeldWeapon != nullptr) return enemy->GetHotSpot(2);     // 0x002892e8
         }
         return enemy->GetSectorHotSpot(1);  // 0x0028a160
     }
-    IKSerializable* hook = m_pHero->m_unk12c;
+    IKSerializable* hook = m_pHero->m_pTargetedMecaHook;
     if (hook == nullptr) return nullptr;
     if (hook->IsKindOfClass(0x2e42) != 0) {  // vt+0x08
         return static_cast<CKHkS08ElectricGauge*>(hook)->GetGrabHotSpot();  // vt+0x104 0x00492660
@@ -992,7 +992,7 @@ float CKS08HeroAbilityHost::GetGrabPullRatio(CKAbilityElement* ability) {
     if (target == nullptr || target->IsKindOfClass(0x26c2) == 0) return 0.0f;  // TOC +0x43a8
     if (ability->GetAbilityId() != kAbilityWindBeam) return 0.0f;
     const CKHkS08Enemy* enemy = static_cast<const CKHkS08Enemy*>(target);
-    return enemy->m_unk6d0 / enemy->m_unk188->m_unk25c;
+    return enemy->m_fWindGauge / enemy->m_pEnemyCpnt->m_unk25c;
 }
 
 // 0x003f00c8 CKS08HeroAbilityHost_maybe_GrabEnemy_maybe (vt+0xec). `target` null: the locked target (vt+0xd4).
@@ -1056,7 +1056,7 @@ uint8_t CKS08HeroAbilityHost::GrabEnemy(CKAbilityElement* ability, uint8_t grab,
     }
     if (mode != 0) {  // 0x003f06b8
         if (enemy->GetGrabbingHero() == GetOwner()) return static_cast<uint8_t>(enemy->IsValidCombatTarget());
-        const CKAimCamembert* cone = static_cast<const CKAimCamembert*>(static_cast<CKGrabElement*>(ability)->m_unkD0);
+        const CKAimCamembert* cone = static_cast<const CKAimCamembert*>(static_cast<CKGrabElement*>(ability)->m_pAimCone);
         const CVector3 aim = GetTargetAimPoint(1, 0);  // vt+0xdc
         const CVector3 at = GetOwnerPosition();        // vt+0x10
         const float dz = aim.z - at.z;

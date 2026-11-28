@@ -63,29 +63,29 @@
 
 // 0x00396a90 CKElectricSphere_ResetRuntime. Its stores in order; the arc slots +0x258..+0x264 in pairs.
 void CKElectricSphere::ResetRuntime() {
-    m_unk328 = nullptr;
-    m_unk32c = nullptr;
+    m_pLoopSound = nullptr;
+    m_pDashSound = nullptr;
     CKTransformElement::ResetRuntime();
     m_ui8HotSpot = 9;
-    m_unk27c = nullptr;
-    m_unk1e4 = nullptr;
-    m_unk1e8 = nullptr;
+    m_pActivePointLight = nullptr;
+    m_pActiveSparkA = nullptr;
+    m_pActiveSparkB = nullptr;
     for (uint32_t i = 0; i < 4; i += 2) {
-        m_unk258[i + 1] = nullptr;
-        m_unk258[i] = nullptr;
+        m_apActiveArcs[i + 1] = nullptr;
+        m_apActiveArcs[i] = nullptr;
     }
-    m_unk29c = 1.0f;  // TOC +0x35f0
-    m_unk330 = 0.0f;
-    m_unk26c = nullptr;
+    m_fDashTimeScale = 1.0f;  // TOC +0x35f0
+    m_fNextTimedExplosion = 0.0f;
+    m_pActiveLoopParticles = nullptr;
     m_unk320 = 1;
-    m_unk294 = 0.0f;
-    m_unk298 = 0.0f;
-    m_unk2a0 = 0;
-    m_unk288 = nullptr;
-    m_unk314 = 0;
-    m_unk318 = 0.0f;
-    m_unk31c = 0.0f;
-    m_unk324 = 0;
+    m_fPulseClock = 0.0f;
+    m_fPulseClockAtStop = 0.0f;
+    m_bAttackSphereOn = 0;
+    m_pActiveAnimFx = nullptr;
+    m_fBurstTimeLeft = 0;
+    m_fBurstStartScale = 0.0f;
+    m_fBurstEndScale = 0.0f;
+    m_fTopDashHoldTime = 0;
 }
 
 namespace {
@@ -105,7 +105,7 @@ float NextInterval(float base, float spread) {
 
 // 0x003967a8 CKElectricSphere_GetFxSound_maybe
 CKSound* CKElectricSphere::GetFxSound(uint32_t which) {
-    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_unk28c);
+    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_pSoundDico);
     auto usable = [sounds](uint32_t index) {
         return sounds->GetSound(index) != nullptr && sounds->GetSound(index)->GetSample() != nullptr;  // 0x00111000
     };
@@ -125,26 +125,26 @@ void CKElectricSphere::ApplyHeroControl(uint8_t on) {
 
 // 0x00396998 CKElectricSphere_End
 void CKElectricSphere::End(int32_t forced) {
-    if (m_unk328 != nullptr) {
-        static_cast<CKSound*>(m_unk328)->Stop(0);  // 0x001111b0
-        m_unk328 = nullptr;
+    if (m_pLoopSound != nullptr) {
+        static_cast<CKSound*>(m_pLoopSound)->Stop(0);  // 0x001111b0
+        m_pLoopSound = nullptr;
     }
-    if (m_unk32c != nullptr) {
-        static_cast<CKSound*>(m_unk32c)->Stop(0);
-        m_unk32c = nullptr;
+    if (m_pDashSound != nullptr) {
+        static_cast<CKSound*>(m_pDashSound)->Stop(0);
+        m_pDashSound = nullptr;
     }
     m_pHost->SetHero1d20(1.0f);  // vt+0x84; TOC +0x35f0
     CKTransformElement::End(forced);
-    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_unk224), 1, 0, 0);  // 0x005832a8
-    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_unk228), 1, 0, 0);
+    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_pSphereNode), 1, 0, 0);  // 0x005832a8
+    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_pBurstNode), 1, 0, 0);
 }
 
 // 0x00396e70 CKElectricSphere_Start
 void CKElectricSphere::Start(CKS08AbilityHostBase* host) {
-    m_unk32c = nullptr;
-    m_unk328 = nullptr;
+    m_pDashSound = nullptr;
+    m_pLoopSound = nullptr;
     CKTransformElement::Start(host);
-    CSGLeaf* sphere = static_cast<CSGLeaf*>(m_unk224);
+    CSGLeaf* sphere = static_cast<CSGLeaf*>(m_pSphereNode);
     if (sphere != nullptr) {
         TransformFx::ShowNode(sphere);
         TransformFx::SetGeometriesAlpha(sphere, 0);
@@ -154,25 +154,25 @@ void CKElectricSphere::Start(CKS08AbilityHostBase* host) {
             static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_ui8HotSpot))->AttachVolume(sphere);  // 0x000ce2b8
         }
     }
-    CKImpulsionCpnt* dash = static_cast<CKImpulsionCpnt*>(m_unk18c);
-    dash->m_unk2c = 0.0f;
-    dash->m_unk24 = 0.0f;
-    dash->m_unk28 = 0.0f;
+    CKImpulsionCpnt* dash = static_cast<CKImpulsionCpnt*>(m_pDashImpulsion);
+    dash->m_fImpulseTimer = 0.0f;
+    dash->m_fValue = 0.0f;
+    dash->m_fSpeed = 0.0f;
     const uint32_t level = static_cast<uint32_t>(m_levelIndex);
-    m_unk2a0 = 0;
-    m_unk29c = 1.0f;
-    m_unk324 = 0;
-    m_unk314 = 0;
-    m_unk294 = m_unk160[level] * 0.5f;  // TOC +0x361c
-    m_unk330 = NextInterval(m_unk20c[level], m_unk218[level]);
+    m_bAttackSphereOn = 0;
+    m_fDashTimeScale = 1.0f;
+    m_fTopDashHoldTime = 0;
+    m_fBurstTimeLeft = 0;
+    m_fPulseClock = m_afPulsePeriod[level] * 0.5f;  // TOC +0x361c
+    m_fNextTimedExplosion = NextInterval(m_afTimedExplosionRateBase[level], m_afTimedExplosionRateSpread[level]);
 }
 
 // 0x00397130 CKElectricSphere_StopFx
 void CKElectricSphere::StopFx() {
     CKTransformElement::StopFx();
-    m_unk298 = m_unk294;
-    if (m_unk224 != nullptr) TransformFx::HideNode(m_unk224);
-    if (m_unk228 != nullptr) TransformFx::HideNode(m_unk228);
+    m_fPulseClockAtStop = m_fPulseClock;
+    if (m_pSphereNode != nullptr) TransformFx::HideNode(m_pSphereNode);
+    if (m_pBurstNode != nullptr) TransformFx::HideNode(m_pBurstNode);
     m_pHost->SetAbilityAttackSpheres(this, 0, 1.0f, nullptr, 1.0f, nullptr);  // vt+0xfc
     m_pHost->SetHero1d20(1.0f);                                                // vt+0x84
 }
@@ -180,12 +180,12 @@ void CKElectricSphere::StopFx() {
 // 0x0039a0c0 CKElectricSphere_UpdateAttack_maybe
 void CKElectricSphere::UpdateAttack(float dt) {
     if (m_levelIndex == 0) return;
-    CKImpulsionCpnt* dash = static_cast<CKImpulsionCpnt*>(m_unk18c);
+    CKImpulsionCpnt* dash = static_cast<CKImpulsionCpnt*>(m_pDashImpulsion);
     if (m_pHost->IsAbilityButtonDown(3) != 0) {  // vt+0x8c
         dash->Impulse(1.0f);                       // 0x0024bce0
-        m_unk314 = m_unk22c;  // the burst's time
+        m_fBurstTimeLeft = m_fBurstDuration;  // the burst's time
         m_unk320 = 1;
-        CSGLeaf* burst = static_cast<CSGLeaf*>(m_unk228);
+        CSGLeaf* burst = static_cast<CSGLeaf*>(m_pBurstNode);
         if (burst != nullptr) {
             // The burst node hung under the hot spot, turned by a random angle about a random axis, its two timers drawn.
             if (burst->m_pParent != nullptr) burst->m_pParent->RemoveChild(burst);               // vt+0x78
@@ -207,26 +207,26 @@ void CKElectricSphere::UpdateAttack(float dt) {
             const CVector3* point = reinterpret_cast<const CVector3*>(&movable->m_pRwFrame->modelling.pos);  // frame +0x40
             const float degrees = RandUnit16() / kRandMax * 360.0f;  // TOC +0x3668
             movable->RotateAboutPoint(degrees, point, &axis);       // 0x000d0f80 (the frame's own position)
-            const float baseA = m_unk230 + m_unk234;
-            m_unk318 = ppc::fmadds(RandUnit16() / kRandMax * -2.0f, m_unk234, baseA);
-            const float baseB = m_unk238 + m_unk23c;
-            m_unk31c = ppc::fmadds(RandUnit16() / kRandMax * -2.0f, m_unk23c, baseB);
+            const float baseA = m_fBurstStartScaleBase + m_fBurstStartScaleSpread;
+            m_fBurstStartScale = ppc::fmadds(RandUnit16() / kRandMax * -2.0f, m_fBurstStartScaleSpread, baseA);
+            const float baseB = m_fBurstEndScaleBase + m_fBurstEndScaleSpread;
+            m_fBurstEndScale = ppc::fmadds(RandUnit16() / kRandMax * -2.0f, m_fBurstEndScaleSpread, baseB);
         }
         if (m_levelIndex == 2) {
-            CKExplosionNodeFx* fx = static_cast<CKExplosionNodeFx*>(TransformFx::Acquire(m_unk200[2], this));
+            CKExplosionNodeFx* fx = static_cast<CKExplosionNodeFx*>(TransformFx::Acquire(m_apTimedExplosions[2], this));
             if (fx != nullptr) {
                 const CVector3 position = m_pHost->GetHotspotPosition(m_ui8HotSpot);  // vt+0xd0
                 fx->SetTranslation(&position, this);  // 0x001b66e8
                 fx->Trigger(this, 0);                 // 0x001b82a8
                 fx->ReleaseReservation(this);         // vt+0x54
                 const uint32_t level = static_cast<uint32_t>(m_levelIndex);
-                m_unk330 = NextInterval(m_unk20c[level], m_unk218[level]);
+                m_fNextTimedExplosion = NextInterval(m_afTimedExplosionRateBase[level], m_afTimedExplosionRateSpread[level]);
             }
         }
     }
     dash->Update(dt);  // 0x0024bd40
-    m_unk29c = dash->m_unk24;
-    m_pHost->SetHero1d20(m_unk29c);  // vt+0x84
+    m_fDashTimeScale = dash->m_fValue;
+    m_pHost->SetHero1d20(m_fDashTimeScale);  // vt+0x84
 }
 
 namespace {
@@ -241,8 +241,8 @@ constexpr float kDashTopMargin = 0.05f;    // TOC +0x3678
 void TurnArc(CKElectricSphere* self, uint32_t k, float dt, float sphereScale) {
     CKS08AbilityHostBase* host = self->m_pHost;
     const CVector3 spot = host->GetHotspotPosition(self->m_ui8HotSpot);  // vt+0xd0
-    CVector3& end = self->m_unk2e4[k];
-    CVector3& start = self->m_unk2a4[k];
+    CVector3& end = self->m_avArcEnds[k];
+    CVector3& start = self->m_avArcStarts[k];
     CVector3 offset;
     offset.x = end.x - spot.x;
     offset.z = end.z - spot.z;
@@ -250,7 +250,7 @@ void TurnArc(CKElectricSphere* self, uint32_t k, float dt, float sphereScale) {
     offset.y = 0.0f;
     CVector3 up = host->GetOwnerUp();  // vt+0x2c
     CVector3 turned;
-    Vec3_RotateTowardByAngle(&turned, &offset, &up, dt * self->m_unk2d4[k]);  // 0x005841a8 (bridge 0x0098f300)
+    Vec3_RotateTowardByAngle(&turned, &offset, &up, dt * self->m_afArcTurnSpeeds[k]);  // 0x005841a8 (bridge 0x0098f300)
     const float grown = ppc::fmadds(reach, kArcReachGrowth, reach);
     float draw = RandUnit16() / kRandMax;  // 0x00011500
     draw = draw + draw;
@@ -264,7 +264,7 @@ void TurnArc(CKElectricSphere* self, uint32_t k, float dt, float sphereScale) {
     startOffset.z = start.z - spot.z;
     CVector3 up2 = host->GetOwnerUp();  // vt+0x2c
     CVector3 turned2;
-    Vec3_RotateTowardByAngle(&turned2, &startOffset, &up2, dt * self->m_unk2d4[k]);
+    Vec3_RotateTowardByAngle(&turned2, &startOffset, &up2, dt * self->m_afArcTurnSpeeds[k]);
     float dy = start.y;
     float dx = turned2.x;
     float dz = turned2.z;
@@ -275,11 +275,11 @@ void TurnArc(CKElectricSphere* self, uint32_t k, float dt, float sphereScale) {
         dx = dx * inverse;
         dy = dy * inverse;
     }
-    const float radius = sphereScale * self->m_unk17c;
+    const float radius = sphereScale * self->m_fArcStartRadiusFactor;
     start.z = ppc::fmadds(radius, dz, spot.z);
     start.x = ppc::fmadds(dx, radius, spot.x);
     start.y = ppc::fmadds(dy, radius, spot.y);
-    CKElectricArcNodeFx* arc = static_cast<CKElectricArcNodeFx*>(self->m_unk258[k]);
+    CKElectricArcNodeFx* arc = static_cast<CKElectricArcNodeFx*>(self->m_apActiveArcs[k]);
     arc->SetStartPoint(&start, self);  // 0x001b1f80
     arc->SetEndPoint(&end, self);      // 0x001b1f40
 }
@@ -303,8 +303,8 @@ void SpawnArc(CKElectricSphere* self, uint32_t k, uint32_t level, float sphereSc
         dzz = dz * dz;
         dxx = dx * dx;
     }
-    const float heightBase = self->m_unk1a8[level] + self->m_unk1b4[level];
-    float dy = ppc::fmadds(RandUnit16() / kRandMax * -2.0f, self->m_unk1b4[level], heightBase);  // TOC +0x3624
+    const float heightBase = self->m_afArcStartHeightBase[level] + self->m_afArcStartHeightSpread[level];
+    float dy = ppc::fmadds(RandUnit16() / kRandMax * -2.0f, self->m_afArcStartHeightSpread[level], heightBase);  // TOC +0x3624
     const float length = Sqrtf(ppc::fmadds(dy, dy, dxx) + dzz);
     if (length != 0.0f) {
         const float inverse = 1.0f / length;
@@ -312,7 +312,7 @@ void SpawnArc(CKElectricSphere* self, uint32_t k, uint32_t level, float sphereSc
         dx = dx * inverse;
         dy = dy * inverse;
     }
-    float radius = sphereScale * self->m_unk17c;
+    float radius = sphereScale * self->m_fArcStartRadiusFactor;
     dx = dx * radius;
     dz = dz * radius;
     CVector3 start;
@@ -328,8 +328,8 @@ void SpawnArc(CKElectricSphere* self, uint32_t k, uint32_t level, float sphereSc
         dx = dx * inverse;
         ey = inverse * 0.0f;
     }
-    const float reachBase = self->m_unk1c0[level] + self->m_unk1cc[level];
-    const float reach = ppc::fmadds(RandUnit16() / kRandMax * -2.0f, self->m_unk1cc[level], reachBase);
+    const float reachBase = self->m_afArcEndReachBase[level] + self->m_afArcEndReachSpread[level];
+    const float reach = ppc::fmadds(RandUnit16() / kRandMax * -2.0f, self->m_afArcEndReachSpread[level], reachBase);
     dz = dz * reach;
     dx = dx * reach;
     ey = ey * reach;
@@ -338,18 +338,18 @@ void SpawnArc(CKElectricSphere* self, uint32_t k, uint32_t level, float sphereSc
     end.x = dx + ground.x;
     end.y = ey + ground.y;
     const float xy = ppc::fmadds(dx, dx, ey * ey);
-    CKElectricArcNodeFx* arc = static_cast<CKElectricArcNodeFx*>(self->m_unk258[k]);
+    CKElectricArcNodeFx* arc = static_cast<CKElectricArcNodeFx*>(self->m_apActiveArcs[k]);
     arc->SetStartPoint(&start, self);  // 0x001b1f80
     arc->SetEndPoint(&end, self);      // 0x001b1f40
-    self->m_unk2a4[k] = start;
-    self->m_unk2e4[k] = end;
+    self->m_avArcStarts[k] = start;
+    self->m_avArcEnds[k] = end;
     float sign = ppc::fmadds(RandUnit16(), kRandScale, 1.0f);
-    const float speedBase = self->m_unk190[level] + self->m_unk19c[level];
+    const float speedBase = self->m_afArcTurnSpeedBase[level] + self->m_afArcTurnSpeedSpread[level];
     const float draw = RandUnit16();
     const float offsetLength = ppc::fmadds(dz, dz, xy);
     sign = sign / std::fabs(sign);
-    const float speed = sign * ppc::fmadds(draw / kRandMax * -2.0f, self->m_unk19c[level], speedBase);
-    self->m_unk2d4[k] = speed / Sqrtf(offsetLength);
+    const float speed = sign * ppc::fmadds(draw / kRandMax * -2.0f, self->m_afArcTurnSpeedSpread[level], speedBase);
+    self->m_afArcTurnSpeeds[k] = speed / Sqrtf(offsetLength);
 }
 }  // namespace
 
@@ -358,76 +358,76 @@ void SpawnArc(CKElectricSphere* self, uint32_t k, uint32_t level, float sphereSc
 void CKElectricSphere::UpdateEffect(float dt) {
     const uint32_t level = static_cast<uint32_t>(m_levelIndex);
     // The pulse: the attack sphere is on for the one frame after the clock passes the period.
-    if (m_unk2a0 != 0) {
+    if (m_bAttackSphereOn != 0) {
         m_pHost->SetAbilityAttackSpheres(this, 0, 1.0f, nullptr, 1.0f, nullptr);  // vt+0xfc
-        m_unk2a0 = 0;
+        m_bAttackSphereOn = 0;
     }
-    const float scaled = dt * m_unk29c;
-    const float period = m_unk160[level];
-    m_unk294 = scaled + m_unk294;
-    if (period <= m_unk294) {  // cror lt|eq: not on NaN
+    const float scaled = dt * m_fDashTimeScale;
+    const float period = m_afPulsePeriod[level];
+    m_fPulseClock = scaled + m_fPulseClock;
+    if (period <= m_fPulseClock) {  // cror lt|eq: not on NaN
         ApplyDamageParams(0);  // vt+0x88
-        m_pHost->SetAbilityAttackSpheres(this, 1, m_unk154[level], m_elementDamage, 1.0f, nullptr);  // vt+0xfc
-        m_unk2a0 = 1;
-        m_unk294 = m_unk294 - period;
+        m_pHost->SetAbilityAttackSpheres(this, 1, m_afHitSphereRadius[level], m_elementDamage, 1.0f, nullptr);  // vt+0xfc
+        m_bAttackSphereOn = 1;
+        m_fPulseClock = m_fPulseClock - period;
     }
     // The dash sound's pitch: 1 up to +0x290 as the dash value goes from the dash's lowest to its top value.
-    if (m_unk32c != nullptr) {
-        const CKImpulsionCpnt* dash = static_cast<const CKImpulsionCpnt*>(m_unk18c);
+    if (m_pDashSound != nullptr) {
+        const CKImpulsionCpnt* dash = static_cast<const CKImpulsionCpnt*>(m_pDashImpulsion);
         const float low = dash->m_unk04[1];
-        float t = (m_unk29c - low) / (dash->m_unk04[0] - low);
+        float t = (m_fDashTimeScale - low) / (dash->m_unk04[0] - low);
         if (t <= 0.0f) {
             t = 0.0f;
         } else if (t >= 1.0f) {
             t = 1.0f;
         }
-        static_cast<CKSound*>(m_unk32c)->SetPitch(ppc::fmadds(t, m_unk290 - 1.0f, 1.0f));  // 0x00110ea0
+        static_cast<CKSound*>(m_pDashSound)->SetPitch(ppc::fmadds(t, m_fDashSoundTopPitch - 1.0f, 1.0f));  // 0x00110ea0
     }
     // The sphere node: a random scale around +0x180, the alpha up to +0x16c at the period's ends, 0 at its middle.
-    float sphereScale = m_unk180[level];
-    if (m_unk224 != nullptr) {
+    float sphereScale = m_afSphereScale[level];
+    if (m_pSphereNode != nullptr) {
         const float half = period * 0.5f;  // TOC +0x361c
-        const float clock = m_unk294;
+        const float clock = m_fPulseClock;
         const float t = !(clock > half) ? (half - clock) / half : ppc::fmadds(period, -0.5f, clock) / half;  // TOC +0x3674
-        const float spread = m_unk178 + 1.0f;
-        sphereScale = sphereScale * ppc::fmadds(RandUnit16() / kRandMax * -2.0f, m_unk178, spread);  // 0x00011500
-        CSGMovable* sphere = static_cast<CSGMovable*>(m_unk224);
+        const float spread = m_fSphereScaleSpread + 1.0f;
+        sphereScale = sphereScale * ppc::fmadds(RandUnit16() / kRandMax * -2.0f, m_fSphereScaleSpread, spread);  // 0x00011500
+        CSGMovable* sphere = static_cast<CSGMovable*>(m_pSphereNode);
         sphere->SetIdentity();                                     // 0x000d08f0
         sphere->ScaleXYZ(sphereScale, sphereScale, sphereScale);  // 0x000d0d28
-        const uint8_t alpha = static_cast<uint8_t>(ppc::fctiwz(t * static_cast<float>(m_unk16c[level])));
-        TransformFx::SetGeometriesAlpha(m_unk224, alpha);
+        const uint8_t alpha = static_cast<uint8_t>(ppc::fctiwz(t * static_cast<float>(m_ai32SphereTopAlpha[level])));
+        TransformFx::SetGeometriesAlpha(m_pSphereNode, alpha);
     }
     // The arcs: slot 2 x pass + i for the data i below the level, two passes.
-    if (m_bLoop != 0 && m_unk29c > m_unk1d8) {
+    if (m_bLoop != 0 && m_fDashTimeScale > m_fArcMinDashThreshold) {
         for (uint32_t pass = 0; pass < 2; ++pass) {
             for (uint32_t i = 0; static_cast<uint32_t>(m_levelIndex) > i; ++i) {
                 if (i == 2) continue;
                 const uint32_t k = pass * 2 + i;
-                IKFx* arc = static_cast<IKFx*>(m_unk258[k]);
+                IKFx* arc = static_cast<IKFx*>(m_apActiveArcs[k]);
                 if (arc != nullptr) {
                     if ((arc->m_baFxData & 1u) == 0) {  // still playing
                         TurnArc(this, k, dt, sphereScale);
                         continue;
                     }
                     arc->StopAndRelease(this);  // vt+0x58
-                    m_unk258[k] = nullptr;
+                    m_apActiveArcs[k] = nullptr;
                 }
-                m_unk258[k] = TransformFx::Acquire(m_unk24c[i], this);
-                if (m_unk258[k] == nullptr) continue;
+                m_apActiveArcs[k] = TransformFx::Acquire(m_apArcFxData[i], this);
+                if (m_apActiveArcs[k] == nullptr) continue;
                 SpawnArc(this, k, level, sphereScale);
             }
         }
     }
     // The burst node: while its time runs it flickers (shown at its grown scale every other frame).
-    CSGLeaf* burst = static_cast<CSGLeaf*>(m_unk228);
+    CSGLeaf* burst = static_cast<CSGLeaf*>(m_pBurstNode);
     if (burst != nullptr) {
-        if (!(m_unk314 > 0.0f)) {
+        if (!(m_fBurstTimeLeft > 0.0f)) {
             TransformFx::HideNode(burst);
         } else {
             if (TransformFx::IsNodeHidden(burst) != 0) {
-                const float from = m_unk318;
-                const float slope = (m_unk31c - from) / m_unk22c;
-                float scale = ppc::fmadds(m_unk22c - m_unk314, slope, from) * m_unk240[level];
+                const float from = m_fBurstStartScale;
+                const float slope = (m_fBurstEndScale - from) / m_fBurstDuration;
+                float scale = ppc::fmadds(m_fBurstDuration - m_fBurstTimeLeft, slope, from) * m_afBurstScaleFactor[level];
                 const RwV3d& at = burst->m_pRwFrame->modelling.at;  // the current scale (frame +0x30)
                 scale = scale / Sqrtf(ppc::fmadds(at.z, at.z, ppc::fmadds(at.x, at.x, at.y * at.y)));
                 burst->ScaleXYZ(scale, scale, scale);  // 0x000d0d28
@@ -435,44 +435,44 @@ void CKElectricSphere::UpdateEffect(float dt) {
             } else {
                 TransformFx::HideNode(burst);
             }
-            m_unk314 = m_unk314 - dt;
+            m_fBurstTimeLeft = m_fBurstTimeLeft - dt;
         }
     }
     // Level 2: held near the dash's top value for +0x1f8, the dash explosion (+0x1f4) and the dash stopped.
-    CKImpulsionCpnt* dash = static_cast<CKImpulsionCpnt*>(m_unk18c);
-    if (m_unk29c >= dash->m_unk04[0] - kDashTopMargin && m_levelIndex == 2) {
-        m_unk324 = dt + m_unk324;
-        if (m_unk1f8 <= m_unk324) {
-            CKExplosionNodeFx* fx = static_cast<CKExplosionNodeFx*>(TransformFx::Acquire(m_unk1f4, this));
+    CKImpulsionCpnt* dash = static_cast<CKImpulsionCpnt*>(m_pDashImpulsion);
+    if (m_fDashTimeScale >= dash->m_unk04[0] - kDashTopMargin && m_levelIndex == 2) {
+        m_fTopDashHoldTime = dt + m_fTopDashHoldTime;
+        if (m_fLevel2DashExplosionDelay <= m_fTopDashHoldTime) {
+            CKExplosionNodeFx* fx = static_cast<CKExplosionNodeFx*>(TransformFx::Acquire(m_pLevel2DashExplosion, this));
             if (fx != nullptr) {
                 fx->SetDamageOwner(m_pHost->GetOwner(), this);              // vt+0x08; 0x001b6340
                 fx->SetDamageCategory(m_pHost->GetCollisionGroup(), this);  // vt+0xb0; 0x001b6318
                 fx->SetDamageFlags(m_pHost->GetCollisionMask(), this);      // vt+0xb4; 0x001b62f0
-                fx->SetDamage(m_unk1fc, this);                              // 0x001b62c8
+                fx->SetDamage(m_pLevel2DashExplosionDamage, this);                              // 0x001b62c8
                 const CVector3 position = m_pHost->GetOwnerPosition();      // vt+0x10
                 fx->SetTranslation(&position, this);  // 0x001b66e8
                 fx->Trigger(this, 0);                 // 0x001b82a8
                 fx->ReleaseReservation(this);         // vt+0x54
-                dash->m_unk2c = 0.0f;
-                dash->m_unk24 = 0.0f;
-                dash->m_unk28 = 0.0f;
-                m_unk324 = 0.0f;
+                dash->m_fImpulseTimer = 0.0f;
+                dash->m_fValue = 0.0f;
+                dash->m_fSpeed = 0.0f;
+                m_fTopDashHoldTime = 0.0f;
             }
         }
     } else {
-        m_unk324 = 0.0f;
+        m_fTopDashHoldTime = 0.0f;
     }
-    if (m_unk288 != nullptr) static_cast<CKAnimatedFxCollection*>(m_unk288)->Update(dt);  // 0x005cccb0 (bridge 0x0098f4b0)
+    if (m_pActiveAnimFx != nullptr) static_cast<CKAnimatedFxCollection*>(m_pActiveAnimFx)->Update(dt);  // 0x005cccb0 (bridge 0x0098f4b0)
     // The timed explosion at the hot spot, then the next interval (one Rand_Int).
-    m_unk330 = m_unk330 - scaled;
-    if (m_unk330 <= 0.0f) {
-        CKExplosionNodeFx* fx = static_cast<CKExplosionNodeFx*>(TransformFx::Acquire(m_unk200[level], this));
+    m_fNextTimedExplosion = m_fNextTimedExplosion - scaled;
+    if (m_fNextTimedExplosion <= 0.0f) {
+        CKExplosionNodeFx* fx = static_cast<CKExplosionNodeFx*>(TransformFx::Acquire(m_apTimedExplosions[level], this));
         if (fx == nullptr) return;
         const CVector3 position = m_pHost->GetHotspotPosition(m_ui8HotSpot);  // vt+0xd0
         fx->SetTranslation(&position, this);  // 0x001b66e8
         fx->Trigger(this, 0);                 // 0x001b82a8
         fx->ReleaseReservation(this);         // vt+0x54
-        m_unk330 = NextInterval(m_unk20c[level], m_unk218[level]);
+        m_fNextTimedExplosion = NextInterval(m_afTimedExplosionRateBase[level], m_afTimedExplosionRateSpread[level]);
     }
 }
 
@@ -492,44 +492,44 @@ void ExplodeAtOwner(IKSerializable* data, const IKSerializable* owner, CKS08Abil
 void CKElectricSphere::SetFxActive(int32_t on) {
     if (on != 0) {
         if (m_levelIndex != 0) {
-            CKParticlesEffectFxData* loop = static_cast<CKParticlesEffectFxData*>(m_unk268);
+            CKParticlesEffectFxData* loop = static_cast<CKParticlesEffectFxData*>(m_pLoopParticlesData);
             loop->m_pAttachHotSpot = m_pHost->GetHotspot(m_ui8HotSpot);  // vt+0xcc
             loop->m_pAttachOwner = nullptr;
-            m_unk26c = TransformFx::Acquire(m_unk268, this);
+            m_pActiveLoopParticles = TransformFx::Acquire(m_pLoopParticlesData, this);
         }
-        ExplodeAtOwner(m_unk1ec, this, m_pHost);
+        ExplodeAtOwner(m_pStartExplosion, this, m_pHost);
         for (uint32_t i = 0; i < 2; ++i) {
-            IKSerializable* data = i == 0 ? m_unk1dc : m_unk1e0;
+            IKSerializable* data = i == 0 ? m_pSparkFxDataA : m_pSparkFxDataB;
             CKSparkFxData* spark = static_cast<CKSparkFxData*>(data);
             spark->m_unk10 = m_pHost->GetHotspot(2);
             spark->m_unk0c = nullptr;
             IKFx* fx = TransformFx::Acquire(data, this);
             if (i == 0) {
-                m_unk1e4 = fx;
+                m_pActiveSparkA = fx;
             } else {
-                m_unk1e8 = fx;
+                m_pActiveSparkB = fx;
             }
         }
         if (m_levelIndex == 1 || m_levelIndex == 2) {
-            IKSerializable* collection = m_levelIndex == 1 ? m_unk280 : m_unk284;
-            m_unk288 = collection;
+            IKSerializable* collection = m_levelIndex == 1 ? m_pAnimFxLevel1 : m_pAnimFxLevel2;
+            m_pActiveAnimFx = collection;
             CSGLeaf* node = TransformFx::OwnerNode(m_pHost);
             SAnimatedFxRig* rigs = TransformFx::AttachmentSets(m_pHost);
             static_cast<CKAnimatedFxCollection*>(collection)->Play(
                 node, rigs, static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_ui8HotSpot)));  // 0x005cc528
         }
-        CKPointLightFxData* light = static_cast<CKPointLightFxData*>(m_unk270[m_levelIndex]);
+        CKPointLightFxData* light = static_cast<CKPointLightFxData*>(m_apPointLightFxData[m_levelIndex]);
         light->m_pAttachHotSpot = m_pHost->GetHotspot(m_ui8HotSpot);
         light->m_pAttachNode = nullptr;
-        m_unk27c = TransformFx::Acquire(m_unk270[m_levelIndex], this);
+        m_pActivePointLight = TransformFx::Acquire(m_apPointLightFxData[m_levelIndex], this);
         CKSound* loopSound = GetFxSound(1);
-        m_unk328 = loopSound;
+        m_pLoopSound = loopSound;
         if (loopSound != nullptr) {
             loopSound->SetAttachObject(TransformFx::OwnerNode(m_pHost));  // 0x00111350
             loopSound->Play(0.0f);                                       // 0x00111230
         }
         CKSound* dashSound = GetFxSound(3);
-        m_unk32c = dashSound;
+        m_pDashSound = dashSound;
         if (dashSound != nullptr) {
             dashSound->SetAttachObject(TransformFx::OwnerNode(m_pHost));
             dashSound->SetPitch(1.0f);  // 0x00110ea0
@@ -537,42 +537,42 @@ void CKElectricSphere::SetFxActive(int32_t on) {
         }
         return;
     }
-    if (m_unk26c != nullptr) {
-        TransformFx::ReleaseParticles(&m_unk26c, this);
-        ExplodeAtOwner(m_unk1f0, this, m_pHost);
+    if (m_pActiveLoopParticles != nullptr) {
+        TransformFx::ReleaseParticles(&m_pActiveLoopParticles, this);
+        ExplodeAtOwner(m_pStopExplosion, this, m_pHost);
     }
-    TransformFx::ReleaseSpark(&m_unk1e4, this);
-    TransformFx::ReleaseSpark(&m_unk1e8, this);
+    TransformFx::ReleaseSpark(&m_pActiveSparkA, this);
+    TransformFx::ReleaseSpark(&m_pActiveSparkB, this);
     for (uint32_t i = 0; i < 4; i += 2) {
         for (uint32_t k = i; k < i + 2; ++k) {
-            if (m_unk258[k] == nullptr) continue;
-            static_cast<IKFx*>(m_unk258[k])->StopAndRelease(this);  // vt+0x58
-            m_unk258[k] = nullptr;
+            if (m_apActiveArcs[k] == nullptr) continue;
+            static_cast<IKFx*>(m_apActiveArcs[k])->StopAndRelease(this);  // vt+0x58
+            m_apActiveArcs[k] = nullptr;
         }
     }
-    if (m_unk288 != nullptr) {
-        static_cast<CKAnimatedFxCollection*>(m_unk288)->Stop();  // 0x005cc990
-        m_unk288 = nullptr;
+    if (m_pActiveAnimFx != nullptr) {
+        static_cast<CKAnimatedFxCollection*>(m_pActiveAnimFx)->Stop();  // 0x005cc990
+        m_pActiveAnimFx = nullptr;
     }
-    if (m_unk27c != nullptr) {
-        static_cast<IKFx*>(m_unk27c)->StopAndRelease(this);  // vt+0x58
-        m_unk27c = nullptr;
+    if (m_pActivePointLight != nullptr) {
+        static_cast<IKFx*>(m_pActivePointLight)->StopAndRelease(this);  // vt+0x58
+        m_pActivePointLight = nullptr;
     }
-    if (m_unk328 != nullptr) {
-        static_cast<CKSound*>(m_unk328)->Stop(0);  // 0x001111b0
-        m_unk328 = nullptr;
+    if (m_pLoopSound != nullptr) {
+        static_cast<CKSound*>(m_pLoopSound)->Stop(0);  // 0x001111b0
+        m_pLoopSound = nullptr;
     }
-    if (m_unk32c != nullptr) {
-        static_cast<CKSound*>(m_unk32c)->Stop(0);
-        m_unk32c = nullptr;
+    if (m_pDashSound != nullptr) {
+        static_cast<CKSound*>(m_pDashSound)->Stop(0);
+        m_pDashSound = nullptr;
     }
 }
 
 // 0x00396b58 CKElectricSphere_PostLoad
 int32_t CKElectricSphere::PostLoad(int32_t type) {
     CKTransformElement::PostLoad(type);
-    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_unk224), 1, 0, 0);  // 0x005832a8
-    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_unk228), 1, 0, 0);
+    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_pSphereNode), 1, 0, 0);  // 0x005832a8
+    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_pBurstNode), 1, 0, 0);
     return 1;
 }
 
@@ -581,61 +581,61 @@ int32_t CKElectricSphere::PostLoad(int32_t type) {
 int32_t CKElectricSphere::Load(IKFile* file, int32_t type) {
     CKTransformElement::Load(file, type);
     if (type == 0) {
-        IKFile_ReadRef(file, &m_unk1ec);
-        IKFile_ReadRef(file, &m_unk1f0);
-        IKFile_ReadRef(file, &m_unk1dc);
-        IKFile_ReadRef(file, &m_unk1e0);
-        IKFile_ReadRef(file, &m_unk224);
-        IKFile_ReadRef(file, &m_unk18c);
+        IKFile_ReadRef(file, &m_pStartExplosion);
+        IKFile_ReadRef(file, &m_pStopExplosion);
+        IKFile_ReadRef(file, &m_pSparkFxDataA);
+        IKFile_ReadRef(file, &m_pSparkFxDataB);
+        IKFile_ReadRef(file, &m_pSphereNode);
+        IKFile_ReadRef(file, &m_pDashImpulsion);
         for (uint32_t level = 0; level < 3; ++level) {
-            ReadF32LE(file, &m_unk154[level]);
-            ReadF32LE(file, &m_unk160[level]);
-            ReadS32LE(file, &m_unk16c[level]);
+            ReadF32LE(file, &m_afHitSphereRadius[level]);
+            ReadF32LE(file, &m_afPulsePeriod[level]);
+            ReadS32LE(file, &m_ai32SphereTopAlpha[level]);
         }
-        ReadF32LE(file, &m_unk178);
-        IKFile_ReadRef(file, &m_unk24c[0]);
-        IKFile_ReadRef(file, &m_unk24c[1]);
-        IKFile_ReadRef(file, &m_unk24c[2]);
+        ReadF32LE(file, &m_fSphereScaleSpread);
+        IKFile_ReadRef(file, &m_apArcFxData[0]);
+        IKFile_ReadRef(file, &m_apArcFxData[1]);
+        IKFile_ReadRef(file, &m_apArcFxData[2]);
         for (uint32_t level = 0; level < 3; ++level) {
-            ReadF32LE(file, &m_unk190[level]);
-            ReadF32LE(file, &m_unk19c[level]);
-            ReadF32LE(file, &m_unk1a8[level]);
-            ReadF32LE(file, &m_unk1b4[level]);
-            ReadF32LE(file, &m_unk1c0[level]);
-            ReadF32LE(file, &m_unk1cc[level]);
+            ReadF32LE(file, &m_afArcTurnSpeedBase[level]);
+            ReadF32LE(file, &m_afArcTurnSpeedSpread[level]);
+            ReadF32LE(file, &m_afArcStartHeightBase[level]);
+            ReadF32LE(file, &m_afArcStartHeightSpread[level]);
+            ReadF32LE(file, &m_afArcEndReachBase[level]);
+            ReadF32LE(file, &m_afArcEndReachSpread[level]);
         }
-        ReadF32LE(file, &m_unk1d8);
-        ReadF32LE(file, &m_unk17c);
-        IKFile_ReadRef(file, &m_unk280);
-        IKFile_ReadRef(file, &m_unk284);
-        IKFile_ReadRef(file, &m_unk268);
-        IKFile_ReadRef(file, &m_unk228);
-        ReadF32LE(file, &m_unk22c);
-        ReadF32LE(file, &m_unk230);
-        ReadF32LE(file, &m_unk234);
-        ReadF32LE(file, &m_unk238);
-        ReadF32LE(file, &m_unk23c);
-        IKFile_ReadRef(file, &m_unk1f4);
-        ReadF32LE(file, &m_unk1f8);
+        ReadF32LE(file, &m_fArcMinDashThreshold);
+        ReadF32LE(file, &m_fArcStartRadiusFactor);
+        IKFile_ReadRef(file, &m_pAnimFxLevel1);
+        IKFile_ReadRef(file, &m_pAnimFxLevel2);
+        IKFile_ReadRef(file, &m_pLoopParticlesData);
+        IKFile_ReadRef(file, &m_pBurstNode);
+        ReadF32LE(file, &m_fBurstDuration);
+        ReadF32LE(file, &m_fBurstStartScaleBase);
+        ReadF32LE(file, &m_fBurstStartScaleSpread);
+        ReadF32LE(file, &m_fBurstEndScaleBase);
+        ReadF32LE(file, &m_fBurstEndScaleSpread);
+        IKFile_ReadRef(file, &m_pLevel2DashExplosion);
+        ReadF32LE(file, &m_fLevel2DashExplosionDelay);
         for (uint32_t level = 0; level < 3; ++level) {
-            ReadF32LE(file, &m_unk180[level]);
-            ReadF32LE(file, &m_unk240[level]);
+            ReadF32LE(file, &m_afSphereScale[level]);
+            ReadF32LE(file, &m_afBurstScaleFactor[level]);
         }
-        IKFile_ReadRef(file, &m_unk28c);
-        ReadF32LE(file, &m_unk290);
-        IKFile_ReadRef(file, &m_unk1fc);
-        IKFile_ReadRef(file, &m_unk270[0]);
-        IKFile_ReadRef(file, &m_unk270[1]);
-        IKFile_ReadRef(file, &m_unk270[2]);
-        IKFile_ReadRef(file, &m_unk200[0]);
-        IKFile_ReadRef(file, &m_unk200[1]);
-        IKFile_ReadRef(file, &m_unk200[2]);
-        ReadF32LE(file, &m_unk20c[0]);
-        ReadF32LE(file, &m_unk218[0]);
-        ReadF32LE(file, &m_unk20c[1]);
-        ReadF32LE(file, &m_unk218[1]);
-        ReadF32LE(file, &m_unk20c[2]);
-        ReadF32LE(file, &m_unk218[2]);
+        IKFile_ReadRef(file, &m_pSoundDico);
+        ReadF32LE(file, &m_fDashSoundTopPitch);
+        IKFile_ReadRef(file, &m_pLevel2DashExplosionDamage);
+        IKFile_ReadRef(file, &m_apPointLightFxData[0]);
+        IKFile_ReadRef(file, &m_apPointLightFxData[1]);
+        IKFile_ReadRef(file, &m_apPointLightFxData[2]);
+        IKFile_ReadRef(file, &m_apTimedExplosions[0]);
+        IKFile_ReadRef(file, &m_apTimedExplosions[1]);
+        IKFile_ReadRef(file, &m_apTimedExplosions[2]);
+        ReadF32LE(file, &m_afTimedExplosionRateBase[0]);
+        ReadF32LE(file, &m_afTimedExplosionRateSpread[0]);
+        ReadF32LE(file, &m_afTimedExplosionRateBase[1]);
+        ReadF32LE(file, &m_afTimedExplosionRateSpread[1]);
+        ReadF32LE(file, &m_afTimedExplosionRateBase[2]);
+        ReadF32LE(file, &m_afTimedExplosionRateSpread[2]);
     }
     return 1;
 }

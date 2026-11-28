@@ -38,24 +38,24 @@ const uint8_t kFireHotSpotCount[9] = {7, 10, 14, 13, 14, 17, 25, 17, 12};
 // last attacking dragon (+0x694; dragon 0 without one) at hot spot 1.
 void CKHkS08Enemy::UpdateStatus0Dot(IKTime* clock) {
     const float zero = 0.0f;  // TOC 0x14c8
-    if (m_unk6b8 <= zero) return;
-    const CKS08EnemyCpnt* kind = m_unk188;
+    if (m_fFireGauge <= zero) return;
+    const CKS08EnemyCpnt* kind = m_pEnemyCpnt;
     float burn = kind->m_unk268 / -100.0f;  // TOC 0x14b8
     burn = burn + 1.0f;                      // TOC 0x1490
     burn = burn * kind->m_unk288;
-    burn = burn * m_unk1fc;
-    m_unk258 = m_unk258 - burn;
-    if (m_unk6b8 > kind->m_unk244) m_unk6b8 = kind->m_unk244;
-    if ((m_bitArray & 0x800u) == 0 && !(m_unk6b8 <= zero)) {
+    burn = burn * m_fScaledDt;
+    m_fHealth = m_fHealth - burn;
+    if (m_fFireGauge > kind->m_unk244) m_fFireGauge = kind->m_unk244;
+    if ((m_bitArray & 0x800u) == 0 && !(m_fFireGauge <= zero)) {
         m_bitArray = (m_bitArray & 0xfffff7ffu) | 0x800u;
         PlaySound(0x14, 1, m_pKGLObject);  // 0x002795c0
     }
-    if ((m_bitArray & 0x2000000u) == 0 && m_unk6b8 >= m_unk188->m_unk244) {  // fcmpu + cror gt|eq
+    if ((m_bitArray & 0x2000000u) == 0 && m_fFireGauge >= m_pEnemyCpnt->m_unk244) {  // fcmpu + cror gt|eq
         CKSrvPathFinding* pathFinding = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);  // TOC 0x14bc
         CPFPoint point;
-        point.m_unk0c = 0xffff;
+        point.m_i16GraphNodeIndex = 0xffff;
         point.m_position = m_v3Position;
-        point.m_unk0c = m_PFCpnt.m_Destination.m_unk0c;
+        point.m_i16GraphNodeIndex = m_PFCpnt.m_Destination.m_i16GraphNodeIndex;
         pathFinding->FindSectorForPoint(&point);  // 0x001e5ca0
         uint8_t walkable = 0;
         if (PointInNodeBox(pathFinding, &point)) {
@@ -68,11 +68,11 @@ void CKHkS08Enemy::UpdateStatus0Dot(IKTime* clock) {
     }
     if (!PendingElementDamageIs(0)) {
         const float dt = clock->m_afDeltaTime[0];
-        const float gauge = m_unk6b8;
-        m_unk6b8 = gauge - dt * HeroStatusDecayRate(0);  // 0x0032a3d0
+        const float gauge = m_fFireGauge;
+        m_fFireGauge = gauge - dt * HeroStatusDecayRate(0);  // 0x0032a3d0
     }
-    if (m_unk6b8 <= zero) {
-        m_unk6b8 = zero;
+    if (m_fFireGauge <= zero) {
+        m_fFireGauge = zero;
         m_unk7b7 = 0;
         if ((m_bitArray & 0x800u) != 0) {
             m_bitArray &= 0xfffff7ffu;
@@ -106,18 +106,18 @@ void CKHkS08Enemy::UpdateStatus0Dot(IKTime* clock) {
             if (other == this) continue;
             const float dz = m_v3Position.z - other->m_v3Position.z;
             const float dx = m_v3Position.x - other->m_v3Position.x;
-            if (ppc::fmadds(dx, dx, dz * dz) <= m_unk188->m_unk26c) {  // cror lt|eq
-                other->AddBurnGauge(m_unk6b8 * m_unk188->m_unk270 * m_unk1fc);  // 0x0027ce90
+            if (ppc::fmadds(dx, dx, dz * dz) <= m_pEnemyCpnt->m_unk26c) {  // cror lt|eq
+                other->AddBurnGauge(m_fFireGauge * m_pEnemyCpnt->m_unk270 * m_fScaledDt);  // 0x0027ce90
                 other->m_unk7b7 = 1;
             }
         }
     }
     m_unk84c = m_unk84c + clock->m_afDeltaTime[0];
-    if (m_unk188->m_unk538 <= m_unk84c) {  // cror lt|eq
+    if (m_pEnemyCpnt->m_unk538 <= m_unk84c) {  // cror lt|eq
         m_unk84c = 0.0f;
         CVector3 at;
         GetHotSpot(1)->GetWorldPosition(&at);
-        IKSerializable* attacker = static_cast<IKSerializable*>(m_unk694);
+        IKSerializable* attacker = static_cast<IKSerializable*>(m_pLastAttacker);
         CKS08GameManager* manager = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager);  // TOC 0x14bc -> +0x8c
         if (attacker != nullptr && attacker->IsKindOfClass(0x25c2) != 0) {
             const uint8_t dragon = static_cast<CKHkS08Hero*>(attacker)->GetDragonIndex();  // 0x00361960
@@ -150,7 +150,7 @@ void CKHkS08Enemy::SetBurning(uint8_t on) {
     if (on == 0) return;
     PlayFxAtHotspot1(4);  // 0x0028d4a8
     if (m_mainState == 0x15 || m_reactState == 0xf) return;
-    SwitchMainState(m_unk188->m_unk28c == 0 ? 0x26 : 0x1a, nullptr);
+    SwitchMainState(m_pEnemyCpnt->m_unk28c == 0 ? 0x26 : 0x1a, nullptr);
     m_unk774 = 1.0f;  // TOC +0x1490
 }
 

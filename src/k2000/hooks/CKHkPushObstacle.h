@@ -274,5 +274,5 @@ DOTD_ASSERT_OFFSET(CKHkPushObstacle, m_ui8SideBits, 0x1a1);
 DOTD_ASSERT_OFFSET(CKHkPushObstacle, m_GrdContDatasIn, 0x1a4);
 DOTD_ASSERT_OFFSET(CKHkPushObstacle, m_GrdContDatasInOut, 0x1b4);
 DOTD_ASSERT_OFFSET(CKHkPushObstacle, m_ui16Flags1e4, 0x1e4);
-static_assert(offsetof(CKHkPushObstacle, m_i16NavNode) == offsetof(CKHkPushObstacle, m_vRestPos) + offsetof(CPFPoint, m_unk0c),
+static_assert(offsetof(CKHkPushObstacle, m_i16NavNode) == offsetof(CKHkPushObstacle, m_vRestPos) + offsetof(CPFPoint, m_i16GraphNodeIndex),
               "RestPoint: +0x164 / +0x170 as a CPFPoint");

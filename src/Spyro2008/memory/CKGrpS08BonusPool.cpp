@@ -79,7 +79,7 @@ namespace {
 // The upgrade points the four levels of a dragon cost (the records +0xc48.. for Spyro, +0xc84.. for Cynder; summed as
 // the original: [3] + [2] + [1] + [0]).
 uint32_t UpgradeCap(const CKS08GameManager* manager, uint32_t dragon) {
-    const CKS08GameManager::SRecord* costs = dragon == 0 ? manager->m_aUnkC48 : manager->m_aUnkC84;
+    const CKS08GameManager::SRecord* costs = dragon == 0 ? manager->m_aSpyroUpgradeCosts : manager->m_aCynderUpgradeCosts;
     return costs[3].m_unk8 + costs[2].m_unk8 + costs[1].m_unk8 + costs[0].m_unk8;
 }
 CKS08GameStructure* StatsOf(CKS08GameManager* manager) { return static_cast<CKS08GameStructure*>(manager->m_gameStructure); }
@@ -158,7 +158,7 @@ void CKGrpS08BonusPool::ApplyBonusToHero(IKSerializable* heroObject, IKSerializa
             return;
         }
         manager->AddDragonUpgradePoints(dragon, 0);
-        if (bonus->m_unk34 != 0) return;
+        if (bonus->m_bSharedCopy != 0) return;
         IKGrpHero* heroes = static_cast<IKGrpHero*>(manager->m_unk04[1]);
         IKSerializable* partner = heroes->m_apHeros[dragon == 0 ? 1 : 0];  // 0x002ca080 GetHeroByDragonIndex
         const RwFrame* frame = static_cast<CSGMovable*>(bonus->m_pKGLObject)->m_pRwFrame;
@@ -189,14 +189,14 @@ void CKGrpS08BonusPool::ApplyBonusToHero(IKSerializable* heroObject, IKSerializa
     case 9:
     case 12: {  // the shared points (the game structure's +0x80): Spyro (9) or Cynder (12) up to his cap, the rest to the other
         CKS08GameStructure* stats = StatsOf(manager);
-        uint32_t first = stats->m_unk80;
+        uint32_t first = stats->m_dwSharedBonusPoints;
         const uint32_t dragon = type == 9 ? 0u : 1u;
         const uint32_t total = GetDragonTotalUpgradePoints(stats, static_cast<int32_t>(dragon));
         const uint32_t cap = UpgradeCap(manager, dragon);
         uint32_t second = 0;
         if (!(cap > first + total)) {
             first = cap - total;
-            second = StatsOf(manager)->m_unk80 - first;
+            second = StatsOf(manager)->m_dwSharedBonusPoints - first;
         }
         if (m_ui32BonusType == 9) {
             manager->AddDragonUpgradePoints(0, first);

@@ -172,12 +172,12 @@ bool IsShown(IKSerializable* node) {
 // 0x003e6fe0 CKWindTwister_IsGroundTrailActive_maybe
 uint8_t CKWindTwister::IsGroundTrailActive() {
     if (m_levelIndex == 0) return 0;
-    return m_pHost->IsAirborne();  // vt+0x30
+    return m_pHost->IsOnGround();  // vt+0x30
 }
 
 // 0x003e7040 CKWindTwister_GetFxSound_maybe
 CKSound* CKWindTwister::GetFxSound(uint32_t which) {
-    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_unk30c);
+    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_pSoundDico);
     auto usable = [sounds](uint32_t index) {
         return sounds->GetSound(index) != nullptr && sounds->GetSound(index)->GetSample() != nullptr;  // 0x00111000
     };
@@ -210,43 +210,43 @@ void CKWindTwister::ApplyHeroControl(uint8_t on) {
 // 0x003e7318 CKWindTwister_End
 void CKWindTwister::End(int32_t forced) {
     m_pHost->SetHero1d20(1.0f);  // vt+0x84; TOC +0x4300
-    if (m_unk33c != nullptr) {
-        m_unk33c->Stop(0);  // 0x001111b0
-        m_unk33c = nullptr;
+    if (m_pLoopSound != nullptr) {
+        m_pLoopSound->Stop(0);  // 0x001111b0
+        m_pLoopSound = nullptr;
     }
-    if (m_unk340 != nullptr) {
-        m_unk340->Stop(0);
-        m_unk340 = nullptr;
+    if (m_pDashSound != nullptr) {
+        m_pDashSound->Stop(0);
+        m_pDashSound = nullptr;
     }
     CKTransformElement::End(forced);
-    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_unk2cc), 1, 0, 0);  // 0x005832a8
-    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_unk2d0), 1, 0, 0);
-    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_unk2d4), 1, 0, 0);
-    TransformFx::ReleaseMeshPop(&m_unk28c, this);
+    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_pConeMesh0), 1, 0, 0);  // 0x005832a8
+    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_pConeMesh1), 1, 0, 0);
+    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_pConeMesh2), 1, 0, 0);
+    TransformFx::ReleaseMeshPop(&m_pActiveMeshPop, this);
 }
 
 // 0x003e7480 CKWindTwister_ResetRuntime
 void CKWindTwister::ResetRuntime() {
     CKTransformElement::ResetRuntime();
-    m_unk320 = 1.0f;  // TOC +0x4300
-    m_unk2e4 = nullptr;
+    m_fDashTimeScale = 1.0f;  // TOC +0x4300
+    m_pActiveAnimFx = nullptr;
     m_ui8HotSpot = 0;
     m_unk338 = 0;
-    m_unk2b4 = nullptr;
-    m_unk2c0 = nullptr;
-    m_unk2c8 = nullptr;
-    m_unk28c = nullptr;
-    m_unk314 = 0.0f;
-    m_unk318 = 0.0f;
-    m_unk31c = 0.0f;
-    m_unk334 = 0.0f;
-    m_unk330[0] = 0;
-    m_unk330[1] = 0;
-    m_unk330[2] = 0;
-    m_unk33c = nullptr;
-    m_unk340 = nullptr;
-    static_cast<CKS08ElementDamage*>(m_unk2f0)->SetAbilityId(GetAbilityId());  // vt+0x68
-    CKS08ElementDamage* second = static_cast<CKS08ElementDamage*>(m_unk280);
+    m_pActiveDashSparks = nullptr;
+    m_pActiveLoopParticles = nullptr;
+    m_pActiveDashParticles = nullptr;
+    m_pActiveMeshPop = nullptr;
+    m_fEffectTimer = 0.0f;
+    m_fStopFxTime = 0.0f;
+    m_fUnusedTimer2 = 0.0f;
+    m_fNextProjTimer = 0.0f;
+    m_abConeFadeState[0] = 0;
+    m_abConeFadeState[1] = 0;
+    m_abConeFadeState[2] = 0;
+    m_pLoopSound = nullptr;
+    m_pDashSound = nullptr;
+    static_cast<CKS08ElementDamage*>(m_pProjectileDamage)->SetAbilityId(GetAbilityId());  // vt+0x68
+    CKS08ElementDamage* second = static_cast<CKS08ElementDamage*>(m_pSecondaryDamage);
     second->SetAbilityId(GetAbilityId());
     second->SetDamageType(kAbilityDamageTypes[GetAbilityId() & 0xffu]);  // vt+0x64
     second->SetContinuous(1);                                             // vt+0x54
@@ -256,25 +256,25 @@ void CKWindTwister::ResetRuntime() {
 // 0x003e7a48 CKWindTwister_StopFx
 void CKWindTwister::StopFx() {
     CKTransformElement::StopFx();
-    m_unk318 = m_unk314;
+    m_fStopFxTime = m_fEffectTimer;
     // Each node's alpha now (its first geometry's, else the level's full alpha) is where its fade-out starts; without a
     // fade-out time it is hidden at once.
-    IKSerializable* nodes[3] = {m_unk2cc, m_unk2d0, m_unk2d4};
-    const int32_t* full[3] = {m_unk160, m_unk1a8, m_unk208};
+    IKSerializable* nodes[3] = {m_pConeMesh0, m_pConeMesh1, m_pConeMesh2};
+    const int32_t* full[3] = {m_ai32Cone0FullAlpha, m_ai32Cone1FullAlpha, m_ai32Cone2FullAlpha};
     for (uint32_t n = 0; n < 3; ++n) {
         IKSerializable* node = nodes[n];
         if (node == nullptr) continue;
         CGeometry* first = static_cast<CGeometry*>(static_cast<CNode*>(node)->m_lGeometryList);
         if (first != nullptr) {
-            m_unk324[n] = first->m_cGeometryColor[3];
+            m_aui32FadeOutStartAlpha[n] = first->m_cGeometryColor[3];
         } else {
-            m_unk324[n] = static_cast<uint32_t>(full[n][m_levelIndex]);
+            m_aui32FadeOutStartAlpha[n] = static_cast<uint32_t>(full[n][m_levelIndex]);
         }
-        const float time = n == 0 ? m_unk198 : (n == 1 ? m_unk1e0 : m_unk240);
+        const float time = n == 0 ? m_fCone0FadeOutTime : (n == 1 ? m_fCone1FadeOutTime : m_fCone2FadeOutTime);
         if (time == 0.0f) {  // TOC +0x4338
             TransformFx::HideNode(node);
         } else {
-            m_unk330[n] = 1;
+            m_abConeFadeState[n] = 1;
         }
     }
     m_pHost->SetAbilityAttackSpheres(this, 0, 1.0f, nullptr, 1.0f, nullptr);  // vt+0xfc
@@ -283,83 +283,83 @@ void CKWindTwister::StopFx() {
 
 // 0x003e7da0 CKWindTwister_Start
 void CKWindTwister::Start(CKS08AbilityHostBase* host) {
-    m_unk340 = nullptr;
-    m_unk33c = nullptr;
+    m_pDashSound = nullptr;
+    m_pLoopSound = nullptr;
     CKTransformElement::Start(host);
     // Each node shown at its start alpha and moved under the user's hot spot (the third at level 2 only).
     for (uint32_t n = 0; n < 3; ++n) {
-        IKSerializable* node = n == 0 ? m_unk2cc : (n == 1 ? m_unk2d0 : m_unk2d4);
+        IKSerializable* node = n == 0 ? m_pConeMesh0 : (n == 1 ? m_pConeMesh1 : m_pConeMesh2);
         if (node == nullptr) continue;
         if (n == 2 && m_levelIndex != 2) continue;
         TransformFx::ShowNode(node);
         // Node 0: the low byte of +0x16c[level] (lbz +0x16f + 4 x level); the others 0.
-        const uint8_t alpha = n == 0 ? static_cast<uint8_t>(m_unk16c[m_levelIndex] & 0xff) : 0;
+        const uint8_t alpha = n == 0 ? static_cast<uint8_t>(m_ai32Cone0StartAlpha[m_levelIndex] & 0xff) : 0;
         TransformFx::SetGeometriesAlpha(node, alpha);
         CSGLeaf* leaf = static_cast<CSGLeaf*>(node);
         if (leaf->m_pParent != nullptr) leaf->m_pParent->RemoveChild(leaf);                // vt+0x78
         static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_ui8HotSpot))->AttachVolume(leaf);  // vt+0xcc; 0x000ce2b8
     }
-    CKImpulsionCpnt* dash = static_cast<CKImpulsionCpnt*>(m_unk284);
-    dash->m_unk2c = 0.0f;
-    dash->m_unk24 = 0.0f;
-    dash->m_unk28 = 0.0f;
-    m_unk330[2] = 0;
+    CKImpulsionCpnt* dash = static_cast<CKImpulsionCpnt*>(m_pDashImpulsion);
+    dash->m_fImpulseTimer = 0.0f;
+    dash->m_fValue = 0.0f;
+    dash->m_fSpeed = 0.0f;
+    m_abConeFadeState[2] = 0;
     m_unk338 = 0;
-    m_unk334 = m_unk2fc;
-    m_unk320 = 1.0f;  // TOC +0x4300
-    m_unk314 = 0.0f;
-    m_unk31c = 0.0f;
-    m_unk330[0] = 0;
-    m_unk330[1] = 0;
+    m_fNextProjTimer = m_fProjInterval;
+    m_fDashTimeScale = 1.0f;  // TOC +0x4300
+    m_fEffectTimer = 0.0f;
+    m_fUnusedTimer2 = 0.0f;
+    m_abConeFadeState[0] = 0;
+    m_abConeFadeState[1] = 0;
 }
 
 // 0x003ec8d8 CKWindTwister_UpdateAttack_maybe
 void CKWindTwister::UpdateAttack(float dt) {
     if (m_levelIndex == 0) return;
-    CKImpulsionCpnt* dash = static_cast<CKImpulsionCpnt*>(m_unk284);
+    CKImpulsionCpnt* dash = static_cast<CKImpulsionCpnt*>(m_pDashImpulsion);
     if (m_pHost->IsAbilityButtonDown(3) != 0) {  // vt+0x8c
         dash->Impulse(1.0f);                       // 0x0024bce0; TOC +0x4300
         // The kick's spark on the hot spot (the inlined CKSrvFx::StartEffect: not kept).
-        CKSparkFxData* kick = static_cast<CKSparkFxData*>(m_unk2b8);
+        CKSparkFxData* kick = static_cast<CKSparkFxData*>(m_pDashKickSparkFxData);
         kick->m_unk10 = m_pHost->GetHotspot(m_ui8HotSpot);  // vt+0xcc
         kick->m_unk0c = nullptr;
-        TransformFx::Start(m_unk2b8, this);
+        TransformFx::Start(m_pDashKickSparkFxData, this);
     }
     dash->Update(dt);  // 0x0024bd40
-    m_unk320 = dash->m_unk24;
-    m_pHost->SetHero1d20(m_unk320);  // vt+0x84
+    m_fDashTimeScale = dash->m_fValue;
+    m_pHost->SetHero1d20(m_fDashTimeScale);  // vt+0x84
     // Near the dash's top value (cror: >=) the dash particles and spark are taken; below (bge without cror: a NaN
     // keeps them) they are let go.
-    if (m_unk320 >= dash->m_unk04[0] - kNearTop) {
-        if (m_unk2c8 == nullptr) {
+    if (m_fDashTimeScale >= dash->m_unk04[0] - kNearTop) {
+        if (m_pActiveDashParticles == nullptr) {
             IKSerializable* spot = m_pHost->GetHotspot(m_ui8HotSpot);
-            CKParticlesEffectFxData* particles = static_cast<CKParticlesEffectFxData*>(m_unk2c4);
+            CKParticlesEffectFxData* particles = static_cast<CKParticlesEffectFxData*>(m_pDashParticlesData);
             particles->m_pAttachOwner = nullptr;
             particles->m_pAttachHotSpot = spot;
-            m_unk2c8 = TransformFx::Acquire(m_unk2c4, this);
+            m_pActiveDashParticles = TransformFx::Acquire(m_pDashParticlesData, this);
         }
-        if (m_unk2b4 == nullptr) {
+        if (m_pActiveDashSparks == nullptr) {
             IKSerializable* spot = m_pHost->GetHotspot(m_ui8HotSpot);
-            CKSparkFxData* spark = static_cast<CKSparkFxData*>(m_unk2b0);
+            CKSparkFxData* spark = static_cast<CKSparkFxData*>(m_pDashSparkFxData);
             spark->m_unk0c = nullptr;
             spark->m_unk10 = spot;
-            m_unk2b4 = TransformFx::Acquire(m_unk2b0, this);
+            m_pActiveDashSparks = TransformFx::Acquire(m_pDashSparkFxData, this);
         }
     }
-    if (m_unk320 < dash->m_unk04[0] - kNearTop) {
-        TransformFx::ReleaseParticles(&m_unk2c8, this);
-        TransformFx::ReleaseSpark(&m_unk2b4, this);
+    if (m_fDashTimeScale < dash->m_unk04[0] - kNearTop) {
+        TransformFx::ReleaseParticles(&m_pActiveDashParticles, this);
+        TransformFx::ReleaseSpark(&m_pActiveDashSparks, this);
     }
 }
 
 // 0x003ead10 CKWindTwister_UpdateEffect_maybe
 void CKWindTwister::UpdateEffect(float dt) {
-    const float scaled = dt * m_unk320;
-    m_unk314 = scaled + m_unk314;
-    m_unk31c = scaled + m_unk31c;
-    CKImpulsionCpnt* dash = static_cast<CKImpulsionCpnt*>(m_unk284);
-    float timeScale = m_unk320;
-    if (m_unk340 != nullptr) {
+    const float scaled = dt * m_fDashTimeScale;
+    m_fEffectTimer = scaled + m_fEffectTimer;
+    m_fUnusedTimer2 = scaled + m_fUnusedTimer2;
+    CKImpulsionCpnt* dash = static_cast<CKImpulsionCpnt*>(m_pDashImpulsion);
+    float timeScale = m_fDashTimeScale;
+    if (m_pDashSound != nullptr) {
         // The dash sound's pitch: 1 at the dash's low value up to +0x310 at its top (cror: <= 0 gives 0, >= 1 gives 1).
         const float low = dash->m_unk04[1];
         float t = (timeScale - low) / (dash->m_unk04[0] - low);
@@ -368,49 +368,49 @@ void CKWindTwister::UpdateEffect(float dt) {
         } else if (t >= 1.0f) {
             t = 1.0f;
         }
-        m_unk340->SetPitch(ppc::fmadds(t, m_unk310 - 1.0f, 1.0f));  // 0x00110ea0
-        timeScale = m_unk320;
+        m_pDashSound->SetPitch(ppc::fmadds(t, m_fDashSoundTopPitch - 1.0f, 1.0f));  // 0x00110ea0
+        timeScale = m_fDashTimeScale;
     }
     const uint32_t level = static_cast<uint32_t>(m_levelIndex);
-    static_cast<CKS08ElementDamage*>(m_unk280)->m_unk10 = timeScale * m_unk274[level];
+    static_cast<CKS08ElementDamage*>(m_pSecondaryDamage)->m_fKnockbackForce = timeScale * m_afSecondaryKnockbackSpeed[level];
 
     // Node 0: fades in from +0x16c to +0x160 over +0x194 while the loop runs, then at +0x160 (once); after the stop it
     // fades from its stop alpha to +0x178 and is hidden +0x198 after the stop. Not tied to the height.
-    if (IsShown(m_unk2cc)) {
-        IKSerializable* node = m_unk2cc;
-        const float t = m_unk314;
-        const float in = m_unk194;
+    if (IsShown(m_pConeMesh0)) {
+        IKSerializable* node = m_pConeMesh0;
+        const float t = m_fEffectTimer;
+        const float in = m_fCone0FadeInTime;
         if (t < in && m_bLoop != 0) {
             if (static_cast<CNode*>(node)->m_lGeometryList != nullptr) {
                 const float rest = (in - t) / in;
                 const float done = t / in;
                 TransformFx::SetGeometriesAlpha(
-                    node, AlphaByte(ppc::fmadds(SignedToFloat(m_unk16c[level]), rest, SignedToFloat(m_unk160[level]) * done)));
+                    node, AlphaByte(ppc::fmadds(SignedToFloat(m_ai32Cone0StartAlpha[level]), rest, SignedToFloat(m_ai32Cone0FullAlpha[level]) * done)));
             }
-        } else if (m_unk330[0] == 0 && m_bLoop != 0) {
+        } else if (m_abConeFadeState[0] == 0 && m_bLoop != 0) {
             if (static_cast<CNode*>(node)->m_lGeometryList != nullptr) {
-                TransformFx::SetGeometriesAlpha(node, AlphaByte(SignedToFloat(m_unk160[level])));
+                TransformFx::SetGeometriesAlpha(node, AlphaByte(SignedToFloat(m_ai32Cone0FullAlpha[level])));
             }
-            m_unk330[0] = 1;
+            m_abConeFadeState[0] = 1;
         }
-        if (m_bLoop == 0 && m_unk330[0] != 0) {
-            const float now = m_unk314;
-            const float out = m_unk198;
-            if (now - m_unk318 >= out) {
-                m_unk330[0] = 0;
+        if (m_bLoop == 0 && m_abConeFadeState[0] != 0) {
+            const float now = m_fEffectTimer;
+            const float out = m_fCone0FadeOutTime;
+            if (now - m_fStopFxTime >= out) {
+                m_abConeFadeState[0] = 0;
                 TransformFx::HideNode(node);
             } else if (static_cast<CNode*>(node)->m_lGeometryList != nullptr) {
                 // BUG(original): the alpha runs on the whole timer, not on the time since the stop.
                 const float rest = (out - now) / out;
                 const float done = now / out;
                 TransformFx::SetGeometriesAlpha(
-                    node, AlphaByte(ppc::fmadds(UnsignedToFloat(m_unk324[0]), rest, SignedToFloat(m_unk178[level]) * done)));
+                    node, AlphaByte(ppc::fmadds(UnsignedToFloat(m_aui32FadeOutStartAlpha[0]), rest, SignedToFloat(m_ai32Cone0EndAlpha[level]) * done)));
             }
         }
-        const float wobble = m_unk190;
+        const float wobble = m_fCone0ScaleWobble;
         const float u = WT_RAND_U16();
-        const float spin = WrapDegrees(m_unk184[level] * m_unk314);
-        const float scale = ppc::fmadds(u / kRandMax * -2.0f, m_unk190, wobble + 1.0f) * m_unk19c[level];
+        const float spin = WrapDegrees(m_afCone0SpinDegPerSec[level] * m_fEffectTimer);
+        const float scale = ppc::fmadds(u / kRandMax * -2.0f, m_fCone0ScaleWobble, wobble + 1.0f) * m_afCone0Scale[level];
         SpinNode(node, spin, scale, nullptr);
     }
 
@@ -418,50 +418,50 @@ void CKWindTwister::UpdateEffect(float dt) {
     // end alpha; hidden when the timer passes the fade-out time) scaled down by the user's height above the ground
     // between the two heights (0 above the second), set when it differs from the first geometry's.
     for (uint32_t n = 1; n < 3; ++n) {
-        IKSerializable* node = n == 1 ? m_unk2d0 : m_unk2d4;
+        IKSerializable* node = n == 1 ? m_pConeMesh1 : m_pConeMesh2;
         if (n == 2 && m_levelIndex != 2) break;
         if (!IsShown(node)) continue;
         const uint32_t lv = static_cast<uint32_t>(m_levelIndex);
-        const float t = m_unk314;
+        const float t = m_fEffectTimer;
         // Node 2's full and start alphas are read at index 2 (+0x210 / +0x21c), its level being 2.
-        const float in = n == 1 ? m_unk1dc : m_unk23c;
-        float alpha = SignedToFloat(n == 1 ? m_unk1a8[lv] : m_unk208[2]);
+        const float in = n == 1 ? m_fCone1FadeInTime : m_fCone2FadeInTime;
+        float alpha = SignedToFloat(n == 1 ? m_ai32Cone1FullAlpha[lv] : m_ai32Cone2FullAlpha[2]);
         if (t < in && m_bLoop != 0) {
             const float done = t / in;
             const float rest = (in - t) / in;
-            alpha = ppc::fmadds(SignedToFloat(n == 1 ? m_unk1b4[lv] : m_unk214[2]), rest, alpha * done);
+            alpha = ppc::fmadds(SignedToFloat(n == 1 ? m_ai32Cone1StartAlpha[lv] : m_ai32Cone2StartAlpha[2]), rest, alpha * done);
         } else {
             const uint8_t loop = m_bLoop;
             bool fading = true;
-            if (m_unk330[n] == 0) {
+            if (m_abConeFadeState[n] == 0) {
                 if (loop == 0) {
                     fading = false;
                 } else {
-                    m_unk330[n] = 1;
+                    m_abConeFadeState[n] = 1;
                 }
             }
-            if (fading && loop == 0 && m_unk330[n] != 0) {
-                const float out = n == 1 ? m_unk1e0 : m_unk240;
+            if (fading && loop == 0 && m_abConeFadeState[n] != 0) {
+                const float out = n == 1 ? m_fCone1FadeOutTime : m_fCone2FadeOutTime;
                 if (t >= out) {
-                    m_unk330[n] = 0;
+                    m_abConeFadeState[n] = 0;
                     TransformFx::HideNode(node);
                 }
                 // BUG(original): the fade-out runs on the whole timer (and hides on it), not on the time since the stop.
                 const uint32_t lv2 = static_cast<uint32_t>(m_levelIndex);
-                const float now = m_unk314;
-                const float out2 = n == 1 ? m_unk1e0 : m_unk240;
+                const float now = m_fEffectTimer;
+                const float out2 = n == 1 ? m_fCone1FadeOutTime : m_fCone2FadeOutTime;
                 const float rest = (out2 - now) / out2;
                 const float done = now / out2;
-                alpha = ppc::fmadds(UnsignedToFloat(m_unk324[n]), rest,
-                                    SignedToFloat(n == 1 ? m_unk1c0[lv2] : m_unk220[lv2]) * done);
+                alpha = ppc::fmadds(UnsignedToFloat(m_aui32FadeOutStartAlpha[n]), rest,
+                                    SignedToFloat(n == 1 ? m_ai32Cone1EndAlpha[lv2] : m_ai32Cone2EndAlpha[lv2]) * done);
             }
         }
         const CVector3 position = m_pHost->GetOwnerPosition();  // vt+0x10
         const CVector3 ground = m_pHost->GetOwnerGroundPoint();  // vt+0x14
         const float height = position.y - ground.y;
         const uint32_t lv3 = static_cast<uint32_t>(m_levelIndex);
-        const float gone = n == 1 ? m_unk1fc[lv3] : m_unk25c[lv3];
-        const float start = n == 1 ? m_unk1f0[lv3] : m_unk250[lv3];
+        const float gone = n == 1 ? m_afCone1FadeHeightEnd[lv3] : m_afCone2FadeHeightEnd[lv3];
+        const float start = n == 1 ? m_afCone1FadeHeightStart[lv3] : m_afCone2FadeHeightStart[lv3];
         uint8_t byte = 0;
         if (height > gone) {
             byte = 0;
@@ -471,45 +471,45 @@ void CKWindTwister::UpdateEffect(float dt) {
             byte = AlphaByte(alpha);
         }
         SetAlphaIfChanged(node, byte);
-        const float wobble = n == 1 ? m_unk1d8 : m_unk238;
+        const float wobble = n == 1 ? m_fCone1ScaleWobble : m_fCone2ScaleWobble;
         const float u = WT_RAND_U16();
         const uint32_t lv4 = static_cast<uint32_t>(m_levelIndex);
-        const float spin = WrapDegrees((n == 1 ? m_unk1cc[lv4] : m_unk22c[lv4]) * m_unk314);
-        const float scale = ppc::fmadds(u / kRandMax * -2.0f, n == 1 ? m_unk1d8 : m_unk238, wobble + 1.0f) *
-                            (n == 1 ? m_unk1e4[lv4] : m_unk244[lv4]);
+        const float spin = WrapDegrees((n == 1 ? m_afCone1SpinDegPerSec[lv4] : m_afCone2SpinDegPerSec[lv4]) * m_fEffectTimer);
+        const float scale = ppc::fmadds(u / kRandMax * -2.0f, n == 1 ? m_fCone1ScaleWobble : m_fCone2ScaleWobble, wobble + 1.0f) *
+                            (n == 1 ? m_afCone1Scale[lv4] : m_afCone2Scale[lv4]);
         SpinNode(node, spin, scale, &height);
     }
 
-    if (m_unk2e4 != nullptr) static_cast<CKAnimatedFxCollection*>(m_unk2e4)->Update(scaled);  // TocBridge 0x0098f4b0
+    if (m_pActiveAnimFx != nullptr) static_cast<CKAnimatedFxCollection*>(m_pActiveAnimFx)->Update(scaled);  // TocBridge 0x0098f4b0
 
     // The ground mesh pop under the user while it is in the air (above level 0), at hot spot 0.
     if (IsGroundTrailActive() != 0) {  // vt+0x8c
-        if (m_unk28c == nullptr) {
+        if (m_pActiveMeshPop == nullptr) {
             IKSerializable* spot = m_pHost->GetHotspot(0);  // vt+0xcc
-            CKMeshPopFxData* data = static_cast<CKMeshPopFxData*>(m_unk288);
+            CKMeshPopFxData* data = static_cast<CKMeshPopFxData*>(m_pGroundMeshPopFxData);
             data->m_unk08 = nullptr;
             data->m_unk0c = static_cast<CSGHotSpot*>(spot);
-            IKFx* fx = TransformFx::Acquire(m_unk288, this);
-            m_unk28c = fx;
+            IKFx* fx = TransformFx::Acquire(m_pGroundMeshPopFxData, this);
+            m_pActiveMeshPop = fx;
             if (fx != nullptr) static_cast<CKMeshPopNodeFx*>(static_cast<IKSerializable*>(fx))->SetActive(this, 1);  // 0x001cb568
         }
     } else {
-        TransformFx::ReleaseMeshPop(&m_unk28c, this);
+        TransformFx::ReleaseMeshPop(&m_pActiveMeshPop, this);
     }
 
     // Level 2: while dashing (the time scale above the dash's low value: ble, a NaN does not), a projectile every
     // +0x2fc (+- +0x300) seconds of scaled time.
     if (m_levelIndex != 2) return;
-    const float value = m_unk320;
+    const float value = m_fDashTimeScale;
     const float low = dash->m_unk04[1];
     if (!(value > low)) return;
-    if (!(m_unk334 < 0.0f)) {  // blt
-        m_unk334 = m_unk334 - scaled;
+    if (!(m_fNextProjTimer < 0.0f)) {  // blt
+        m_fNextProjTimer = m_fNextProjTimer - scaled;
         return;
     }
     const float high = dash->m_unk04[0];
     const float range = high - low;
-    const float speed = ppc::fmadds((high - value) / range, m_unk2f4, (value - low) / range * m_unk2f8);
+    const float speed = ppc::fmadds((high - value) / range, m_fProjSpeedMin, (value - low) / range * m_fProjSpeedMax);
     // A random horizontal direction (two draws), normalised, then its y set to +0x308.
     CVector3 dir = kNullVector;
     dir.x = ppc::fmadds(WT_RAND_U16(), kRandScale, 1.0f);
@@ -521,111 +521,111 @@ void CKWindTwister::UpdateEffect(float dt) {
         dir.x = dir.x * inverse;
         dir.y = dir.y * inverse;
     }
-    dir.y = m_unk308;
+    dir.y = m_fProjDirY;
     const CVector3 spot = m_pHost->GetHotspotPosition(m_ui8HotSpot);  // vt+0xd0
     CVector3 pos;
     pos.x = spot.x;
     pos.z = spot.z;
-    pos.y = spot.y + m_unk304;
+    pos.y = spot.y + m_fProjHeightOffset;
     // A third draw picks the projectile: below 0 the second one (+0x2ec), else the first (+0x2e8).
     const bool second = ppc::fmadds(WT_RAND_U16(), kRandScale, 1.0f) < 0.0f;
-    CKProjectileAccessor* first = static_cast<CKProjectileAccessor*>(m_unk2e8);
+    CKProjectileAccessor* first = static_cast<CKProjectileAccessor*>(m_pProjectileAccessorA);
     if (first->m_pProjectileType != nullptr && !second) {
-        first->LaunchEx(&pos, &dir, speed, m_unk2f0, m_pHost->GetOwner(), nullptr);  // vt+0x08; 0x001f2988
+        first->LaunchEx(&pos, &dir, speed, m_pProjectileDamage, m_pHost->GetOwner(), nullptr);  // vt+0x08; 0x001f2988
     }
-    CKProjectileAccessor* other = static_cast<CKProjectileAccessor*>(m_unk2ec);
+    CKProjectileAccessor* other = static_cast<CKProjectileAccessor*>(m_pProjectileAccessorB);
     if (other->m_pProjectileType != nullptr && second) {
-        other->LaunchEx(&pos, &dir, speed, m_unk2f0, m_pHost->GetOwner(), nullptr);
+        other->LaunchEx(&pos, &dir, speed, m_pProjectileDamage, m_pHost->GetOwner(), nullptr);
     }
     // The next one: (+0x2fc + +0x300 + +0x300 x a draw in [-1, 1]) / the time scale.
-    const float spread = m_unk300 + 0.0f;  // TOC +0x4338
-    const float base = m_unk2fc;
+    const float spread = m_fProjIntervalSpread + 0.0f;  // TOC +0x4338
+    const float base = m_fProjInterval;
     const float t = WT_RAND_U16() / kRandMax * -2.0f;  // TOC +0x4378 / +0x437c
-    m_unk334 = (base + ppc::fmadds(t, m_unk300, spread)) / m_unk320;
+    m_fNextProjTimer = (base + ppc::fmadds(t, m_fProjIntervalSpread, spread)) / m_fDashTimeScale;
 }
 
 // 0x003ed2c0 CKWindTwister_SetFxActive
 void CKWindTwister::SetFxActive(int32_t on) {
     if (on == 0) {
-        TransformFx::ReleaseParticles(&m_unk2c0, this);
-        TransformFx::ReleaseParticles(&m_unk2c8, this);
-        TransformFx::ReleaseSpark(&m_unk2b4, this);
-        if (m_unk2e4 != nullptr) {
-            static_cast<CKAnimatedFxCollection*>(m_unk2e4)->Stop();  // TocBridge 0x0098f4c0 -> 0x005cc990
-            m_unk2e4 = nullptr;
+        TransformFx::ReleaseParticles(&m_pActiveLoopParticles, this);
+        TransformFx::ReleaseParticles(&m_pActiveDashParticles, this);
+        TransformFx::ReleaseSpark(&m_pActiveDashSparks, this);
+        if (m_pActiveAnimFx != nullptr) {
+            static_cast<CKAnimatedFxCollection*>(m_pActiveAnimFx)->Stop();  // TocBridge 0x0098f4c0 -> 0x005cc990
+            m_pActiveAnimFx = nullptr;
         }
-        if (m_unk33c != nullptr) {
+        if (m_pLoopSound != nullptr) {
             // The end sound (dictionary 3) on the user, then the loop sound stopped.
             CKSound* endSound = GetFxSound(4);
             if (endSound != nullptr) {
                 endSound->SetAttachObject(TransformFx::OwnerNode(m_pHost));  // 0x00111350
                 endSound->Play(0.0f);                                       // 0x00111230; TOC +0x4338
             }
-            m_unk33c->Stop(0);  // 0x001111b0
-            m_unk33c = nullptr;
+            m_pLoopSound->Stop(0);  // 0x001111b0
+            m_pLoopSound = nullptr;
         }
-        if (m_unk340 != nullptr) {
-            m_unk340->Stop(0);
-            m_unk340 = nullptr;
+        if (m_pDashSound != nullptr) {
+            m_pDashSound->Stop(0);
+            m_pDashSound = nullptr;
         }
         // The trail's ribbons off, their points laid out between the anchors (CTrailNodeFx_SetRibbonActive_maybe
         // 0x9bdfb8, inlined; the count read once, a byte counter).
-        CTrailNodeFx* trail = static_cast<CTrailNodeFx*>(m_unk2d8);
+        CTrailNodeFx* trail = static_cast<CTrailNodeFx*>(m_pTrailNode);
         if (trail == nullptr) return;
         const uint32_t count = trail->m_ui32NbTrail;
-        for (uint8_t i = 0; i < count; ++i) static_cast<CTrailNodeFx*>(m_unk2d8)->SetRibbonActive(i, 0, 1);
+        for (uint8_t i = 0; i < count; ++i) static_cast<CTrailNodeFx*>(m_pTrailNode)->SetRibbonActive(i, 0, 1);
         return;
     }
-    CKParticlesEffectFxData* loop = static_cast<CKParticlesEffectFxData*>(m_unk2bc);
+    CKParticlesEffectFxData* loop = static_cast<CKParticlesEffectFxData*>(m_pLoopParticlesData);
     loop->m_pAttachHotSpot = m_pHost->GetHotspot(m_ui8HotSpot);  // vt+0xcc
     loop->m_pAttachOwner = nullptr;
-    m_unk2c0 = TransformFx::Acquire(m_unk2bc, this);
+    m_pActiveLoopParticles = TransformFx::Acquire(m_pLoopParticlesData, this);
     if (m_levelIndex == 1 || static_cast<uint32_t>(m_levelIndex) > 1) {
-        IKSerializable* collection = m_levelIndex == 1 ? m_unk2dc : m_unk2e0;
-        m_unk2e4 = collection;
+        IKSerializable* collection = m_levelIndex == 1 ? m_pAnimFxLevel1 : m_pAnimFxLevel2;
+        m_pActiveAnimFx = collection;
         CSGLeaf* node = TransformFx::OwnerNode(m_pHost);
         SAnimatedFxRig* rigs = TransformFx::AttachmentSets(m_pHost);
         static_cast<CKAnimatedFxCollection*>(collection)->Play(
             node, rigs, static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_ui8HotSpot)));  // TocBridge 0x0098f4d0 -> 0x005cc528
     }
     CKSound* loopSound = GetFxSound(1);
-    m_unk33c = loopSound;
+    m_pLoopSound = loopSound;
     if (loopSound != nullptr) {
         loopSound->SetAttachObject(TransformFx::OwnerNode(m_pHost));  // 0x00111350
-        m_unk33c->Play(0.0f);                                        // 0x00111230
+        m_pLoopSound->Play(0.0f);                                        // 0x00111230
     }
     CKSound* dashSound = GetFxSound(3);
-    m_unk340 = dashSound;
+    m_pDashSound = dashSound;
     if (dashSound != nullptr) {
         dashSound->SetPitch(1.0f);  // 0x00110ea0; TOC +0x4300
-        m_unk340->SetAttachObject(TransformFx::OwnerNode(m_pHost));
-        m_unk340->Play(0.0f);
+        m_pDashSound->SetAttachObject(TransformFx::OwnerNode(m_pHost));
+        m_pDashSound->Play(0.0f);
     }
     ApplyDamageParams(0);  // vt+0x88 (one Rand_Int: the knock angle)
     const uint32_t level = static_cast<uint32_t>(m_levelIndex);
-    static_cast<CKS08ElementDamage*>(m_unk280)->m_unk10 = m_unk274[level];
-    m_pHost->SetAbilityAttackSpheres(this, 1, m_unk154[level], m_elementDamage, m_unk268[level], m_unk280);  // vt+0xfc
+    static_cast<CKS08ElementDamage*>(m_pSecondaryDamage)->m_fKnockbackForce = m_afSecondaryKnockbackSpeed[level];
+    m_pHost->SetAbilityAttackSpheres(this, 1, m_afPrimarySphereRadius[level], m_elementDamage, m_afSecondarySphereRadius[level], m_pSecondaryDamage);  // vt+0xfc
     // The trail: node 0's world matrix brought up to date (vt+0x50), its ribbons on (their points laid out between the
     // anchors).
-    CTrailNodeFx* trail = static_cast<CTrailNodeFx*>(m_unk2d8);
+    CTrailNodeFx* trail = static_cast<CTrailNodeFx*>(m_pTrailNode);
     if (trail == nullptr) return;
-    if (m_unk2cc != nullptr) static_cast<CSGLeaf*>(m_unk2cc)->ForceWorldMatrixUpdate();
-    const uint32_t count = static_cast<CTrailNodeFx*>(m_unk2d8)->m_ui32NbTrail;
-    for (uint8_t i = 0; i < count; ++i) static_cast<CTrailNodeFx*>(m_unk2d8)->SetRibbonActive(i, 1, 1);
+    if (m_pConeMesh0 != nullptr) static_cast<CSGLeaf*>(m_pConeMesh0)->ForceWorldMatrixUpdate();
+    const uint32_t count = static_cast<CTrailNodeFx*>(m_pTrailNode)->m_ui32NbTrail;
+    for (uint8_t i = 0; i < count; ++i) static_cast<CTrailNodeFx*>(m_pTrailNode)->SetRibbonActive(i, 1, 1);
 }
 
 // 0x003e7850 CKWindTwister_PostLoad
 int32_t CKWindTwister::PostLoad(int32_t type) {
     CKTransformElement::PostLoad(type);
-    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_unk2cc), 1, 0, 0);  // 0x005832a8
-    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_unk2d0), 1, 0, 0);
-    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_unk2d4), 1, 0, 0);
-    CSGLeaf* trail = static_cast<CSGLeaf*>(m_unk2d8);
+    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_pConeMesh0), 1, 0, 0);  // 0x005832a8
+    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_pConeMesh1), 1, 0, 0);
+    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_pConeMesh2), 1, 0, 0);
+    CSGLeaf* trail = static_cast<CSGLeaf*>(m_pTrailNode);
     if (trail == nullptr) return 1;
     if (trail->m_pParent != nullptr) trail->m_pParent->RemoveChild(trail);  // vt+0x78
-    CSGBranch* parent = m_unk2cc != nullptr ? static_cast<CSGBranch*>(m_unk2cc)
+    CSGBranch* parent = m_pConeMesh0 != nullptr ? static_cast<CSGBranch*>(m_pConeMesh0)
                                             : static_cast<CSGBranch*>(g_pEngine->m_dynamicSceneRoot);
-    parent->AddChild(static_cast<CSGLeaf*>(m_unk2d8));  // vt+0x70
+    parent->AddChild(static_cast<CSGLeaf*>(m_pTrailNode));  // vt+0x70
     return 1;
 }
 
@@ -634,53 +634,53 @@ int32_t CKWindTwister::PostLoad(int32_t type) {
 int32_t CKWindTwister::Load(IKFile* file, int32_t type) {
     CKTransformElement::Load(file, type);
     if (type == 0) {
-        IKFile_ReadRef(file, &m_unk2b0);
-        IKFile_ReadRef(file, &m_unk2b8);
-        IKFile_ReadRef(file, &m_unk288);
-        IKFile_ReadRef(file, &m_unk2bc);
-        IKFile_ReadRef(file, &m_unk2c4);
-        IKFile_ReadRef(file, &m_unk2cc);
-        IKFile_ReadRef(file, &m_unk2d0);
-        IKFile_ReadRef(file, &m_unk2d4);
-        IKFile_ReadRef(file, &m_unk284);
-        IKFile_ReadRef(file, &m_unk2e8);
-        IKFile_ReadRef(file, &m_unk2ec);
-        IKFile_ReadRef(file, &m_unk2dc);
-        IKFile_ReadRef(file, &m_unk2e0);
+        IKFile_ReadRef(file, &m_pDashSparkFxData);
+        IKFile_ReadRef(file, &m_pDashKickSparkFxData);
+        IKFile_ReadRef(file, &m_pGroundMeshPopFxData);
+        IKFile_ReadRef(file, &m_pLoopParticlesData);
+        IKFile_ReadRef(file, &m_pDashParticlesData);
+        IKFile_ReadRef(file, &m_pConeMesh0);
+        IKFile_ReadRef(file, &m_pConeMesh1);
+        IKFile_ReadRef(file, &m_pConeMesh2);
+        IKFile_ReadRef(file, &m_pDashImpulsion);
+        IKFile_ReadRef(file, &m_pProjectileAccessorA);
+        IKFile_ReadRef(file, &m_pProjectileAccessorB);
+        IKFile_ReadRef(file, &m_pAnimFxLevel1);
+        IKFile_ReadRef(file, &m_pAnimFxLevel2);
         for (int32_t i = 0; i < 3; ++i) {
-            ReadF32LE(file, &m_unk154[i]);
-            ReadS32LE(file, &m_unk160[i]);
-            ReadS32LE(file, &m_unk16c[i]);
-            ReadS32LE(file, &m_unk178[i]);
-            ReadF32LE(file, &m_unk19c[i]);
-            ReadF32LE(file, &m_unk184[i]);
-            ReadS32LE(file, &m_unk1a8[i]);
-            ReadS32LE(file, &m_unk1b4[i]);
-            ReadS32LE(file, &m_unk1c0[i]);
-            ReadF32LE(file, &m_unk1e4[i]);
-            ReadF32LE(file, &m_unk1cc[i]);
-            ReadF32LE(file, &m_unk1f0[i]);
-            ReadF32LE(file, &m_unk1fc[i]);
-            ReadS32LE(file, &m_unk208[i]);
-            ReadS32LE(file, &m_unk214[i]);
-            ReadS32LE(file, &m_unk220[i]);
-            ReadF32LE(file, &m_unk244[i]);
-            ReadF32LE(file, &m_unk22c[i]);
-            ReadF32LE(file, &m_unk250[i]);
-            ReadF32LE(file, &m_unk25c[i]);
+            ReadF32LE(file, &m_afPrimarySphereRadius[i]);
+            ReadS32LE(file, &m_ai32Cone0FullAlpha[i]);
+            ReadS32LE(file, &m_ai32Cone0StartAlpha[i]);
+            ReadS32LE(file, &m_ai32Cone0EndAlpha[i]);
+            ReadF32LE(file, &m_afCone0Scale[i]);
+            ReadF32LE(file, &m_afCone0SpinDegPerSec[i]);
+            ReadS32LE(file, &m_ai32Cone1FullAlpha[i]);
+            ReadS32LE(file, &m_ai32Cone1StartAlpha[i]);
+            ReadS32LE(file, &m_ai32Cone1EndAlpha[i]);
+            ReadF32LE(file, &m_afCone1Scale[i]);
+            ReadF32LE(file, &m_afCone1SpinDegPerSec[i]);
+            ReadF32LE(file, &m_afCone1FadeHeightStart[i]);
+            ReadF32LE(file, &m_afCone1FadeHeightEnd[i]);
+            ReadS32LE(file, &m_ai32Cone2FullAlpha[i]);
+            ReadS32LE(file, &m_ai32Cone2StartAlpha[i]);
+            ReadS32LE(file, &m_ai32Cone2EndAlpha[i]);
+            ReadF32LE(file, &m_afCone2Scale[i]);
+            ReadF32LE(file, &m_afCone2SpinDegPerSec[i]);
+            ReadF32LE(file, &m_afCone2FadeHeightStart[i]);
+            ReadF32LE(file, &m_afCone2FadeHeightEnd[i]);
         }
-        ReadF32LE(file, &m_unk190);
-        ReadF32LE(file, &m_unk194);
-        ReadF32LE(file, &m_unk198);
-        ReadF32LE(file, &m_unk2f4);
-        ReadF32LE(file, &m_unk2f8);
-        ReadF32LE(file, &m_unk2fc);
-        ReadF32LE(file, &m_unk300);
-        ReadF32LE(file, &m_unk304);
-        ReadF32LE(file, &m_unk308);
-        ReadF32LE(file, &m_unk1d8);
-        ReadF32LE(file, &m_unk1dc);
-        ReadF32LE(file, &m_unk1e0);
+        ReadF32LE(file, &m_fCone0ScaleWobble);
+        ReadF32LE(file, &m_fCone0FadeInTime);
+        ReadF32LE(file, &m_fCone0FadeOutTime);
+        ReadF32LE(file, &m_fProjSpeedMin);
+        ReadF32LE(file, &m_fProjSpeedMax);
+        ReadF32LE(file, &m_fProjInterval);
+        ReadF32LE(file, &m_fProjIntervalSpread);
+        ReadF32LE(file, &m_fProjHeightOffset);
+        ReadF32LE(file, &m_fProjDirY);
+        ReadF32LE(file, &m_fCone1ScaleWobble);
+        ReadF32LE(file, &m_fCone1FadeInTime);
+        ReadF32LE(file, &m_fCone1FadeOutTime);
         ReadF32LE(file, &m_unk290);
         ReadF32LE(file, &m_unk294);
         ReadF32LE(file, &m_unk298);
@@ -689,20 +689,20 @@ int32_t CKWindTwister::Load(IKFile* file, int32_t type) {
         ReadF32LE(file, &m_unk2a4);
         ReadS32LE(file, &m_unk2a8);
         ReadU32LE(file, &m_unk2ac);
-        ReadF32LE(file, &m_unk238);
-        ReadF32LE(file, &m_unk23c);
-        ReadF32LE(file, &m_unk240);
-        IKFile_ReadRef(file, &m_unk30c);
-        ReadF32LE(file, &m_unk310);
-        IKFile_ReadRef(file, &m_unk2f0);
-        IKFile_ReadRef(file, &m_unk280);
-        ReadF32LE(file, &m_unk268[0]);
-        ReadF32LE(file, &m_unk274[0]);
-        ReadF32LE(file, &m_unk268[1]);
-        ReadF32LE(file, &m_unk274[1]);
-        ReadF32LE(file, &m_unk268[2]);
-        ReadF32LE(file, &m_unk274[2]);
-        IKFile_ReadRef(file, &m_unk2d8);
+        ReadF32LE(file, &m_fCone2ScaleWobble);
+        ReadF32LE(file, &m_fCone2FadeInTime);
+        ReadF32LE(file, &m_fCone2FadeOutTime);
+        IKFile_ReadRef(file, &m_pSoundDico);
+        ReadF32LE(file, &m_fDashSoundTopPitch);
+        IKFile_ReadRef(file, &m_pProjectileDamage);
+        IKFile_ReadRef(file, &m_pSecondaryDamage);
+        ReadF32LE(file, &m_afSecondarySphereRadius[0]);
+        ReadF32LE(file, &m_afSecondaryKnockbackSpeed[0]);
+        ReadF32LE(file, &m_afSecondarySphereRadius[1]);
+        ReadF32LE(file, &m_afSecondaryKnockbackSpeed[1]);
+        ReadF32LE(file, &m_afSecondarySphereRadius[2]);
+        ReadF32LE(file, &m_afSecondaryKnockbackSpeed[2]);
+        IKFile_ReadRef(file, &m_pTrailNode);
     }
     return 1;
 }

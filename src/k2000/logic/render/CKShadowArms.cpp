@@ -77,18 +77,18 @@ const CVector3 kNullVector = {0.0f, 0.0f, 0.0f};  // TOC +0x3ffc -> 0x00c50d64
 // 0x003d22d8 CKShadowArms_Start
 void CKShadowArms::Start(CKS08AbilityHostBase* host) {
     CKProjectileElement::Start(host);
-    if (m_pHost != nullptr) m_pHost->SetHero1d20(m_unk214[m_unk04]);  // vt+0x84
-    m_unk208 = m_unk261;
-    m_unk260 = 0;
+    if (m_pHost != nullptr) m_pHost->SetHero1d20(m_afHeroAnimSpeed[m_ui32LevelIndex]);  // vt+0x84
+    m_ui8HotSpotIndex = m_ui8FirstHandHotSpot;
+    m_bReleased = 0;
 }
 
 // 0x003d21e0 CKShadowArms_Update
 uint8_t CKShadowArms::Update(float dt) {
     float held;
-    if (m_pHost->IsAbilityButtonDown(m_unk209) == 0 && m_pHost->GetAbilityButtonHoldTime(m_unk209, &held) == 0) {
-        m_unk260 = 1;  // vt+0x8c, vt+0x94
+    if (m_pHost->IsAbilityButtonDown(m_ui8ButtonIndex) == 0 && m_pHost->GetAbilityButtonHoldTime(m_ui8ButtonIndex, &held) == 0) {
+        m_bReleased = 1;  // vt+0x8c, vt+0x94
     }
-    CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_unk250);
+    CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_pAnimFxCollection);
     if (collection->m_bPlaying != 0) collection->Update(dt);  // TocBridge 0x0098f4b0 -> 0x005cccb0
     return CKProjectileElement::Update(dt);                    // 0x003be178
 }
@@ -96,7 +96,7 @@ uint8_t CKShadowArms::Update(float dt) {
 // 0x003d2648 CKShadowArms_End
 void CKShadowArms::End(int32_t forced) {
     m_pHost->SetHero1d20(1.0f);  // vt+0x84; TOC +0x3ff0
-    CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_unk250);
+    CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_pAnimFxCollection);
     if (collection->m_bPlaying != 0) collection->Stop();  // TocBridge 0x0098f4c0 -> 0x005cc990
     CKProjectileElement::End(static_cast<uint8_t>(forced));
 }
@@ -104,37 +104,37 @@ void CKShadowArms::End(int32_t forced) {
 // 0x003d21a8 CKShadowArms_ApplyHeroControl
 void CKShadowArms::ApplyHeroControl(uint8_t on) {
     CKProjectileElement::ApplyHeroControl(on);  // 0x003bcb48
-    m_unk208 = m_unk261;
+    m_ui8HotSpotIndex = m_ui8FirstHandHotSpot;
 }
 
 // 0x003d2150 CKShadowArms_ResetRuntime
 void CKShadowArms::ResetRuntime(int32_t type) {
     CKProjectileElement::ResetRuntime(type);  // 0x003bd1b0
-    m_unk262 = 8;
-    m_unk208 = 7;
-    m_unk209 = 1;
-    m_unk260 = 0;
-    m_unk261 = 7;
+    m_ui8SecondHandHotSpot = 8;
+    m_ui8HotSpotIndex = 7;
+    m_ui8ButtonIndex = 1;
+    m_bReleased = 0;
+    m_ui8FirstHandHotSpot = 7;
 }
 
 // 0x003d1c98 CKShadowArms_ApplyDamageParams: the level's normal values (the base's first set), in the base's order.
 void CKShadowArms::ApplyDamageParams(uint8_t continuous) {
     const float damageScale = m_pHost->GetDamageScale();  // vt+0xc0
     const float effectScale = m_pHost->GetEffectScale();  // vt+0xc4
-    CKS08ElementDamage* damage = static_cast<CKS08ElementDamage*>(m_unk20c);
-    damage->SetAmount(damageScale * static_cast<float>(static_cast<double>(m_unk08[m_unk04])));  // vt+0x50 (fcfid, frsp)
-    damage->SetStun(m_unka0[m_unk04]);                                     // vt+0x5c
-    damage->SetStunDuration(m_unk88[m_unk04]);                             // vt+0x60
-    damage->SetElementValue(effectScale * WordF32(m_unkb8[m_unk04]), 0);  // vt+0x58
-    damage->SetElementValue(effectScale * m_unkd0[m_unk04], 1);
-    damage->SetElementValue(effectScale * WordF32(m_unke8[m_unk04]), 2);
-    damage->SetElementValue(effectScale * m_unk118[m_unk04], 6);
-    damage->SetElementValue(effectScale * WordF32(m_unk100[m_unk04]), 4);
-    damage->SetElementValue(effectScale * WordF32(m_unk148[m_unk04]), 7);
+    CKS08ElementDamage* damage = static_cast<CKS08ElementDamage*>(m_pElementDamage);
+    damage->SetAmount(damageScale * static_cast<float>(static_cast<double>(m_ai32DamageNormal[m_ui32LevelIndex])));  // vt+0x50 (fcfid, frsp)
+    damage->SetStun(m_afStunAmountNormal[m_ui32LevelIndex]);                                     // vt+0x5c
+    damage->SetDisarmAmount(m_afDisarmAmountNormal[m_ui32LevelIndex]);                             // vt+0x60
+    damage->SetElementValue(effectScale * WordF32(m_afElem0Normal[m_ui32LevelIndex]), 0);  // vt+0x58
+    damage->SetElementValue(effectScale * m_afElem1Normal[m_ui32LevelIndex], 1);
+    damage->SetElementValue(effectScale * WordF32(m_afElem2Normal[m_ui32LevelIndex]), 2);
+    damage->SetElementValue(effectScale * m_afElem6Normal[m_ui32LevelIndex], 6);
+    damage->SetElementValue(effectScale * WordF32(m_afElem4Normal[m_ui32LevelIndex]), 4);
+    damage->SetElementValue(effectScale * WordF32(m_afElem7Normal[m_ui32LevelIndex]), 7);
     const uint32_t value3[3] = {m_unk160, m_unk164, m_unk168};
-    damage->SetElementValue(effectScale * WordF32(value3[m_unk04]), 3);
-    damage->SetUnk34(m_unk178[m_unk04]);  // vt+0x6c
-    damage->SetUnk35(m_unk17e[m_unk04]);  // vt+0x70
+    damage->SetElementValue(effectScale * WordF32(value3[m_ui32LevelIndex]), 3);
+    damage->SetUnk34(m_abDmgFlag34Normal[m_ui32LevelIndex]);  // vt+0x6c
+    damage->SetUnk35(m_abDmgFlag35Normal[m_ui32LevelIndex]);  // vt+0x70
     damage->SetDamageType(kAbilityDamageTypes[GetAbilityId() & 0xffu]);  // vt+0x64
     damage->SetAbilityId(GetAbilityId());                                 // vt+0x68
     damage->SetContinuous(continuous);                                    // vt+0x54
@@ -151,8 +151,8 @@ void CKShadowArms::ApplyDamageParams(uint8_t continuous) {
 // level's muzzle explosion (the inlined reserving CKSrvFx::AcquireFx, owned by the user) at that hot spot, turned along
 // the shot, triggered and released. Returns !+0x260 (read again: 1).
 uint8_t CKShadowArms::Fire() {
-    if (m_unk260 != 0 && m_unk1fc > m_unk74) return 0;
-    m_unk260 = 0;
+    if (m_bReleased != 0 && m_fTimeSinceRelease > m_fTapWindow) return 0;
+    m_bReleased = 0;
     IKSerializable* owner = m_pHost->GetOwner();  // vt+0x08
     CVector3 pos = GetLaunchPosDir(&kNullVector);  // 0x003bdff8
     // The jitter: three draws first, then x, y, z (each fmadds(r, -1/32767.5, 1), TOC +0x4000 / +0x3ff0).
@@ -161,22 +161,22 @@ uint8_t CKShadowArms::Fire() {
     const float ry = SA_RAND_U16();
     const float jx = ppc::fmadds(rx, kJitterStep, 1.0f);
     const float rz = SA_RAND_U16();
-    const uint8_t spot = m_unk208;
+    const uint8_t spot = m_ui8HotSpotIndex;
     const float jy = ppc::fmadds(ry, kJitterStep, 1.0f);
-    const float jitter = m_unk220[m_unk04];
+    const float jitter = m_afLaunchJitter[m_ui32LevelIndex];
     pos.x = ppc::fmadds(jx, jitter, pos.x);
     pos.y = ppc::fmadds(jy, jitter, pos.y);
     const float jz = ppc::fmadds(rz, kJitterStep, 1.0f);
     pos.z = ppc::fmadds(jz, jitter, pos.z);
     CKProjectileAccessor* accessor;
-    if (m_unk261 == spot) {
-        m_unk208 = m_unk262;
-        accessor = static_cast<CKProjectileAccessor*>(m_unk238[m_unk04]);
+    if (m_ui8FirstHandHotSpot == spot) {
+        m_ui8HotSpotIndex = m_ui8SecondHandHotSpot;
+        accessor = static_cast<CKProjectileAccessor*>(m_apFirstHandProjectiles[m_ui32LevelIndex]);
     } else {
-        m_unk208 = m_unk261;
-        accessor = static_cast<CKProjectileAccessor*>(m_unk244[m_unk04]);
+        m_ui8HotSpotIndex = m_ui8FirstHandHotSpot;
+        accessor = static_cast<CKProjectileAccessor*>(m_apSecondHandProjectiles[m_ui32LevelIndex]);
     }
-    m_pHost->ComputeAimDirection(0x1.921fb6p+1f, this, m_unk184);  // vt+0x58; pi (TOC +0x4004); the result unused
+    m_pHost->ComputeAimDirection(0x1.921fb6p+1f, this, m_pAimCone);  // vt+0x58; pi (TOC +0x4004); the result unused
     CVector3 dir;
     if (m_pHost->GetLockedTarget() != nullptr) {  // vt+0xd4
         const CVector3 target = m_pHost->GetTargetAimPoint(1, 0);  // vt+0xdc
@@ -195,21 +195,21 @@ uint8_t CKShadowArms::Fire() {
     }
     if (accessor->m_pProjectileType != nullptr) {
         ApplyDamageParams(0);  // vt+0x74
-        const float speed = m_unk22c[m_unk04];
+        const float speed = m_afLaunchSpeed[m_ui32LevelIndex];
         const float heroSpeed = m_pHost->GetHeroSpeedForAbility();  // vt+0x48
-        accessor->LaunchEx(&pos, &dir, speed + heroSpeed, m_unk20c, owner, nullptr);  // 0x001f2988
-        if (m_unk04 != 0) {
+        accessor->LaunchEx(&pos, &dir, speed + heroSpeed, m_pElementDamage, owner, nullptr);  // 0x001f2988
+        if (m_ui32LevelIndex != 0) {
             // vt+0x104 (the hero host's GetHeroAttachmentSets 0x3ee6a0: the hero's +0x1070; the slot is hero-only).
             CSGLeaf* node = static_cast<CSGLeaf*>(static_cast<IKHook*>(owner)->m_pKGLObject);  // the owner's +0x1c
             CKHkS08Hero* hero = static_cast<CKS08HeroAbilityHost*>(m_pHost)->GetHero();
             SAnimatedFxRig* rigs = reinterpret_cast<SAnimatedFxRig*>(&hero->m_apUnk1070[0][0]);
             CSGHotSpot* hotSpot = static_cast<CSGHotSpot*>(m_pHost->GetHotspot(spot));  // vt+0xcc
-            static_cast<CKAnimatedFxCollection*>(m_unk250)->Play(node, rigs, hotSpot);  // TocBridge 0x0098f4d0
+            static_cast<CKAnimatedFxCollection*>(m_pAnimFxCollection)->Play(node, rigs, hotSpot);  // TocBridge 0x0098f4d0
         }
     }
     CKSrvFx* fxService = static_cast<CKSrvFx*>(g_pEngine->m_srvFx);  // TOC +0x4008 -> +0x60
     CKExplosionNodeFx* fx =
-        static_cast<CKExplosionNodeFx*>(fxService->AcquireFx(reinterpret_cast<IKFxData*>(m_unk254[m_unk04]), owner));
+        static_cast<CKExplosionNodeFx*>(fxService->AcquireFx(reinterpret_cast<IKFxData*>(m_apMuzzleExplosions[m_ui32LevelIndex]), owner));
     if (fx != nullptr) {
         const CVector3 position = m_pHost->GetHotspotPosition(spot);  // vt+0xd0
         fx->SetTranslation(&position, owner);  // 0x001b66e8
@@ -217,7 +217,7 @@ uint8_t CKShadowArms::Fire() {
         fx->Trigger(owner, 0);                 // 0x001b82a8 (r6 0 too)
         fx->ReleaseReservation(owner);         // vt+0x54
     }
-    return static_cast<uint8_t>(m_unk260 ^ 1);
+    return static_cast<uint8_t>(m_bReleased ^ 1);
 }
 
 // 0x003d3098 CKShadowArms_Load: CKProjectileElement's data, then (level data only) the two accessors per level
@@ -226,17 +226,17 @@ int32_t CKShadowArms::Load(IKFile* file, int32_t type) {
     CKProjectileElement::Load(file, type);  // 0x003bf360
     if (type != 0) return 1;
     for (int32_t i = 0; i < 3; ++i) {
-        IKFile_ReadRef(file, &m_unk238[i]);
-        IKFile_ReadRef(file, &m_unk244[i]);
+        IKFile_ReadRef(file, &m_apFirstHandProjectiles[i]);
+        IKFile_ReadRef(file, &m_apSecondHandProjectiles[i]);
     }
-    IKFile_ReadRef(file, &m_unk254[0]);
-    IKFile_ReadRef(file, &m_unk254[1]);
-    IKFile_ReadRef(file, &m_unk254[2]);
-    IKFile_ReadRef(file, &m_unk250);
+    IKFile_ReadRef(file, &m_apMuzzleExplosions[0]);
+    IKFile_ReadRef(file, &m_apMuzzleExplosions[1]);
+    IKFile_ReadRef(file, &m_apMuzzleExplosions[2]);
+    IKFile_ReadRef(file, &m_pAnimFxCollection);
     for (int32_t i = 0; i < 3; ++i) {
-        ReadF32LE(file, &m_unk214[i]);
-        ReadF32LE(file, &m_unk220[i]);
-        ReadF32LE(file, &m_unk22c[i]);
+        ReadF32LE(file, &m_afHeroAnimSpeed[i]);
+        ReadF32LE(file, &m_afLaunchJitter[i]);
+        ReadF32LE(file, &m_afLaunchSpeed[i]);
     }
     return 1;
 }

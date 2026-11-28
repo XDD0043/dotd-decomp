@@ -140,7 +140,7 @@ void CKHkBasicBonus::RecursiveRegistration(int32_t type) {
 int32_t CKHkBasicBonus::Load(IKFile* file, int32_t type) {
     IKHook::Load(file, type);  // through TocBridge_CKHook_Load
     if (type != K_LEVEL_PLATEFORMS) return 1;
-    IKFile_ReadRef(file, &m_pUnk20);
+    IKFile_ReadRef(file, &m_pNextBonus);
     IKFile_ReadObjectRefArray(file, &m_pGroup, 3);
     ReadU32LEWords(file, reinterpret_cast<uint32_t*>(&m_fLifeExpectancy), 4);
     ReadU32LEWords(file, reinterpret_cast<uint32_t*>(&m_vSpeed), 3);
@@ -181,7 +181,7 @@ void CKHkBasicBonus::ReturnToPool() {
         ReattachToDynamicRoot(this);
     }
     PoolOf(this)->ReleaseBonusFx(m_pUnk7C);  // 0x005b1668
-    PoolOf(this)->StopBonusTrail(m_unk24);   // 0x005b3e50
+    PoolOf(this)->StopBonusTrail(m_ui32PoolIndex);   // 0x005b3e50
     const RwFrame* frame = FrameOf(this);
     const CVector3 at = {frame->ltm.pos.x, frame->ltm.pos.y, frame->ltm.pos.z};
     PoolOf(this)->TriggerCollectExplosion(&at);  // 0x005b3bc0
@@ -197,7 +197,7 @@ void CKHkBasicBonus::DisableAndReleaseFx() {
         ReattachToDynamicRoot(this);
     }
     PoolOf(this)->ReleaseBonusFx(m_pUnk7C);  // 0x005b1668
-    PoolOf(this)->StopBonusTrail(m_unk24);   // 0x005b3e50
+    PoolOf(this)->StopBonusTrail(m_ui32PoolIndex);   // 0x005b3e50
 }
 
 // 0x005b4d88 CKHkBasicBonus_SetVisible (vt+0xd0, XXL2 FastSpawn(CKBeaconAccessor&)): the beacon's position (three
@@ -234,7 +234,7 @@ void CKHkBasicBonus::SpawnAtPosition(const CVector3* position) {
     m_bitArray = BehaviourFromFlags(m_bitArray, CpntOf(this)->m_baFlags);
     m_pUnk7C = PoolOf(this)->AcquireBonusFx(m_pKGLObject);  // 0x005b3958
     RwFrame* frame = FrameOf(this);
-    PoolOf(this)->ResetBonusTrail(m_unk24, AsVec(&frame->modelling.pos), AsVec(&frame->modelling.up));  // 0x005b3ea8
+    PoolOf(this)->ResetBonusTrail(m_ui32PoolIndex, AsVec(&frame->modelling.pos), AsVec(&frame->modelling.up));  // 0x005b3ea8
 }
 
 // 0x005b6df0 CKHkBasicBonus_SpawnAt_maybe (vt+0xc4, XXL2 Spawn(pos, lifeExpectancy)): the life expectancy, the timer 0,
@@ -264,7 +264,7 @@ void CKHkBasicBonus::SpawnAt(float lifeExpectancy, const CVector3* position) {
     m_bitArray = BehaviourFromFlags(m_bitArray, CpntOf(this)->m_baFlags);
     m_pUnk7C = PoolOf(this)->AcquireBonusFx(m_pKGLObject);  // 0x005b3958
     frame = FrameOf(this);
-    PoolOf(this)->ResetBonusTrail(m_unk24, AsVec(&frame->modelling.pos), AsVec(&frame->modelling.up));  // 0x005b3ea8
+    PoolOf(this)->ResetBonusTrail(m_ui32PoolIndex, AsVec(&frame->modelling.pos), AsVec(&frame->modelling.up));  // 0x005b3ea8
 }
 
 // 0x005b56d0 CKHkBasicBonus_vfC8 (vt+0xc8, XXL2 Catched): once older than its minimum age (ble: NaN never), caught by
@@ -637,5 +637,5 @@ void CKHkBasicBonus::Update(IKTime* frameClock) {
     }
     PlaceFrame(this, pos);
     RwFrame* frame = FrameOf(this);
-    PoolOf(this)->SetBonusTrailEndpoints(m_unk24, AsVec(&frame->modelling.pos), AsVec(&frame->modelling.up));  // 0x005b1508
+    PoolOf(this)->SetBonusTrailEndpoints(m_ui32PoolIndex, AsVec(&frame->modelling.pos), AsVec(&frame->modelling.up));  // 0x005b1508
 }

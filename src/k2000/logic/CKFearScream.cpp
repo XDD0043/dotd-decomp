@@ -107,7 +107,7 @@ void PlayOnUser(CKSound* sound, CKS08AbilityHostBase* host) {
 // 0x003a1220 CKFearScream_PostLoad
 int32_t CKFearScream::PostLoad(int32_t type) {
     CKProjectileElement::PostLoad(type);
-    HideUnderSector0(m_unk230);
+    HideUnderSector0(m_pChargeNode);
     return 1;
 }
 
@@ -115,7 +115,7 @@ int32_t CKFearScream::PostLoad(int32_t type) {
 void CKFearScream::Start(CKS08AbilityHostBase* host) {
     m_pLoopSound = nullptr;
     CKProjectileElement::Start(host);
-    if (m_pHost != nullptr) m_unk244 = 0;
+    if (m_pHost != nullptr) m_bFullChargeBurstFired = 0;
 }
 
 // 0x003a0fa8 CKFearScream_End
@@ -124,30 +124,30 @@ void CKFearScream::End(int32_t forced) {
         Sound_Stop(m_pLoopSound, 0);  // 0x001111b0
         m_pLoopSound = nullptr;
     }
-    HideUnderSector0(m_unk230);
+    HideUnderSector0(m_pChargeNode);
     CKProjectileElement::End(static_cast<uint8_t>(forced));
 }
 
 // 0x003a1180 CKFearScream_ResetRuntime
 void CKFearScream::ResetRuntime(int32_t type) {
     CKProjectileElement::ResetRuntime(type);
-    m_unk208 = 2;
+    m_ui8HotSpotIndex = 2;
     m_pLoopSound = nullptr;
-    m_unk209 = 1;
-    m_unk244 = 0;
+    m_ui8ButtonIndex = 1;
+    m_bFullChargeBurstFired = 0;
 }
 
 // 0x003a1038 CKFearScream_GetFxSound_maybe (CKSoundDictionaryID_GetSound 0x00112bc0, CKSound_GetSample_maybe
 // 0x00111000; each sound looked up again before it is returned, as the original).
 CKSound* CKFearScream::GetFxSound(int32_t which) {
-    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_unk240);
+    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_pSoundDico);
     if (which == 0) return sounds->GetSound(0);
     if (which != 1) return nullptr;
     const auto usable = [sounds](uint32_t i) {
         return sounds->GetSound(i) != nullptr && sounds->GetSound(i)->GetSample() != nullptr;
     };
-    if (m_unk04 == 2 && usable(3)) return sounds->GetSound(3);
-    if ((m_unk04 == 1 || m_unk04 == 2) && usable(2)) return sounds->GetSound(2);
+    if (m_ui32LevelIndex == 2 && usable(3)) return sounds->GetSound(3);
+    if ((m_ui32LevelIndex == 1 || m_ui32LevelIndex == 2) && usable(2)) return sounds->GetSound(2);
     return sounds->GetSound(1);
 }
 
@@ -157,22 +157,22 @@ CKSound* CKFearScream::GetFxSound(int32_t which) {
 // parent first, vt+0x78), moved by +0x234; shown, its alpha follows the charge (254 x +0x200 / +0x68 up to the full
 // time, then 254; fctiwz, the low byte).
 void CKFearScream::UpdateCharge(float /*dt*/) {
-    if (m_unk200 > m_unk68[m_unk04] && m_unk244 == 0) {
-        m_unk244 = 1;
+    if (m_fChargeTime > m_afFullChargeTime[m_ui32LevelIndex] && m_bFullChargeBurstFired == 0) {
+        m_bFullChargeBurstFired = 1;
         CKSrvFx* fxService = static_cast<CKSrvFx*>(g_pEngine->m_srvFx);  // TOC +0x3780 -> +0x60
         CKExplosionNodeFx* burst =
             static_cast<CKExplosionNodeFx*>(fxService->AcquireFx(reinterpret_cast<IKFxData*>(m_unk214[6]), this));
         if (burst != nullptr) {
-            const CVector3 position = m_pHost->GetHotspotPosition(m_unk208);  // vt+0xd0
+            const CVector3 position = m_pHost->GetHotspotPosition(m_ui8HotSpotIndex);  // vt+0xd0
             burst->SetTranslation(&position, this);  // 0x001b66e8
             burst->Trigger(this, 0);                 // 0x001b82a8
             burst->ReleaseReservation(this);         // vt+0x54
         }
     }
-    CNode* node = static_cast<CNode*>(m_unk230);
+    CNode* node = static_cast<CNode*>(m_pChargeNode);
     if (node == nullptr) return;
     if ((node->m_sgProperties & 4u) == 0) {
-        const float alpha = m_unk200 > m_unk68[m_unk04] ? kAlphaScale : m_unk200 / m_unk68[m_unk04] * kAlphaScale;
+        const float alpha = m_fChargeTime > m_afFullChargeTime[m_ui32LevelIndex] ? kAlphaScale : m_fChargeTime / m_afFullChargeTime[m_ui32LevelIndex] * kAlphaScale;
         if (node->m_lGeometryList == nullptr) return;
         SetMeshAlpha(node, static_cast<uint8_t>(ppc::fctiwz(alpha)));
         return;
@@ -182,9 +182,9 @@ void CKFearScream::UpdateCharge(float /*dt*/) {
     if (node->m_pParent != nullptr) node->m_pParent->RemoveChild(node);  // vt+0x78
     static_cast<CSGHotSpot*>(m_pHost->GetHotspot(0))->AttachVolume(node);  // vt+0xcc, 0x000ce2b8
     RwFrame* frame = node->m_pRwFrame;
-    frame->modelling.pos.x = frame->modelling.pos.x + m_unk234[0];
-    frame->modelling.pos.y = frame->modelling.pos.y + m_unk234[1];
-    frame->modelling.pos.z = frame->modelling.pos.z + m_unk234[2];
+    frame->modelling.pos.x = frame->modelling.pos.x + m_vChargeNodeOffset[0];
+    frame->modelling.pos.y = frame->modelling.pos.y + m_vChargeNodeOffset[1];
+    frame->modelling.pos.z = frame->modelling.pos.z + m_vChargeNodeOffset[2];
     frame->modelling.flags &= ~0x20000u;
     RwFrame_MarkDirty(frame);  // 0x00010698
 }
@@ -198,7 +198,7 @@ void CKFearScream::UpdateCharge(float /*dt*/) {
 // loop sound still has a sample: the start sound and the level's loop sound (+0x248) on the user. Returns 1.
 uint8_t CKFearScream::Fire() {
     const CVector3 pos = GetLaunchPosDir(&kNullVector);
-    m_pHost->ComputeAimDirection(0x1.921fb6p+1f, this, m_unk184);  // vt+0x58; pi (TOC +0x37b4)
+    m_pHost->ComputeAimDirection(0x1.921fb6p+1f, this, m_pAimCone);  // vt+0x58; pi (TOC +0x37b4)
     CVector3 dir;
     if (m_pHost->GetLockedTarget() != nullptr) {  // vt+0xd4
         const CVector3 target = m_pHost->GetTargetAimPoint(1, 0);  // vt+0xdc
@@ -218,21 +218,21 @@ uint8_t CKFearScream::Fire() {
     IKSerializable* owner = m_pHost->GetOwner();  // vt+0x08
     CKSrvFx* fxService = static_cast<CKSrvFx*>(g_pEngine->m_srvFx);  // TOC +0x3780 -> +0x60
     CKExplosionNodeFx* scream;
-    if (!(m_unk200 >= m_unk68[m_unk04])) {
+    if (!(m_fChargeTime >= m_afFullChargeTime[m_ui32LevelIndex])) {
         scream = static_cast<CKExplosionNodeFx*>(
-            fxService->AcquireFx(reinterpret_cast<IKFxData*>(m_unk214[m_unk04]), owner));
+            fxService->AcquireFx(reinterpret_cast<IKFxData*>(m_unk214[m_ui32LevelIndex]), owner));
     } else {
         scream = static_cast<CKExplosionNodeFx*>(
-            fxService->AcquireFx(reinterpret_cast<IKFxData*>(m_unk214[3 + m_unk04]), owner));
-        CNode* node = static_cast<CNode*>(m_unk230);
-        if (m_unk04 != 0 && node != nullptr) node->m_sgProperties = (node->m_sgProperties & 0xfffffffbu) | 4u;
+            fxService->AcquireFx(reinterpret_cast<IKFxData*>(m_unk214[3 + m_ui32LevelIndex]), owner));
+        CNode* node = static_cast<CNode*>(m_pChargeNode);
+        if (m_ui32LevelIndex != 0 && node != nullptr) node->m_sgProperties = (node->m_sgProperties & 0xfffffffbu) | 4u;
     }
-    m_unk244 = 0;
+    m_bFullChargeBurstFired = 0;
     if (scream != nullptr) {
         scream->SetTranslation(&pos, owner);  // 0x001b66e8
         scream->SetDirection(&dir, owner);    // 0x001b5e20
         ApplyDamageParams(0);                 // vt+0x74
-        scream->SetDamage(m_unk20c, owner);                         // 0x001b62c8
+        scream->SetDamage(m_pElementDamage, owner);                         // 0x001b62c8
         scream->SetDamageOwner(owner, owner);                       // 0x001b6340
         scream->SetDamageCategory(m_pHost->GetCollisionGroup(), owner);  // vt+0xb0, 0x001b6318
         scream->SetDamageFlags(m_pHost->GetCollisionMask(), owner);      // vt+0xb4, 0x001b62f0
@@ -253,8 +253,8 @@ int32_t CKFearScream::Load(IKFile* file, int32_t type) {
     CKProjectileElement::Load(file, type);
     if (type != 0) return 1;
     for (int32_t i = 0; i < 7; ++i) IKFile_ReadRef(file, &m_unk214[i]);
-    IKFile_ReadRef(file, &m_unk230);
-    ReadU32LEWords(file, reinterpret_cast<uint32_t*>(m_unk234), 3);
-    IKFile_ReadRef(file, &m_unk240);
+    IKFile_ReadRef(file, &m_pChargeNode);
+    ReadU32LEWords(file, reinterpret_cast<uint32_t*>(m_vChargeNodeOffset), 3);
+    IKFile_ReadRef(file, &m_pSoundDico);
     return 1;
 }

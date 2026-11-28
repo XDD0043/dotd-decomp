@@ -135,14 +135,14 @@ CKExplosionFxData::Part* CKExplosionFxData::CreatePart(uint32_t type) {
 int32_t CKExplosionFxData::Load(IKFile* file, int32_t type) {
     IKFxData::Load(file, type);
     if (type != K_LEVEL_PLATEFORMS) return 1;
-    ReadF32LE(file, &m_unk08);
-    ReadF32LE(file, &m_unk0c);
-    ReadF32LE(file, &m_unk10);
-    ReadF32LE(file, &m_unk14);
+    ReadF32LE(file, &m_fDuration);
+    ReadF32LE(file, &m_fWaveFinalRadiusPrec);
+    ReadF32LE(file, &m_fWaveGrowth);
+    ReadF32LE(file, &m_fWaveRadius);
     IKFile_ReadRef(file, &m_pSoundDico);
     IKFile_ReadRef(file, &m_pVibrationPadData);
-    ReadU8(file, &m_unk18);
-    ReadRaw(file, m_unk38, 4);
+    ReadU8(file, &m_baExpInfos);
+    ReadRaw(file, m_cColor, 4);
     IKFile_ReadRef(file, &m_pQuakeLauncher);
     uint32_t count = 0;
     ReadU32LE(file, &count);
@@ -250,14 +250,14 @@ int32_t CKExplosionFxData::MessageProc(uint16_t message, void* data) {
 
 // 0x001b36f0 CKExplosionFxData_PostLoad (last sound first; a missing sound or one without a sample is skipped)
 int32_t CKExplosionFxData::PostLoad(int32_t /*type*/) {
-    m_unk20 = 0;
+    m_ui32LoadedSoundCount = 0;
     CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_pSoundDico);
     if (sounds == nullptr) return 1;
     for (uint32_t i = sounds->m_ui32NbKSound; i != 0;) {
         --i;
         CKSound* sound = sounds->GetSound(i);  // 0x00112bc0
         if (sound == nullptr || sound->GetSample() == nullptr) continue;  // 0x00111000
-        ++m_unk20;
+        ++m_ui32LoadedSoundCount;
     }
     return 1;
 }

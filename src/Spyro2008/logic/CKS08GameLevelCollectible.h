@@ -27,7 +27,7 @@ public:
     // vt+0x1c 0x004f6268 CKS08GameLevelCollectible_MessageProc: 0x20a (the data a byte) collects it (ApplyCollect) or
     // forgets it (+0x1c = 0), answering 0; the base's answer otherwise (KBase1D0C: 1).
     int32_t MessageProc(uint16_t message, void* data) override;
-    void SetDefaultState(int32_t) override { m_unk1c = 0; }  // vt+0x38 0x004f5d98 CKS08GameLevelCollectible_SetDefaultState
+    void SetDefaultState(int32_t) override { m_bCollected = 0; }  // vt+0x38 0x004f5d98 CKS08GameLevelCollectible_SetDefaultState
     // vt+0x40 0x004f63e8 CKS08GameLevelCollectible_GetInfo: value 0x14 (a byte): collected (+0x1c; 0x9c6c40).
     int32_t GetInfo(IKInfo* info, int32_t request) override;
     void Destroy() override { KBase1D0C::Destroy(); }                  // vt+0x10 0x004f6098
@@ -42,13 +42,13 @@ public:
     // info page; 4 a message; 1 the stat displays and the health shards; 2 the stat displays and the mana shards.
     void ApplyCollect();
 
-    uint8_t m_unk1c;   // +0x1c InitializeGameData: 0
-    uint8_t m_unk1d;   // +0x1d type-8 block; InitializeGameData: 1
-    uint8_t m_unk1e;   // +0x1e type-8 block
-    uint8_t m_unk1f;   // +0x1f type-8 block
-    uint8_t m_unk20;   // +0x20 type-8 block, last
+    uint8_t m_bCollected;   // +0x1c InitializeGameData: 0
+    uint8_t m_ui8Category;   // +0x1d type-8 block; InitializeGameData: 1
+    uint8_t m_ui8DragonIndex;   // +0x1e type-8 block
+    uint8_t m_ui8ArmorSet;   // +0x1f type-8 block
+    uint8_t m_ui8ArmorSlot;   // +0x20 type-8 block, last
     uint8_t m_pad21[3];
 };
 DOTD_ASSERT_SIZE(CKS08GameLevelCollectible, 0x24);
-DOTD_ASSERT_OFFSET(CKS08GameLevelCollectible, m_unk1c, 0x1c);
-DOTD_ASSERT_OFFSET(CKS08GameLevelCollectible, m_unk20, 0x20);
+DOTD_ASSERT_OFFSET(CKS08GameLevelCollectible, m_bCollected, 0x1c);
+DOTD_ASSERT_OFFSET(CKS08GameLevelCollectible, m_ui8ArmorSlot, 0x20);

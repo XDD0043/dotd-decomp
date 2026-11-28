@@ -75,7 +75,7 @@ void CKHkS08Shield::TakeFromPool() {
     CKCoreManager* core = g_pEngine->m_coreManager;  // +0x2c
     CKGrpS08Enemy* enemies = static_cast<CKGrpS08Enemy*>(g_pEngine->m_gameManager->m_unk04[0]);
     IKBaseGroup* pool = static_cast<IKBaseGroup*>(enemies->m_vUnk19c.m_pBlock[m_unk20]);
-    IKBaseGroup* shields = static_cast<IKBaseGroup*>(enemies->m_pUnk1ac);
+    IKBaseGroup* shields = static_cast<IKBaseGroup*>(enemies->m_pShieldPool);
     for (IKHook* hook = *reinterpret_cast<IKHook**>(pool->GetMemberListHead()); hook != nullptr; hook = hook->m_pNextHook) {
         if (hook == this) {
             GroupTransferHook(core, this, shields, static_cast<IKBaseGroup*>(enemies->m_vUnk19c.m_pBlock[m_unk20]), 0);
@@ -91,7 +91,7 @@ void CKHkS08Shield::TakeFromPool() {
 void CKHkS08Shield::ReturnToPool() {
     CKCoreManager* core = g_pEngine->m_coreManager;  // +0x2c
     CKGrpS08Enemy* enemies = static_cast<CKGrpS08Enemy*>(g_pEngine->m_gameManager->m_unk04[0]);
-    IKBaseGroup* shields = static_cast<IKBaseGroup*>(enemies->m_pUnk1ac);
+    IKBaseGroup* shields = static_cast<IKBaseGroup*>(enemies->m_pShieldPool);
     SetObjectActiveInContext(core, this, 0, shields);  // 0x0001cb10
     for (IKHook* hook = *reinterpret_cast<IKHook**>(shields->GetMemberListHead()); hook != nullptr; hook = hook->m_pNextHook) {
         if (hook == this) {

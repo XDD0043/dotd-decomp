@@ -32,8 +32,8 @@
 
 // 0x00253cf8 CKDamage_Load: a float, a word and a byte, whatever the type.
 int32_t CKDamage::Load(IKFile* file, int32_t /*type*/) {
-    ReadF32LE(file, &m_unk04);
-    ReadS32LE(file, &m_unk08);
-    ReadU8(file, &m_unk0c);
+    ReadF32LE(file, &m_fAmount);
+    ReadS32LE(file, &m_i32DamageKind);
+    ReadU8(file, &m_bContinuous);
     return 1;
 }

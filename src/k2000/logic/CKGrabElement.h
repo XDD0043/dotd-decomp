@@ -73,30 +73,30 @@ public:
     virtual uint8_t Vf90() { return 0; }  // vt+0x90 0x009bfc00 KBaseC_vf90_2
     virtual uint8_t Vf94() { return 0; }  // vt+0x94 0x009bfef0 KBaseC_vf94_2
 
-    uint32_t m_unk04;          // +0x04 runtime: the level index (0..2, host vt+0xf4) at Start
-    int32_t m_unk08[3];        // +0x08 (file: 40/60/120)
-    float m_unk14[3];          // +0x14
+    uint32_t m_dwLevelIndex;          // +0x04 runtime: the level index (0..2, host vt+0xf4) at Start
+    int32_t m_ai32Damage[3];        // +0x08 (file: 40/60/120)
+    float m_afCooldown[3];          // +0x14
     float m_unk20;             // +0x20
     float m_unk24;             // +0x24
     float m_unk28;             // +0x28
-    int32_t m_unk2c[3];        // +0x2c (file: 10/12/16)
+    int32_t m_ai32ManaPerSecond[3];        // +0x2c (file: 10/12/16)
     float m_unk38[3];          // +0x38
     float m_unk44[3];          // +0x44
-    float m_unk50[3];          // +0x50
+    float m_afDisarmAmount[3];  // +0x50 the damage's disarm amount (vt+0x60: damage +0x2c, added to the enemy's disarm gauge +0x278)
     // The damage per level (ApplyDamageParams reads them with lfs: floats; LVL010's are 0).
-    float m_unk5c[3];          // +0x5c the stun (damage vt+0x5c)
-    float m_unk68[3];          // +0x68 element value 0
-    float m_unk74[3];          // +0x74 element value 1
-    float m_unk80[3];          // +0x80 element value 2
-    float m_unk8c[3];          // +0x8c element value 4
-    float m_unk98[3];          // +0x98 element value 6
-    float m_unkA4[3];          // +0xa4 element value 5
-    float m_unkB0[3];          // +0xb0 element value 7
-    float m_unkBc[3];          // +0xbc element value 3
-    uint8_t m_unkC8[3];        // +0xc8 the damage's +0x34
-    uint8_t m_unkCb[3];        // +0xcb the damage's +0x35
+    float m_afStunAmount[3];          // _maybe: +0x5c the stun (damage vt+0x5c)
+    float m_afElementEffect0[3];          // +0x68 element value 0
+    float m_afElementEffect1[3];          // +0x74 element value 1
+    float m_afElementEffect2[3];          // +0x80 element value 2
+    float m_afElementEffect4[3];          // +0x8c element value 4
+    float m_afElementEffect6[3];          // +0x98 element value 6
+    float m_afElementEffect5[3];          // +0xa4 element value 5
+    float m_afElementEffect7[3];          // +0xb0 element value 7
+    float m_afElementEffect3[3];          // +0xbc element value 3
+    uint8_t m_abDamageFlag34[3];        // +0xc8 the damage's +0x34
+    uint8_t m_abDamageFlag35[3];        // +0xcb the damage's +0x35
     uint8_t m_padCe[2];        // +0xce
-    IKSerializable* m_unkD0;   // +0xd0 reference (live: CKAimCamembert): passed to the host's aim (vt+0x58)
+    IKSerializable* m_pAimCone;   // +0xd0 reference (live: CKAimCamembert): passed to the host's aim (vt+0x58)
     IKSerializable* m_pTarget;  // +0xd4 runtime: the grabbed target (the host's locked target, vt+0xd4)
     uint8_t m_unkD8;           // +0xd8
     uint8_t m_unkD9;           // +0xd9
@@ -110,8 +110,8 @@ public:
     uint8_t m_padE7;           // +0xe7
     float m_unkE8;             // +0xe8
     float m_unkEc;             // +0xec
-    float m_unkF0;             // +0xf0
-    float m_unkF4;             // +0xf4
+    float m_fGroundMoveSpeed;             // +0xf0
+    float m_fFlyMoveSpeed;             // +0xf4
     uint8_t m_unkF8;           // +0xf8
     uint8_t m_unkF9;           // +0xf9
     uint8_t m_padFa[2];        // +0xfa (not loaded)
@@ -123,51 +123,51 @@ public:
     uint8_t m_pad107;          // +0x107
     float m_unk108;            // +0x108
     float m_unk10c;            // +0x10c
-    float m_unk110;            // +0x110
-    uint8_t m_unk114;          // +0x114
+    float m_fAirMoveSpeed;            // +0x110
+    uint8_t m_bAirParam11f8Enable;          // +0x114
     uint8_t m_pad115[3];       // +0x115 (not loaded)
-    float m_unk118;            // +0x118
-    IKSerializable* m_unk11c;  // +0x11c reference (live: CKExplosionFxData): StartEmitterFx's effect
+    float m_fAirParam11f8;            // +0x118
+    IKSerializable* m_pFizzleExplosionFxData;  // +0x11c reference (live: CKExplosionFxData): StartEmitterFx's effect
     // The runtime (not loaded; ResetRuntime / Start).
     CKS08AbilityHostBase* m_pHost;  // +0x120 the host while running
     uint8_t m_bRunning;        // +0x124
-    uint8_t m_unk125;          // +0x125 in the loop phase
-    uint8_t m_unk126;          // +0x126 in the start animation (phase 0)
-    uint8_t m_unk127;          // +0x127 in the end animation (phase 4)
+    uint8_t m_bInLoop;          // +0x125 in the loop phase
+    uint8_t m_bInStartAnim;          // +0x126 in the start animation (phase 0)
+    uint8_t m_bInEndAnim;          // +0x127 in the end animation (phase 4)
     float m_fMana;             // +0x128 the mana spent and not yet taken (whole points go to the host, vt+0xb8)
-    uint8_t m_unk12c;          // +0x12c the hot spot index (host vt+0xcc / +0xd0; ResetRuntime 0xff)
-    uint8_t m_unk12d;          // +0x12d the button (host vt+0x8c / +0x94; ResetRuntime 1)
-    uint8_t m_unk12e;          // +0x12e standing (host vt+0x30 inverted; ApplyHeroControl, Update)
-    uint8_t m_unk12f;          // +0x12f a target is held (GrabTarget)
+    uint8_t m_bHotspotIndex;          // +0x12c the hot spot index (host vt+0xcc / +0xd0; ResetRuntime 0xff)
+    uint8_t m_bButtonIndex;          // +0x12d the button (host vt+0x8c / +0x94; ResetRuntime 1)
+    uint8_t m_bInAir;          // +0x12e in the air (host vt+0x30, IsOnGround, inverted; ApplyHeroControl, Update)
+    uint8_t m_bTargetHeld;          // +0x12f a target is held (GrabTarget)
     float m_fStartTime;        // +0x130 the game clock at Start (ResetRuntime -1)
-    uint8_t m_unk134;          // +0x134 the alternative loop (phase 2) plays
+    uint8_t m_bAltLoopAnim;          // +0x134 the alternative loop (phase 2) plays
     uint8_t m_pad135[3];       // +0x135
-    IKSerializable* m_unk138;  // +0x138 reference (live: CKS08ElementDamage)
-    uint8_t m_unk13c;          // +0x13c the end is forced (out of mana): End's argument
+    IKSerializable* m_pElementDamage;  // +0x138 reference (live: CKS08ElementDamage)
+    uint8_t m_bForcedEnd;          // +0x13c the end is forced (out of mana): End's argument
     uint8_t m_pad13d[3];       // +0x13d
 };
 DOTD_ASSERT_SIZE(CKGrabElement, 0x140);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unk08, 0x08);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unk14, 0x14);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_ai32Damage, 0x08);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_afCooldown, 0x14);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unk20, 0x20);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unk24, 0x24);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unk28, 0x28);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unk2c, 0x2c);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_ai32ManaPerSecond, 0x2c);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unk38, 0x38);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unk44, 0x44);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unk50, 0x50);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unk5c, 0x5c);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unk68, 0x68);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unk74, 0x74);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unk80, 0x80);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unk8c, 0x8c);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unk98, 0x98);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unkA4, 0xa4);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unkB0, 0xb0);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unkBc, 0xbc);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unkC8, 0xc8);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unkCb, 0xcb);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unkD0, 0xd0);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_afDisarmAmount, 0x50);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_afStunAmount, 0x5c);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_afElementEffect0, 0x68);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_afElementEffect1, 0x74);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_afElementEffect2, 0x80);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_afElementEffect4, 0x8c);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_afElementEffect6, 0x98);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_afElementEffect5, 0xa4);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_afElementEffect7, 0xb0);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_afElementEffect3, 0xbc);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_abDamageFlag34, 0xc8);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_abDamageFlag35, 0xcb);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_pAimCone, 0xd0);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unkD8, 0xd8);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unkD9, 0xd9);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unkDa, 0xda);
@@ -178,8 +178,8 @@ DOTD_ASSERT_OFFSET(CKGrabElement, m_unkE5, 0xe5);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unkE6, 0xe6);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unkE8, 0xe8);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unkEc, 0xec);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unkF0, 0xf0);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unkF4, 0xf4);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_fGroundMoveSpeed, 0xf0);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_fFlyMoveSpeed, 0xf4);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unkF8, 0xf8);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unkF9, 0xf9);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unkFc, 0xfc);
@@ -189,17 +189,17 @@ DOTD_ASSERT_OFFSET(CKGrabElement, m_unk105, 0x105);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unk106, 0x106);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unk108, 0x108);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_unk10c, 0x10c);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unk110, 0x110);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unk114, 0x114);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unk118, 0x118);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unk11c, 0x11c);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_fAirMoveSpeed, 0x110);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_bAirParam11f8Enable, 0x114);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_fAirParam11f8, 0x118);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_pFizzleExplosionFxData, 0x11c);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_pTarget, 0xd4);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_pHost, 0x120);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_bRunning, 0x124);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_fMana, 0x128);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unk12c, 0x12c);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unk12f, 0x12f);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_bHotspotIndex, 0x12c);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_bTargetHeld, 0x12f);
 DOTD_ASSERT_OFFSET(CKGrabElement, m_fStartTime, 0x130);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unk134, 0x134);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unk138, 0x138);
-DOTD_ASSERT_OFFSET(CKGrabElement, m_unk13c, 0x13c);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_bAltLoopAnim, 0x134);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_pElementDamage, 0x138);
+DOTD_ASSERT_OFFSET(CKGrabElement, m_bForcedEnd, 0x13c);

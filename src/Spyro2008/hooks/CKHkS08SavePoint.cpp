@@ -72,25 +72,25 @@
 int32_t CKHkS08SavePoint::Load(IKFile* file, int32_t type) {
     CKHkActorBase::Load(file, type);
     if (type == K_LEVEL_PLATEFORMS) {
-        IKFile_ReadRef(file, &m_pUnk20);
-        IKFile_ReadRef(file, &m_pUnk64);
-        IKFile_ReadRef(file, &m_pUnk34);
+        IKFile_ReadRef(file, &m_pSoundDico);
+        IKFile_ReadRef(file, &m_pPromptTextAccessor);
+        IKFile_ReadRef(file, &m_pSpawnPoint);
         IKFile_ReadRef(file, &m_pUnk38);
-        IKFile_ReadRef(file, &m_pUnk3C);
-        IKFile_ReadRef(file, &m_pUnk40);
+        IKFile_ReadRef(file, &m_pReachParticlesNode);
+        IKFile_ReadRef(file, &m_pFogBoxNode);
         m_unk24.Load(file, K_LEVEL_PLATEFORMS);
         m_unk2C.Load(file, K_LEVEL_PLATEFORMS);
-        ReadRaw(file, m_unk44, 3);
-        ReadRaw(file, m_unk47, 3);
-        ReadRaw(file, m_unk4A, 3);
-        ReadU8(file, &m_unk4D);
-        ReadU8(file, &m_unk4E);
-        ReadU8(file, &m_unk4F);
-        ReadF32LE(file, &m_fUnk50);
-        ReadF32LE(file, &m_fUnk54);
-        ReadF32LE(file, &m_fUnk58);
-        ReadF32LE(file, &m_fUnk5C);  // the original reads both as words (the same bytes)
-        ReadF32LE(file, &m_fUnk60);
+        ReadRaw(file, m_aui8OffGeomAlpha, 3);
+        ReadRaw(file, m_aui8IdleGeomAlpha, 3);
+        ReadRaw(file, m_aui8ReachGeomAlpha, 3);
+        ReadU8(file, &m_ui8OffFogAlpha);
+        ReadU8(file, &m_ui8IdleFogAlpha);
+        ReadU8(file, &m_ui8ReachFogAlpha);
+        ReadF32LE(file, &m_fAlphaApproachSpeed);
+        ReadF32LE(file, &m_fReachRadius);
+        ReadF32LE(file, &m_fReachHeight);
+        ReadF32LE(file, &m_fActiveYawSpeedDeg);  // the original reads both as words (the same bytes)
+        ReadF32LE(file, &m_fYawAccel);
     }
     return 1;
 }
@@ -172,7 +172,7 @@ void LoopIfSilent(CKSound* sound) {
 
 // The block inlined in OnActivate, MessageProc and Update.
 void CKHkS08SavePoint::ApplyAlphas() {
-    SceneNode_SetAlphaRecursive(m_pUnk40, AlphaByte(m_fFogAlpha), 1);  // TocBridge 0x98f570 -> 0x00582c60
+    SceneNode_SetAlphaRecursive(m_pFogBoxNode, AlphaByte(m_fFogAlpha), 1);  // TocBridge 0x98f570 -> 0x00582c60
     CGeometry* geometry = static_cast<CGeometry*>(static_cast<CNode*>(m_pKGLObject)->m_lGeometryList);
     if (geometry == nullptr) return;
     SetGeometryAlpha(geometry, AlphaByte(m_fAlpha0));
@@ -204,7 +204,7 @@ void CKHkS08SavePoint::ApplyYaw() {
 // copy below overwrites it) and the box count raised. Then the box takes the node's world matrix and its particles are
 // randomised (`enable` 1 for a new box).
 void CKHkS08SavePoint::PlaceFogBox() {
-    CFogBoxNodeFx* fog = static_cast<CFogBoxNodeFx*>(m_pUnk40);
+    CFogBoxNodeFx* fog = static_cast<CFogBoxNodeFx*>(m_pFogBoxNode);
     const RwFrame* frame = static_cast<CSGMovable*>(m_pKGLObject)->m_pRwFrame;
     const uint32_t count = fog->m_unk40;
     const uintptr_t owner = reinterpret_cast<uintptr_t>(this);
@@ -243,16 +243,16 @@ void CKHkS08SavePoint::VfA0() {
     const uint32_t idle = static_cast<uint32_t>(g_pEngine->m_gameManager->VfC4()) ^ 1u;  // vt+0xc4
     const uint32_t flags = m_bitArray;
     m_bitArray = ((flags & 0xfffffff0u) | (flags & 7u) | ((idle & 0xffu) << 3)) & 0xffffffcfu;  // bit 3; bits 4, 5 cleared
-    m_fAlpha0 = static_cast<float>(m_unk47[0]);
-    m_fAlpha1 = static_cast<float>(m_unk47[1]);
+    m_fAlpha0 = static_cast<float>(m_aui8IdleGeomAlpha[0]);
+    m_fAlpha1 = static_cast<float>(m_aui8IdleGeomAlpha[1]);
     m_fUsedTime = kZero;
     m_fYaw = kZero;
     m_fYawSpeed = kZero;
-    m_fAlpha2 = static_cast<float>(m_unk47[2]);
-    m_fFogAlpha = static_cast<float>(m_unk4E);
+    m_fAlpha2 = static_cast<float>(m_aui8IdleGeomAlpha[2]);
+    m_fFogAlpha = static_cast<float>(m_ui8IdleFogAlpha);
     StartParticles(m_pUnk38);
-    StartParticles(m_pUnk3C);
-    if (m_fUnk5C != kZero) ApplyYaw();
+    StartParticles(m_pReachParticlesNode);
+    if (m_fActiveYawSpeedDeg != kZero) ApplyYaw();
     ApplyAlphas();
     CNode* node = static_cast<CNode*>(m_pKGLObject);
     node->m_sgProperties &= 0xfffffffbu;  // shown
@@ -268,8 +268,8 @@ void CKHkS08SavePoint::VfA0() {
 void CKHkS08SavePoint::VfA4() {
     CKHkActorBase::VfA4();  // 0x003f7370
     StopParticles(m_pUnk38);
-    StopParticles(m_pUnk3C);
-    CFogBoxNodeFx* fog = static_cast<CFogBoxNodeFx*>(m_pUnk40);
+    StopParticles(m_pReachParticlesNode);
+    CFogBoxNodeFx* fog = static_cast<CFogBoxNodeFx*>(m_pFogBoxNode);
     const uint32_t count = fog->m_unk40;
     const uintptr_t owner = reinterpret_cast<uintptr_t>(this);
     uint32_t index = count;
@@ -293,16 +293,16 @@ void CKHkS08SavePoint::SetVisible(int32_t visible) {
     if (visible != 0 && g_pEngine->m_gameManager->VfC4() == 0) {  // vt+0xc4
         m_bitArray = (m_bitArray & ~8u) | 8u;
         StartParticles(m_pUnk38);
-        StartParticles(m_pUnk3C);
+        StartParticles(m_pReachParticlesNode);
         PlaceFogBox();
         node->m_sgProperties &= 0xfffffffbu;  // shown
         return;
     }
     m_bitArray &= ~8u;
     StopParticles(m_pUnk38);
-    StopParticles(m_pUnk3C);
+    StopParticles(m_pReachParticlesNode);
     // The fog box record given back, as OnDeactivate: the last box in use moved into its place (matrix and owner).
-    CFogBoxNodeFx* fog = static_cast<CFogBoxNodeFx*>(m_pUnk40);
+    CFogBoxNodeFx* fog = static_cast<CFogBoxNodeFx*>(m_pFogBoxNode);
     const uint32_t count = fog->m_unk40;
     const uintptr_t owner = reinterpret_cast<uintptr_t>(this);
     uint32_t index = count;
@@ -338,28 +338,28 @@ int32_t CKHkS08SavePoint::MessageProc(uint16_t message, void* data) {
     const int32_t base = CKHkActorBase::MessageProc(message, data);  // 0x003f7148
     int32_t own = 1;
     if (message == 0x93f) {
-        if (Sound(m_pUnk20, 0) != nullptr) Sound(m_pUnk20, 0)->Play(kZero);
-        if (Sound(m_pUnk20, 1) != nullptr) Sound(m_pUnk20, 1)->Play(kZero);
+        if (Sound(m_pSoundDico, 0) != nullptr) Sound(m_pSoundDico, 0)->Play(kZero);
+        if (Sound(m_pSoundDico, 1) != nullptr) Sound(m_pSoundDico, 1)->Play(kZero);
         CDefaultGameManager* manager = g_pEngine->m_gameManager;
         static_cast<IKGameStructure*>(manager->m_gameStructure)
-            ->SetCurrentSpawnPoint(reinterpret_cast<CKGameSpawnPoint*>(m_pUnk34));  // vt+0x6c
+            ->SetCurrentSpawnPoint(reinterpret_cast<CKGameSpawnPoint*>(m_pSpawnPoint));  // vt+0x6c
         manager->RequestSave(0, 0);  // vt+0x104
         // CKHkS08Hero_GetPlayerIndexIfControlled_maybe (0x362ac8, a getter) of the hero (`data`) goes to KStub_Nop_4ec920.
         m_bitArray = (m_bitArray & 0xffffffdfu) | 0x20u;
-        m_fAlpha0 = static_cast<float>(m_unk44[0]);
-        m_fAlpha1 = static_cast<float>(m_unk44[1]);
+        m_fAlpha0 = static_cast<float>(m_aui8OffGeomAlpha[0]);
+        m_fAlpha1 = static_cast<float>(m_aui8OffGeomAlpha[1]);
         m_fUsedTime = kZero;
         m_fYaw = kZero;
         m_fYawSpeed = kZero;
-        m_fAlpha2 = static_cast<float>(m_unk44[2]);
-        m_fFogAlpha = static_cast<float>(m_unk4D);
-        if (m_fUnk5C != kZero) ApplyYaw();
+        m_fAlpha2 = static_cast<float>(m_aui8OffGeomAlpha[2]);
+        m_fFogAlpha = static_cast<float>(m_ui8OffFogAlpha);
+        if (m_fActiveYawSpeedDeg != kZero) ApplyYaw();
         ApplyAlphas();
         StopParticles(m_pUnk38);
-        StopParticles(m_pUnk3C);
+        StopParticles(m_pReachParticlesNode);
         own = 0;
     } else if (message == 0x2666) {
-        CKLocTextAccessor* accessor = static_cast<CKLocTextAccessor*>(m_pUnk64);
+        CKLocTextAccessor* accessor = static_cast<CKLocTextAccessor*>(m_pPromptTextAccessor);
         IKSerializable* text = accessor->m_texts.m_pBlock != nullptr ? accessor->m_texts.m_pBlock[0] : accessor->m_pText;
         own = 0;
         *static_cast<IKSerializable**>(data) = text;
@@ -382,27 +382,27 @@ void CKHkS08SavePoint::Update(IKTime* frameClock) {
     uint8_t bFog;
     float speedTarget = kZero;
     if ((flags & 8u) == 0 || (flags & 0x20u) != 0) {
-        b0 = m_unk44[0];
-        b1 = m_unk44[1];
-        b2 = m_unk44[2];
-        bFog = m_unk4D;
+        b0 = m_aui8OffGeomAlpha[0];
+        b1 = m_aui8OffGeomAlpha[1];
+        b2 = m_aui8OffGeomAlpha[2];
+        bFog = m_ui8OffFogAlpha;
     } else if ((flags & 0x10u) == 0) {
-        b0 = m_unk47[0];
-        b1 = m_unk47[1];
-        b2 = m_unk47[2];
-        bFog = m_unk4E;
+        b0 = m_aui8IdleGeomAlpha[0];
+        b1 = m_aui8IdleGeomAlpha[1];
+        b2 = m_aui8IdleGeomAlpha[2];
+        bFog = m_ui8IdleFogAlpha;
     } else {
-        b0 = m_unk4A[0];
-        b1 = m_unk4A[1];
-        b2 = m_unk4A[2];
-        bFog = m_unk4F;
-        speedTarget = m_fUnk5C;
+        b0 = m_aui8ReachGeomAlpha[0];
+        b1 = m_aui8ReachGeomAlpha[1];
+        b2 = m_aui8ReachGeomAlpha[2];
+        bFog = m_ui8ReachFogAlpha;
+        speedTarget = m_fActiveYawSpeedDeg;
     }
     const float t0 = static_cast<float>(b0);
     const float t1 = static_cast<float>(b1);
     const float t2 = static_cast<float>(b2);
     const float tFog = static_cast<float>(bFog);
-    const float speed = m_fUnk50;
+    const float speed = m_fAlphaApproachSpeed;
 
     // The fog box node's alpha.
     bool clamped = false;
@@ -473,14 +473,14 @@ void CKHkS08SavePoint::Update(IKTime* frameClock) {
     float turn = m_fYawSpeed;
     if (!(speedTarget == turn)) {
         if (speedTarget > turn) {
-            turn = ppc::fmadds(dt, m_fUnk60, turn);
+            turn = ppc::fmadds(dt, m_fYawAccel, turn);
             m_fYawSpeed = turn;
             if (!(speedTarget >= turn)) {
                 turn = speedTarget;
                 m_fYawSpeed = turn;
             }
         } else {
-            turn = turn - dt * m_fUnk60;
+            turn = turn - dt * m_fYawAccel;
             m_fYawSpeed = turn;
             if (speedTarget > turn) {
                 turn = speedTarget;
@@ -493,8 +493,8 @@ void CKHkS08SavePoint::Update(IKTime* frameClock) {
         ApplyYaw();
     }
 
-    CKSound* idleLoop = Sound(m_pUnk20, 3);
-    CKSound* reachLoop = Sound(m_pUnk20, 2);
+    CKSound* idleLoop = Sound(m_pSoundDico, 3);
+    CKSound* reachLoop = Sound(m_pSoundDico, 2);
     if ((m_bitArray & 8u) == 0) {
         if (ParticlesShown(m_pUnk38)) StopParticles(m_pUnk38);
         if (idleLoop != nullptr) StopIfPlaying(idleLoop);
@@ -515,14 +515,14 @@ void CKHkS08SavePoint::Update(IKTime* frameClock) {
     for (uint32_t i = 0; i != count; ++i) {
         CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(group->m_apControlledHeroes[i]);  // 0x002ca0e0
         const float* p = hero->GetPositionPtr();  // 0x00361968
-        const float top = py + m_fUnk58;
+        const float top = py + m_fReachHeight;
         float y = p[1];
         const float dz = p[2] - pz;
         const float dx = p[0] - px;
         if (top >= y && py <= y) y = py;  // cror gt|eq, cror lt|eq
         const float dy = y - py;
         const float d = ppc::fmadds(dz, dz, ppc::fmadds(dx, dx, dy * dy));
-        if (d < best && m_fUnk54 * m_fUnk54 >= d) {
+        if (d < best && m_fReachRadius * m_fReachRadius >= d) {
             best = d;
             nearest = i;
         }
@@ -542,11 +542,11 @@ void CKHkS08SavePoint::Update(IKTime* frameClock) {
     if ((m_bitArray & 0x10u) == 0) {
         StopIfPlaying(reachLoop);
         LoopIfSilent(idleLoop);
-        if (ParticlesShown(m_pUnk3C)) StopParticles(m_pUnk3C);
+        if (ParticlesShown(m_pReachParticlesNode)) StopParticles(m_pReachParticlesNode);
         return;
     }
     StopIfPlaying(idleLoop);
     LoopIfSilent(reachLoop);
-    if (!ParticlesShown(m_pUnk3C)) StartParticles(m_pUnk3C);
+    if (!ParticlesShown(m_pReachParticlesNode)) StartParticles(m_pReachParticlesNode);
     manager->SetHeroInteractionTarget(this, 2, static_cast<uint8_t>(nearest));  // 0x004ee770
 }

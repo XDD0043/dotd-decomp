@@ -104,14 +104,14 @@ float GroupTetherDistance(const CKGrpS08Hero* group, uint8_t hero) {
     if (hero == 0) {
         std::memcpy(&d, &group->m_unk2d4[16], 4);  // +0x314
     } else if (hero == 1) {
-        std::memcpy(&d, &group->m_unk318, 4);  // +0x318
+        std::memcpy(&d, &group->m_fHero1ToMidDist, 4);  // +0x318
     }
     return d;
 }
 
 // 0x002ce560 CKGrpS08Hero_GetTetherSpringStiffness_maybe (Spyro2008/groups/CKGrpS08Hero.cpp, AI family's unit; local
 // copy): +0x12c with +0xfc set, else +0x118.
-float GroupTetherSpringStiffness(const CKGrpS08Hero* group) { return group->m_unkfc != 0 ? group->m_unk12c : group->m_unk118; }
+float GroupTetherSpringStiffness(const CKGrpS08Hero* group) { return group->m_bUseAltTetherParams != 0 ? group->m_fAltTetherSpringStiffness : group->m_fTetherSpringStiffness; }
 
 }  // namespace
 
@@ -271,14 +271,14 @@ CVector3 CKHkS08Hero::ComputePartnerTetherSpringForce(float radius, float /*unus
     if ((m_unkec4 & 0x400000u) != 0) return kHeroZeroVector;
     // In a climb zone the spring only pulls when the zone's body (+0x38) has its flag bit 23
     // (CKHkClimbZone_GetLinkedObjectFlagC23_maybe 0x456bc8); without a body (every LVL010 zone) it is zeroed.
-    if (m_unk1694 != nullptr && m_unk1694->GetLinkedObjectFlagC23() == 0) return kHeroZeroVector;
+    if (m_pCurrentClimbZone != nullptr && m_pCurrentClimbZone->GetLinkedObjectFlagC23() == 0) return kHeroZeroVector;
     return out;
 }
 
 // 0x003105d8 CKHkS08Hero_ApplyPartnerTetherToVelocity_maybe: with +0x1674 and without +0xec4 bit 22, the velocity
 // (+0x127c) loses its part against the group's tether direction (+0x2fc / +0x308) when it points against it.
 void CKHkS08Hero::ApplyPartnerTetherToVelocity() {
-    if (m_unk1674 == 0) return;
+    if (m_bExternalDisplacementActive == 0) return;
     if ((m_unkec4 & 0x400000u) != 0) return;
     const CKGrpS08Hero* group = static_cast<const CKGrpS08Hero*>(m_pGrpHero);
     const CVector3 dir = GroupTetherDirection(group, m_ui8Hero);
@@ -394,8 +394,8 @@ void CKHkS08Hero::UpdateForwardAndSpeedStats() {
     const float vz = mz * inverse;
     const float vy = my * inverse;
     const float speed = std::sqrt(ppc::fmadds(vz, vz, ppc::fmadds(vx, vx, 0.0f)));  // Math_Sqrtf 0x10690
-    m_unk534 = vy;
-    m_unk530 = speed;
+    m_fCurVSpeed = vy;
+    m_fCurHSpeed = speed;
 }
 
 namespace {
@@ -419,7 +419,7 @@ void ClearLedgeFlags(uint32_t& ec4, uint32_t& ec8, uint32_t& f354, bool keep1000
 void CKHkS08Hero::TryStartFlightDash() {
     const float reach = m_unka10;
     const float lift = m_unka14;
-    if ((m_unk358 & 0x100000u) == 0) return;
+    if ((m_ui32HeroFlags358 & 0x100000u) == 0) return;
     if ((m_unkecc & 0x1000000u) != 0) return;
     CKSrvCollision* collision = static_cast<CKSrvCollision*>(g_pEngine->m_srvCollision);
     CSlideGroundEdgeDatasOut slide;
@@ -480,7 +480,7 @@ void CKHkS08Hero::ProbeGroundAndUpdateLocomotionFlags() {
         point.y = ppc::fmadds(ny, depth, ay + m_unk550);
         point.z = ppc::fmadds(nz, depth, az + m_unk554);
     }
-    GroundContact_ProbeGroundPoint(&m_unk11fc, &point, nullptr);  // 0x00583ef8
+    GroundContact_ProbeGroundPoint(&m_gcContact11FC, &point, nullptr);  // 0x00583ef8
     const float height2 = point.y - m_unk550;
     bool second = true;
     if (height2 >= reach || height2 < 0.0f) second = false;
@@ -516,12 +516,12 @@ void CKHkS08Hero::ProbeGroundAndUpdateLocomotionFlags() {
             if (ground == nullptr || (ground->m_ui16PropertiesFlags & 0x4000u) == 0) tryStart = true;
         }
         if (!tryStart) {
-            ClearLedgeFlags(m_unkec4, m_unkec8, m_unk354, false);
+            ClearLedgeFlags(m_unkec4, m_unkec8, m_ui32HeroFlags354, false);
             return;
         }
     }
     // The start of the ledge state.
-    if ((m_unk35c & 0x10000u) != 0 && (m_unk354 & 1u) != 0 && (ec8 & 0x400u) == 0) {
+    if ((m_ui32HeroFlags35C & 0x10000u) != 0 && (m_ui32HeroFlags354 & 1u) != 0 && (ec8 & 0x400u) == 0) {
         float maxHeight = 0.5f;  // TOC1 +0x225c
         if (IsMovementMode0() != 0) maxHeight = m_unkbac;        // 0x00340178
         if (IsFlyingMovementMode1() != 0) maxHeight = m_unkbc4;  // 0x00340188
@@ -535,7 +535,7 @@ void CKHkS08Hero::ProbeGroundAndUpdateLocomotionFlags() {
             m_unk11dc = nx;
             m_unk11e4 = nz;
             m_unk11e0 = ny;
-            m_unk354 |= 0x800u;
+            m_ui32HeroFlags354 |= 0x800u;
             m_unkec4 |= 0x200000u | 0x800u | 0x400u | 0x2000u;
             m_unkec8 |= 0x400000u | 0x800000u | 0x400u;
             SetMovementMode(0);  // 0x00340c18
@@ -544,7 +544,7 @@ void CKHkS08Hero::ProbeGroundAndUpdateLocomotionFlags() {
     }
     // In the ledge state (+0xec8 bit 10, not climbing up / bit 18).
     if ((ec8 & 0x400u) != 0 && (ec8 & 0x2000u) == 0 && (ec8 & 0x40000u) == 0) {
-        m_unk354 |= 0x800u;
+        m_ui32HeroFlags354 |= 0x800u;
         m_unkec4 |= 0x200000u | 0x800u | 0x400u | 0x2000u;
         bool lifted = false;
         if (height1 >= 1.0f && !(height1 + dH <= m_unkbbc) && !(height2 + dH <= m_unkbbc)) {  // TOC1 +0x2270
@@ -561,19 +561,19 @@ void CKHkS08Hero::ProbeGroundAndUpdateLocomotionFlags() {
         }
         if (!lifted) {
             m_unkec8 = (m_unkec8 | 0x1000u) & ~0x200u;
-            m_unk354 &= ~0x800u;
+            m_ui32HeroFlags354 &= ~0x800u;
             m_unkec4 &= 0xffdfd3ffu;
             m_unkec8 &= ~0x80u;
         }
         ec8 = m_unkec8;
-        if ((m_unk358 & 0x100000u) != 0 && (ec8 & 0x1000u) == 0 && (ec8 & 0x2000u) == 0) {
+        if ((m_ui32HeroFlags358 & 0x100000u) != 0 && (ec8 & 0x1000u) == 0 && (ec8 & 0x2000u) == 0) {
             m_unkec8 = ec8 | 0x40000u | 0x800u;
             ec8 = m_unkec8;
         }
     }
     // The ledge animations 0x59 / 0x29: the climb up (bit 13) or leaving.
     if ((ec8 & 0x800u) == 0 || (ec8 & 0x40000u) != 0 || (ec8 & 0x1000u) != 0 || (ec8 & 0x2000u) != 0) return;
-    const int16_t animation = static_cast<int16_t>(m_unk160);
+    const int16_t animation = static_cast<int16_t>(m_i16CurAnimIndex);
     if (animation != 0x59 && animation != 0x29) return;
     if (m_unk1378 <= m_unkbb8) return;
     const float limit = AsF32(m_unkbb4);
@@ -582,7 +582,7 @@ void CKHkS08Hero::ProbeGroundAndUpdateLocomotionFlags() {
         m_unkec8 |= 0x2000u;
         return;
     }
-    ClearLedgeFlags(m_unkec4, m_unkec8, m_unk354, true);
+    ClearLedgeFlags(m_unkec4, m_unkec8, m_ui32HeroFlags354, true);
 }
 
 // 0x00311950 CKHkS08Hero_ComputeTimedAnimDisplacement_maybe: the root motion of the timed animations, through the curve
@@ -596,7 +596,7 @@ CVector3 CKHkS08Hero::ComputeTimedAnimDisplacement(float dt) {
     float scale = 0.0f;
     float* const params = m_unk14e0;
     int32_t running;
-    if ((m_unkec8 & 2u) != 0 && (m_unk1960 == 0x0c || m_unk18d0 == 0x0f)) {
+    if ((m_unkec8 & 2u) != 0 && (m_ui8GroundAnimState == 0x0c || m_ui8FlyAnimState == 0x0f)) {
         m_unk122c = dt + m_unk122c;
         m_unk1230 = m_unk123c;
         m_unk1234 = m_unk1240;
@@ -612,7 +612,7 @@ CVector3 CKHkS08Hero::ComputeTimedAnimDisplacement(float dt) {
         }
         running = Math_EvalRampHoldDecay(&scale, m_unk122c, params);  // 0x00583a68
     } else {
-        if (m_unk160 != 0xb9) return kHeroZeroVector;
+        if (m_i16CurAnimIndex != 0xb9) return kHeroZeroVector;
         if ((m_unkec4 & 0x8000000u) == 0) {
             m_unk1b18 = 0.0f;
             m_unkec4 |= 0x8000000u;
@@ -764,14 +764,14 @@ void CKHkS08Hero::ComputeCameraRelativeMove() {
         m_unk11a8 = m_unk37c;
         m_unk11b0 = m_unk384;
         m_unk11ac = m_unk380;
-    } else if (m_unk1694 == 0) {
+    } else if (m_pCurrentClimbZone == 0) {
         m_unk11b0 = m_unk11a4;
         m_unk11a8 = m_unk119c;
         m_unk11ac = m_unk11a0;
     } else {
         // On a climb zone: the zone's facing (its node's LTM at axis, flat and unit) against the view; a view across the
         // wall (|dot| < 0.707, TOC +0x22ac) clears +0x11c0 and keeps the previous move (+0x11a8).
-        const CVector3& at = m_unk1694->NodeLtm().m_at;
+        const CVector3& at = m_pCurrentClimbZone->NodeLtm().m_at;
         float ax = at.x;
         float az = at.z;
         float ay = 0.0f;  // TOC +0x2248
@@ -841,11 +841,11 @@ void CKHkS08Hero::ComputeCameraRelativeMove() {
             hy = inverse * 0.0f;
             stored = speed;
         }
-        m_unk12c4 = stored;
+        m_fCurrentHorizSpeed = stored;
         m_unk1294 = hx;
         m_unk1298 = hy;
         m_unk129c = hz;
-        m_unk12c8 = std::fabs(m_unk1280);  // the sign bit cleared through memory
+        m_fCurrentAbsVertSpeed = std::fabs(m_unk1280);  // the sign bit cleared through memory
         m_unk12cc = std::fabs(std::sqrt(
             ppc::fmadds(m_unk1284, m_unk1284, ppc::fmadds(m_unk127c, m_unk127c, m_unk1280 * m_unk1280))));
     }
@@ -946,7 +946,7 @@ void CKHkS08Hero::ComputeCameraRelativeMove() {
 // for 0xe2, +0x1724 for the others); a change clears the position adjustment's x and z (+0x1268 / +0x1270).
 void CKHkS08Hero::UpdateField794ByAnimAndElementLevel() {
     if (IsClimbingMovementMode2() != 0) return;  // 0x003401a0
-    const int16_t animation = static_cast<int16_t>(m_unk160);
+    const int16_t animation = static_cast<int16_t>(m_i16CurAnimIndex);
     const float before = m_unk794;
     float value;
     if (animation > 0x51) {

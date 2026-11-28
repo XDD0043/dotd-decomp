@@ -159,7 +159,7 @@ CKS08GameStructure* Gs(const CKS08MenuElements* menu) {
 // The level records' words (the game manager's +0xc44 + 4 (3 element + level) for Spyro, +0xc80 + ... for Cynder): the
 // gems element `element` needs for `level` (1..3); element 4's words are the total level's bonus amounts.
 uint32_t LevelCost(const CKS08GameManager* gm, uint8_t dragon, uint32_t element, uint32_t level) {
-    const uint32_t* words = dragon == 0 ? &gm->m_aUnkC48[0].m_unk0 : &gm->m_aUnkC84[0].m_unk0;
+    const uint32_t* words = dragon == 0 ? &gm->m_aSpyroUpgradeCosts[0].m_unk0 : &gm->m_aCynderUpgradeCosts[0].m_unk0;
     return words[element * 3 + level - 1];
 }
 // The gems of an element (the game structure's +0x8c + 4 element for Spyro, +0xa0 + 4 element for Cynder).
@@ -465,8 +465,8 @@ void CKS08MenuElements::ToggleActiveDragon() {
     if (m_unk32c != 0) ResetPlayerVisualEffects(m_ui8Dragon);
     const uint32_t focus = m_ui8Dragon == 0 ? 5u : 2u;
     m_ui8Dragon = m_ui8Dragon == 0 ? 1 : 0;
-    m_unk6c[1] = static_cast<uint8_t>(focus);
-    m_unk6c[0] = static_cast<uint8_t>(focus);
+    m_aui8FocusedItem[1] = static_cast<uint8_t>(focus);
+    m_aui8FocusedItem[0] = static_cast<uint8_t>(focus);
     for (uint32_t i = 8;;) {
         CKInterfaceButton* button = Button(this, i);
         if (button != nullptr) {
@@ -673,8 +673,8 @@ uint8_t CKS08MenuElements::OnMenuState(int32_t phase, uint8_t /*other*/) {
                 static_cast<CBillboard2d*>(button->m_apUnk38[0])->SetTexture(static_cast<RwTexture*>(m_apTextures2ac[m_aui8Element[0]]));
             }
         }
-        m_unk6c[1] = 2;
-        m_unk6c[0] = 2;
+        m_aui8FocusedItem[1] = 2;
+        m_aui8FocusedItem[0] = 2;
         for (uint32_t i = 8;;) {
             CKInterfaceButton* button = Button(this, i);
             if (button != nullptr) {

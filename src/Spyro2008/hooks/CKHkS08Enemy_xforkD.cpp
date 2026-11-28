@@ -61,12 +61,12 @@ void CKHkS08Enemy::EnableAttackVolumes() {
     const uint8_t count = kEnemyBoundingTable[slot + 0x24];
     if (m_mainState == 0x22) {
         for (uint32_t i = 0; i < count; ++i) {
-            if (m_unk884->m_vUnk348.m_pBlock[i] != 0) EnableVolume(static_cast<uint8_t>(first + i));  // vt+0xf0
+            if (m_pActiveEnemyCpnt->m_vUnk348.m_pBlock[i] != 0) EnableVolume(static_cast<uint8_t>(first + i));  // vt+0xf0
         }
     }
-    if (m_unk73c == nullptr) return;
+    if (m_pCurrentAttack == nullptr) return;
     for (uint32_t i = 0; i < count; ++i) {
-        if (m_unk73c->m_array48.m_data[i] != 0) EnableVolume(static_cast<uint8_t>(first + i));  // vt+0xf0
+        if (m_pCurrentAttack->m_array48.m_data[i] != 0) EnableVolume(static_cast<uint8_t>(first + i));  // vt+0xf0
     }
 }
 
@@ -85,7 +85,7 @@ void CKHkS08Enemy::IKHkEnemyUpdate(IKTime* /*clock*/) {
 
 // The carrier's vt+0x74 (CKS08CarrierEnemy_UpdateStateMachine_maybe 0x4c93e8, through +0x734; no null test).
 void CKHkS08Enemy::CallCarrierUpdate(IKTime* clock) {
-    static_cast<CKS08CarrierEnemy*>(m_unk734)->UpdateStateMachine(clock);
+    static_cast<CKS08CarrierEnemy*>(m_pCarrierEnemy)->UpdateStateMachine(clock);
 }
 
 // 0x00268178 CKGrpS08Enemy_SignalAlert_maybe of the enemy group (the game manager's first group, GetEnemyGroup).

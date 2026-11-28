@@ -84,7 +84,7 @@ float WordAsFloat(uint32_t word) {
 // 0x00301348 CKHkS08Hero_IsInSpecialAnim_maybe (local copy; CKHkS08Hero_3.cpp): the animation (+0x160) is one of
 // 0x33, 0x36, 0x3a, 0x3d, 0x41, 0x43, 0x44.
 uint8_t IsInSpecialAnim(const CKHkS08Hero* hero) {
-    switch (static_cast<int16_t>(hero->m_unk160)) {
+    switch (static_cast<int16_t>(hero->m_i16CurAnimIndex)) {
     case 0x33: case 0x36: case 0x3a: case 0x3d: case 0x41: case 0x43: case 0x44: return 1;
     default: return 0;
     }
@@ -102,19 +102,19 @@ void CKHkS08Hero::UpdateFlightAltitudeAndProbes() {
     float radius = m_unka4c;
     float lift = m_unka50;
     float maxStep = m_unka54;
-    m_unk1458 = GetHeightAboveGround();  // 0x0032a008
-    m_unked0 &= ~1u;
+    m_fFlightHeight = GetHeightAboveGround();  // 0x0032a008
+    m_ui32StatusFlagsED0 &= ~1u;
     const CGround* ground = static_cast<const CGround*>(GetGroundInfo());  // 0x00361b68
     if (ground != nullptr) {
         const uint16_t props = ground->m_ui16PropertiesFlags;
-        if ((props & 0x200u) != 0 || ((props & 0x20u) != 0 && m_unk1458 > m_unk910)) {
-            float height = m_unk1458;
+        if ((props & 0x200u) != 0 || ((props & 0x20u) != 0 && m_fFlightHeight > m_unk910)) {
+            float height = m_fFlightHeight;
             if (!(m_unk1258 >= 1.0e-1f)) {  // TOC +0x22f4
                 height = height - ground->m_fPropertieValue;
-                m_unk1458 = height;
+                m_fFlightHeight = height;
             }
             height = height - m_unk8e4;
-            m_unk1458 = height;
+            m_fFlightHeight = height;
         }
     }
     if (m_unk1258 >= 1.0e-1f) return;
@@ -143,9 +143,9 @@ void CKHkS08Hero::UpdateFlightAltitudeAndProbes() {
             GroundContact_ProbeGroundPoint(&contact, &point, nullptr);  // 0x00583ef8
             float below = m_unk550 - point.y;
             if (below < 0.0f) below = 0.0f;
-            if (contact.m_eContactStatus != 3 && raised - point.y < maxStep && m_unk1458 > below) {
-                m_unked0 = (m_unked0 & ~1u) | 1u;
-                m_unk1458 = below;
+            if (contact.m_eContactStatus != 3 && raised - point.y < maxStep && m_fFlightHeight > below) {
+                m_ui32StatusFlagsED0 = (m_ui32StatusFlagsED0 & ~1u) | 1u;
+                m_fFlightHeight = below;
             }
         }
     }
@@ -198,10 +198,10 @@ void CKHkS08Hero::AccumulateFlightDisplacement(float dt) {
 CVector3 CKHkS08Hero::ComputeFlightGravityAccel() {
     CVector3 out = kHeroAxisY;  // TOC +0x22e0 -> 0x00c50d40
     const CKGrpS08Hero* group = static_cast<const CKGrpS08Hero*>(m_pGrpHero);
-    float height = m_unk1458;
-    if (static_cast<int32_t>(m_ui8Hero) == static_cast<int8_t>(group->m_unkacc)) {
+    float height = m_fFlightHeight;
+    if (static_cast<int32_t>(m_ui8Hero) == static_cast<int8_t>(group->m_ui8FlightFloorHero)) {
         if (m_unk1258 < 1.0e-1f) {  // TOC +0x22f4
-            const float gap = m_unk550 - group->m_unkac8;
+            const float gap = m_unk550 - group->m_fFlightFloorLevel;
             if (height > gap) height = gap;
         }
     }
@@ -224,7 +224,7 @@ CVector3 CKHkS08Hero::ComputeFlightGravityAccel() {
         if (wanted >= hi) return hi;
         return wanted;
     };
-    if (onFlightGround != 0 && highAbove == 0 && (m_unkec8 & 0x20000000u) == 0 && (m_unked0 & 1u) == 0) {
+    if (onFlightGround != 0 && highAbove == 0 && (m_unkec8 & 0x20000000u) == 0 && (m_ui32StatusFlagsED0 & 1u) == 0) {
         const float ratio = height / m_unk8e0;
         GetHeightAboveGround();  // 0x0032a008 (the answer is not used)
         const float wanted = ratio * m_unk8f4;
@@ -254,8 +254,8 @@ CVector3 CKHkS08Hero::ComputeFlightGravityAccel() {
             gravity = band(m_unk904, m_unk8f8, m_unk90c);
         }
         if (m_unk918 > height && onFlightGround == 0 && m_unk138c <= 0.0f &&
-            static_cast<int32_t>(m_ui8Hero) != static_cast<int8_t>(group->m_unkacc) &&
-            (m_unked0 & 1u) == 0 && !(m_unk1258 >= 1.0e-1f) && m_unk18d0 != 0xc && highAbove == 0) {
+            static_cast<int32_t>(m_ui8Hero) != static_cast<int8_t>(group->m_ui8FlightFloorHero) &&
+            (m_ui32StatusFlagsED0 & 1u) == 0 && !(m_unk1258 >= 1.0e-1f) && m_ui8FlyAnimState != 0xc && highAbove == 0) {
             gravity = m_unk914;
         }
     }
@@ -263,7 +263,7 @@ CVector3 CKHkS08Hero::ComputeFlightGravityAccel() {
     if (m_unk13d8 != 0) {
         gravity = m_unk9b4;
         if (group->m_ui8ControlledHeroCount == 2) {
-            const float gap = WordAsFloat(group->m_unk318) + WordAsFloat(group->m_unk2d4[16]);  // +0x318 + +0x314
+            const float gap = WordAsFloat(group->m_fHero1ToMidDist) + WordAsFloat(group->m_unk2d4[16]);  // +0x318 + +0x314
             const float r = Math_RemapClamped(0.0f, group->m_unk10c, gap, 0.0f, 0.5f);  // 0x00333618; TOC +0x2300
             gravity = gravity * (1.0f - r);  // TOC +0x2304
         }
@@ -293,7 +293,7 @@ CVector3 CKHkS08Hero::ComputeFlightDragForce() {
         out.y = k * out.y;
     }
     if ((m_unkec8 & 0x4000000u) != 0) {
-        const float speed = m_unk12c4;
+        const float speed = m_fCurrentHorizSpeed;
         const float ratio = speed / m_unk11f8;
         float scale = ratio * ratio;
         if (speed > m_unk11f8) scale = scale * scale;
@@ -307,7 +307,7 @@ CVector3 CKHkS08Hero::ComputeFlightDragForce() {
     if ((m_unkec4 & 0x40000u) != 0 && y - groundY < reach) {
         const float k = -m_unk958;
         const float kv = -m_unk8ec;
-        const float speed = m_unk12c4;
+        const float speed = m_fCurrentHorizSpeed;
         const float zz = vz * k;
         const float yy = vy * kv;
         const float xx = vx * k;
@@ -466,7 +466,7 @@ CVector3 CKHkS08Hero::ComputeFlightThrustForce(float dt) {
 // of property 0x200 / 0x20).
 CVector3 CKHkS08Hero::ComputeFlightTargetHeightForce() {
     CVector3 out = kHeroZeroVector;  // TOC +0x22dc
-    if (m_unk1d28 == 0 || !(m_unk138c <= 0.0f)) return out;
+    if (m_pFlightAimEnemy == 0 || !(m_unk138c <= 0.0f)) return out;
     // The original also stores |dx|, |dy|, |dz| to the stack and drops them.
     const float y = m_unk1d30 + out.y;
     out.x = 0.0f;
@@ -575,7 +575,7 @@ CVector3 CKHkS08Hero::ComputeFlightInputForce(float dt) {
         if (takeOff != 0) {
             m_unk138c = 0.0f;
             timer = 0.0f;
-            if (m_unk1809 != 0 && m_unk12c4 > m_unk964) {
+            if (m_bTakeOffPending != 0 && m_fCurrentHorizSpeed > m_unk964) {
                 m_unk1390 = m_unk930;
                 m_unk1394 = AsF32(m_unk934);
                 m_unk138c = m_unk938;
@@ -739,7 +739,7 @@ void CKHkS08Hero::DynamicStage1Flying(float dt) {
                     by = by * speed;
                 }
             }
-            if (backwards == 0 && inAir != 0 && m_unk12c4 > m_unk964) {
+            if (backwards == 0 && inAir != 0 && m_fCurrentHorizSpeed > m_unk964) {
                 mx = mx + bx;
                 my = my + by;
                 mz = mz + bz;
@@ -757,7 +757,7 @@ void CKHkS08Hero::DynamicStage1Flying(float dt) {
     float lx = zero.x;
     float ly = zero.y;
     float lz = zero.z;
-    if (m_unk13a4 == 0 && m_unk160 != 0x40) {
+    if (m_unk13a4 == 0 && m_i16CurAnimIndex != 0x40) {
         const RwFrame* frame = static_cast<const CSGMovable*>(m_pKGLObject)->m_pRwFrame;
         const RwV3d& at = frame->modelling.at;
         const RwV3d& up = frame->modelling.up;
@@ -765,7 +765,7 @@ void CKHkS08Hero::DynamicStage1Flying(float dt) {
         const float d = ppc::fmadds(m_unk1284, at.z, ppc::fmadds(m_unk127c, at.x, m_unk1280 * at.y));
         if (d > 0.0f) along = d;
         float k;
-        if (m_unk13d1 != 0 || m_unk18d0 == 6) {
+        if (m_unk13d1 != 0 || m_ui8FlyAnimState == 6) {
             k = m_unk954;
         } else {
             k = m_unk9a0;
@@ -792,9 +792,9 @@ void CKHkS08Hero::DynamicStage1Flying(float dt) {
     }
     if (m_unk13d8 == 0) {
         const CKGrpS08Hero* group = static_cast<const CKGrpS08Hero*>(m_pGrpHero);
-        const float dampingRadius = group->m_unk114;
-        const float dampingCoeff = group->m_unk11c;
-        m_unk17d8 = ComputePartnerTetherSpringForce(group->m_unk110, group->m_unk118);  // 0x003103f0
+        const float dampingRadius = group->m_fTetherDampingRadius;
+        const float dampingCoeff = group->m_fTetherDampingCoeff;
+        m_unk17d8 = ComputePartnerTetherSpringForce(group->m_fTetherSpringRadius, group->m_fTetherSpringStiffness);  // 0x003103f0
         m_unk17cc = ComputePartnerTetherDampingForce(dampingRadius, dampingCoeff);      // 0x0030fe70
         const float ax = m_unk17f0 + m_unk17d8.x;
         const float az = m_unk17f8 + m_unk17d8.z;
@@ -889,7 +889,7 @@ void CKHkS08Hero::UpdateFlyingLocomotion(float dt) {
         groundInfo != nullptr ? static_cast<uint8_t>((groundInfo->m_ui16PropertiesFlags >> 9) & 1u) : 0;
     m_unk13d2 = m_unk13d1;
     const float kNear = 1.0e-1f;  // TOC +0x22f4
-    if (((m_unk354 & 1u) != 0 && m_gcCurDatasInOut.m_fdH > kNear) || onFlightGround != 0) {
+    if (((m_ui32HeroFlags354 & 1u) != 0 && m_gcCurDatasInOut.m_fdH > kNear) || onFlightGround != 0) {
         m_unk13d1 = 1;
         m_unk1440 = 0;
         if (m_unk1258 < kNear) TryStartFlightDash();  // 0x00310ef0
@@ -933,8 +933,8 @@ void CKHkS08Hero::UpdateFlyingLocomotion(float dt) {
             const float d = ppc::fmadds(m_unk1364, m_unk384, ppc::fmadds(m_unk135c, m_unk37c, m_unk1360 * m_unk380));
             uint8_t wanted;
             if (m_unk13a4 == 0) {
-                wanted = (m_unk12c4 > m_unk964 && -m_unk9b0 > d) ? static_cast<uint8_t>(m_unk13cf == 0 ? 1 : 0) : 0;
-            } else if (!(d < 0.0f) && m_unk12c4 >= 0.5f) {  // TOC +0x2300
+                wanted = (m_fCurrentHorizSpeed > m_unk964 && -m_unk9b0 > d) ? static_cast<uint8_t>(m_unk13cf == 0 ? 1 : 0) : 0;
+            } else if (!(d < 0.0f) && m_fCurrentHorizSpeed >= 0.5f) {  // TOC +0x2300
                 wanted = 0;
             } else {
                 wanted = m_unk1378 > kNear ? 1 : 0;  // ble: not above (NaN too) gives 0
@@ -962,7 +962,7 @@ void CKHkS08Hero::UpdateFlyingLocomotion(float dt) {
                 if (!(m_unk978 >= hold)) {
                     GetGroundInfo();  // 0x00361b68 (not used)
                     const CKGrpS08Hero* group = static_cast<const CKGrpS08Hero*>(m_pGrpHero);
-                    const float gap318 = WordAsFloat(group->m_unk318);
+                    const float gap318 = WordAsFloat(group->m_fHero1ToMidDist);
                     const float gap314 = WordAsFloat(group->m_unk2d4[16]);
                     bool stay = (m_unkec4 & 0x40000u) != 0;
                     if (!stay && PartnerShouldStayClimbing() != 0) {  // 0x002f8628
@@ -974,7 +974,7 @@ void CKHkS08Hero::UpdateFlyingLocomotion(float dt) {
                         landed = true;
                     }
                 }
-            } else if (m_unk13a4 != 0 && m_unk12c4 < m_unk9fc && (m_unk18d0 == 3 || m_unk18d0 == 4)) {
+            } else if (m_unk13a4 != 0 && m_fCurrentHorizSpeed < m_unk9fc && (m_ui8FlyAnimState == 3 || m_ui8FlyAnimState == 4)) {
                 m_unk13a4 = 0;
                 m_unk13cf = 1;
                 m_unk13ce = 1;
@@ -990,14 +990,14 @@ void CKHkS08Hero::UpdateFlyingLocomotion(float dt) {
             // the hero landed: nothing more this frame (the aimed enemy is not looked for either)
             return;
         }
-        if ((m_unk358 & 0x100000u) != 0 && m_unk13d1 == 0 && m_unk1388 <= 0.0f && (m_unk354 & 0x800u) == 0 &&
-            (m_unk35c & 2u) == 0) {
+        if ((m_ui32HeroFlags358 & 0x100000u) != 0 && m_unk13d1 == 0 && m_unk1388 <= 0.0f && (m_ui32HeroFlags354 & 0x800u) == 0 &&
+            (m_ui32HeroFlags35C & 2u) == 0) {
             SetDirectionLock(1);  // 0x00354cf0 and the +0x354 bits
             m_unk1385 = 1;
             m_unk1388 = m_unk98c;
             m_unk1384 = 1;
         }
-        if ((m_unk358 & 0x100000u) != 0 && m_unk13d8 != 0) {
+        if ((m_ui32HeroFlags358 & 0x100000u) != 0 && m_unk13d8 != 0) {
             HeroTimedImpulse thrust{m_unk9b8, m_unk9bc, 0, kHeroZeroVector, 0.0f, 0.0f};
             thrust.Start(CVector3{m_unk13dc, m_unk13e0, m_unk13e4});
             m_unk13f4 = thrust.m_magnitude;
@@ -1019,11 +1019,11 @@ void CKHkS08Hero::UpdateFlyingLocomotion(float dt) {
         }
         {
             uint8_t request = 0;
-            if (m_unk13d3 != 0 && m_unk18d0 != 1) request = m_unk18d0 != 2 ? 1 : 0;
+            if (m_unk13d3 != 0 && m_ui8FlyAnimState != 1) request = m_ui8FlyAnimState != 2 ? 1 : 0;
             m_unk13d3 = 0;
             m_unk13ce = (m_unk13ce | request) != 0 ? 1 : 0;
         }
-        if ((m_unk354 & 0x800u) != 0 || (m_unk35c & 2u) != 0) {
+        if ((m_ui32HeroFlags354 & 0x800u) != 0 || (m_ui32HeroFlags35C & 2u) != 0) {
             m_unk13ce = 0;
             SetF32(m_unk1380, 0.0f);
         }
@@ -1038,19 +1038,19 @@ void CKHkS08Hero::UpdateFlyingLocomotion(float dt) {
         }
         UpdateFlightAltitudeAndProbes();  // 0x00312bb0
     }
-    m_unk1d28 = 0;
+    m_pFlightAimEnemy = 0;
     const CKGrpS08Hero* group = static_cast<const CKGrpS08Hero*>(m_pGrpHero);
-    if ((group->m_unkf8 & 0x400u) != 0) {
+    if ((group->m_baWorkFlags & 0x400u) != 0) {
         const float length =
             std::sqrt(ppc::fmadds(m_unk1364, m_unk1364, ppc::fmadds(m_unk135c, m_unk135c, m_unk1360 * m_unk1360)));
         if (length > kNear) {
             const CVector3 facing{m_unk135c, m_unk1360, m_unk1364};
-            m_unk1d28 = FindBestEnemyInAimCone(m_unk1d38, &facing);  // 0x002fe5b8
+            m_pFlightAimEnemy = FindBestEnemyInAimCone(m_pFlightAimCone, &facing);  // 0x002fe5b8
         }
-        if (m_unk1d28 != nullptr) {
+        if (m_pFlightAimEnemy != nullptr) {
             // The aim point from the position (+0x54c), hot spot 1 when it is nearer, the height clamped.
             const CVector3 from{m_unk54c, m_unk550, m_unk554};
-            const CVector3 aim = GetAimPointOnEnemy(m_unk1d28, &from, 1, 1);  // 0x002fdec8
+            const CVector3 aim = GetAimPointOnEnemy(m_pFlightAimEnemy, &from, 1, 1);  // 0x002fdec8
             m_unk1d2c = aim.x;
             m_unk1d34 = aim.z;
             m_unk1d30 = aim.y;
@@ -1094,15 +1094,15 @@ uint8_t CKHkS08Hero::LocoFlying(IKTime*, int32_t phase, uint8_t other) {
         m_unk1388 = 0.0f;
         m_unk1385 = 0;
         m_unk1384 = 0;
-        m_unk13d1 = static_cast<uint8_t>(m_unk354 & 1u);
+        m_unk13d1 = static_cast<uint8_t>(m_ui32HeroFlags354 & 1u);
         m_unk368 = (m_unk368 & ~0x20u) | 0x20u;
         ComputeCameraRelativeMove();  // 0x00311df0
-        if ((m_unkec4 & 0x20000u) == 0) m_unk35c = (m_unk35c & 0x7fffffffu) | 0x80000000u;
+        if ((m_unkec4 & 0x20000u) == 0) m_ui32HeroFlags35C = (m_ui32HeroFlags35C & 0x7fffffffu) | 0x80000000u;
         if (m_unk13d8 == 0) {
             if (m_unk13d1 == 0) {
-                m_unk358 = (m_unk358 & ~0x100000u) | 0x100000u;
+                m_ui32HeroFlags358 = (m_ui32HeroFlags358 & ~0x100000u) | 0x100000u;
             } else if (PartnerShouldStayClimbing() == 0) {  // 0x002f8628
-                m_unk358 = (m_unk358 & ~0x100000u) | 0x100000u;
+                m_ui32HeroFlags358 = (m_ui32HeroFlags358 & ~0x100000u) | 0x100000u;
                 m_unk13d3 = 1;
             }
         }
@@ -1113,12 +1113,12 @@ uint8_t CKHkS08Hero::LocoFlying(IKTime*, int32_t phase, uint8_t other) {
         m_unk1804 = zero.z;
         m_unk1800 = zero.y;
         m_unkecc &= ~0x400000u;
-        CKImpulsionCpnt* impulsion = static_cast<CKImpulsionCpnt*>(m_unk1190);
-        impulsion->m_unk2c = 0;
-        impulsion->m_unk24 = 0;
-        impulsion->m_unk28 = 0;
-        m_unk35c &= ~0x80u;
-        m_unk1d28 = 0;
+        CKImpulsionCpnt* impulsion = static_cast<CKImpulsionCpnt*>(m_pFlightImpulsionCpnt);
+        impulsion->m_fImpulseTimer = 0;
+        impulsion->m_fValue = 0;
+        impulsion->m_fSpeed = 0;
+        m_ui32HeroFlags35C &= ~0x80u;
+        m_pFlightAimEnemy = 0;
         return other;
     }
     if (phase == 2) {
@@ -1128,10 +1128,10 @@ uint8_t CKHkS08Hero::LocoFlying(IKTime*, int32_t phase, uint8_t other) {
         m_unk3b8 = m_unk540;
         m_unk3c0 = m_unk548;
         m_unk3bc = m_unk544;
-        float speed = m_unk530;
+        float speed = m_fCurHSpeed;
         if (speed >= m_unk8dc) speed = m_unk8dc;
-        m_unk530 = speed * 0.5f;  // TOC +0x2300
-        if ((m_unk360 & 0x200u) != 0) {
+        m_fCurHSpeed = speed * 0.5f;  // TOC +0x2300
+        if ((m_ui32HeroFlags360 & 0x200u) != 0) {
             const RwFrame* frame = static_cast<const CSGMovable*>(m_pKGLObject)->m_pRwFrame;
             CMatrix34 local;
             std::memcpy(&local, &frame->modelling, sizeof(local));
@@ -1144,7 +1144,7 @@ uint8_t CKHkS08Hero::LocoFlying(IKTime*, int32_t phase, uint8_t other) {
             if (roll > kPi) roll = roll - kTwoPi;
             SetF32(m_unk598, roll * kRadToDeg);
         }
-        m_unk360 &= ~0x200u;
+        m_ui32HeroFlags360 &= ~0x200u;
         m_unkec4 = ((((m_unkec4 & ~8u) | 8u) & ~3u) | 1u);
         SetF32(m_unk1380, 0.0f);
         m_unk138c = 0.0f;
@@ -1158,7 +1158,7 @@ uint8_t CKHkS08Hero::LocoFlying(IKTime*, int32_t phase, uint8_t other) {
         m_unk13d2 = 0;
         m_unk13d1 = 0;
         m_unk368 = (m_unk368 & ~0x20u) | 0x20u;
-        m_unk35c &= 0x7fffffffu;
+        m_ui32HeroFlags35C &= 0x7fffffffu;
         m_unkec8 &= ~0x80u;
         m_unk13d9 = 0;
         m_unk13d8 = 0;
@@ -1192,7 +1192,7 @@ uint8_t CKHkS08Hero::LocoFlying(IKTime*, int32_t phase, uint8_t other) {
     float vx;
     float vy;
     float vz;
-    if ((m_unk354 & 0x40000u) != 0) {
+    if ((m_ui32HeroFlags354 & 0x40000u) != 0) {
         float nx = m_wallSlide.m_v3Normal.x;  // +0x61c
         float ny = m_wallSlide.m_v3Normal.y;
         float nz = m_wallSlide.m_v3Normal.z;
@@ -1226,7 +1226,7 @@ uint8_t CKHkS08Hero::LocoFlying(IKTime*, int32_t phase, uint8_t other) {
             m_unk1280 = ppc::fmadds(k, m_unk568, vy);
         }
     }
-    if (m_unk160 == 0x43 && m_unk1378 == 0.0f) {
+    if (m_i16CurAnimIndex == 0x43 && m_unk1378 == 0.0f) {
         m_unk1284 = 0.0f;
         m_unk127c = 0.0f;
     }
@@ -1282,7 +1282,7 @@ void CKHkS08Hero::UpdateFlyingMovement(float dt) {
         bool push = false;
         if ((flags & 0x2000u) != 0) {
             if ((flags & 0x40000u) != 0) {
-                if (m_unk160 == 0x57) {
+                if (m_i16CurAnimIndex == 0x57) {
                     checkSlot = true;
                 } else if ((flags & 0x2000000u) == 0) {
                     push = true;
@@ -1291,7 +1291,7 @@ void CKHkS08Hero::UpdateFlyingMovement(float dt) {
                 checkSlot = true;
             }
         } else if ((flags & 0x40000u) != 0) {
-            if (m_unk160 == 0x57) {
+            if (m_i16CurAnimIndex == 0x57) {
                 checkSlot = true;
             } else if ((flags & 0x2000000u) == 0) {
                 push = true;
@@ -1304,7 +1304,7 @@ void CKHkS08Hero::UpdateFlyingMovement(float dt) {
             m_unkec8 = value;
         } else if (checkSlot) {
             AnimBlendSlot* slot = GetAnimBlendSlot();  // vt+0x194
-            if (slot->m_unk14 == 0 && m_unk160 == 0x58 && (m_unkec8 & 0x2000000u) == 0) {
+            if (slot->m_unk14 == 0 && m_i16CurAnimIndex == 0x58 && (m_unkec8 & 0x2000000u) == 0) {
                 m_unkec8 = (m_unkec8 & ~0x4000u) | 0x4000u;
                 *position = ComputeBlendedVelocityFromFlagsEC8(position, 1.39999997615814209f, 1.0f);
                 m_unkec8 = (m_unkec8 & ~0x2000000u) | 0x2000000u;
@@ -1350,7 +1350,7 @@ void CKHkS08Hero::UpdateFlyingMovement(float dt) {
     if ((m_unkec4 & 0x1000u) == 0) {
         bool steer = false;
         bool moveTurn = false;
-        if (m_unk12c4 > 0.5f && m_unk13d1 != 0 && m_unk13cf == 0 && m_unk13d0 == 0) {  // TOC +0x2300
+        if (m_fCurrentHorizSpeed > 0.5f && m_unk13d1 != 0 && m_unk13cf == 0 && m_unk13d0 == 0) {  // TOC +0x2300
             steer = true;
         } else if ((m_unkec8 & 0x80u) != 0) {
             steer = true;
@@ -1383,7 +1383,7 @@ void CKHkS08Hero::UpdateFlyingMovement(float dt) {
             m_unk538 = approach[2];
         }
     }
-    if (m_unk13cf != 0 && m_unk13d0 == 0 && m_unk160 != 0x43) {
+    if (m_unk13cf != 0 && m_unk13d0 == 0 && m_i16CurAnimIndex != 0x43) {
         const float yaw = m_unk538 + kPi;
         m_unk538 = yaw;
         Mat4_RotateLocalYDeg((kHalfPi - yaw) * kRadToDeg, &matrix);  // 0x002413d0
@@ -1434,7 +1434,7 @@ void CKHkS08Hero::UpdateFlyingMovement(float dt) {
             const float high = m_unk970 * 1.74532905220985413e-2f;  // TOC +0x2350
             target = pitch >= high ? high : pitch;
         }
-        if (m_unk12c4 < m_unk964 || m_unk13a4 != 0) {
+        if (m_fCurrentHorizSpeed < m_unk964 || m_unk13a4 != 0) {
             if (IsAbilityActive() == 0) target = 0.0f;  // 0x002fc228
         }
         const float diff = target - m_unk1340;
@@ -1457,7 +1457,7 @@ void CKHkS08Hero::UpdateFlyingMovement(float dt) {
         const uint32_t flags = m_unkec8;
         uint32_t rollWord = 0;
         if ((flags & 0x10000000u) == 0) {
-            float word = m_unk12c4 < m_unk964 ? m_unk974 : m_unk96c;
+            float word = m_fCurrentHorizSpeed < m_unk964 ? m_unk974 : m_unk96c;
             std::memcpy(&rollWord, &word, 4);
         }
         const float roll = WordAsFloat(rollWord);
@@ -1465,7 +1465,7 @@ void CKHkS08Hero::UpdateFlyingMovement(float dt) {
         if (m_unk13d8 == 0 && (flags & 0x80u) == 0) {
             dot = ppc::fmadds(m_unk1370, m_unk384, ppc::fmadds(m_unk1368, m_unk37c, m_unk136c * m_unk380));
         }
-        if (m_unk13a4 != 0 || m_unk160 == 0x41) {
+        if (m_unk13a4 != 0 || m_i16CurAnimIndex == 0x41) {
             m_unk13b4.x = 0.0f;
             m_unk13a8.x = 0.0f;
         } else if (m_unk1374 < 0.0f) {

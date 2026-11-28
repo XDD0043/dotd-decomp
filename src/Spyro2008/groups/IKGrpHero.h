@@ -102,26 +102,26 @@ public:
     IKSerializable** m_apCompanionHeroes;   // +0x38 Ghidra ppCompanionHeroes: hero count + 1 entries
     IKSerializable** m_apHeroesCopy;        // +0x3c a copy of m_apHeros, null-terminated (ResetRuntimeState)
     IKSerializable* m_pUnk40;       // +0x40 reference
-    IKSerializable** m_apUnk44;     // +0x44 count byte references
+    IKSerializable** m_apCameraTargets;     // _maybe: +0x44 count byte references
     IKSerializable** m_apUnk48;     // +0x48 count byte references
     IKSerializable** m_apUnk4c;     // +0x4c count byte references
     uint8_t m_ui8ControlledHeroCount;  // +0x50 Ghidra bControlledHeroCount (RebuildControlledAndCompanionHeroArrays)
     uint8_t m_ui8CompanionHeroCount;   // +0x51 Ghidra bCompanionHeroCount
     uint8_t m_pad52[2];
     uint32_t m_unk54;               // +0x54 run-time word
-    IKSerializable* m_pUnk58;       // +0x58 reference (LVL010: a CKLocTextAccessor)
+    IKSerializable* m_pLocTextAccessor;       // +0x58 reference (LVL010: a CKLocTextAccessor)
     float m_unk5c;                  // +0x5c ResetRuntimeState copies m_sProperties.m_aui32Words[0] here
     float m_unk60;                  // +0x60 ResetRuntimeState: -1000.0f
-    uint8_t m_unk64;                // +0x64
-    uint8_t m_unk65;                // +0x65
-    uint8_t m_unk66;                // +0x66 0xff (AllocRuntimeArrays, ResetRuntimeState)
+    uint8_t m_ui8SelectedDragon;                // +0x64
+    uint8_t m_ui8RequestedDragon;                // +0x65
+    uint8_t m_ui8FocusedDragon;                // +0x66 0xff (AllocRuntimeArrays, ResetRuntimeState)
     uint8_t m_pad67;
     float m_unk68;                  // +0x68 -1000.0f
     float m_unk6c;                  // +0x6c -1000.0f
     uint32_t m_unk70;               // +0x70
-    void* m_pUnk74;                 // +0x74 AllocRuntimeArrays: Mem_CallocAligned16(0x18, maxPlayers * m_sProperties.m_ui8Value)
-    void* m_pUnk78;                 // +0x78 Mem_CallocAligned16(0x18, hero count)
-    uint8_t* m_pUnk7c;              // +0x7c Mem_CallocAligned16(1, hero count); ResetRuntimeState fills it with 0xff
+    void* m_asPosAroundLead;                 // +0x74 AllocRuntimeArrays: Mem_CallocAligned16(0x18, maxPlayers * m_sProperties.m_ui8Value)
+    void* m_asAltPosAroundLead;                 // +0x78 Mem_CallocAligned16(0x18, hero count)
+    uint8_t* m_ai8WantedPos;              // +0x7c Mem_CallocAligned16(1, hero count); ResetRuntimeState fills it with 0xff
     // One 0x2c-byte entry per (player x m_sProperties.m_ui8Value); the block comes from OperatorNewArray
     // (a count cookie before it). step 4: a ground contact (CGroundContactDatasInOut, the four fields the resets
     // write are its ground 0, face -1, status 3 and sector 0): UpdateCatchUpPoints validates catch-up point j of a
@@ -144,16 +144,16 @@ DOTD_ASSERT_OFFSET(IKGrpHero, m_apHeroesCopy, 0x3c);
 DOTD_ASSERT_OFFSET(IKGrpHero, m_ui8ControlledHeroCount, 0x50);
 DOTD_ASSERT_OFFSET(IKGrpHero, m_unk54, 0x54);
 DOTD_ASSERT_OFFSET(IKGrpHero, m_unk5c, 0x5c);
-DOTD_ASSERT_OFFSET(IKGrpHero, m_unk66, 0x66);
+DOTD_ASSERT_OFFSET(IKGrpHero, m_ui8FocusedDragon, 0x66);
 DOTD_ASSERT_OFFSET(IKGrpHero, m_unk70, 0x70);
-DOTD_ASSERT_OFFSET(IKGrpHero, m_pUnk74, 0x74);
+DOTD_ASSERT_OFFSET(IKGrpHero, m_asPosAroundLead, 0x74);
 DOTD_ASSERT_OFFSET(IKGrpHero, m_pPlayerSlots, 0x80);
 DOTD_ASSERT_OFFSET(IKGrpHero, m_vUnk88, 0x88);
 DOTD_ASSERT_OFFSET(IKGrpHero, m_unk94, 0x94);
 DOTD_ASSERT_SIZE(IKGrpHero::SPlayerSlot, 0x2c);
 DOTD_ASSERT_OFFSET(IKGrpHero, m_pUnk40, 0x40);
-DOTD_ASSERT_OFFSET(IKGrpHero, m_apUnk44, 0x44);
+DOTD_ASSERT_OFFSET(IKGrpHero, m_apCameraTargets, 0x44);
 DOTD_ASSERT_OFFSET(IKGrpHero, m_apUnk4c, 0x4c);
-DOTD_ASSERT_OFFSET(IKGrpHero, m_pUnk58, 0x58);
+DOTD_ASSERT_OFFSET(IKGrpHero, m_pLocTextAccessor, 0x58);
 DOTD_ASSERT_OFFSET(IKGrpHero, m_aTriggers, 0x98);
 DOTD_ASSERT_OFFSET(IKGrpHero, m_sProperties, 0xc0);

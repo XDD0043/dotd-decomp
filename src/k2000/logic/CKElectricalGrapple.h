@@ -54,13 +54,13 @@ public:
     // sound (4), 1 the loop sound of the level (level 2: 3, level 1: 2, when present with a sample; else 1).
     CKSound* GetSoundForEvent(int32_t event);
 
-    IKSerializable* m_unk140[3];      // +0x140 references (live: CKLightningBoltFxData), one per level
+    IKSerializable* m_apLightningBoltFxData[3];      // +0x140 references (live: CKLightningBoltFxData), one per level
     CKLightningBoltNodeFx* m_pBolt;   // +0x14c runtime: the bolt while the grab holds (SetFxActive)
-    IKSerializable* m_unk150;         // +0x150 reference (live: CKSoundDictionaryID)
+    IKSerializable* m_pSoundDico;         // +0x150 reference (live: CKSoundDictionaryID)
     CKSound* m_pLoopSound;            // +0x154 runtime: the playing loop sound
 };
 DOTD_ASSERT_SIZE(CKElectricalGrapple, 0x158);
-DOTD_ASSERT_OFFSET(CKElectricalGrapple, m_unk140, 0x140);
+DOTD_ASSERT_OFFSET(CKElectricalGrapple, m_apLightningBoltFxData, 0x140);
 DOTD_ASSERT_OFFSET(CKElectricalGrapple, m_pBolt, 0x14c);
-DOTD_ASSERT_OFFSET(CKElectricalGrapple, m_unk150, 0x150);
+DOTD_ASSERT_OFFSET(CKElectricalGrapple, m_pSoundDico, 0x150);
 DOTD_ASSERT_OFFSET(CKElectricalGrapple, m_pLoopSound, 0x154);

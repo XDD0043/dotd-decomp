@@ -53,25 +53,25 @@ public:
 
     float m_unk178[10];          // +0x178 the spark's shaping (ten separate reads): +0x178..+0x184 scales,
                                  // +0x188..+0x194 the two ranges, +0x198 the speed, +0x19c the cone's full angle
-    IKSerializable* m_unk1a0;    // +0x1a0 reference (CKSparkFxData)
-    IKSerializable* m_unk1a4;    // +0x1a4 (not read) the spark effect (a CKSparkNodeFx)
-    IKSerializable* m_unk1a8[3]; // +0x1a8 references: the particle effect data of each level (CKParticlesEffectFxData)
+    IKSerializable* m_pSparkFxData;    // +0x1a0 reference (CKSparkFxData)
+    IKSerializable* m_pSparkNodeFx;    // +0x1a4 (not read) the spark effect (a CKSparkNodeFx)
+    IKSerializable* m_apParticlesFxData[3]; // +0x1a8 references: the particle effect data of each level (CKParticlesEffectFxData)
     IKSerializable* m_unk1b4;    // +0x1b4 (not read) the particle effect (a CKParticlesEffectNodeFx)
-    IKSerializable* m_unk1b8[3]; // +0x1b8 references (CKPointLightFxData) of each level
-    IKSerializable* m_unk1c4;    // +0x1c4 (not read) the point light effect
-    float m_unk1c8[3];           // +0x1c8 the point light's reach of each level (read last)
-    IKSerializable* m_unk1d4;    // +0x1d4 reference (CKAnimatedFxCollection) of level 1 (+0x1d0 + 4 x level)
-    IKSerializable* m_unk1d8;    // +0x1d8 reference (CKAnimatedFxCollection) of level 2
-    IKSerializable* m_unk1dc;    // +0x1dc (not read) the playing collection
-    IKSerializable* m_unk1e0;    // +0x1e0 reference (CKSoundDictionaryID)
-    IKSerializable* m_unk1e4;    // +0x1e4 reference (CKAimCamembert)
-    IKSerializable* m_unk1e8;    // +0x1e8 reference: the level-2 shot's CKProjectileAccessor
-    IKSerializable* m_unk1ec;    // +0x1ec reference: the shot's damage (a CKS08ElementDamage: vt+0x68 SetAbilityId)
-    float m_unk1f0;              // +0x1f0 the shot's speed base
-    float m_unk1f4;              // +0x1f4 the shot's speed spread (speed = base + spread x (1 - 2u))
-    float m_unk1f8;              // +0x1f8 the shot interval's base
-    float m_unk1fc;              // +0x1fc the shot interval's spread
-    float m_unk200;              // +0x200 the shot's height above the hot spot
+    IKSerializable* m_apPointLightFxData[3]; // +0x1b8 references (CKPointLightFxData) of each level
+    IKSerializable* m_pPointLightNodeFx;    // +0x1c4 (not read) the point light effect
+    float m_afPointLightReach[3];           // +0x1c8 the point light's reach of each level (read last)
+    IKSerializable* m_pAnimFxLevel1;    // +0x1d4 reference (CKAnimatedFxCollection) of level 1 (+0x1d0 + 4 x level)
+    IKSerializable* m_pAnimFxLevel2;    // +0x1d8 reference (CKAnimatedFxCollection) of level 2
+    IKSerializable* m_pActiveAnimFx;    // +0x1dc (not read) the playing collection
+    IKSerializable* m_pSoundDico;    // +0x1e0 reference (CKSoundDictionaryID)
+    IKSerializable* m_pAimCamembert;    // +0x1e4 reference (CKAimCamembert)
+    IKSerializable* m_pLevel2Projectile;    // +0x1e8 reference: the level-2 shot's CKProjectileAccessor
+    IKSerializable* m_pLevel2ProjectileDamage;    // +0x1ec reference: the shot's damage (a CKS08ElementDamage: vt+0x68 SetAbilityId)
+    float m_fShotSpeedBase;              // +0x1f0 the shot's speed base
+    float m_fShotSpeedSpread;              // +0x1f4 the shot's speed spread (speed = base + spread x (1 - 2u))
+    float m_fShotIntervalBase;              // +0x1f8 the shot interval's base
+    float m_fShotIntervalSpread;              // +0x1fc the shot interval's spread
+    float m_fShotHeightOffset;              // +0x200 the shot's height above the hot spot
     CKSound* m_pLoopSound;       // +0x204 (not read) the loop sound
     float m_fShotTimer;          // +0x208 (not read) the time before the next level-2 shot
     float m_fRoll;               // +0x20c (not read) the flame's roll (radians)
@@ -79,13 +79,13 @@ public:
 static_assert(CKShadowBreath::kClassKey == 0xa90c, "key");
 DOTD_ASSERT_SIZE(CKShadowBreath, 0x210);
 DOTD_ASSERT_OFFSET(CKShadowBreath, m_unk178, 0x178);
-DOTD_ASSERT_OFFSET(CKShadowBreath, m_unk1a0, 0x1a0);
-DOTD_ASSERT_OFFSET(CKShadowBreath, m_unk1a8, 0x1a8);
-DOTD_ASSERT_OFFSET(CKShadowBreath, m_unk1b8, 0x1b8);
-DOTD_ASSERT_OFFSET(CKShadowBreath, m_unk1c8, 0x1c8);
-DOTD_ASSERT_OFFSET(CKShadowBreath, m_unk1d4, 0x1d4);
-DOTD_ASSERT_OFFSET(CKShadowBreath, m_unk1e0, 0x1e0);
-DOTD_ASSERT_OFFSET(CKShadowBreath, m_unk1e8, 0x1e8);
-DOTD_ASSERT_OFFSET(CKShadowBreath, m_unk1f0, 0x1f0);
+DOTD_ASSERT_OFFSET(CKShadowBreath, m_pSparkFxData, 0x1a0);
+DOTD_ASSERT_OFFSET(CKShadowBreath, m_apParticlesFxData, 0x1a8);
+DOTD_ASSERT_OFFSET(CKShadowBreath, m_apPointLightFxData, 0x1b8);
+DOTD_ASSERT_OFFSET(CKShadowBreath, m_afPointLightReach, 0x1c8);
+DOTD_ASSERT_OFFSET(CKShadowBreath, m_pAnimFxLevel1, 0x1d4);
+DOTD_ASSERT_OFFSET(CKShadowBreath, m_pSoundDico, 0x1e0);
+DOTD_ASSERT_OFFSET(CKShadowBreath, m_pLevel2Projectile, 0x1e8);
+DOTD_ASSERT_OFFSET(CKShadowBreath, m_fShotSpeedBase, 0x1f0);
 DOTD_ASSERT_OFFSET(CKShadowBreath, m_pLoopSound, 0x204);
 DOTD_ASSERT_OFFSET(CKShadowBreath, m_fRoll, 0x20c);

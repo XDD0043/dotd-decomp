@@ -165,7 +165,7 @@ void CKS08MenuObjectives::BuildObjectiveList() {
     manager->UpdateCounterTextVariables();  // 0x502a80 (bridge 0x98f810)
     for (uint32_t level = 0; level != 12; ++level) {
         CKS08ObjectiveList* list = static_cast<CKS08ObjectiveList*>(manager->m_unkEC8[level]);
-        const TVector<uint8_t, 8>& states = structure->m_avbUnk154[level];
+        const TVector<uint8_t, 8>& states = structure->m_avObjectiveStates[level];
         if (list == nullptr || states.m_ui32NbUsedElt == 0) continue;
         for (uint8_t j = 0; j < states.m_ui32NbUsedElt; ++j) {
             if (states.m_pBlock[j] != 1) continue;
@@ -197,7 +197,7 @@ void CKS08MenuObjectives::RefreshPage(uint32_t first) {
         if (type > 2) continue;
         CKS08GameStructure* structure =
             static_cast<CKS08GameStructure*>(static_cast<CKS08GameManager*>(g_pEngine->m_gameManager)->m_gameStructure);
-        const uint8_t state = structure->m_avbUnk154[item.m_ui32Level].m_pBlock[item.m_ui32Index];
+        const uint8_t state = structure->m_avObjectiveStates[item.m_ui32Level].m_pBlock[item.m_ui32Index];
         if (state == 1) {
             colors[type] = m_unk1f8;
         } else if (state == 2) {

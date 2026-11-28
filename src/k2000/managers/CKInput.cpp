@@ -186,8 +186,8 @@ CKInput::CKInput() {
     m_vSequenceData.m_ui32NbElt = 8;
     m_vSequenceData.m_pBlock = nullptr;
     m_vSequenceData.m_ui32NbUsedElt = 0;
-    m_unk38 = 0;
-    m_unk71 = 0;
+    m_bRefreshVibrationRequest = 0;
+    m_bExportedInputLoaded = 0;
 }
 // 0x009a6600 CKInput_Destructor (0x9a6500 the deleting one): the sequence vector's entries' blocks freed (each
 // entry's length and block cleared), then its block (its fields are left). The devices and tables are
@@ -420,7 +420,7 @@ int32_t CKInput::InitializeModule(void* params) {
         vibration.m_pNext = m_lpPadVibrationsWaitingList;
         m_lpPadVibrationsWaitingList = &vibration;
     }
-    m_unk148 = 0;
+    m_ui8InputActivityFlags = 0;
     return 1;
 }
 
@@ -793,7 +793,7 @@ int32_t CKInput::Load(IKFile* file, int32_t type) {
     }
     LoadExportedInput(file, K_GAME_PLATEFORMS);
     LoadSequenceData(file, K_GAME_PLATEFORMS);
-    m_unk71 = static_cast<uint8_t>(type);
+    m_bExportedInputLoaded = static_cast<uint8_t>(type);
     return 1;
 }
 
@@ -1050,8 +1050,8 @@ void CKInput::Start() {
             config = (config + 1) & 0xff;
         } while (config < configs);
     }
-    m_unk70 = 0;
-    m_unk60 &= 0x00ffffffu;  // the byte at +0x60
+    m_bBlockedByTrc = 0;
+    m_bNoActivityBeforeDetection &= 0x00ffffffu;  // the byte at +0x60
     m_unk64 = 0;
     ClearFilteredActions(this);
     for (uint32_t i = m_vSequenceData.m_ui32NbUsedElt; i != 0; --i) {
@@ -1073,7 +1073,7 @@ void CKInput::Restart() {
             pads = m_ui8NbPads;
         } while (i < pads);
     }
-    if (m_unk71 != 0 && pads != 0) {
+    if (m_bExportedInputLoaded != 0 && pads != 0) {
         uint32_t i = 0;
         do {
             m_aPads[i].StopAllVibration();
@@ -1089,7 +1089,7 @@ void CKInput::Restart() {
 // 0x0010d3e0 CKInput_Stop: every pad's vibration stopped (with a pad type set), the filtered actions
 // cleared.
 void CKInput::Stop() {
-    if (m_unk71 != 0 && m_ui8NbPads != 0) {
+    if (m_bExportedInputLoaded != 0 && m_ui8NbPads != 0) {
         uint32_t i = 0;
         do {
             m_aPads[i].StopAllVibration();
@@ -1192,13 +1192,13 @@ uint8_t CKInput::IsPadConnected(uint32_t pad) {
 
 // 0x00105340 CKInput_SetMotionSensorEnabled
 void CKInput::SetMotionSensorEnabled(int32_t pad, uint8_t enabled) {
-    if (m_unk71 == 0 || m_ui8NbPads == 0 || pad >= static_cast<int32_t>(m_ui8NbPads)) return;
+    if (m_bExportedInputLoaded == 0 || m_ui8NbPads == 0 || pad >= static_cast<int32_t>(m_ui8NbPads)) return;
     m_aPads[pad].SetSensorMode(enabled);
 }
 
 // 0x0010cc90 CKInput_SetVibrationEnabled
 void CKInput::SetVibrationEnabled(int32_t pad, int32_t enabled) {
-    if (m_unk71 == 0) return;
+    if (m_bExportedInputLoaded == 0) return;
     uint32_t count = m_ui8NbPads;
     if (count == 0) return;
     if (enabled == 0) {
@@ -1405,8 +1405,8 @@ void CKInput::UpdateVibrations() {
             } else if (motor.m_eState == 1) {
                 if (motor.m_ui8OldValue == value) {
                     // A refresh request (+0x38) sends the value again once.
-                    if (m_unk38 != 0) {
-                        m_unk38 = 0;
+                    if (m_bRefreshVibrationRequest != 0) {
+                        m_bRefreshVibrationRequest = 0;
                         pad->UpdateVibrationValue(m, motor.m_ui8Value);  // vt+0x40
                     }
                 } else if (value != 0) {
@@ -1421,7 +1421,7 @@ void CKInput::UpdateVibrations() {
 
 // 0x001053f8 CKInput_DetectButtonActivity_maybe
 void CKInput::DetectButtonActivity() {
-    m_unk148 = 0;
+    m_ui8InputActivityFlags = 0;
     for (uint32_t i = 0; i < m_ui8NbPads; ++i) {
         PS3PadDevice* pad = &m_aPads[i];
         const uint8_t* values = pad->GetCurrentState();  // vt+0x30
@@ -1429,7 +1429,7 @@ void CKInput::DetectButtonActivity() {
         for (int32_t button = count - 1; button >= 0; --button) {
             if (values[button] <= 0x64) continue;
             static_cast<CDefaultGameManager*>(g_pEngine->m_gameManager)->NotifyInputActivity(0, button);  // vt+0x21c
-            m_unk148 = static_cast<uint8_t>((m_unk148 & 0xfeu) | 1u);
+            m_ui8InputActivityFlags = static_cast<uint8_t>((m_ui8InputActivityFlags & 0xfeu) | 1u);
             break;
         }
     }
@@ -1439,7 +1439,7 @@ void CKInput::DetectButtonActivity() {
         for (int32_t key = 0x8f; key >= 0; --key) {
             if (keyboard->m_ui8VirtualKeyboardValue[key] <= 0x64) continue;
             static_cast<CDefaultGameManager*>(g_pEngine->m_gameManager)->NotifyInputActivity(2, key);  // vt+0x21c
-            m_unk148 = static_cast<uint8_t>((m_unk148 & 0xf8u) | 4u);
+            m_ui8InputActivityFlags = static_cast<uint8_t>((m_ui8InputActivityFlags & 0xf8u) | 4u);
             break;
         }
     }
@@ -1449,7 +1449,7 @@ void CKInput::DetectButtonActivity() {
         for (int32_t button = 0xd; button >= 0; --button) {
             if (mouse->m_ui8VirtualMouseValue[button] <= 0xa) continue;
             static_cast<CDefaultGameManager*>(g_pEngine->m_gameManager)->NotifyInputActivity(2, button & 0xf);  // vt+0x21c
-            m_unk148 = static_cast<uint8_t>((m_unk148 & 0xf8u) | 4u);
+            m_ui8InputActivityFlags = static_cast<uint8_t>((m_ui8InputActivityFlags & 0xf8u) | 4u);
             break;
         }
     }

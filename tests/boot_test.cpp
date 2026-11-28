@@ -192,7 +192,7 @@ int main() {
                                                            manager->m_playerStride * playerIndex[i]);
             CHECK(manager->m_players[i] == player);
         }
-        CHECK(manager->m_unk84 != nullptr);  // a UUID reference (fdffffff + UUID) into the GAME objects
+        CHECK(manager->m_pBootingVideo != nullptr);  // a UUID reference (fdffffff + UUID) into the GAME objects
     }
 
     // DEV: DOTD_DUMP_OBJECTS=path writes the loaded objects for work/objects_diff.py (use the x86 parity

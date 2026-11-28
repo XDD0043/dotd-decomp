@@ -138,7 +138,7 @@ uint8_t CKS08MenuPressStart::OnMenuState(int32_t phase, uint8_t /*other*/) {
                     m_fTextTimer = g_pEngine->m_appConfig->parametersHandled != 0 ? kTextDelayAlt : kTextDelay;
                 } else {
                     g_pEngine->m_input->FindMappingIndexByName("Flash Manager");  // the result is not used
-                    if (m_fUnk7c <= 0.0f && (VfCC()[3] != 0 || g_pEngine->m_input->IsMenuStartPressed())) {
+                    if (m_fOpenInputDelay <= 0.0f && (VfCC()[3] != 0 || g_pEngine->m_input->IsMenuStartPressed())) {
                         // The START sound: the dictionary's sound 0 (if any), its pan reset, played from 0.0 (f31).
                         if (CKSound* sound = CKSoundDictionaryID_GetSound_2(static_cast<CKSoundDictionaryID*>(m_pSound), 0)) {
                             CKSound_ResetPan(sound, 1);

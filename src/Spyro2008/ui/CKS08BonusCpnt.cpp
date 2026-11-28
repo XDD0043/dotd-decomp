@@ -40,7 +40,7 @@ int32_t CKS08BonusCpnt::Load(IKFile* file, int32_t type) {
     if (type == K_LEVEL_PLATEFORMS) {
         IKFile_ReadRef(file, &m_pSoundDictionary);
         ReadF32LE(file, &m_fSpawnedLifeExpectancy);
-        IKFile_ReadRef(file, &m_pUnk48);
+        IKFile_ReadRef(file, &m_pProjectileAccessor);
     } else {
         ReadF32LE(file, &m_fSpawnedLifeExpectancy);
     }
@@ -53,7 +53,7 @@ int32_t CKS08BonusCpnt::Load(IKFile* file, int32_t type) {
     ReadF32LE(file, &m_unk24);
     ReadF32LE(file, &m_unk28);
     for (float& v : m_unk54) ReadF32LE(file, &v);
-    ReadU8(file, &m_unk10);
+    ReadU8(file, &m_bFloatingOrbMode);
     return 1;
 }
 
@@ -63,5 +63,5 @@ void CKS08BonusCpnt::RecursiveRegistration(int32_t type) {
         g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
         if (type == 0) m_pSoundDictionary->RecursiveRegistration(0);
     }
-    m_pUnk48->RecursiveRegistration(type);
+    m_pProjectileAccessor->RecursiveRegistration(type);
 }

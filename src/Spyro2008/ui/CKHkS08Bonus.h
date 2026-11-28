@@ -26,10 +26,10 @@ public:
     // InOut defaults at +0x54 (sector byte, status 3, ground 0, face -1), then the four halfwords at
     // +0xb0..+0xb7 = 0xffff (stored in the order +0xb0, +0xb6, +0xb2, +0xb4). No CGroundContactDatasIn.
     CKHkS08Bonus() {
-        m_unkB0[0] = 0xffff;
-        m_unkB0[3] = 0xffff;
-        m_unkB0[1] = 0xffff;
-        m_unkB0[2] = 0xffff;
+        m_au16BeaconAccessor[0] = 0xffff;
+        m_au16BeaconAccessor[3] = 0xffff;
+        m_au16BeaconAccessor[1] = 0xffff;
+        m_au16BeaconAccessor[2] = 0xffff;
     }
     ~CKHkS08Bonus() override {}
 
@@ -54,7 +54,7 @@ public:
     // refreshed.
     void Collect(IKSerializable* hero, const uint16_t* accessor) override;
     // vt+0xcc 0x009cc860 CKHkS08Bonus_vfCC: collected (+0x30 set).
-    uint8_t IsCollected() const override { return m_pUnk30 != nullptr ? 1 : 0; }
+    uint8_t IsCollected() const override { return m_pCatcher != nullptr ? 1 : 0; }
     // vt+0xd0 0x005b78f8 CKHkS08Bonus_SetVisible (Ghidra name; it spawns the bonus at a beacon: SpawnAtBeacon_maybe): the
     // beacon's position (three 16-bit tenths) given to SpawnAtPosition.
     void SpawnAtBeacon(const uint16_t* accessor) override;
@@ -92,35 +92,35 @@ public:
 
     // +0x20 m_pUnk20 (reference (Load): the next bonus in the pool's list) and +0x24 m_unk24 (the index in the pool):
     // IKHkBonus's.
-    IKSerializable* m_pUnk28;                 // +0x28 reference (Load): the pool (CKGrpBonusPool)
-    IKSerializable* m_pUnk2C;                  // +0x2c reference (Load): the parameters (CKS08BonusCpnt)
-    IKSerializable* m_pUnk30;                  // +0x30 runtime: the hero that collected it
-    uint8_t m_unk34;                           // +0x34 runtime: shared with the other hero (vfE4)
-    uint8_t m_unk35;                           // +0x35 runtime: SpawnAt sets 1 (its arrival adds a collect sound)
+    IKSerializable* m_pGroup;                 // +0x28 reference (Load): the pool (CKGrpBonusPool)
+    IKSerializable* m_pBonusCpnt;                  // +0x2c reference (Load): the parameters (CKS08BonusCpnt)
+    IKSerializable* m_pCatcher;                  // +0x30 runtime: the hero that collected it
+    uint8_t m_bSharedCopy;                           // +0x34 runtime: shared with the other hero (vfE4)
+    uint8_t m_bPlayCollectSound;                           // +0x35 runtime: SpawnAt sets 1 (its arrival adds a collect sound)
     uint8_t m_pad36[2];
-    float m_unk38;                             // +0x38 runtime: the spin speed (radians per second)
-    float m_unk3c;                             // +0x3c runtime: the age
-    float m_unk40;                             // +0x40 runtime: the age at which it seeks a hero (-1: never)
-    CVector3 m_unk44;                          // +0x44 runtime: the velocity
-    uint32_t m_unk50;                          // +0x50 runtime: the ground bounces so far
+    float m_fSpinSpeed;                             // +0x38 runtime: the spin speed (radians per second)
+    float m_fAge;                             // +0x3c runtime: the age
+    float m_fSeekAge;                             // +0x40 runtime: the age at which it seeks a hero (-1: never)
+    CVector3 m_v3Velocity;                          // +0x44 runtime: the velocity
+    uint32_t m_ui32BounceCount;                          // +0x50 runtime: the ground bounces so far
     CGroundContactDatasInOut m_GContactInOut;  // +0x54
-    IKSerializable* m_pUnk80;                  // +0x80 runtime: the bonus's effect (AcquireBonusFx)
-    float m_unk84;                             // +0x84 runtime: the flight's time
-    CVector3 m_unk88;                          // +0x88 runtime: the flight's start
-    CVector3 m_unk94;                          // +0x94 runtime: the flight's start tangent
-    CVector3 m_unkA0;                          // +0xa0 runtime: the flight's end tangent
+    IKSerializable* m_pFxNode;                  // +0x80 runtime: the bonus's effect (AcquireBonusFx)
+    float m_fFlyTime;                             // +0x84 runtime: the flight's time
+    CVector3 m_v3FlyStart;                          // +0x88 runtime: the flight's start
+    CVector3 m_v3FlyStartTangent;                          // +0x94 runtime: the flight's start tangent
+    CVector3 m_v3FlyEndTangent;                          // +0xa0 runtime: the flight's end tangent
     uint32_t m_unkAC;                          // +0xac not written
-    uint16_t m_unkB0[4];                       // +0xb0 constructor 0xffff each: the beacon accessor (Collect)
+    uint16_t m_au16BeaconAccessor[4];                       // +0xb0 constructor 0xffff each: the beacon accessor (Collect)
 };
 DOTD_ASSERT_SIZE(CKHkS08Bonus, 0xb8);
-DOTD_ASSERT_OFFSET(CKHkS08Bonus, m_pUnk20, 0x20);
-DOTD_ASSERT_OFFSET(CKHkS08Bonus, m_pUnk28, 0x28);
-DOTD_ASSERT_OFFSET(CKHkS08Bonus, m_pUnk2C, 0x2c);
-DOTD_ASSERT_OFFSET(CKHkS08Bonus, m_pUnk30, 0x30);
-DOTD_ASSERT_OFFSET(CKHkS08Bonus, m_unk38, 0x38);
-DOTD_ASSERT_OFFSET(CKHkS08Bonus, m_unk44, 0x44);
+DOTD_ASSERT_OFFSET(CKHkS08Bonus, m_pNextBonus, 0x20);
+DOTD_ASSERT_OFFSET(CKHkS08Bonus, m_pGroup, 0x28);
+DOTD_ASSERT_OFFSET(CKHkS08Bonus, m_pBonusCpnt, 0x2c);
+DOTD_ASSERT_OFFSET(CKHkS08Bonus, m_pCatcher, 0x30);
+DOTD_ASSERT_OFFSET(CKHkS08Bonus, m_fSpinSpeed, 0x38);
+DOTD_ASSERT_OFFSET(CKHkS08Bonus, m_v3Velocity, 0x44);
 DOTD_ASSERT_OFFSET(CKHkS08Bonus, m_GContactInOut, 0x54);
-DOTD_ASSERT_OFFSET(CKHkS08Bonus, m_pUnk80, 0x80);
-DOTD_ASSERT_OFFSET(CKHkS08Bonus, m_unk88, 0x88);
-DOTD_ASSERT_OFFSET(CKHkS08Bonus, m_unkA0, 0xa0);
-DOTD_ASSERT_OFFSET(CKHkS08Bonus, m_unkB0, 0xb0);
+DOTD_ASSERT_OFFSET(CKHkS08Bonus, m_pFxNode, 0x80);
+DOTD_ASSERT_OFFSET(CKHkS08Bonus, m_v3FlyStart, 0x88);
+DOTD_ASSERT_OFFSET(CKHkS08Bonus, m_v3FlyEndTangent, 0xa0);
+DOTD_ASSERT_OFFSET(CKHkS08Bonus, m_au16BeaconAccessor, 0xb0);

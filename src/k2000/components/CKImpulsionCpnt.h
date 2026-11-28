@@ -28,12 +28,12 @@ public:
     // +0x04..+0x1c seven floats (LVL010: 1, 0, 0, 0.5, 0.02, 2, -0.5): the value's maximum and minimum, the
     // acceleration, the top speed, the duration, the deceleration, the lowest speed (_maybe, from Update / Impulse).
     float m_unk04[7];
-    uint8_t m_unk20;   // +0x20 one byte: an impulse waits for the running one
+    uint8_t m_bWaitForRunning;   // +0x20 one byte: an impulse waits for the running one
     uint8_t m_pad21[3];
-    float m_unk24;  // +0x24 the value (not set by the constructor or the Load; the hero clears +0x24..+0x2c)
-    float m_unk28;  // +0x28 the speed
-    float m_unk2c;  // +0x2c the impulse timer
+    float m_fValue;  // +0x24 the value (not set by the constructor or the Load; the hero clears +0x24..+0x2c)
+    float m_fSpeed;  // +0x28 the speed
+    float m_fImpulseTimer;  // +0x2c the impulse timer
 };
 DOTD_ASSERT_SIZE(CKImpulsionCpnt, 0x30);
 DOTD_ASSERT_OFFSET(CKImpulsionCpnt, m_unk04, 0x04);
-DOTD_ASSERT_OFFSET(CKImpulsionCpnt, m_unk20, 0x20);
+DOTD_ASSERT_OFFSET(CKImpulsionCpnt, m_bWaitForRunning, 0x20);

@@ -166,25 +166,25 @@ CDefaultGameManager::CDefaultGameManager()
       m_playerStride(0),
       m_flags64(0),
       m_gameStructure(nullptr),
-      m_unk84(nullptr),
+      m_pBootingVideo(nullptr),
       m_unk274(0),
       m_currentLevel(-1),
       m_requestedLevel(-1),
       m_requestedSector(-2),
       m_unk288(-1),
       m_unk28c(-1),
-      m_unk290(-1),
-      m_unk294(0) {
+      m_i32RequestedLanguage(-1),
+      m_bLevelChangePending(0) {
     // The IKGameManager part of CKS08GameManager_ConstructBase_maybe (0x4edee0); the KMemBuffers are
     // built by their constructors. The initialisers above are the stand-in's (InitImpl sets them).
-    m_unk8c[0] = 0;
-    m_unk8c[3] = 0;
-    m_unk8c[1] = 0;
-    m_unk8c[2] = 0;
-    m_unkA0[3] = 0;
-    m_unkA0[0] = 0;
-    m_unkA0[1] = 0;
-    m_unkA0[2] = 0;
+    m_guidSave[0] = 0;
+    m_guidSave[3] = 0;
+    m_guidSave[1] = 0;
+    m_guidSave[2] = 0;
+    m_guidPendingSave[3] = 0;
+    m_guidPendingSave[0] = 0;
+    m_guidPendingSave[1] = 0;
+    m_guidPendingSave[2] = 0;
     m_unk151 = 0xff;
     m_unk148 = 0;
     m_unk14c = 0;

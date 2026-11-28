@@ -43,7 +43,7 @@ void CDefaultGameManager::ReleaseManager() { ReleaseGameData(); }
 // 0x00013e08 IKGameManager_Stop: KStub_Nop_40cc8 on the game structure (an empty virtual-less stub), the render
 // gate closed.
 void CDefaultGameManager::Stop() {
-    m_unk294 = 0;
+    m_bLevelChangePending = 0;
 }
 
 // 0x0001a7d8 CDefaultGameManager_Start

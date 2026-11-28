@@ -50,9 +50,9 @@ public:
     uint8_t GetNbTrailNodes(uint8_t kind) override;                      // vt+0x128 0x009bb570
     uint8_t GetNbAnimLayerSlots(uint8_t kind, uint8_t layer) override;   // vt+0x130 0x009bb590
     // vt+0xec 0x009bb648 CKGrpS08Enemy_vfEC: a zone component is current and +0x178 bit 0.
-    uint8_t IsInFight() override { return m_pFightZoneCpnt170 != nullptr ? static_cast<uint8_t>(m_unk178 & 1u) : 0; }
+    uint8_t IsInFight() override { return m_pFightZoneCpnt170 != nullptr ? static_cast<uint8_t>(m_ui32FightFlags & 1u) : 0; }
     // vt+0xf0 0x009bb668 CKGrpS08Enemy_vfF0: a zone component is current and +0x178 bit 1 ("a fight is on").
-    uint8_t IsFightOn() override { return m_pFightZoneCpnt170 != nullptr ? static_cast<uint8_t>((m_unk178 >> 1) & 1u) : 0; }
+    uint8_t IsFightOn() override { return m_pFightZoneCpnt170 != nullptr ? static_cast<uint8_t>((m_ui32FightFlags >> 1) & 1u) : 0; }
     uint8_t GetNbEnemyKinds() override { return 9; }   // vt+0xf4 0x009bb4e0
     uint8_t GetSpawnFlagBits() override { return 2; }  // vt+0x158 0x009bb608
     // vt+0x150 0x00266dd0 CKGrpS08Enemy_vf150: every enemy may change squads (CKGrpFightZone_TransferEnemyToSquad_maybe);
@@ -124,7 +124,7 @@ public:
     void ReleaseAttackSlotOfType(int32_t category);
     // vt+0x178 0x00266dd8 CKGrpS08Enemy_vf178: dragon 0's (+0x14c) or another's (+0x150) attack timer is over (<= 0).
     uint8_t IsAttackCooldownOver(uint8_t dragon) const {
-        return (dragon == 0 ? m_unk14c : m_unk150) <= 0.0f ? 1 : 0;
+        return (dragon == 0 ? m_fAttackCooldownSpyro : m_fAttackCooldownCynder) <= 0.0f ? 1 : 0;
     }
     void MoveAttackerToBack(IKSerializable* enemy);  // vt+0x180 0x00268738 CKGrpS08Enemy_MoveAttackerToBack_maybe
     // vt+0x17c 0x00268898 CKGrpS08Enemy_StartAttackCooldownAndRequeue_maybe: the hero's attack timer (+0x14c for dragon
@@ -133,9 +133,9 @@ public:
     void StartAttackCooldown(uint8_t dragon, IKSerializable* enemy);
 
     CTriggerStarter m_aTriggers[5];       // +0x124 Ghidra aEvt124; loaded from the first to the last
-    float m_unk14c;                       // +0x14c a timer counted down by Update (vf15C: 0)
-    float m_unk150;                       // +0x150 a timer counted down by Update (vf15C: 0)
-    uint32_t m_unk154;                    // +0x154 Update: non-zero keeps the fight on
+    float m_fAttackCooldownSpyro;                       // +0x14c a timer counted down by Update (vf15C: 0)
+    float m_fAttackCooldownCynder;                       // +0x150 a timer counted down by Update (vf15C: 0)
+    uint32_t m_ui32ReservedAttackSlotsTotal;                    // +0x154 Update: non-zero keeps the fight on
     uint32_t m_unk158;                    // +0x158
     uint32_t m_unk15c;                    // +0x15c
     uint32_t m_unk160;                    // +0x160
@@ -143,32 +143,32 @@ public:
     IKSerializable* m_pFightZoneCpnt170;  // +0x170 the current fight zone's CKS08FightZoneCpnt (vf15C)
     uint8_t m_unk174;                     // +0x174 vf15C clears it
     uint8_t m_pad175[3];
-    uint32_t m_unk178;                    // +0x178 bit 0: in a fight (vf15C), bit 1: a fight is on (Update), bit 2
+    uint32_t m_ui32FightFlags;                    // +0x178 bit 0: in a fight (vf15C), bit 1: a fight is on (Update), bit 2
     IKSerializable* m_pUnk17c;            // +0x17c reference (LVL010: a CKCommonBaseGroup)
     TVector<IKSerializable*, 1> m_vUnk180;  // +0x180 references, at most 9 kept
     uint32_t m_unk18c;                    // +0x18c
-    IKSerializable* m_pUnk190;            // +0x190 reference (LVL010: a CKGrpS08WeaponPool)
+    IKSerializable* m_pWeaponPool;            // +0x190 reference (LVL010: a CKGrpS08WeaponPool)
     uint32_t m_unk194;                    // +0x194
-    IKSerializable* m_pUnk198;            // +0x198 reference (LVL010: a CKCommonBaseGroup)
+    IKSerializable* m_pShieldGroupRoot;            // +0x198 reference (LVL010: a CKCommonBaseGroup)
     TVector<IKSerializable*, 1> m_vUnk19c;  // +0x19c the Load only gives it a block; PostLoad: +0x198's children after the first
     float m_unk1a8;                       // +0x1a8
-    IKSerializable* m_pUnk1ac;            // +0x1ac (LVL010: a CKGrpS08ShieldPool; not loaded): PostLoad, +0x198's first child
+    IKSerializable* m_pShieldPool;            // +0x1ac (LVL010: a CKGrpS08ShieldPool; not loaded): PostLoad, +0x198's first child
     TVector<IKSerializable*, 1> m_vUnk1b0;  // +0x1b0 not loaded: the cristal orbs (RemoveCristalOrb)
-    uint8_t m_unk1bc;                     // +0x1bc a byte (Start clears it); non-zero keeps the fight on (Update)
+    uint8_t m_bAlerted;                     // +0x1bc a byte (Start clears it); non-zero keeps the fight on (Update)
     uint8_t m_pad1bd[3];
     uint32_t m_unk1c0[4];                 // +0x1c0..+0x1cc
     uint32_t m_unk1d0[3];                 // +0x1d0..+0x1d8
     uint32_t m_unk1dc;                    // +0x1dc
     float m_unk1e0;                       // +0x1e0 Start: 20.0f (TOC 0x518)
-    IKSerializable* m_pUnk1e4;            // +0x1e4 reference (LVL010: a CKQuakeCameraLauncher)
-    uint8_t m_unk1e8;                     // +0x1e8 Update: non-zero keeps the fight on; cleared every frame
+    IKSerializable* m_pQuakeLauncher;            // +0x1e4 reference (LVL010: a CKQuakeCameraLauncher)
+    uint8_t m_bAlertedThisFrame;                     // +0x1e8 Update: non-zero keeps the fight on; cleared every frame
     uint8_t m_pad1e9[3];
-    IKSerializable* m_pUnk1ec;            // +0x1ec reference (LVL010: a CKS08AccessoryManager)
+    IKSerializable* m_pAccessoryManager;            // +0x1ec reference (LVL010: a CKS08AccessoryManager)
     float m_unk1f0;                       // +0x1f0 Start: 0.3f (TOC 0x51c)
     uint32_t m_unk1f4;                    // +0x1f4
     SFloat3List m_aFloat3Lists[4];        // +0x1f8 / +0x208 / +0x218 / +0x228
     float m_unk238[11];                   // +0x238..+0x260
-    IKSerializable* m_pUnk264;            // +0x264 reference (LVL010: a CKCameraEventCpnt)
+    IKSerializable* m_pCameraEventCpnt;            // +0x264 reference (LVL010: a CKCameraEventCpnt)
     float m_unk268[10];                   // +0x268..+0x28c
 };
 static_assert(CKGrpS08Enemy::kClassKey == 0xa44, "key");
@@ -177,14 +177,14 @@ DOTD_ASSERT_OFFSET(CKGrpS08Enemy, m_aTriggers, 0x124);
 DOTD_ASSERT_OFFSET(CKGrpS08Enemy, m_vUnk164, 0x164);
 DOTD_ASSERT_OFFSET(CKGrpS08Enemy, m_pUnk17c, 0x17c);
 DOTD_ASSERT_OFFSET(CKGrpS08Enemy, m_vUnk180, 0x180);
-DOTD_ASSERT_OFFSET(CKGrpS08Enemy, m_pUnk190, 0x190);
+DOTD_ASSERT_OFFSET(CKGrpS08Enemy, m_pWeaponPool, 0x190);
 DOTD_ASSERT_OFFSET(CKGrpS08Enemy, m_unk194, 0x194);
-DOTD_ASSERT_OFFSET(CKGrpS08Enemy, m_pUnk198, 0x198);
+DOTD_ASSERT_OFFSET(CKGrpS08Enemy, m_pShieldGroupRoot, 0x198);
 DOTD_ASSERT_OFFSET(CKGrpS08Enemy, m_vUnk19c, 0x19c);
 DOTD_ASSERT_OFFSET(CKGrpS08Enemy, m_vUnk1b0, 0x1b0);
-DOTD_ASSERT_OFFSET(CKGrpS08Enemy, m_pUnk1e4, 0x1e4);
-DOTD_ASSERT_OFFSET(CKGrpS08Enemy, m_pUnk1ec, 0x1ec);
+DOTD_ASSERT_OFFSET(CKGrpS08Enemy, m_pQuakeLauncher, 0x1e4);
+DOTD_ASSERT_OFFSET(CKGrpS08Enemy, m_pAccessoryManager, 0x1ec);
 DOTD_ASSERT_OFFSET(CKGrpS08Enemy, m_aFloat3Lists, 0x1f8);
 DOTD_ASSERT_OFFSET(CKGrpS08Enemy, m_unk238, 0x238);
-DOTD_ASSERT_OFFSET(CKGrpS08Enemy, m_pUnk264, 0x264);
+DOTD_ASSERT_OFFSET(CKGrpS08Enemy, m_pCameraEventCpnt, 0x264);
 DOTD_ASSERT_OFFSET(CKGrpS08Enemy, m_unk268, 0x268);

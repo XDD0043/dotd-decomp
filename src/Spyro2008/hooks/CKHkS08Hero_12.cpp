@@ -123,7 +123,7 @@
 // 0x003267e8 CKHkS08Hero_ActState1_FuryCoop_maybe_Condition: the fury flag (+0xed4 bit 6) or a running fury timer
 // (+0x1b00; the same test as the animation machine's Fury condition).
 uint8_t CKHkS08Hero::ActFuryCoopCondition(IKTime*, uint8_t) {
-    if ((m_unked4 & 0x40u) != 0) return 1;
+    if ((m_ui32StatusFlagsED4 & 0x40u) != 0) return 1;
     return !(m_unk1b00 <= 0.0f) ? 1 : 0;  // ble: a NaN timer counts as running
 }
 
@@ -141,7 +141,7 @@ uint8_t CKHkS08Hero::ActFuryCoop(IKTime* clock, int32_t phase, uint8_t other) {
     CKSrvCamera* camera = static_cast<CKSrvCamera*>(g_pEngine->m_srvCamera);  // TOC +0x261c -> +0x70
     if (phase == 1) {
         SetComboActive(0, 0xff);  // 0x0032d9b0
-        m_unk354 = (m_unk354 & ~0x800u) | 0x800u;
+        m_ui32HeroFlags354 = (m_ui32HeroFlags354 & ~0x800u) | 0x800u;
         m_unkec4 = (m_unkec4 & ~0x200u) | 0x200u;
         if (static_cast<int8_t>(GetMovementMode()) == 1) SetMovementMode(0);  // 0x003401b8 / 0x00340c18
         m_unkec4 = (m_unkec4 & ~0x100u) | 0x100u;
@@ -155,7 +155,7 @@ uint8_t CKHkS08Hero::ActFuryCoop(IKTime* clock, int32_t phase, uint8_t other) {
         m_unkec8 = (m_unkec8 & ~0x200u) | 0x200u;
         m_unkecc = (m_unkecc & ~0x8000000u) | 0x8000000u;
         m_unkec8 &= ~0x18u;
-        m_unk35c = (m_unk35c & ~0x80u) | 0x80u;
+        m_ui32HeroFlags35C = (m_ui32HeroFlags35C & ~0x80u) | 0x80u;
         SpawnFuryChargeFx();  // 0x0033bf58
         m_unk110c = 300.0f;  // TOC +0x2634
         m_unk1110 = 100.0f;  // TOC +0x2630
@@ -163,13 +163,13 @@ uint8_t CKHkS08Hero::ActFuryCoop(IKTime* clock, int32_t phase, uint8_t other) {
         m_unk1120 = 0.0f;
         m_unk1108 = 300.0f;
         m_unk1114 = camera->m_fRealFov;  // +0x5d4
-        m_unk111c = static_cast<CKCurve2DCpnt*>(group->m_pUnk360)->Evaluate(0.0f);  // 0x00249ea8
+        m_unk111c = static_cast<CKCurve2DCpnt*>(group->m_pFuryChargeCurve)->Evaluate(0.0f);  // 0x00249ea8
         m_unk1dc0 = 0;
         return other;
     }
     if (phase != 0) {
         if (m_unk1dc0 == 0) SpawnFuryReleaseFx();  // 0x0033bbe0
-        m_unk354 &= ~0x800u;
+        m_ui32HeroFlags354 &= ~0x800u;
         m_unkec4 &= ~0xb00u;
         m_unkec8 &= ~0x80u;
         m_unk1d10 = 0;
@@ -177,7 +177,7 @@ uint8_t CKHkS08Hero::ActFuryCoop(IKTime* clock, int32_t phase, uint8_t other) {
         m_unkecc &= ~0x8000000u;
         m_unkec8 = (m_unkec8 & ~0x8u) | 0x8u;
         m_unkec8 = (m_unkec8 & ~0x10u) | 0x10u;
-        m_unk35c &= ~0x80u;
+        m_ui32HeroFlags35C &= ~0x80u;
         return other;
     }
     if (m_unk1b00 > 0.0f) {  // TOC +0x2624
@@ -201,7 +201,7 @@ uint8_t CKHkS08Hero::ActFuryCoop(IKTime* clock, int32_t phase, uint8_t other) {
         }
         if (m_ui8Hero != m_ui8TrackedLeader) {
             m_unk1118 = 0.0f;
-            m_unk111c = static_cast<CKCurve2DCpnt*>(group->m_pUnk360)->Evaluate(t);
+            m_unk111c = static_cast<CKCurve2DCpnt*>(group->m_pFuryChargeCurve)->Evaluate(t);
             Math_ApproachWithAccelDecel(dt, &m_unk1108);  // 0x00243a10
             camera->m_pCurrentCamera->SetFov(m_unk1114);  // +0x474, vt+0x68
         }
@@ -242,7 +242,7 @@ void CKHkS08Hero::SetNodeAlphaFromCurve(IKSerializable* node, IKSerializable* cu
 // else not while its dragon's game manager byte +0xe10 is set; with neither hero's +0xecc bit 5 the hero needs +0x1afc
 // above 0 and no combo kind active, else no combo kind flag; then not with +0xec8 bit 22, and only without bit 23.
 uint8_t CKHkS08Hero::CanStartFury() {
-    if ((m_unk358 & 1u) != 0) return 0;
+    if ((m_ui32HeroFlags358 & 1u) != 0) return 0;
     if (m_ui8TrackedLeader != m_ui8Hero) return 1;
     CKS08GameManager* manager = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager);  // TOC +0x261c
     const uint8_t* record =
@@ -265,7 +265,7 @@ uint8_t CKHkS08Hero::CanStartFury() {
 // started: 0x9bdc18, Ghidra CKSrvFx_AcquireFx, reserves nothing: StartEffect), the kept element back, the element
 // HUD, and the aura released (vt+0x58).
 void CKHkS08Hero::SetFuryMode(int32_t on) {
-    m_unked0 = (m_unked0 & ~0x10u) | ((static_cast<uint32_t>(on) << 4) & 0xfffffff0u);
+    m_ui32StatusFlagsED0 = (m_ui32StatusFlagsED0 & ~0x10u) | ((static_cast<uint32_t>(on) << 4) & 0xfffffff0u);
     CKS08GameManager* manager = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager);  // TOC +0x261c
     CKSrvFx* fx = static_cast<CKSrvFx*>(g_pEngine->m_srvFx);
     IKSerializable* const* endFilters = &m_unk1ce0;  // +0x1ce0[5]
@@ -295,7 +295,7 @@ void CKHkS08Hero::SetFuryMode(int32_t on) {
     if (m_unk1ac6 != 0) CancelAbilityB(0);  // inlined (StartEffect)
     if (m_unk1ac5 != 0) {
         m_unk1ac5 = 0;
-        CKAbilityElement* ability = static_cast<CKAbilityElement*>(m_unk1cc0);
+        CKAbilityElement* ability = static_cast<CKAbilityElement*>(m_pActiveAbility);
         if (ability != nullptr) ability->Stop(0);  // vt+0x5c
         if (m_unk1cf4 != nullptr) {
             static_cast<IKFx*>(m_unk1cf4)->StopAndRelease(this);  // vt+0x58
@@ -315,7 +315,7 @@ void CKHkS08Hero::SetFuryMode(int32_t on) {
 }
 
 // 0x00329d88 CKHkS08Hero_SetExternalDisplacementFlag_maybe: +0x1674 (the hero group's tether pull is on).
-void CKHkS08Hero::SetExternalDisplacementFlag(uint8_t on) { m_unk1674 = on; }
+void CKHkS08Hero::SetExternalDisplacementFlag(uint8_t on) { m_bExternalDisplacementActive = on; }
 
 // ---- pre-C2.7 gamemgr: the hero death state's calls ----
 #include "k2000/animation/AnimBlendSlot.h"
@@ -360,16 +360,16 @@ IKSerializable* CKHkS08Hero::GetSubNode(uint32_t index) {
 
 // 0x0032a200 CKHkS08Hero_IsCarryingPowerBucket_maybe: the carrier's (+0xfb8) carried object (vt+0x80) has class id 0xc3.
 uint8_t CKHkS08Hero::IsCarryingPowerBucket() {
-    if (m_unkfb8 == nullptr) return 0;
-    IKSerializable* carried = static_cast<CKS08CarrierHero*>(m_unkfb8)->GetCarriedObject();
+    if (m_pCarrierHero == nullptr) return 0;
+    IKSerializable* carried = static_cast<CKS08CarrierHero*>(m_pCarrierHero)->GetCarriedObject();
     if (carried == nullptr) return 0;
     return carried->GetClassID() == 0xc3 ? 1 : 0;  // vt+0x18
 }
 
 // 0x0032a2b8 CKHkS08Hero_IsCarryingFilledPowerBucket_maybe: a carried power bucket whose vt+0x104 is above 0.
 uint8_t CKHkS08Hero::IsCarryingFilledPowerBucket() {
-    if (m_unkfb8 == nullptr) return 0;
-    IKSerializable* carried = static_cast<CKS08CarrierHero*>(m_unkfb8)->GetCarriedObject();
+    if (m_pCarrierHero == nullptr) return 0;
+    IKSerializable* carried = static_cast<CKS08CarrierHero*>(m_pCarrierHero)->GetCarriedObject();
     if (carried == nullptr || carried->GetClassID() != 0xc3) return 0;
     return static_cast<CKHkS08TransportableBase*>(carried)->Vf104() > 0.0f ? 1 : 0;  // vt+0x104; TOC +0x2684
 }
@@ -403,9 +403,9 @@ void CKHkS08Hero::SetExternallyPositionedAndPhysics(uint8_t locked, const float*
 
 // 0x0032ad80 CKHkS08Hero_PlayAnimResource_maybe (vt+0xc0)
 void CKHkS08Hero::PlayAnimResource(float start, uint32_t animation) {
-    if ((m_unk358 & 2u) == 0) return;
+    if ((m_ui32HeroFlags358 & 2u) == 0) return;
     m_animBlendSlot10f0.StartCrossfade(0.0, 1);  // 0x7a848; TOC +0x2684
-    m_unk360 = (m_unk360 & ~0x800u) | 0x800u;
+    m_ui32HeroFlags360 = (m_ui32HeroFlags360 & ~0x800u) | 0x800u;
     AnimBlendSlot* slot = GetAnimBlendSlot();  // vt+0x194
     slot->m_unk14 = 0;
     CKBlenderController* blender = static_cast<CKBlenderController*>(slot->m_pController);
@@ -420,9 +420,9 @@ float CKHkS08Hero::GetHeightAboveGround() { return m_gcCurDatasInOut.m_fdH; }
 // 0x0032aec8 CKHkS08Hero_SetAnimPairAndWeight_maybe: with +0x358 bit 1, the root slot (+0x10f0) cut to its other side
 // (StartCrossfade 0 s, mode 1), +0x360 bit 11, and the pair set on the active slot (vt+0x194).
 void CKHkS08Hero::SetAnimPairAndWeight(float start1, float start2, float weight, uint32_t word1, uint32_t word2) {
-    if ((m_unk358 & 2u) == 0) return;
+    if ((m_ui32HeroFlags358 & 2u) == 0) return;
     m_animBlendSlot10f0.StartCrossfade(0.0f, 1);  // 0x0007a848; TOC +0x2684
-    m_unk360 |= 0x800u;
+    m_ui32HeroFlags360 |= 0x800u;
     GetAnimBlendSlot()->SetAnimPairAndWeight(word1, word2, start1, start2, weight);  // 0x00079e10
 }
 
@@ -443,22 +443,22 @@ CVector3 CKHkS08Hero::GetAdjustedPosition() const {
 
 // 0x0032a010 CKHkS08Hero_IsAttachedToContextualMeca
 uint8_t CKHkS08Hero::IsAttachedToContextualMeca() {
-    if ((m_unk358 & 1u) == 0 || m_unk90 == nullptr) return 0;
+    if ((m_ui32HeroFlags358 & 1u) == 0 || m_unk90 == nullptr) return 0;
     return m_unk90->IsKindOfClass(0x2a82) != 0 ? 1 : 0;  // vt+0x08
 }
 
 // 0x0032a090 CKHkS08Hero_IsCarryingTransportableKey_maybe
 uint8_t CKHkS08Hero::IsCarryingTransportableKey() {
-    if (m_unkfb8 == nullptr) return 0;
-    IKSerializable* carried = static_cast<CKS08CarrierHero*>(m_unkfb8)->m_pCarriedObject;  // vt+0x80 0x9c54c8
+    if (m_pCarrierHero == nullptr) return 0;
+    IKSerializable* carried = static_cast<CKS08CarrierHero*>(m_pCarrierHero)->m_pCarriedObject;  // vt+0x80 0x9c54c8
     if (carried == nullptr) return 0;
     return carried->GetClassID() == 0xc2 ? 1 : 0;  // vt+0x18
 }
 
 // 0x0032a148 CKHkS08Hero_IsCarryingTransportableWeight_maybe: the carried object is of class id 0xc5 (vt+0x18).
 uint8_t CKHkS08Hero::IsCarryingTransportableWeight() {
-    if (m_unkfb8 == nullptr) return 0;
-    IKSerializable* carried = static_cast<CKS08CarrierHero*>(m_unkfb8)->m_pCarriedObject;  // vt+0x80 0x9c54c8
+    if (m_pCarrierHero == nullptr) return 0;
+    IKSerializable* carried = static_cast<CKS08CarrierHero*>(m_pCarrierHero)->m_pCarriedObject;  // vt+0x80 0x9c54c8
     if (carried == nullptr) return 0;
     return carried->GetClassID() == 0xc5 ? 1 : 0;
 }
@@ -483,9 +483,9 @@ uint8_t CKHkS08Hero::ActAbilityCondition(IKTime* clock, uint8_t row) {
     }
     if ((m_unkec8 & 0x00800000u) != 0 || m_unk1507 != 0) return 0;
     if (IsAbilityActive() != 0) return 1;  // 0x002fc228
-    if (row == m_unkCC) return 0;
+    if (row == m_ui8FightCurrentState) return 0;
     bool allowed = false;
-    if (static_cast<int8_t>(GetMovementMode()) == 0 && (m_unk354 & 1u) == 0) {
+    if (static_cast<int8_t>(GetMovementMode()) == 0 && (m_ui32HeroFlags354 & 1u) == 0) {
         allowed = true;
     } else {
         if (static_cast<int8_t>(GetMovementMode()) == 1 && m_unk550 - m_unk574 > m_unk8c8) {
@@ -514,7 +514,7 @@ uint8_t CKHkS08Hero::ActAbilityCondition(IKTime* clock, uint8_t row) {
 // 0x0032a7a8 CKHkS08Hero_IsUsingWindBeam: hero 1 (+0x24) whose +0x1cc0 is an object of class 0xa50c (vt+0x08).
 uint8_t CKHkS08Hero::IsUsingWindBeam() {
     if (m_ui8Hero != 1) return 0;
-    IKSerializable* beam = m_unk1cc0;
+    IKSerializable* beam = m_pActiveAbility;
     if (beam == nullptr) return 0;
     return beam->IsKindOfClass(0xa50c) != 0 ? 1 : 0;
 }
@@ -544,11 +544,11 @@ uint8_t CKHkS08Hero::GetAbilityElementLevel(uint8_t id) {
 // volume's info bit 0 (+0x18).
 void CKHkS08Hero::SetAttackSphere(uint32_t index, uint8_t on, float radius, int8_t hotspot, IKSerializable* damage) {
     IKSerializable* const spheres[3] = {m_unk1b8c, m_unk1b90, m_unk1b94};
-    m_unk1bac = 0;
+    m_ui32ActiveHitSphereCount = 0;
     IKBoundingVolume* sphere = static_cast<IKBoundingVolume*>(spheres[index]);
     if (on == 0) {
         if ((sphere->m_ba8Infos & 1u) == 0) return;
-        m_unk1bac = 0xffffffffu;
+        m_ui32ActiveHitSphereCount = 0xffffffffu;
         SetCollisionVolumeEnabled(sphere, 0);  // 0x00352f10
         return;
     }
@@ -560,7 +560,7 @@ void CKHkS08Hero::SetAttackSphere(uint32_t index, uint8_t on, float radius, int8
 
 // 0x00329f20 CKHkS08Hero_GetCurrentBlowFlag61
 uint8_t CKHkS08Hero::GetCurrentBlowFlag61() {
-    CKS08HeroCombo* combo = static_cast<CKS08HeroCombo*>(m_unk1a88);
+    CKS08HeroCombo* combo = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode);
     if (combo == nullptr) return 0;
     if (combo->GetBlow() == nullptr) return 0;  // vt+0x54
     return combo->GetBlow()->VfAC();            // vt+0xac
@@ -576,10 +576,10 @@ uint32_t CKHkS08Hero::GetElementColor(uint32_t which) const {
 // 0x0032afc8 CKHkS08Hero_ShareCollectedBonusWithPartner_maybe (bonus-crumbly, C2.8)
 void CKHkS08Hero::ShareCollectedBonusWithPartner(IKSerializable* bonusObject) {
     CKHkS08Bonus* bonus = static_cast<CKHkS08Bonus*>(bonusObject);
-    const uint32_t type = static_cast<CKGrpBonusPool*>(bonus->m_pUnk28)->m_ui32BonusType;
+    const uint32_t type = static_cast<CKGrpBonusPool*>(bonus->m_pGroup)->m_ui32BonusType;
     if (type - 1u > 1u) return;
-    if (bonus->m_unk34 != 0) return;
-    if ((m_unked0 & 0x10000u) == 0) return;
+    if (bonus->m_bSharedCopy != 0) return;
+    if ((m_ui32StatusFlagsED0 & 0x10000u) == 0) return;
     CKGrpBonus* group = static_cast<CKGrpBonus*>(g_pEngine->m_gameManager->m_unk04[3]);  // the game manager's +0x10
     if (group == nullptr) return;
     CVector3 at;
@@ -594,9 +594,9 @@ void CKHkS08Hero::ShareCollectedBonusWithPartner(IKSerializable* bonusObject) {
 // 0x0032a840 CKHkS08Hero_GetEarthBoulderFlag2CC_maybe (bonus-crumbly, C2.8)
 uint8_t CKHkS08Hero::GetEarthBoulderFlag2CC() {
     if (m_ui8Hero != 0) return 0;
-    IKSerializable* ability = m_apUnk1bd0[4];  // +0x1be0
+    IKSerializable* ability = m_apAbilities[4];  // +0x1be0
     if (ability->IsKindOfClass(0x95cc) == 0) return 0;  // vt+0x08 CKEarthBoulder
-    return static_cast<CKEarthBoulder*>(ability)->m_unk2cc;
+    return static_cast<CKEarthBoulder*>(ability)->m_bJustLanded;
 }
 
 // 0x0032b138 CKHkS08Hero_GetHotspot4AimDir_maybe
@@ -628,7 +628,7 @@ IKFxData* AbilityFilter(IKSerializable* const* filters, uint32_t element) {
 // (+0x1cc0) stopped (vt+0x5c with `forced`); a running filter (+0x1cf4) let go (vt+0x58) and the element's end filter
 // (+0x1ce0[element]) started in its place (the inlined effect search: CKSrvFx's StartEffect).
 void CKHkS08Hero::CancelAbility(uint8_t forced) {
-    CKAbilityElement* ability = static_cast<CKAbilityElement*>(m_unk1cc0);
+    CKAbilityElement* ability = static_cast<CKAbilityElement*>(m_pActiveAbility);
     if (ability != nullptr) ability->Stop(forced);  // vt+0x5c
     IKSerializable* filter = m_unk1cf4;
     if (filter == nullptr) return;
@@ -678,20 +678,20 @@ uint8_t CKHkS08Hero::ActAbility(IKTime* clock, int32_t phase, uint8_t other) {
             fx->StartEffect(AbilityFilter(endFilters, m_unk1cc4), this);  // inlined
         }
     };
-    auto ability = [this]() { return static_cast<CKAbilityElement*>(m_unk1cc0); };
+    auto ability = [this]() { return static_cast<CKAbilityElement*>(m_pActiveAbility); };
     if (phase == 1) {
-        if (m_unk1df8 == nullptr) m_unk1df8 = new CKS08HeroAbilityHost(this);  // 0x003f0ec8
-        m_unked0 = (m_unked0 & ~2u) | 2u;
-        m_unk1d24 = 0.3f;  // TOC +0x267c
-        m_unk1cc0 = nullptr;
+        if (m_pAbilityHost == nullptr) m_pAbilityHost = new CKS08HeroAbilityHost(this);  // 0x003f0ec8
+        m_ui32StatusFlagsED0 = (m_ui32StatusFlagsED0 & ~2u) | 2u;
+        m_fAbilityFuryTimer = 0.3f;  // TOC +0x267c
+        m_pActiveAbility = nullptr;
         const uint8_t hero = m_ui8Hero;
         const uint32_t element = m_unk1cc4;
         bool started = false;
         if (m_unkf58 == 3u || m_unkf58 == 1u) {
             const int8_t slot = kAbilitySlotSecond[hero][element];  // TOC +0x2620
             if (!(0.0f < m_afAbilityCooldown[slot])) {              // TOC +0x2624
-                m_unk1cc0 = m_apUnk1bd0[slot];
-                if (m_unk1cc0 == nullptr) goto entered;
+                m_pActiveAbility = m_apAbilities[slot];
+                if (m_pActiveAbility == nullptr) goto entered;
                 m_unk1ac6 = 1;
                 started = true;
             }
@@ -700,11 +700,11 @@ uint8_t CKHkS08Hero::ActAbility(IKTime* clock, int32_t phase, uint8_t other) {
             if (m_unkf44 != 3u && m_unkf44 != 1u) goto entered;
             const int8_t slot = kAbilitySlotFirst[hero][element];  // TOC +0x2618
             if (0.0f < m_afAbilityCooldown[slot]) goto entered;
-            m_unk1cc0 = m_apUnk1bd0[slot];
-            if (m_unk1cc0 == nullptr) goto entered;
+            m_pActiveAbility = m_apAbilities[slot];
+            if (m_pActiveAbility == nullptr) goto entered;
             m_unk1ac5 = 1;
         }
-        ability()->Start(m_unk1df8);  // vt+0x58
+        ability()->Start(m_pAbilityHost);  // vt+0x58
     entered:
         m_unk1a84 = 0;
         m_unk1cfc = 0.0f;
@@ -712,13 +712,13 @@ uint8_t CKHkS08Hero::ActAbility(IKTime* clock, int32_t phase, uint8_t other) {
     }
     if (phase != 0) {
         if (m_unk1a84 != 4 && m_unk1a84 != 9) m_unk1a84 = 0;
-        m_unked0 &= 0xfffffffdu;
-        m_unk354 &= 0xfffff7ffu;
+        m_ui32StatusFlagsED0 &= 0xfffffffdu;
+        m_ui32HeroFlags354 &= 0xfffff7ffu;
         m_unkec4 &= 0xffdfc1ffu;
         m_unkec8 &= 0xffffff7fu;
         if (m_unk1ac4 == 0) {
-            m_unk12c = nullptr;
-            m_unk124 = nullptr;
+            m_pTargetedMecaHook = nullptr;
+            m_pTargetedEnemy = nullptr;
         }
         if (m_unk1ac5 != 0) {
             m_unk1ac5 = 0;
@@ -732,8 +732,8 @@ uint8_t CKHkS08Hero::ActAbility(IKTime* clock, int32_t phase, uint8_t other) {
         }
         m_unk1d14 = 1.0f;  // TOC +0x2628
         m_unk1d10 = 0;
-        m_unk1cc0 = nullptr;
-        m_unk364 &= 0xfeffffffu;
+        m_pActiveAbility = nullptr;
+        m_ui32HeroFlags364 &= 0xfeffffffu;
         return other;
     }
 
@@ -743,15 +743,15 @@ uint8_t CKHkS08Hero::ActAbility(IKTime* clock, int32_t phase, uint8_t other) {
     const uint32_t level = manager->GetElementLevel(m_ui8Hero, static_cast<uint8_t>(m_unk1cc4));  // 0x004f9558 (twice)
     const uint8_t leader = m_ui8TrackedLeader;
     if (leader == m_ui8Hero) {
-        const float left = m_unk1d24;
+        const float left = m_fAbilityFuryTimer;
         if (left < 0.0f) {
-            const uint32_t hits = leader == 0 ? manager->m_unkC34 : manager->m_unkC38;  // +0xc34 + 4 x dragon
-            if (hits != 0 && (static_cast<CKGrpS08Hero*>(m_pGrpHero)->m_unk2c8 & 0x100u) == 0) {
+            const uint32_t hits = leader == 0 ? manager->m_ui32SpyroComboHits : manager->m_ui32CynderComboHits;  // +0xc34 + 4 x dragon
+            if (hits != 0 && (static_cast<CKGrpS08Hero*>(m_pGrpHero)->m_ui32PairStateFlags & 0x100u) == 0) {
                 manager->AddDragonFuryFromAttack(leader, hits);  // 0x004fe1a0
             }
-            m_unk1d24 = 0.3f;
+            m_fAbilityFuryTimer = 0.3f;
         } else {
-            m_unk1d24 = left - dt;
+            m_fAbilityFuryTimer = left - dt;
         }
     }
     auto runningStep = [&](uint8_t& flag) {
@@ -798,16 +798,16 @@ uint8_t CKHkS08Hero::ActAbility(IKTime* clock, int32_t phase, uint8_t other) {
 
 // 0x0032ac88 CKHkS08Hero_CrossfadeAnimResource_maybe (vt+0xc4)
 uint32_t CKHkS08Hero::CrossfadeAnimResource(float blend, float start, uint32_t word, uint32_t mode) {
-    if ((m_unk358 & 2u) == 0) return 0;
+    if ((m_ui32HeroFlags358 & 2u) == 0) return 0;
     m_animBlendSlot10f0.StartCrossfade(blend, 1);  // 0x0007a848 (f1 still `blend`)
-    m_unk360 = (m_unk360 & 0xfffff7ffu) | 0x800u;
+    m_ui32HeroFlags360 = (m_ui32HeroFlags360 & 0xfffff7ffu) | 0x800u;
     return GetAnimBlendSlot()->CrossfadeToAnim(blend, start, word, mode);  // vt+0x194, 0x00079ea0
 }
 
 // 0x0032a548 CKHkS08Hero_SetMoveDestination (vt+0xcc)
 void CKHkS08Hero::SetMoveDestination(float timeout, const CVector3* position, const CVector3* direction,
                                      uint32_t /*unused*/, uint32_t flag4, uint32_t flag31) {
-    m_unk354 &= 0x7fffffffu;
+    m_ui32HeroFlags354 &= 0x7fffffffu;
     SetMoveDestinationBase(timeout, position, direction, flag4, flag31);  // 0x00364470
 }
 
@@ -822,8 +822,8 @@ uint8_t CKHkS08Hero::UpdateMoveTo(IKTime* clock, uint8_t* out) {
         m_unk13a4 = 0;
     }
     SetPathCharacterType(IsFlyingMovementMode1() != 0 ? 4u : 2u);  // 0x0033cac0 / 0x0033cb08
-    m_unk358 &= 0xffefffffu;
-    m_unk360 = (m_unk360 & 0xffffffbfu) | 0x40u;
+    m_ui32HeroFlags358 &= 0xffefffffu;
+    m_ui32HeroFlags360 = (m_ui32HeroFlags360 & 0xffffffbfu) | 0x40u;
     if (IsFlyingMovementMode1() != 0 && flies == 0) {
         const float dx = m_unk398 - m_unk54c;
         const float dz = m_unk3a0 - m_unk554;

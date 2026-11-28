@@ -59,27 +59,27 @@ public:
     // the box's particles randomised (CFogBoxNodeFx_RandomizeEmitterParticles_maybe).
     void PlaceFogBox();
 
-    IKSerializable* m_pUnk20;   // +0x20
+    IKSerializable* m_pSoundDico;   // +0x20
     CTriggerStarter m_unk24;    // +0x24
     CTriggerStarter m_unk2C;    // +0x2c
-    IKSerializable* m_pUnk34;   // +0x34
+    IKSerializable* m_pSpawnPoint;   // +0x34
     IKSerializable* m_pUnk38;   // +0x38
-    IKSerializable* m_pUnk3C;   // +0x3c
-    IKSerializable* m_pUnk40;   // +0x40 a CFogBoxNodeFx (Ghidra struct type)_maybe
-    // +0x44..+0x4f bytes read raw (file order): three 3-byte groups (RGB colours_maybe: 1e0a1e, 783c50,
-    // ffffff in LVL010), then +0x4d/+0x4e/+0x4f.
-    uint8_t m_unk44[3];         // +0x44
-    uint8_t m_unk47[3];         // +0x47
-    uint8_t m_unk4A[3];         // +0x4a
-    uint8_t m_unk4D;            // +0x4d
-    uint8_t m_unk4E;            // +0x4e
-    uint8_t m_unk4F;            // +0x4f
-    float m_fUnk50;             // +0x50 the alphas' speed (per second)
-    float m_fUnk54;             // +0x54 the reach radius
-    float m_fUnk58;             // +0x58 the reach height (above the node)
-    float m_fUnk5C;             // +0x5c the turn speed with a hero in reach (degrees per second; read as a word)
-    float m_fUnk60;             // +0x60 the turn acceleration (read as a word)
-    IKSerializable* m_pUnk64;   // +0x64 CKLocTextAccessor: the prompt (message 0x2666)
+    IKSerializable* m_pReachParticlesNode;   // +0x3c
+    IKSerializable* m_pFogBoxNode;   // +0x40 a CFogBoxNodeFx (Ghidra struct type)_maybe
+    // +0x44..+0x4f bytes read raw (file order): the geometries' alphas when off (disabled or just used), idle (no
+    // hero near) and with a hero in reach (Update 0x4cb030; LVL010: 1e0a1e, 783c50, ffffff), then the fog box's three.
+    uint8_t m_aui8OffGeomAlpha[3];         // +0x44
+    uint8_t m_aui8IdleGeomAlpha[3];         // +0x47
+    uint8_t m_aui8ReachGeomAlpha[3];         // +0x4a
+    uint8_t m_ui8OffFogAlpha;            // +0x4d
+    uint8_t m_ui8IdleFogAlpha;            // +0x4e
+    uint8_t m_ui8ReachFogAlpha;            // +0x4f
+    float m_fAlphaApproachSpeed;             // +0x50 the alphas' speed (per second)
+    float m_fReachRadius;             // +0x54 the reach radius
+    float m_fReachHeight;             // +0x58 the reach height (above the node)
+    float m_fActiveYawSpeedDeg;             // +0x5c the turn speed with a hero in reach (degrees per second; read as a word)
+    float m_fYawAccel;             // +0x60 the turn acceleration (read as a word)
+    IKSerializable* m_pPromptTextAccessor;   // +0x64 CKLocTextAccessor: the prompt (message 0x2666)
     // C2.8 save-menu: the run-time state (the constructor leaves it to the zeroed heap; OnActivate sets it).
     float m_fAlpha0;            // +0x68 the first geometry's alpha (toward +0x44 / +0x47 / +0x4a)
     float m_fAlpha1;            // +0x6c the second geometry's (+0x45 / +0x48 / +0x4b)
@@ -90,18 +90,18 @@ public:
     float m_fUsedTime;          // +0x80 the time since the save point was used (flag bit 5)
 };
 DOTD_ASSERT_SIZE(CKHkS08SavePoint, 0x84);
-DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_pUnk20, 0x20);
+DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_pSoundDico, 0x20);
 DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_unk24, 0x24);
 DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_unk2C, 0x2c);
-DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_pUnk34, 0x34);
-DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_pUnk40, 0x40);
-DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_unk44, 0x44);
-DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_unk47, 0x47);
-DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_unk4A, 0x4a);
-DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_unk4D, 0x4d);
-DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_fUnk50, 0x50);
-DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_fUnk5C, 0x5c);
-DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_fUnk60, 0x60);
-DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_pUnk64, 0x64);
+DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_pSpawnPoint, 0x34);
+DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_pFogBoxNode, 0x40);
+DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_aui8OffGeomAlpha, 0x44);
+DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_aui8IdleGeomAlpha, 0x47);
+DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_aui8ReachGeomAlpha, 0x4a);
+DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_ui8OffFogAlpha, 0x4d);
+DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_fAlphaApproachSpeed, 0x50);
+DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_fActiveYawSpeedDeg, 0x5c);
+DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_fYawAccel, 0x60);
+DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_pPromptTextAccessor, 0x64);
 DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_fAlpha0, 0x68);
 DOTD_ASSERT_OFFSET(CKHkS08SavePoint, m_fUsedTime, 0x80);

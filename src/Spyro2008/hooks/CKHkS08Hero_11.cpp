@@ -86,7 +86,7 @@ RwFrame* NodeFrame(const CKHkS08Hero* hero) { return static_cast<const CSGMovabl
 CMatrix34& Modelling(const CKHkS08Hero* hero) { return *reinterpret_cast<CMatrix34*>(&NodeFrame(hero)->modelling); }
 
 // 0x002d51e0 CKGrpS08Hero_ClearFollowTrail_maybe (local copy): the group's +0xa88 = 0.
-void ClearFollowTrail(IKSerializable* group) { static_cast<CKGrpS08Hero*>(group)->m_unka88 = 0; }
+void ClearFollowTrail(IKSerializable* group) { static_cast<CKGrpS08Hero*>(group)->m_ui32FollowTrailCount = 0; }
 // 0x002ce518 CKGrpS08Hero_GetMaxPartnerDistance_maybe (local copy): the group's +0x108.
 float GetMaxPartnerDistance(IKSerializable* group) { return static_cast<CKGrpS08Hero*>(group)->m_unk108; }
 
@@ -199,7 +199,7 @@ uint8_t CKHkS08Hero::LocoClimb(IKTime*, int32_t phase, uint8_t other) {
         m_unk538 = Vec3_GetYawAngleFromX(&Modelling(this).m_at);  // 0x00244638
         if (m_unk1629 != 0) m_unk1629 = 0;
         ComputeCameraRelativeMove();  // 0x00311df0
-        m_unk35c &= 0x7fffffffu;
+        m_ui32HeroFlags35C &= 0x7fffffffu;
         m_unkec8 &= 0xffffff7fu;
         m_unk16ac = 0;
         return other;
@@ -212,7 +212,7 @@ uint8_t CKHkS08Hero::LocoClimb(IKTime*, int32_t phase, uint8_t other) {
         m_unk1628 = 0;
         m_unk1620 = 0;
         m_unkec4 = (m_unkec4 & 0xfffffffeu) | 1u;
-        if ((m_unkec4 & 0x20000u) == 0) m_unk35c = (m_unk35c & 0x7fffffffu) | 0x80000000u;
+        if ((m_unkec4 & 0x20000u) == 0) m_ui32HeroFlags35C = (m_ui32HeroFlags35C & 0x7fffffffu) | 0x80000000u;
         m_unkec8 &= 0xffffff7fu;
         return other;
     }
@@ -255,7 +255,7 @@ uint8_t CKHkS08Hero::LocoClimbSustained(IKTime* clock, int32_t phase, uint8_t ot
         m_unk218 = 0.05f;
         m_unk1675 = static_cast<uint8_t>(phase);
         m_unk1838 = 0;
-        if ((m_unkec4 & 0x20000u) == 0) m_unk35c = (m_unk35c & 0x7fffffffu) | 0x80000000u;
+        if ((m_unkec4 & 0x20000u) == 0) m_ui32HeroFlags35C = (m_ui32HeroFlags35C & 0x7fffffffu) | 0x80000000u;
         m_unk1628 = 0;
         m_unk1688 = m_unkc48;
         m_unk161f = 0;
@@ -269,7 +269,7 @@ uint8_t CKHkS08Hero::LocoClimbSustained(IKTime* clock, int32_t phase, uint8_t ot
         m_unk127c = kZero.x;
         m_unk1280 = kZero.y;
         m_unk1284 = kZero.z;
-        m_unk354 = (m_unk354 & 0xffffffbfu) | 0x40u;
+        m_ui32HeroFlags354 = (m_ui32HeroFlags354 & 0xffffffbfu) | 0x40u;
         m_unkecc &= 0xfffbffffu;
         m_unk368 = (m_unk368 & 0xfffff7ffu) | 0x800u;
         m_unk16a8 = nullptr;
@@ -294,15 +294,15 @@ uint8_t CKHkS08Hero::LocoClimbSustained(IKTime* clock, int32_t phase, uint8_t ot
         m_unk1676 = 0;
         m_unk1678 = 0;
         m_unk1679 = 0;
-        if (m_unk1694 != nullptr) {
-            m_unk1694->RemoveClimber(CKHkClimbZone::ClimberKey(this));  // 0x00457180
+        if (m_pCurrentClimbZone != nullptr) {
+            m_pCurrentClimbZone->RemoveClimber(CKHkClimbZone::ClimberKey(this));  // 0x00457180
             m_unkecc &= 0xfffbffffu;
         }
-        m_unk1694 = nullptr;
+        m_pCurrentClimbZone = nullptr;
         m_unk16a0 = nullptr;
         m_unk1698 = nullptr;
         m_unk169c = nullptr;
-        m_unk1690 = nullptr;
+        m_pHeldClimbZone = nullptr;
         if (m_unk16a4 != nullptr) {
             m_unk16a4->RemoveClimber(CKHkClimbZone::ClimberKey(this));
             m_unk16a4 = nullptr;
@@ -321,12 +321,12 @@ uint8_t CKHkS08Hero::LocoClimbSustained(IKTime* clock, int32_t phase, uint8_t ot
         m_unk1270 = 0.0f;
         m_unk1675 = 0;
         m_unk218 = m_unk1724;
-        m_unk35c &= 0x7fffffffu;
+        m_ui32HeroFlags35C &= 0x7fffffffu;
         if (m_ui8Hero == m_ui8TrackedLeader) ClearFollowTrail(group);
         m_unk1629 = 0;
         m_unkec8 &= 0xffffff7fu;
-        m_unk354 &= 0xffffffbfu;
-        m_unk35c &= 0xffffff7fu;
+        m_ui32HeroFlags354 &= 0xffffffbfu;
+        m_ui32HeroFlags35C &= 0xffffff7fu;
         m_unkec4 &= 0xfffeffffu;
         m_unk1628 = 0;
         m_unkecc = (m_unkecc & 0xffbfffffu) | 0x400000u;
@@ -347,15 +347,15 @@ uint8_t CKHkS08Hero::LocoClimbSustained(IKTime* clock, int32_t phase, uint8_t ot
     if ((m_unkec8 & 1u) == 0) {
         UpdateClimbMountState();        // 0x00324190
         UpdateClimbZoneAttachment(dt);  // 0x0031ea00
-        if (m_unk1628 == 0) m_unk1690 = m_unk1694;
-        m_unk35c &= 0xffffff7fu;
-        if (m_unk1690 != nullptr) {
-            const uint8_t kind = m_unk1690->m_unk34;
+        if (m_unk1628 == 0) m_pHeldClimbZone = m_pCurrentClimbZone;
+        m_ui32HeroFlags35C &= 0xffffff7fu;
+        if (m_pHeldClimbZone != nullptr) {
+            const uint8_t kind = m_pHeldClimbZone->m_unk34;
             if (kind == 1) {
                 m_unk1744 = 1;
             } else if (kind == 0) {
                 m_unk1744 = 2;
-                if (m_unk1628 == 0) m_unk35c = (m_unk35c & 0xffffff7fu) | 0x80u;
+                if (m_unk1628 == 0) m_ui32HeroFlags35C = (m_ui32HeroFlags35C & 0xffffff7fu) | 0x80u;
             } else if (kind == 2) {
                 m_unk1744 = 0;
             } else {
@@ -363,19 +363,19 @@ uint8_t CKHkS08Hero::LocoClimbSustained(IKTime* clock, int32_t phase, uint8_t ot
             }
         }
     }
-    CKHkClimbZone* zone = m_unk1694;
+    CKHkClimbZone* zone = m_pCurrentClimbZone;
     float y = m_unk550;
     if (zone != nullptr) {
         const float margin = 0.1f;  // TOC1 +0x2530
         const float top = zone->NodeLtm().m_pos.y + zone->m_fUnk30;
         if (y + margin > top && (zone->m_bitArray & 0x40000u) != 0 && zone->m_pUnk50 != nullptr && m_unk1665 == 0 &&
-            m_unk19a8 != 2 && m_unk1744 == 0 && static_cast<int32_t>(m_unkec8) >= 0 && m_unk1628 == 0 && m_unk1626 == 0 &&
+            m_ui8ClimbAnimState != 2 && m_unk1744 == 0 && static_cast<int32_t>(m_unkec8) >= 0 && m_unk1628 == 0 && m_unk1626 == 0 &&
             m_unk1627 == 0 && m_unk1678 == 0) {
             m_unkec8 = (m_unkec8 & 0xfffffffeu) | 1u;  // the top of the zone: the ledge
-            zone = m_unk1694;
+            zone = m_pCurrentClimbZone;
             y = m_unk550;
         }
-        if (zone != nullptr && zone->NodeLtm().m_pos.y > y - margin && m_unk1665 == 1 && m_unk19a8 != 2 && m_unk1744 == 0) {
+        if (zone != nullptr && zone->NodeLtm().m_pos.y > y - margin && m_unk1665 == 1 && m_ui8ClimbAnimState != 2 && m_unk1744 == 0) {
             const float height = GetHeightAboveGround();  // 0x0032a008
             if (m_unkc70 > height && m_unk1679 != 0) m_unkecc = (m_unkecc & 0xffefffffu) | 0x100000u;
         }
@@ -404,14 +404,14 @@ uint8_t CKHkS08Hero::LocoClimbSustained(IKTime* clock, int32_t phase, uint8_t ot
             status = m_unkec4;
         }
         if ((status & 0x20000000u) != 0 || (status & 0x40000000u) != 0) {
-            if ((status & 0x20000000u) != 0 && m_unk160 == 0x85) {
+            if ((status & 0x20000000u) != 0 && m_i16CurAnimIndex == 0x85) {
                 const CVector3 offset = ComputeClimbMountOffset16B0();  // 0x0031e480
                 m_unk5c0 = m_unk5c0 + offset.x;
                 m_unk5c4 = m_unk5c4 + offset.y;
                 m_unk5c8 = m_unk5c8 + offset.z;
                 status = m_unkec4;
             }
-            if ((status & 0x40000000u) != 0 && m_unk160 == 0x86) {
+            if ((status & 0x40000000u) != 0 && m_i16CurAnimIndex == 0x86) {
                 const CVector3 offset = ComputeClimbMountOffset16BC();  // 0x0031e210
                 m_unk5c0 = m_unk5c0 + offset.x;
                 m_unk5c4 = m_unk5c4 + offset.y;
@@ -432,7 +432,7 @@ uint8_t CKHkS08Hero::LocoClimbSustained(IKTime* clock, int32_t phase, uint8_t ot
             m_unk1280 = vy - m_unk518 * dot;
         }
     }
-    if ((m_unk354 & 0x40000u) != 0) {
+    if ((m_ui32HeroFlags354 & 0x40000u) != 0) {
         // The wall slide's normal (+0x61c), normalised, keeps the velocity from going into the wall.
         float nx = m_wallSlide.m_v3Normal.x;
         float ny = m_wallSlide.m_v3Normal.y;
@@ -470,7 +470,7 @@ void CKHkS08Hero::UpdateClimbMountState() {
         m_unk1679 = 0;
     }
     if (static_cast<int32_t>(m_unkec8) < 0) {
-        if (m_unk1694 != nullptr) {
+        if (m_pCurrentClimbZone != nullptr) {
             const CMatrix34& attach = *m_unk16d8;
             m_unk1678 = 1;
             m_unk1728 = attach.m_up.x;
@@ -520,7 +520,7 @@ void CKHkS08Hero::UpdateClimbMountState() {
             const float dx = m_unk16d4->m_pos.x - m_unk16d8->m_pos.x;
             const float dz = m_unk16d4->m_pos.z - m_unk16d8->m_pos.z;
             m_unk16f4 = std::sqrt(ppc::fmadds(dz, dz, ppc::fmadds(dx, dx, dy * dy)));  // Math_Sqrtf
-            if (m_unk1694 != nullptr && m_unk1694->GetLinkedObjectFlagC23() != 0) {  // 0x00456bc8
+            if (m_pCurrentClimbZone != nullptr && m_pCurrentClimbZone->GetLinkedObjectFlagC23() != 0) {  // 0x00456bc8
                 m_unkec4 = (m_unkec4 & 0xfffeffffu) | 0x10000u;
             } else {
                 m_unkec4 &= 0xfffeffffu;
@@ -530,7 +530,7 @@ void CKHkS08Hero::UpdateClimbMountState() {
             if (m_unk16f8 != 0) m_unk167e = 1;
             if (m_unk16f9 != 0) {
                 m_unk16f9 = 0;
-                if (m_unk1694 != nullptr) m_unk1694->AddOrUpdateClimber(0.0f, 1, &kZero, 0);  // 0x00458e98
+                if (m_pCurrentClimbZone != nullptr) m_pCurrentClimbZone->AddOrUpdateClimber(0.0f, 1, &kZero, 0);  // 0x00458e98
                 if (m_unk1678 != 0) {
                     m_unk1679 = 1;
                     m_unk167a = 1;
@@ -544,7 +544,7 @@ void CKHkS08Hero::UpdateClimbMountState() {
     }
     if (m_unk1678 != 0 && m_unk1744 == 0) {
         SetCameraDirectionLock(1);  // 0x00354cf0
-        m_unk354 = ((m_unk354 | 1u) & ~4u);
+        m_ui32HeroFlags354 = ((m_ui32HeroFlags354 | 1u) & ~4u);
     }
 }
 
@@ -625,14 +625,14 @@ void CKHkS08Hero::ApplyClimbMountAnimOffset() {
     uint32_t status = m_unkec4;
     if ((status & 0x20000000u) == 0) {
         if ((status & 0x40000000u) == 0) return;
-    } else if (m_unk160 == 0x85) {
+    } else if (m_i16CurAnimIndex == 0x85) {
         const CVector3 offset = ComputeClimbMountOffset16B0();
         m_unk5c0 = m_unk5c0 + offset.x;
         m_unk5c4 = m_unk5c4 + offset.y;
         m_unk5c8 = m_unk5c8 + offset.z;
         status = m_unkec4;
     }
-    if ((status & 0x40000000u) != 0 && m_unk160 == 0x86) {
+    if ((status & 0x40000000u) != 0 && m_i16CurAnimIndex == 0x86) {
         const CVector3 offset = ComputeClimbMountOffset16BC();
         m_unk5c0 = m_unk5c0 + offset.x;
         m_unk5c4 = m_unk5c4 + offset.y;
@@ -663,7 +663,7 @@ uint8_t CKHkS08Hero::TryAttachToClimbZoneList(CKHkClimbZone** zones, uint32_t co
         zone->AddOrUpdateClimber(m_unkd18 + m_unkd18, 1, reinterpret_cast<const CVector3*>(&m_unk54c),
                                  CKHkClimbZone::ClimberKey(this));  // 0x00458e98
         m_unk16a4 = zone;
-        m_unk16a8 = m_unk1690;
+        m_unk16a8 = m_pHeldClimbZone;
     }
     return attached;
 }
@@ -675,12 +675,12 @@ uint8_t CKHkS08Hero::TryAttachToClimbZoneList16BC() { return TryAttachToClimbZon
 // +0xecc bit 18).
 void CKHkS08Hero::StickToCurrentClimbZone() {
     if (m_unk1628 != 0 || m_unk1626 != 0 || m_unk1627 != 0 || (m_unkec8 & 1u) != 0 || (m_unkec4 & 0x20000000u) != 0 ||
-        (m_unkec4 & 0x40000000u) != 0 || m_unk1678 != 0 || m_unk1694 == nullptr) {
+        (m_unkec4 & 0x40000000u) != 0 || m_unk1678 != 0 || m_pCurrentClimbZone == nullptr) {
         return;
     }
     const CVector3 up = Modelling(this).m_up;
     alignas(16) CMatrix34 matrix;
-    if (m_unk1694->AttachClimberIfValid(m_unkd18 + m_unkd18, reinterpret_cast<const CVector3*>(&m_unk54c), &matrix,
+    if (m_pCurrentClimbZone->AttachClimberIfValid(m_unkd18 + m_unkd18, reinterpret_cast<const CVector3*>(&m_unk54c), &matrix,
                                         CKHkClimbZone::ClimberKey(this)) == 0) {  // 0x004591e0
         return;
     }
@@ -764,9 +764,9 @@ constexpr CVector3 kDown{0.0f, -1.0f, 0.0f};
 float Length(const CVector3& v) { return std::sqrt(ppc::fmadds(v.z, v.z, ppc::fmadds(v.x, v.x, v.y * v.y))); }
 // 0x002ce540 / 0x002ce580 CKGrpS08Hero_GetTetherDampingRadius_maybe / ..Coeff_maybe (local copies): +0x128 / +0x130 with
 // +0xfc set, else +0x114 / +0x11c. 0x002ce560 ..SpringStiffness_maybe: +0x12c / +0x118.
-float TetherDampingRadius(const CKGrpS08Hero* group) { return group->m_unkfc != 0 ? group->m_unk128 : group->m_unk114; }
-float TetherDampingCoeff(const CKGrpS08Hero* group) { return group->m_unkfc != 0 ? group->m_unk130 : group->m_unk11c; }
-float TetherSpringStiffness(const CKGrpS08Hero* group) { return group->m_unkfc != 0 ? group->m_unk12c : group->m_unk118; }
+float TetherDampingRadius(const CKGrpS08Hero* group) { return group->m_bUseAltTetherParams != 0 ? group->m_fAltTetherDampingRadius : group->m_fTetherDampingRadius; }
+float TetherDampingCoeff(const CKGrpS08Hero* group) { return group->m_bUseAltTetherParams != 0 ? group->m_fAltTetherDampingCoeff : group->m_fTetherDampingCoeff; }
+float TetherSpringStiffness(const CKGrpS08Hero* group) { return group->m_bUseAltTetherParams != 0 ? group->m_fAltTetherSpringStiffness : group->m_fTetherSpringStiffness; }
 }  // namespace
 
 // 0x0031ef70 CKHkS08Hero_ComputeClimbMoveVectorByMode_maybe: the climb impulse of the current climb move (+0x1664): the
@@ -940,13 +940,13 @@ void CKHkS08Hero::UpdateClimbDisplacement(float dt) {
             climb = false;
         } else if (climb && m_unk1626 != 0) {
             climb = false;
-        } else if (climb && (m_unk167a != 0 || m_unk1678 != 0 || m_unk1694 == nullptr)) {
+        } else if (climb && (m_unk167a != 0 || m_unk1678 != 0 || m_pCurrentClimbZone == nullptr)) {
             UpdateForwardAndSpeedStats();  // 0x00310d88
             return;
         }
         if (climb) {
             const float speed = GetClimbSpeed();  // 0x002f94d0
-            CKHkClimbZone* zone = m_unk1694;
+            CKHkClimbZone* zone = m_pCurrentClimbZone;
             const float bottom = zone->NodeLtm().m_pos.y;
             const float top = bottom + zone->m_fUnk30;
             m_unk168d = 0;
@@ -1065,7 +1065,7 @@ void CKHkS08Hero::UpdateClimbDisplacement(float dt) {
     // A ceiling zone (kind 0).
     bool after = true;
     if (m_unk1679 != 0 && m_unk1628 == 0 && m_unk1626 == 0) {
-        if (m_unk167a != 0 || m_unk1678 != 0 || m_unk1694 == nullptr) {
+        if (m_unk167a != 0 || m_unk1678 != 0 || m_pCurrentClimbZone == nullptr) {
             UpdateForwardAndSpeedStats();
             return;
         }
@@ -1088,7 +1088,7 @@ void CKHkS08Hero::UpdateClimbDisplacement(float dt) {
         } else {
             step = dt * climbSpeed;
         }
-        CVector3 d = m_unk1694->ClampMoveToExtent(&position, &at);  // 0x00457ad8
+        CVector3 d = m_pCurrentClimbZone->ClampMoveToExtent(&position, &at);  // 0x00457ad8
         if (kZero.x != d.x || kZero.y != d.y || kZero.z != d.z) {
             const float length = Length(d);
             if (step > length) step = Length(d);
@@ -1155,15 +1155,15 @@ void CKHkS08Hero::DynamicStage1Climb(float dt) {
             m_unk1629 = 1;
         }
         const float time = m_unk163c;
-        if (time > m_unkcbc) m_unk1694 = nullptr;
+        if (time > m_unkcbc) m_pCurrentClimbZone = nullptr;
         if (time > m_unkcc0) m_unk1629 = 1;
         m_unk163c = dt + time;
     }
     CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_pGrpHero);
-    if (m_unk1694 != nullptr) {
+    if (m_pCurrentClimbZone != nullptr) {
         const CVector3 damping = ComputePartnerTetherDampingForce(TetherDampingRadius(group), TetherDampingCoeff(group));  // 0x0030fe70
         const CVector3 spring = ComputePartnerTetherSpringForce(group->GetTetherSpringRadius(), TetherSpringStiffness(group));  // 0x003103f0
-        CKHkClimbZone* zone = m_unk1694;
+        CKHkClimbZone* zone = m_pCurrentClimbZone;
         zone->m_vUnk9C.x = (kZero.x + damping.x) + spring.x;
         zone->m_vUnk9C.y = (kZero.y + damping.y) + spring.y;
         zone->m_vUnk9C.z = (kZero.z + damping.z) + spring.z;
@@ -1184,8 +1184,8 @@ void CKHkS08Hero::DynamicStage1Climb(float dt) {
         force.y = force.y + lunge.y;
         force.z = force.z + lunge.z;
         // The tether's spring and damping (group +0x110 / +0x118, +0x114 / +0x11c) are computed and not used.
-        (void)ComputePartnerTetherSpringForce(group->m_unk110, group->m_unk118);  // 0x003103f0
-        (void)ComputePartnerTetherDampingForce(group->m_unk114, group->m_unk11c);  // 0x0030fe70
+        (void)ComputePartnerTetherSpringForce(group->m_fTetherSpringRadius, group->m_fTetherSpringStiffness);  // 0x003103f0
+        (void)ComputePartnerTetherDampingForce(group->m_fTetherDampingRadius, group->m_fTetherDampingCoeff);  // 0x0030fe70
         const CVector3 accel = ForceToAccel(dt, mass, &force);  // 0x00310ba8
         const CVector3 delta = AccelToVelocityDelta(dt, &accel);  // 0x0030fb98
         m_unk127c = m_unk127c + delta.x;
@@ -1267,7 +1267,7 @@ void WrappedAnimTime(CKHkS08Hero* hero, float* duration, float* time) {
 float TurnBlend(CKHkS08Hero* hero, uint16_t animation, bool* firstHalf) {
     float r = 0.0f;
     float to = 0.5f;  // TOC1 +0x258c
-    if (hero->m_unk160 == animation) {
+    if (hero->m_i16CurAnimIndex == animation) {
         float duration;
         float time;
         WrappedAnimTime(hero, &duration, &time);
@@ -1317,12 +1317,12 @@ void CKHkS08Hero::BlendOrientationFromClimbSnapshot() {
 void CKHkS08Hero::UpdateClimbSustainedMovement(float dt) {
     CSGMovable* node = static_cast<CSGMovable*>(m_pKGLObject);
     bool stick = true;  // the mount's end sticks to the zone itself
-    if ((m_unkecc & 0x20000u) != 0 && m_unk1694 != nullptr) {
+    if ((m_unkecc & 0x20000u) != 0 && m_pCurrentClimbZone != nullptr) {
         // The ceiling turn: from the attach matrix to the one turned round (right and at negated), half way through a
         // side matrix (the at axis the attach's right, the right the turned at).
         CVector3 probe{m_unk54c, m_unk550, m_unk554};
         alignas(16) CMatrix34 a;
-        m_unk1694->GetAttachMatrix(&probe, &a, 0);  // 0x00458a88
+        m_pCurrentClimbZone->GetAttachMatrix(&probe, &a, 0);  // 0x00458a88
         alignas(16) CMatrix34 b = a;
         b.m_at = {-a.m_at.x, -a.m_at.y, -a.m_at.z};
         b.m_ui32Flags = a.m_ui32Flags & 0xfffdfffcu;
@@ -1432,13 +1432,13 @@ void CKHkS08Hero::UpdateClimbSustainedMovement(float dt) {
         node->SetLocalMatrix(reinterpret_cast<const RwMatrix*>(&m));
     } else {
         AnimBlendSlot* slot = GetAnimBlendSlot();  // vt+0x194
-        if (slot->m_unk14 == 0 && m_unk160 == 0x88) {
+        if (slot->m_unk14 == 0 && m_i16CurAnimIndex == 0x88) {
             // The climb-over starts: the hero 1.05 back from the wall and 2 up, on the ground there, upright.
             m_unkec4 = (m_unkec4 & 0x7fffffffu) | 0x80000000u;
             CVector3 probe{m_unk54c, m_unk550, m_unk554};
             alignas(16) CMatrix34 attach;
-            m_unk1694->GetAttachMatrix(&probe, &attach, 0);  // 0x00458a88
-            const CVector3 wall = m_unk1694->NodeLtm().m_at;
+            m_pCurrentClimbZone->GetAttachMatrix(&probe, &attach, 0);  // 0x00458a88
+            const CVector3 wall = m_pCurrentClimbZone->NodeLtm().m_at;
             const CVector3 top = AddTwoScaled(1.04999995f, 2.0f, &attach.m_pos, &wall, &kHeroAxisY);  // TOC1 +0x2598 / +0x259c
             m_unk54c = top.x;
             m_unk550 = top.y;
@@ -1548,8 +1548,8 @@ void CKHkS08Hero::AccumulateClimbDetachDisplacement(float dt) {
     m_unk126c = y + m_unk126c;
     const float horizontal = std::sqrt(ppc::fmadds(m_unk5bc, m_unk5bc, ppc::fmadds(m_unk5b4, m_unk5b4, 0.0f)));
     const float yaw = m_unk538;
-    m_unk534 = m_unk5b8 / dt;
-    m_unk530 = horizontal / dt;
+    m_fCurVSpeed = m_unk5b8 / dt;
+    m_fCurHSpeed = horizontal / dt;
     const float c = GameCosf(yaw);
     const float s = GameSinf(yaw);
     m_unk540 = c;
@@ -1650,9 +1650,9 @@ void CKHkS08Hero::DynamicStage1ClimbDetach(float dt) {
     m_unk17f4 = force.y;
     m_unk17f8 = force.z;
     CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_pGrpHero);
-    const float dampingRadius = group->m_unk114;
-    const float dampingCoeff = group->m_unk11c;
-    const CVector3 spring = ComputePartnerTetherSpringForce(group->m_unk110, group->m_unk118);  // 0x003103f0
+    const float dampingRadius = group->m_fTetherDampingRadius;
+    const float dampingCoeff = group->m_fTetherDampingCoeff;
+    const CVector3 spring = ComputePartnerTetherSpringForce(group->m_fTetherSpringRadius, group->m_fTetherSpringStiffness);  // 0x003103f0
     const CVector3 damping = ComputePartnerTetherDampingForce(dampingRadius, dampingCoeff);    // 0x0030fe70
     force.x = damping.x + (spring.x + m_unk17f0);
     force.y = damping.y + (spring.y + m_unk17f4);
@@ -1671,7 +1671,7 @@ void CKHkS08Hero::DynamicStage1ClimbDetach(float dt) {
     m_unk127c = m_unk127c + delta.x;
     m_unk1280 = m_unk1280 + delta.y;
     m_unk1284 = m_unk1284 + delta.z;
-    if (m_unk1620 != 0 || m_unk1674 != 0 || m_unk12d0 > 0.0f) AccumulateClimbDetachDisplacement(dt);  // 0x003229f8
+    if (m_unk1620 != 0 || m_bExternalDisplacementActive != 0 || m_unk12d0 > 0.0f) AccumulateClimbDetachDisplacement(dt);  // 0x003229f8
 }
 
 // 0x0031db40 CKHkS08Hero_TryClimbLeap_maybe: a jump press (+0x358 bit 20) during a leap (+0x1628) on a zone, once the
@@ -1679,10 +1679,10 @@ void CKHkS08Hero::DynamicStage1ClimbDetach(float dt) {
 // with its up / axis from the node), the snapshot matrices (+0x16e4 the node, +0x16e8 / +0x16ec turned), the leap time
 // and the velocity reset; +0xed0 bit 29.
 void CKHkS08Hero::TryClimbLeap() {
-    if ((m_unk358 & 0x100000u) == 0) return;
+    if ((m_ui32HeroFlags358 & 0x100000u) == 0) return;
     if (m_unk1778 > 0.0f) return;
-    if (m_unk1628 == 0 || m_unk1694 == nullptr || m_unk1622 != 0) return;
-    m_unked0 = (m_unked0 & 0xdfffffffu) | 0x20000000u;
+    if (m_unk1628 == 0 || m_pCurrentClimbZone == nullptr || m_unk1622 != 0) return;
+    m_ui32StatusFlagsED0 = (m_ui32StatusFlagsED0 & 0xdfffffffu) | 0x20000000u;
     m_unk178c = 0;
     m_unk1778 = 0.2f;  // TOC1 +0x2520
     m_unk1658 = kZero.x;
@@ -1794,11 +1794,11 @@ uint32_t CKHkS08Hero::ClassifyClimbZoneApproach(const CVector3* at, const CVecto
 // the move flags by the speed; a jump press (+0x358 bit 20) leaps (+0x1626) in the direction the stick classifies
 // (+0x1664 0..4 against the cone +0xc28) for the move's time (+0x1630), and the push (+0x162c) when it runs out.
 void CKHkS08Hero::UpdateClimbLocomotion(float dt) {
-    const bool air = ((m_unk354 & 1u) != 0 && m_gcCurDatasInOut.m_fdH > 0.001f) || m_unk1622 != 0;  // TOC1 +0x25ec
+    const bool air = ((m_ui32HeroFlags354 & 1u) != 0 && m_gcCurDatasInOut.m_fdH > 0.001f) || m_unk1622 != 0;  // TOC1 +0x25ec
     if (air) {
         m_unk1625 = 1;
         SetCameraDirectionLock(1);  // 0x00354cf0
-        m_unk354 = (m_unk354 | 1u) & ~4u;
+        m_ui32HeroFlags354 = (m_ui32HeroFlags354 | 1u) & ~4u;
     } else {
         m_unk1625 = 0;
         if (m_unk1628 != 0) {
@@ -1838,7 +1838,7 @@ void CKHkS08Hero::UpdateClimbLocomotion(float dt) {
     }
     m_unk1634 = m_unk1627 != 0 ? m_unk1634 - dt : 0.0f;
     m_unk1626 = 0;
-    if ((m_unk358 & 0x100000u) != 0 && m_unk1625 == 0 && (m_unk354 & 0x800u) == 0 && (m_unk35c & 2u) == 0) {
+    if ((m_ui32HeroFlags358 & 0x100000u) != 0 && m_unk1625 == 0 && (m_ui32HeroFlags354 & 0x800u) == 0 && (m_ui32HeroFlags35C & 2u) == 0) {
         m_unk1626 = 1;
         m_unk1640[0] = m_unk37c;
         m_unk1640[1] = m_unk380;
@@ -1905,7 +1905,7 @@ void CKHkS08Hero::UpdateClimbLocomotion(float dt) {
         m_unk162c = push;
         m_unk1628 = 1;
         SetCameraDirectionLock(1);
-        m_unk354 = (m_unk354 | 1u) & ~4u;
+        m_ui32HeroFlags354 = (m_ui32HeroFlags354 | 1u) & ~4u;
         stick = m_unk1378;
     }
     m_unk1620 = (m_unk161f != 0 || m_unk1622 != 0) ? 1 : m_unk1625;
@@ -1992,7 +1992,7 @@ void CKHkS08Hero::UpdateClimbSustainedLocomotion(float /*dt*/) {
     };
     if (m_unk1626 != 0 && m_unk1665 != 4) setMove(m_unk1665);  // 4 (no stick) keeps the move here
     m_unk1626 = 0;
-    if ((m_unk358 & 0x100000u) != 0 && m_unk1679 != 0 && m_unk1630 <= 0.0f && m_unk1628 == 0 && m_unk1627 == 0 &&
+    if ((m_ui32HeroFlags358 & 0x100000u) != 0 && m_unk1679 != 0 && m_unk1630 <= 0.0f && m_unk1628 == 0 && m_unk1627 == 0 &&
         (m_unk1744 == 0 || m_unk1744 == 2) && (m_unkecc & 0x20000u) == 0 && (m_unkec8 & 1u) == 0) {
         m_unk1658 = kZero.x;
         m_unk165c = kZero.y;
@@ -2023,7 +2023,7 @@ void CKHkS08Hero::UpdateClimbSustainedLocomotion(float /*dt*/) {
         *m_unk16e4 = Modelling(this);
         Mat4_SetBasisFromAtUp(m_unk16e8, &Modelling(this).m_up, &Modelling(this).m_at);  // 0x0023fd30
         Mat4_SetBasisFromAtRight(m_unk16ec, &Modelling(this).m_at, &Modelling(this).m_up);  // 0x0023fe58
-        m_unk16ac = m_unk1694;  // the zone the leap starts from
+        m_unk16ac = m_pCurrentClimbZone;  // the zone the leap starts from
     }
     TryClimbLeap();  // 0x0031db40
     const float leap = m_unk1630;
@@ -2042,7 +2042,7 @@ void CKHkS08Hero::UpdateClimbSustainedLocomotion(float /*dt*/) {
         m_unk1627 = 1;
     }
     m_unk1623 = 0;
-    if (leap < 0.0f || (m_unked0 & 0x20000000u) != 0) {
+    if (leap < 0.0f || (m_ui32StatusFlagsED0 & 0x20000000u) != 0) {
         m_unk1622 = 1;
         m_unk1623 = 1;
         float push = 0.0f;
@@ -2061,7 +2061,7 @@ void CKHkS08Hero::UpdateClimbSustainedLocomotion(float /*dt*/) {
         m_unk162c = push;
         m_unk1628 = 1;
         const int32_t key = CKHkClimbZone::ClimberKey(this);
-        if (m_unk1694 != nullptr) m_unk1694->RemoveClimber(key);  // 0x00457180
+        if (m_pCurrentClimbZone != nullptr) m_pCurrentClimbZone->RemoveClimber(key);  // 0x00457180
         if (m_unk16a4 != nullptr) m_unk16a4->RemoveClimber(key);
         if (m_unk16a8 != nullptr) m_unk16a8->RemoveClimber(key);
         m_unkecc &= 0xfffbffffu;
@@ -2069,7 +2069,7 @@ void CKHkS08Hero::UpdateClimbSustainedLocomotion(float /*dt*/) {
     if (m_unk1628 != 0 && m_unk1ac4 != 0) m_unk1629 = 1;
     if ((m_unkec8 & 1u) == 0) {
         SetCameraDirectionLock(1);  // 0x00354cf0
-        m_unk354 = (m_unk354 | 1u) & ~4u;
+        m_ui32HeroFlags354 = (m_ui32HeroFlags354 | 1u) & ~4u;
     }
 }
 

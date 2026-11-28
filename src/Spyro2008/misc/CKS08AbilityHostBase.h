@@ -38,25 +38,25 @@ public:
     virtual CVector3 GetAimDirection(int32_t /*raw*/) { return Unported<CVector3>("GetAimDirection vt+0x24"); }
     virtual CVector3 GetOwnerRight() { return Unported<CVector3>("GetOwnerRight vt+0x28"); }  // vt+0x28
     virtual CVector3 GetOwnerUp() { return Unported<CVector3>("GetOwnerUp vt+0x2c"); }        // vt+0x2c
-    // vt+0x30 the hero: not on the ground; the enemy: IsOnGround (the slot is read as "standing" by the grab: its
-    // results are the two hosts' own, see CKGrabElement).
-    virtual uint8_t IsAirborne() { return Unported<uint8_t>("IsAirborne vt+0x30"); }
+    // vt+0x30 IsOnGround: the hero on a ground contact (0x3f0fa0), the enemy CKHkS08Enemy_IsOnGround, Malefor 1; the
+    // elements keep its negation as their in-air byte, and the host setters take their first argument when it is set.
+    virtual uint8_t IsOnGround() { return Unported<uint8_t>("IsOnGround vt+0x30"); }
     virtual float Vf34() { return 1.0f; }  // vt+0x34 0x009bd050 KStub_ReturnFloat1 (the hero: +0x4dc)
     // vt+0x38 the alternative loop animation may be used (the grab's flying / airborne variant, phase 2).
     virtual uint8_t CanUseAltLoopAnim() { return Unported<uint8_t>("CanUseAltLoopAnim vt+0x38"); }
-    // vt+0x3c `flying` while flying, else `air` when airborne, else `ground` (the enemy: `ground`).
-    virtual uint8_t SelectByMovementContext(uint8_t /*air*/, uint8_t /*ground*/, uint8_t /*flying*/) {
+    // vt+0x3c `flying` while flying, else `ground` on the ground (vt+0x30), else `air` (the enemy: `air`).
+    virtual uint8_t SelectByMovementContext(uint8_t /*ground*/, uint8_t /*air*/, uint8_t /*flying*/) {
         return Unported<uint8_t>("SelectByMovementContext vt+0x3c");
     }
     // vt+0x40 one of the owner's state tests `index` (0..11) for `ability` (the hero: Slot40Switch_maybe).
     virtual uint8_t Vf40(CKAbilityElement* /*ability*/, uint32_t /*index*/) { return Unported<uint8_t>("vt+0x40"); }
     // vt+0x44 action `index` allowed by movement context.
-    virtual void SetHeroActionPermission(uint32_t /*index*/, uint8_t /*air*/, uint8_t /*flying*/, uint8_t /*ground*/) {
+    virtual void SetHeroActionPermission(uint32_t /*index*/, uint8_t /*ground*/, uint8_t /*flying*/, uint8_t /*air*/) {
         Unported<int>("SetHeroActionPermission vt+0x44");
     }
     virtual float GetHeroSpeedForAbility() { return Unported<float>("GetHeroSpeedForAbility vt+0x48"); }  // vt+0x48
     virtual CVector3 GetOwnerVelocity() { return Unported<CVector3>("GetOwnerVelocity vt+0x4c"); }       // vt+0x4c
-    virtual void SetAbilityMoveSpeed(float /*air*/, float /*flying*/, float /*ground*/) {  // vt+0x50
+    virtual void SetAbilityMoveSpeed(float /*ground*/, float /*flying*/, float /*air*/) {  // vt+0x50
         Unported<int>("SetAbilityMoveSpeed vt+0x50");
     }
     virtual void SetAbilityMoveSpeedEnabled(uint8_t /*on*/) { Unported<int>("SetAbilityMoveSpeedEnabled vt+0x54"); }
@@ -68,13 +68,13 @@ public:
     virtual void SetAbilityImpulse(CKAbilityElement* /*ability*/, float /*strength*/, float /*duration*/,
                                    const CVector3* /*direction*/) { Unported<int>("SetAbilityImpulse vt+0x5c"); }  // vt+0x5c
     virtual void ClearAbilityImpulse(CKAbilityElement* /*ability*/) { Unported<int>("ClearAbilityImpulse vt+0x60"); }                        // vt+0x60
-    virtual void SetAbilityTurnParams(float /*airA*/, float /*airB*/, float /*flyA*/, float /*flyB*/, float /*groundA*/,
-                                      float /*groundB*/, uint8_t /*gateAir*/, uint8_t /*gateFly*/,
-                                      uint8_t /*gateGround*/) {  // vt+0x64
+    virtual void SetAbilityTurnParams(float /*groundA*/, float /*groundB*/, float /*flyA*/, float /*flyB*/, float /*airA*/,
+                                      float /*airB*/, uint8_t /*gateGround*/, uint8_t /*gateFly*/,
+                                      uint8_t /*gateAir*/) {  // vt+0x64
         Unported<int>("SetAbilityTurnParams vt+0x64");
     }
-    virtual void SetAbilityParam11f8(float /*air*/, float /*flying*/, float /*ground*/, uint8_t /*gateAir*/,
-                                     uint8_t /*gateFly*/, uint8_t /*gateGround*/) {  // vt+0x68
+    virtual void SetAbilityParam11f8(float /*ground*/, float /*flying*/, float /*air*/, uint8_t /*gateGround*/,
+                                     uint8_t /*gateFly*/, uint8_t /*gateAir*/) {  // vt+0x68
         Unported<int>("SetAbilityParam11f8 vt+0x68");
     }
     virtual void SetHeroEc4Bit27(uint32_t /*value*/) { Unported<int>("SetHeroEc4Bit27 vt+0x6c"); }  // vt+0x6c

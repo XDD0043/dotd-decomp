@@ -65,7 +65,7 @@
 // 0x0050fdd8 CKS08GameStructure_Construct: IKGameStructure's, the vtable, then the twelve byte lists.
 // The other fields are left as they are.
 CKS08GameStructure::CKS08GameStructure() {
-    for (TVector<uint8_t, 8>& list : m_avbUnk154) {
+    for (TVector<uint8_t, 8>& list : m_avObjectiveStates) {
         list.m_pBlock = nullptr;
         list.m_ui32NbUsedElt = 0;
         list.m_ui32NbElt = 8;
@@ -78,7 +78,7 @@ void CKS08GameStructure::Destroy() { IKGameStructure::Destroy(); }
 // 0x0050fa20 CKS08GameStructure_DestroyGame
 void CKS08GameStructure::DestroyGame() {
     IKGameStructure::DestroyGame();  // 0x41888
-    for (TVector<uint8_t, 8>& list : m_avbUnk154) {
+    for (TVector<uint8_t, 8>& list : m_avObjectiveStates) {
         if (list.m_pBlock != nullptr) {
             Mem_FreeAligned16(list.m_pBlock);
             list.m_pBlock = nullptr;
@@ -116,17 +116,17 @@ int32_t CKS08GameStructure::Load(IKFile* file, int32_t type) {
     ReadU8(file, &HealthDivisor1());
     ReadU32LE(file, &m_dwHealthMultiplier);
     ReadU32LE(file, &m_dwHealthBase);
-    ReadU32LE(file, &m_unk58);
+    ReadU32LE(file, &m_dwCynderStartHealth);
     ReadU8(file, &m_bManaDivisor0);
     ReadU8(file, &m_bManaDivisor1);
     ReadU32LE(file, &m_dwManaMultiplier);
     ReadU32LE(file, &m_dwManaBase);
-    ReadU32LE(file, &m_unk70);
-    ReadU32LE(file, &m_unk80);
-    ReadU32LE(file, &m_unk7c);
-    ReadU32LE(file, &m_unk1ec);
+    ReadU32LE(file, &m_dwCynderStartMana);
+    ReadU32LE(file, &m_dwSharedBonusPoints);
+    ReadU32LE(file, &m_dwMaxTotalFury);
+    ReadU32LE(file, &m_dwCheckpointMinHealth);
     // Twelve lengths: each list gets a block of exactly that many bytes (one for 0), then the length.
-    for (TVector<uint8_t, 8>& list : m_avbUnk154) {
+    for (TVector<uint8_t, 8>& list : m_avObjectiveStates) {
         uint32_t length = 0;
         ReadU32LE(file, &length);
         GameVector_Allocate(&list, length);
@@ -146,14 +146,14 @@ void CKS08GameStructure::ResetProgress() {
     };
     auto word = [&](uint32_t offset, uint32_t value) { std::memcpy(bytes(offset), &value, 4); };
     auto byte = [&](uint32_t offset, uint8_t value) { *bytes(offset) = value; };
-    m_unk4c = m_dwHealthBase;
-    m_unk54 = m_unk58;
-    m_unk64 = m_dwManaBase;
-    m_unk6c = m_unk70;
+    m_dwSpyroHealth = m_dwHealthBase;
+    m_dwCynderHealth = m_dwCynderStartHealth;
+    m_dwSpyroMana = m_dwManaBase;
+    m_dwCynderMana = m_dwCynderStartMana;
     word(0xa0, 0);
     m_pCurrentSpawnPoint = nullptr;  // +0x08
-    m_unk74 = 0;
-    m_unk78 = 0;
+    m_dwSpyroFury = 0;
+    m_dwCynderFury = 0;
     for (uint32_t o : {0x84u, 0x88u, 0x9cu, 0x98u, 0x94u, 0x90u, 0x8cu, 0xb0u, 0xacu, 0xa8u, 0xa4u}) word(o, 0);
     for (int32_t i = 1; i >= 0; --i) {  // two triples of 3
         byte(0xb6 + i * 3, 3);
@@ -170,14 +170,14 @@ void CKS08GameStructure::ResetProgress() {
                        0x13cu, 0x138u, 0x134u})
         word(o, 0);
     // The twelve byte lists: every used byte cleared (the length kept).
-    for (TVector<uint8_t, 8>& list : m_avbUnk154) {
+    for (TVector<uint8_t, 8>& list : m_avObjectiveStates) {
         for (uint32_t i = list.m_ui32NbUsedElt; i != 0; --i) list.m_pBlock[i - 1] = 0;
     }
     byte(0x1e9, 0);
-    word(0x1f0, m_unk4c);
-    word(0x1f4, m_unk54);
-    word(0x1f8, m_unk64);
-    word(0x1fc, m_unk6c);
+    word(0x1f0, m_dwSpyroHealth);
+    word(0x1f4, m_dwCynderHealth);
+    word(0x1f8, m_dwSpyroMana);
+    word(0x1fc, m_dwCynderMana);
     word(0x224, 0);
     for (uint32_t o = 0x1e4; o <= 0x1e8; ++o) byte(o, 0);
     for (uint32_t o : {0x200u, 0x204u, 0x208u, 0x20cu, 0x220u, 0x21cu, 0x218u, 0x214u, 0x210u, 0x234u, 0x230u, 0x22cu,
@@ -289,7 +289,7 @@ void CKS08GameStructure::RecordBestCombo(int32_t dragon, uint32_t combo) {
 }
 
 // 0x005102e0 CKS08GameStructure_AreInfoPopupsEnabled_maybe
-uint8_t CKS08GameStructure::AreInfoPopupsEnabled() const { return m_pGameManager->m_editedOptions.m_unk05; }
+uint8_t CKS08GameStructure::AreInfoPopupsEnabled() const { return m_pGameManager->m_editedOptions.m_bTutorialInfoPopups; }
 
 // 0x005106c0 CKS08GameStructure_SetUnlockFlagByte_maybe: the first unlock of index 9 shows the centre message 4
 // (CKS08GameManager_ShowCenterMessage_maybe 0x501860).
@@ -307,10 +307,10 @@ void CKS08GameStructure::AddElementGems(uint8_t kind, uint8_t element, int32_t a
     uint32_t cap;
     if (kind == 0) {
         SetRtWord(0x8c + element * 4u, RtWord(0x8c + element * 4u) + static_cast<uint32_t>(amount));
-        cap = manager->m_aUnkC48[element].m_unk8;  // +0xc50 + 0xc x element
+        cap = manager->m_aSpyroUpgradeCosts[element].m_unk8;  // +0xc50 + 0xc x element
     } else {
         SetRtWord(0xa0 + element * 4u, RtWord(0xa0 + element * 4u) + static_cast<uint32_t>(amount));
-        cap = manager->m_aUnkC84[element].m_unk8;  // +0xc8c + 0xc x element
+        cap = manager->m_aCynderUpgradeCosts[element].m_unk8;  // +0xc8c + 0xc x element
     }
     if (kind == 0 && element == 0 && RtWord(0x8c) == cap) {
         if (RtByte(0x24b) == 0) manager->ShowCenterMessage(0);  // 0x00501860
@@ -385,7 +385,7 @@ uint32_t GetHealthItemsTowardNextUpgrade(CKS08GameStructure* structure, int32_t 
 // (inlined there) follows.
 CKS08GameStructure::~CKS08GameStructure() {
     for (uint32_t i = 12; i != 0; --i) {
-        TVector<uint8_t, 8>& list = m_avbUnk154[i - 1];
+        TVector<uint8_t, 8>& list = m_avObjectiveStates[i - 1];
         if (list.m_pBlock != nullptr) Mem_FreeAligned16(list.m_pBlock);
         list.m_pBlock = nullptr;
         list.m_ui32NbUsedElt = 0;

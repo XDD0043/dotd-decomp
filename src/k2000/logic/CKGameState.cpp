@@ -163,7 +163,7 @@ CKGameState::CKGameState() {
     ClearVector(&m_vbCinematicStates);
     ClearVector(&m_vpModules);
     ClearVector(&m_vbModuleStates);
-    ClearVector(&m_vbUnk50);
+    ClearVector(&m_vbModuleFlags2);
     ClearVector(&m_vpUnk5c);
     ClearVector(&m_vbUnk68);
     ClearVector(&m_vpUnk74);
@@ -179,7 +179,7 @@ void CKGameState::InitializeGameData() {
     GameVector_Reserve(&m_vbCinematicStates);
     GameVector_Reserve(&m_vpModules);
     GameVector_Reserve(&m_vbModuleStates);
-    GameVector_Reserve(&m_vbUnk50);
+    GameVector_Reserve(&m_vbModuleFlags2);
     GameVector_Reserve(&m_vpUnk5c);
     GameVector_Reserve(&m_vbUnk68);
     GameVector_Reserve(&m_vpUnk74);
@@ -199,7 +199,7 @@ uint32_t CKGameState::AddGameStage(IKSerializable* stage) {
 // 0x0003f8e0 CKGameState_AddModuleValue_maybe: the module, then its +0x50 and +0x44 states.
 uint32_t CKGameState::AddGameModule(IKSerializable* module) {
     GameVector_Add(&m_vpModules, static_cast<CKGameModule*>(module));
-    GameVector_Add(&m_vbUnk50, static_cast<uint8_t>(0));
+    GameVector_Add(&m_vbModuleFlags2, static_cast<uint8_t>(0));
     const uint32_t index = m_vbModuleStates.m_ui32NbUsedElt;
     GameVector_Add(&m_vbModuleStates, static_cast<uint8_t>(0));
     return index;
@@ -229,7 +229,7 @@ void CKGameState::ReadStageData(IKFile* file, int32_t, uint32_t index) {
 // 0x0003f098 CKGameState_ReadModuleValue_maybe
 void CKGameState::ReadModuleData(IKFile* file, int32_t, uint32_t index) {
     ReadRaw(file, m_vbModuleStates.m_pBlock + index, 1);
-    ReadRaw(file, m_vbUnk50.m_pBlock + index, 1);
+    ReadRaw(file, m_vbModuleFlags2.m_pBlock + index, 1);
 }
 
 // 0x0003f048 CKGameState_vfB4
@@ -259,7 +259,7 @@ void CKGameState::RemoveGameStage(uint32_t index) {
 void CKGameState::RemoveGameModule(uint32_t index) {
     RemoveSwapLast(&m_vpModules, index);
     RemoveSwapLast(&m_vbModuleStates, index);
-    RemoveSwapLast(&m_vbUnk50, index);
+    RemoveSwapLast(&m_vbModuleFlags2, index);
 }
 
 // 0x0003e478 CKGameState_vf94
@@ -297,7 +297,7 @@ void CKGameState::WriteStageData(IKFile* file, int32_t, uint32_t index) { file->
 // 0x0003f230 CKGameState_vfA8
 void CKGameState::WriteModuleData(IKFile* file, int32_t, uint32_t index) {
     file->Write(m_vbModuleStates.m_pBlock + index, 1);
-    file->Write(m_vbUnk50.m_pBlock + index, 1);
+    file->Write(m_vbModuleFlags2.m_pBlock + index, 1);
 }
 
 // 0x0003f1e0 CKGameState_vfB0
@@ -333,7 +333,7 @@ void CKGameState::DestroyGameData() {
     FreeGameList(&m_vbCinematicStates);
     FreeGameList(&m_vpModules);
     FreeGameList(&m_vbModuleStates);
-    FreeGameList(&m_vbUnk50);
+    FreeGameList(&m_vbModuleFlags2);
     FreeGameList(&m_vpUnk5c);
     FreeGameList(&m_vbUnk68);
     FreeGameList(&m_vpUnk74);
@@ -347,7 +347,7 @@ void CKGameState::Vf6C() {
     m_pGameSpawnPoint = nullptr;
     for (uint32_t i = m_vpModules.m_ui32NbUsedElt; i != 0; --i) {
         m_vbModuleStates.m_pBlock[i - 1] = 0;
-        m_vbUnk50.m_pBlock[i - 1] = 0;
+        m_vbModuleFlags2.m_pBlock[i - 1] = 0;
     }
     for (uint32_t i = m_vpUnk5c.m_ui32NbUsedElt; i != 0; --i) m_vbUnk68.m_pBlock[i - 1] = 0;
     for (uint32_t i = m_vpUnk74.m_ui32NbUsedElt; i != 0; --i) m_vbUnk80.m_pBlock[i - 1] = 0;
@@ -360,7 +360,7 @@ int32_t CKGameState::Load(IKFile* file, int32_t type) {
     if (type == K_GAME_MEMCARD) {
         IKFile_ReadRef(file, &m_pGameSpawnPoint);
         ReadRaw(file, m_vbModuleStates.m_pBlock, m_vbModuleStates.m_ui32NbUsedElt);
-        ReadRaw(file, m_vbUnk50.m_pBlock, m_vbUnk50.m_ui32NbUsedElt);
+        ReadRaw(file, m_vbModuleFlags2.m_pBlock, m_vbModuleFlags2.m_ui32NbUsedElt);
         ReadRaw(file, m_vbUnk68.m_pBlock, m_vbUnk68.m_ui32NbUsedElt);
         ReadRaw(file, m_vbUnk80.m_pBlock, m_vbUnk80.m_ui32NbUsedElt);
         ReadRaw(file, m_vbCinematicStates.m_pBlock, m_vbCinematicStates.m_ui32NbUsedElt);
@@ -417,7 +417,7 @@ void CKGameState::ApplyToStructure() {
     for (uint32_t i = m_vpModules.m_ui32NbUsedElt; i != 0; --i) {
         CKGameModule* module = m_vpModules.m_pBlock[i - 1];
         if (module->CanRestoreActivated() != 0) module->SetActivated(m_vbModuleStates.m_pBlock[i - 1]);  // vt+0x7c, +0x70
-        if (module->CanRestoreFlag2() != 0) module->SetFlag2(m_vbUnk50.m_pBlock[i - 1]);  // vt+0x88, +0x80
+        if (module->CanRestoreFlag2() != 0) module->SetFlag2(m_vbModuleFlags2.m_pBlock[i - 1]);  // vt+0x88, +0x80
     }
     if (RestoresSpawnPoint() == 0) return;  // vt+0xc4
     m_pGameStructure->SetCurrentSpawnPoint(m_pGameSpawnPoint);  // vt+0x6c
@@ -440,7 +440,7 @@ void CKGameState::CopyFromStructure() {
     for (uint32_t i = m_vpModules.m_ui32NbUsedElt; i != 0; --i) {
         CKGameModule* module = m_vpModules.m_pBlock[i - 1];
         if (module->CanSaveActivated() != 0) m_vbModuleStates.m_pBlock[i - 1] = static_cast<uint8_t>(module->IsActivated());  // vt+0x78, +0x74
-        if (module->CanSaveFlag2() != 0) m_vbUnk50.m_pBlock[i - 1] = static_cast<uint8_t>(module->GetFlag2());  // vt+0x8c, +0x84
+        if (module->CanSaveFlag2() != 0) m_vbModuleFlags2.m_pBlock[i - 1] = static_cast<uint8_t>(module->GetFlag2());  // vt+0x8c, +0x84
     }
     if (SavesSpawnPoint() == 0) return;  // vt+0xc0
     m_pGameSpawnPoint = m_pGameStructure->m_pCurrentSpawnPoint;
@@ -463,7 +463,7 @@ void CKGameState::CopyFromState(const CKGameState* other) {
     for (uint32_t i = m_vpModules.m_ui32NbUsedElt; i != 0; --i) {
         m_vpModules.m_pBlock[i - 1] = other->m_vpModules.m_pBlock[i - 1];
         m_vbModuleStates.m_pBlock[i - 1] = other->m_vbModuleStates.m_pBlock[i - 1];
-        m_vbUnk50.m_pBlock[i - 1] = other->m_vbUnk50.m_pBlock[i - 1];
+        m_vbModuleFlags2.m_pBlock[i - 1] = other->m_vbModuleFlags2.m_pBlock[i - 1];
     }
     for (uint32_t i = m_vpUnk5c.m_ui32NbUsedElt; i != 0; --i) {
         m_vpUnk5c.m_pBlock[i - 1] = other->m_vpUnk5c.m_pBlock[i - 1];
@@ -557,7 +557,7 @@ int32_t CKGameState::Save(IKFile* file, int32_t type) {
         file->Write(b, 4);
     }
     file->Write(m_vbModuleStates.m_pBlock, m_vbModuleStates.m_ui32NbUsedElt);
-    file->Write(m_vbUnk50.m_pBlock, m_vbUnk50.m_ui32NbUsedElt);
+    file->Write(m_vbModuleFlags2.m_pBlock, m_vbModuleFlags2.m_ui32NbUsedElt);
     file->Write(m_vbUnk68.m_pBlock, m_vbUnk68.m_ui32NbUsedElt);
     file->Write(m_vbUnk80.m_pBlock, m_vbUnk80.m_ui32NbUsedElt);
     file->Write(m_vbCinematicStates.m_pBlock, m_vbCinematicStates.m_ui32NbUsedElt);
@@ -584,7 +584,7 @@ int32_t CKGameState::CountCompletedTrackedModules() {
     int32_t count = 0;
     for (uint32_t i = m_vpModules.m_ui32NbUsedElt; i != 0; --i) {
         CKGameModule* module = m_vpModules.m_pBlock[i - 1];
-        if ((module->m_baFlags & 1u) != 0 && module->m_unk1c != 0 && m_vbUnk50.m_pBlock[i - 1] != 0) ++count;
+        if ((module->m_baFlags & 1u) != 0 && module->m_unk1c != 0 && m_vbModuleFlags2.m_pBlock[i - 1] != 0) ++count;
     }
     return count;
 }
@@ -616,7 +616,7 @@ CKGameState::~CKGameState() {
     FreeGameStateVector(m_vpUnk74);
     FreeGameStateVector(m_vbUnk68);
     FreeGameStateVector(m_vpUnk5c);
-    FreeGameStateVector(m_vbUnk50);
+    FreeGameStateVector(m_vbModuleFlags2);
     FreeGameStateVector(m_vbModuleStates);
     FreeGameStateVector(m_vpModules);
     FreeGameStateVector(m_vbCinematicStates);

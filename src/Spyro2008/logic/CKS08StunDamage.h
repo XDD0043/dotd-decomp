@@ -21,9 +21,9 @@ public:
     ~CKS08StunDamage() override {}
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x003d1980 CKS08StunDamage_Load
 
-    uint32_t m_unk28;  // +0x28 (live: always 0)
-    float m_unk2c;     // +0x2c _maybe the stun duration (live: floats)
+    uint32_t m_fStunAmount;  // +0x28 (live: always 0)
+    float m_fDisarmAmount;     // +0x2c added to the enemy's disarm gauge +0x278 (GuardEjectWeapon at the cap)
 };
 DOTD_ASSERT_SIZE(CKS08StunDamage, 0x30);
-DOTD_ASSERT_OFFSET(CKS08StunDamage, m_unk28, 0x28);
-DOTD_ASSERT_OFFSET(CKS08StunDamage, m_unk2c, 0x2c);
+DOTD_ASSERT_OFFSET(CKS08StunDamage, m_fStunAmount, 0x28);
+DOTD_ASSERT_OFFSET(CKS08StunDamage, m_fDisarmAmount, 0x2c);

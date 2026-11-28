@@ -183,8 +183,8 @@ public:
     SHeroStateRow* m_unka0;  // +0xa0  (C2.2 strict3)
     SHeroStateHandler* m_unka4;  // +0xa4  (C2.2 strict3)
     SHeroStateHandler* m_unka8;  // +0xa8  (C2.2 strict3)
-    uint8_t m_unkAC;                             // +0xac constructor 0xff
-    uint8_t m_unkAD;                             // +0xad constructor 0xff
+    uint8_t m_ui8IACurrentState;                             // +0xac constructor 0xff
+    uint8_t m_ui8IANbStates;                             // +0xad the state count (XXL2 TStateEngine m_ui8NbStates; BuildStateTable; constructor 0xff)
     uint8_t m_padae[2];
     uint8_t m_unkb0;  // +0xb0  (C2.2 strict3)
     uint8_t m_padb1[3];
@@ -194,8 +194,8 @@ public:
     SHeroStateRow* m_unkc0;  // +0xc0  (C2.2 strict3)
     SHeroStateHandler* m_unkc4;  // +0xc4  (C2.2 strict3)
     SHeroStateHandler* m_unkc8;  // +0xc8  (C2.2 strict3)
-    uint8_t m_unkCC;                             // +0xcc constructor 0xff
-    uint8_t m_unkCD;                             // +0xcd constructor 0xff
+    uint8_t m_ui8FightCurrentState;                             // +0xcc constructor 0xff
+    uint8_t m_ui8FightNbStates;                             // +0xcd the state count (XXL2 TStateEngine m_ui8NbStates; BuildStateTable; constructor 0xff)
     uint8_t m_padce[2];
     uint8_t m_unkd0;  // +0xd0  (C2.2 strict3)
     uint8_t m_padd1[3];
@@ -213,26 +213,26 @@ public:
     float m_unk100;  // +0x100  (C2.2 strict3)
     uint32_t m_unk104;  // +0x104  (C2.2 strict3)
     IKSerializable* m_unk108;  // +0x108  (C2.2 strict3) the owner of the last solid contact (ResolveHeroContactMovement_maybe)
-    ContactHistoryNode* m_unk10c;                // +0x10c constructor 0; the volumes that hurt the hero (ContactHistory)
-    ContactHistoryNode* m_unk110;                // +0x110 constructor 0; the volumes the hero touched (ContactHistory)
+    ContactHistoryNode* m_pDamageContactHistory;                // +0x10c constructor 0; the volumes that hurt the hero (ContactHistory)
+    ContactHistoryNode* m_pTouchContactHistory;                // +0x110 constructor 0; the volumes the hero touched (ContactHistory)
     float m_unk114;  // +0x114  (C2.2 strict3)
     uint8_t m_unk118;  // +0x118  (C2.2 strict3)
     uint8_t m_pad119[3];
     float m_unk11c;  // +0x11c  (C2.2 strict3)
     IKSerializable* m_unk120;  // +0x120 a target (GetAITarget(0) first)
-    IKSerializable* m_unk124;  // +0x124 the grabbed enemy _maybe (ApplyGrabbedEnemyMarkDamage: a CKHkS08Enemy)
+    IKSerializable* m_pTargetedEnemy;  // +0x124 the grabbed enemy _maybe (ApplyGrabbedEnemyMarkDamage: a CKHkS08Enemy)
     IKSerializable* m_unk128;  // +0x128 a target (GetAITarget(0) second)
-    IKSerializable* m_unk12c;  // +0x12c the targeted hook (a crumbly zone; GetAITarget(1) second)
+    IKSerializable* m_pTargetedMecaHook;  // +0x12c the targeted hook (a crumbly zone; GetAITarget(1) second)
     uint8_t m_unk130;  // +0x130  (C2.2 strict3)
     uint8_t m_pad131[3];
     IKSerializable** m_apUnk134;                 // +0x134 count byte + references (allocated even for 0)
-    AnimBlendSlot* m_unk138;  // +0x138  (C2.2 strict3)
+    AnimBlendSlot* m_pAnimBlendSlots;  // +0x138  (C2.2 strict3)
     IKSerializable* m_pAnimDico;                 // +0x13c XXL2 m_pAnimDico (CAnimationDictionary; the XXL2 reads come in another order)
     SHeroStateRow* m_unk140;  // +0x140  (C2.2 strict3)
     SHeroStateHandler* m_unk144;  // +0x144  (C2.2 strict3)
     SHeroStateHandler* m_unk148;  // +0x148  (C2.2 strict3)
-    uint8_t m_unk14c;                            // +0x14c constructor 0xff
-    uint8_t m_unk14d;                            // +0x14d constructor 0xff
+    uint8_t m_ui8AnimCurrentState;                            // +0x14c constructor 0xff
+    uint8_t m_ui8AnimNbStates;                            // +0x14d the state count (XXL2 TStateEngine m_ui8NbStates; BuildStateTable; constructor 0xff)
     uint8_t m_pad14e[2];
     uint32_t m_unk150;  // +0x150  (C2.2 strict3)
     float m_unk154;  // +0x154  (C2.2 strict3; AdvanceAnimTime: the last frame time)
@@ -240,7 +240,7 @@ public:
     float m_unk15c;  // +0x15c  (C2.2 strict3; PlayAnim: the start time)
     // +0x158..+0x160 are also read as one vector (ResolveHeroContactMovement_maybe 0x353528 compares the partner's
     // with the null vector; the anim id +0x160 is the upper half of its z).
-    uint16_t m_unk160;  // +0x160 the animation id (CKHkS08HeroBase_PlayAnim sth; UpdateGroundMovement lhz)
+    uint16_t m_i16CurAnimIndex;  // +0x160 the animation id (CKHkS08HeroBase_PlayAnim sth; UpdateGroundMovement lhz)
     uint8_t m_pad162[2];
     IKSerializable* m_unk164;  // +0x164  (C2.2 spyro)
     IKSerializable* m_pSoundDico;                // +0x168 XXL2 m_pSoundDico (CKSoundDictionaryID)
@@ -252,7 +252,7 @@ public:
     uint8_t m_unk171;  // +0x171  (C2.2 strict3)
     uint8_t m_unk172;  // +0x172  (C2.2 strict3)
     uint8_t m_pad173[1];
-    CGroundContactDatasInOut m_unk174;           // +0x174 constructor defaults only
+    CGroundContactDatasInOut m_gcContact174;           // +0x174 constructor defaults only
     IKSerializable* m_unk1a0;                    // +0x1a0
     uint8_t m_aui8Unk1a4[24];                    // +0x1a4 24 bytes; XXL2 reads m_i8HotLeftFootIndex, m_i8HotRightFootIndex and SHeroCapabilities (21) here
     SHeroSpeedMode* m_asSpeedModes;              // +0x1bc XXL2 m_asSpeedModes (count from the hero group)
@@ -372,13 +372,13 @@ public:
     uint8_t m_unk34f;                            // +0x34f
     uint8_t m_unk350;                            // +0x350
     uint8_t m_pad351[3];
-    uint32_t m_unk354;  // +0x354  (C2.2 strict3)
-    uint32_t m_unk358;  // +0x358  (C2.2 spyro)
-    uint32_t m_unk35c;  // +0x35c  (C2.2 strict3)
-    uint32_t m_unk360;  // +0x360  (C2.2 strict3)
-    uint32_t m_unk364;  // +0x364  (C2.2 strict3)
+    uint32_t m_ui32HeroFlags354;  // +0x354  (C2.2 strict3)
+    uint32_t m_ui32HeroFlags358;  // +0x358  (C2.2 spyro)
+    uint32_t m_ui32HeroFlags35C;  // +0x35c  (C2.2 strict3)
+    uint32_t m_ui32HeroFlags360;  // +0x360  (C2.2 strict3)
+    uint32_t m_ui32HeroFlags364;  // +0x364  (C2.2 strict3)
     uint32_t m_unk368;  // +0x368  (C2.2 spyro)
-    uint8_t* m_unk36c;  // +0x36c  (C2.2 strict3)
+    uint8_t* m_aui8JoyInputs;  // +0x36c  (C2.2 strict3)
     float m_unk370;  // +0x370  (C2.2 strict3)
     float m_unk374;  // +0x374  (C2.2 strict3)
     float m_unk378;  // +0x378  (C2.2 strict3)
@@ -439,11 +439,11 @@ public:
     SHeroStateRow* m_unk520;  // +0x520  (C2.2 strict3)
     SHeroStateHandler* m_unk524;  // +0x524  (C2.2 strict3)
     SHeroStateHandler* m_unk528;  // +0x528  (C2.2 strict3)
-    uint8_t m_unk52c;                            // +0x52c constructor 0xff
-    uint8_t m_unk52d;                            // +0x52d constructor 0xff
+    uint8_t m_ui8DynamicCurrentState;                            // +0x52c constructor 0xff
+    uint8_t m_ui8DynamicNbStates;                            // +0x52d the state count (XXL2 TStateEngine m_ui8NbStates; BuildStateTable; constructor 0xff)
     uint8_t m_pad52e[2];
-    float m_unk530;  // +0x530  (C2.2 strict3; a float: the horizontal speed)
-    float m_unk534;  // +0x534  (C2.2 strict3; a float: the vertical speed)
+    float m_fCurHSpeed;  // +0x530  (C2.2 strict3; a float: the horizontal speed)
+    float m_fCurVSpeed;  // +0x534  (C2.2 strict3; a float: the vertical speed)
     float m_unk538;  // +0x538  (C2.2 spyro)
     float m_unk53c;  // +0x53c  (C2.2 strict3)
     float m_unk540;  // +0x540  (C2.2 spyro)
@@ -625,18 +625,18 @@ DOTD_ASSERT_OFFSET(IKHkHero, m_pShadowCpnt, 0x60);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk80, 0x80);
 DOTD_ASSERT_OFFSET(IKHkHero, m_pWaterWaveFxData, 0x84);
 DOTD_ASSERT_OFFSET(IKHkHero, m_pWaterSplashFxData, 0x8c);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unkAC, 0xac);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unkAD, 0xad);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unkCC, 0xcc);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unkCD, 0xcd);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unk10c, 0x10c);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unk110, 0x110);
+DOTD_ASSERT_OFFSET(IKHkHero, m_ui8IACurrentState, 0xac);
+DOTD_ASSERT_OFFSET(IKHkHero, m_ui8IANbStates, 0xad);
+DOTD_ASSERT_OFFSET(IKHkHero, m_ui8FightCurrentState, 0xcc);
+DOTD_ASSERT_OFFSET(IKHkHero, m_ui8FightNbStates, 0xcd);
+DOTD_ASSERT_OFFSET(IKHkHero, m_pDamageContactHistory, 0x10c);
+DOTD_ASSERT_OFFSET(IKHkHero, m_pTouchContactHistory, 0x110);
 DOTD_ASSERT_OFFSET(IKHkHero, m_apUnk134, 0x134);
 DOTD_ASSERT_OFFSET(IKHkHero, m_pAnimDico, 0x13c);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unk14c, 0x14c);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unk14d, 0x14d);
+DOTD_ASSERT_OFFSET(IKHkHero, m_ui8AnimCurrentState, 0x14c);
+DOTD_ASSERT_OFFSET(IKHkHero, m_ui8AnimNbStates, 0x14d);
 DOTD_ASSERT_OFFSET(IKHkHero, m_pSoundDico, 0x168);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unk174, 0x174);
+DOTD_ASSERT_OFFSET(IKHkHero, m_gcContact174, 0x174);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk1a0, 0x1a0);
 DOTD_ASSERT_OFFSET(IKHkHero, m_aui8Unk1a4, 0x1a4);
 DOTD_ASSERT_OFFSET(IKHkHero, m_asSpeedModes, 0x1bc);
@@ -760,8 +760,8 @@ DOTD_ASSERT_OFFSET(IKHkHero, m_PFCpnt, 0x3f0);
 DOTD_ASSERT_OFFSET(IKHkHero, m_gcDatasIn, 0x4a8);
 DOTD_ASSERT_OFFSET(IKHkHero, m_gcCurDatasInOut, 0x4b8);
 DOTD_ASSERT_OFFSET(IKHkHero, m_gcOldDatasInOut, 0x4e4);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unk52c, 0x52c);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unk52d, 0x52d);
+DOTD_ASSERT_OFFSET(IKHkHero, m_ui8DynamicCurrentState, 0x52c);
+DOTD_ASSERT_OFFSET(IKHkHero, m_ui8DynamicNbStates, 0x52d);
 DOTD_ASSERT_OFFSET(IKHkHero, m_gcDatasIn2_maybe, 0x7e0);
 DOTD_ASSERT_OFFSET(IKHkHero, m_gcCurDatasInOut2_maybe, 0x7f0);
 DOTD_ASSERT_OFFSET(IKHkHero, m_gcOldDatasInOut2_maybe, 0x81c);
@@ -783,7 +783,7 @@ DOTD_ASSERT_OFFSET(IKHkHero, m_unk64, 0x64);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk68, 0x68);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk6c, 0x6c);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk368, 0x368);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unk358, 0x358);
+DOTD_ASSERT_OFFSET(IKHkHero, m_ui32HeroFlags358, 0x358);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk70, 0x70);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk74, 0x74);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk78, 0x78);
@@ -823,11 +823,11 @@ DOTD_ASSERT_OFFSET(IKHkHero, m_unk114, 0x114);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk118, 0x118);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk11c, 0x11c);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk120, 0x120);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unk124, 0x124);
+DOTD_ASSERT_OFFSET(IKHkHero, m_pTargetedEnemy, 0x124);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk128, 0x128);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unk12c, 0x12c);
+DOTD_ASSERT_OFFSET(IKHkHero, m_pTargetedMecaHook, 0x12c);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk130, 0x130);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unk138, 0x138);
+DOTD_ASSERT_OFFSET(IKHkHero, m_pAnimBlendSlots, 0x138);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk140, 0x140);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk144, 0x144);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk148, 0x148);
@@ -835,7 +835,7 @@ DOTD_ASSERT_OFFSET(IKHkHero, m_unk150, 0x150);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk154, 0x154);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk158, 0x158);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk15c, 0x15c);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unk160, 0x160);
+DOTD_ASSERT_OFFSET(IKHkHero, m_i16CurAnimIndex, 0x160);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk16c, 0x16c);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk16d, 0x16d);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk16e, 0x16e);
@@ -843,11 +843,11 @@ DOTD_ASSERT_OFFSET(IKHkHero, m_unk16f, 0x16f);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk170, 0x170);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk171, 0x171);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk172, 0x172);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unk354, 0x354);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unk35c, 0x35c);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unk360, 0x360);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unk364, 0x364);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unk36c, 0x36c);
+DOTD_ASSERT_OFFSET(IKHkHero, m_ui32HeroFlags354, 0x354);
+DOTD_ASSERT_OFFSET(IKHkHero, m_ui32HeroFlags35C, 0x35c);
+DOTD_ASSERT_OFFSET(IKHkHero, m_ui32HeroFlags360, 0x360);
+DOTD_ASSERT_OFFSET(IKHkHero, m_ui32HeroFlags364, 0x364);
+DOTD_ASSERT_OFFSET(IKHkHero, m_aui8JoyInputs, 0x36c);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk370, 0x370);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk374, 0x374);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk378, 0x378);
@@ -895,8 +895,8 @@ DOTD_ASSERT_OFFSET(IKHkHero, m_unk510, 0x510);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk520, 0x520);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk524, 0x524);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk528, 0x528);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unk530, 0x530);
-DOTD_ASSERT_OFFSET(IKHkHero, m_unk534, 0x534);
+DOTD_ASSERT_OFFSET(IKHkHero, m_fCurHSpeed, 0x530);
+DOTD_ASSERT_OFFSET(IKHkHero, m_fCurVSpeed, 0x534);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk53c, 0x53c);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk564, 0x564);
 DOTD_ASSERT_OFFSET(IKHkHero, m_unk568, 0x568);

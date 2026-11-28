@@ -64,24 +64,24 @@ int32_t CKEarthMissile::Load(IKFile* file, int32_t type) {
     CKProjectileElement::Load(file, type);
     if (type != 0) return 1;
     for (int32_t i = 0; i < 3; ++i) {
-        IKFile_ReadRef(file, &m_unk22c[i]);
-        IKFile_ReadRef(file, &m_unk238[i]);
+        IKFile_ReadRef(file, &m_apNormalProjectiles[i]);
+        IKFile_ReadRef(file, &m_apChargedProjectiles[i]);
     }
     for (int32_t i = 0; i < 3; ++i) {
-        ReadF32LE(file, &m_unk214[i]);
-        ReadF32LE(file, &m_unk220[i]);
+        ReadF32LE(file, &m_afLaunchSpeedNormal[i]);
+        ReadF32LE(file, &m_afLaunchSpeedCharged[i]);
     }
-    IKFile_ReadRef(file, &m_unk244);
-    IKFile_ReadRef(file, &m_unk248);
-    IKFile_ReadRef(file, &m_unk24c);
+    IKFile_ReadRef(file, &m_pAnimFxCollection);
+    IKFile_ReadRef(file, &m_pFullChargeBurst);
+    IKFile_ReadRef(file, &m_pChargeRockNode);
     ReadU32LE(file, &m_unk250);
-    ReadF32LE(file, &m_unk254);
+    ReadF32LE(file, &m_fChargeRockOffsetY);
     ReadU32LE(file, &m_unk258);
-    IKFile_ReadRef(file, &m_unk26c);
-    ReadF32LE(file, &m_unk270);
-    IKFile_ReadRef(file, &m_unk25c);
-    ReadF32LE(file, &m_unk260);
-    ReadF32LE(file, &m_unk264);
+    IKFile_ReadRef(file, &m_pSoundDico);
+    ReadF32LE(file, &m_fChargeSoundMaxPitch);
+    IKFile_ReadRef(file, &m_pChargedNode);
+    ReadF32LE(file, &m_fChargedNodeOffsetX);
+    ReadF32LE(file, &m_fChargedNodeOffsetY);
     ReadU32LE(file, &m_unk268);
     return 1;
 }
@@ -171,59 +171,59 @@ SAnimatedFxRig* AttachmentSets(CKS08AbilityHostBase* host) {
 // 0x00392a10 CKEarthMissile_PostLoad
 int32_t CKEarthMissile::PostLoad(int32_t type) {
     CKProjectileElement::PostLoad(type);
-    PutUnderSector0(m_unk24c);
-    PutUnderSector0(m_unk25c);
+    PutUnderSector0(m_pChargeRockNode);
+    PutUnderSector0(m_pChargedNode);
     return 1;
 }
 
 // 0x003929c8 CKEarthMissile_Start
 void CKEarthMissile::Start(CKS08AbilityHostBase* host) {
     CKProjectileElement::Start(host);
-    if (m_pHost != nullptr) m_unk274 = 0;
+    if (m_pHost != nullptr) m_bChargedBurstFired = 0;
 }
 
 // 0x00392960 CKEarthMissile_Update (CKAnimatedFxCollection_Update_maybe through its TOC bridge)
 uint8_t CKEarthMissile::Update(float dt) {
-    CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_unk244);
+    CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_pAnimFxCollection);
     if (collection->m_bPlaying != 0) collection->Update(dt);
     return CKProjectileElement::Update(dt);
 }
 
 // 0x00392d28 CKEarthMissile_End
 void CKEarthMissile::End(int32_t forced) {
-    CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_unk244);
+    CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_pAnimFxCollection);
     if (collection->m_bPlaying != 0) collection->Stop();  // TocBridge -> 0x005cc990
-    StopSounds(m_unk26c);
-    PutUnderSector0(m_unk24c);
-    PutUnderSector0(m_unk25c);
+    StopSounds(m_pSoundDico);
+    PutUnderSector0(m_pChargeRockNode);
+    PutUnderSector0(m_pChargedNode);
     CKProjectileElement::End(static_cast<uint8_t>(forced));
 }
 
 // 0x00392918 CKEarthMissile_ResetRuntime
 void CKEarthMissile::ResetRuntime(int32_t type) {
     CKProjectileElement::ResetRuntime(type);
-    m_unk274 = 0;
-    m_unk208 = 2;
-    m_unk209 = 0;
+    m_bChargedBurstFired = 0;
+    m_ui8HotSpotIndex = 2;
+    m_ui8ButtonIndex = 0;
 }
 
 // 0x00393538 CKEarthMissile_UpdateCharge. The float tests keep the original's senses: no burst while the charge time is
 // not greater than the full time (ble: a NaN skips it), the ratio clamps with cror (a NaN stays), the fade with blt.
 void CKEarthMissile::UpdateCharge(float dt) {
-    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_unk26c);
-    if (m_unk200 > m_unk68[m_unk04] && m_unk274 == 0) {
+    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_pSoundDico);
+    if (m_fChargeTime > m_afFullChargeTime[m_ui32LevelIndex] && m_bChargedBurstFired == 0) {
         // Full: the burst at the hot spot (the inlined CKSrvFx::AcquireFx), the charge sound stopped, the charged one.
-        m_unk274 = 1;
+        m_bChargedBurstFired = 1;
         CKSrvFx* fx = static_cast<CKSrvFx*>(g_pEngine->m_srvFx);
         CKExplosionNodeFx* burst =
-            static_cast<CKExplosionNodeFx*>(fx->AcquireFx(reinterpret_cast<IKFxData*>(m_unk248), this));
+            static_cast<CKExplosionNodeFx*>(fx->AcquireFx(reinterpret_cast<IKFxData*>(m_pFullChargeBurst), this));
         if (burst != nullptr) {
-            const CVector3 position = m_pHost->GetHotspotPosition(m_unk208);  // vt+0xd0
+            const CVector3 position = m_pHost->GetHotspotPosition(m_ui8HotSpotIndex);  // vt+0xd0
             burst->SetTranslation(&position, this);  // 0x001b66e8
             burst->Trigger(this, 0);                 // 0x001b82a8
             burst->ReleaseReservation(this);         // vt+0x54
         }
-        m_unk278 = kChargedFadeTime;
+        m_fRockFadeOutLeft = kChargedFadeTime;
         if (sounds->GetSound(0) != nullptr) Sound_Stop(sounds->GetSound(0), 0);
         CKSound* charged = sounds->GetSound(1);
         if (charged != nullptr) {
@@ -231,13 +231,13 @@ void CKEarthMissile::UpdateCharge(float dt) {
             charged->Play(kZero);  // 0x00111230
         }
     }
-    CNode* rock = static_cast<CNode*>(m_unk24c);
+    CNode* rock = static_cast<CNode*>(m_pChargeRockNode);
     if (rock != nullptr) {
-        if (m_unk274 != 0) {
+        if (m_bChargedBurstFired != 0) {
             // Charged: the fade-out over 0.3 s, then hidden.
             if ((rock->m_sgProperties & 4u) == 0) {
-                const float left = m_unk278 - dt;
-                m_unk278 = left;
+                const float left = m_fRockFadeOutLeft - dt;
+                m_fRockFadeOutLeft = left;
                 if (left < kZero) {
                     rock->m_sgProperties = (rock->m_sgProperties & 0xfffffffbu) | 4u;
                 } else if (rock->m_lGeometryList != nullptr) {
@@ -249,7 +249,7 @@ void CKEarthMissile::UpdateCharge(float dt) {
             // the charge sound at pitch 1.
             rock->m_sgProperties &= 0xfffffffbu;
             SetMeshAlpha(rock, 0);
-            ShowAtHotspot(rock, m_pHost, m_unk208, WordF32(m_unk250), m_unk254, WordF32(m_unk258));
+            ShowAtHotspot(rock, m_pHost, m_ui8HotSpotIndex, WordF32(m_unk250), m_fChargeRockOffsetY, WordF32(m_unk258));
             CKSound* charge = sounds->GetSound(0);
             if (charge != nullptr) {
                 AttachToOwner(charge, m_pHost);
@@ -258,7 +258,7 @@ void CKEarthMissile::UpdateCharge(float dt) {
             }
         } else {
             // Charging: alpha and pitch follow the charge (clamped to 0..1).
-            float ratio = m_unk200 / m_unk68[m_unk04];
+            float ratio = m_fChargeTime / m_afFullChargeTime[m_ui32LevelIndex];
             if (ratio <= kZero) {
                 ratio = kZero;
             } else if (ratio >= kOne) {
@@ -267,17 +267,17 @@ void CKEarthMissile::UpdateCharge(float dt) {
             if (rock->m_lGeometryList != nullptr) {
                 SetMeshAlpha(rock, static_cast<uint8_t>(ppc::fctiwz(ratio * kAlphaScale)));
             }
-            const float pitch = m_unk270;
+            const float pitch = m_fChargeSoundMaxPitch;
             if (sounds->GetSound(0) != nullptr) {
                 sounds->GetSound(0)->SetPitch(ppc::fmadds(ratio, pitch - kOne, kOne));
             }
         }
     }
     // The second node under the hot spot once charged, moved by +0x260.
-    CNode* glow = static_cast<CNode*>(m_unk25c);
-    if (glow != nullptr && m_unk274 != 0 && (glow->m_sgProperties & 4u) != 0) {
+    CNode* glow = static_cast<CNode*>(m_pChargedNode);
+    if (glow != nullptr && m_bChargedBurstFired != 0 && (glow->m_sgProperties & 4u) != 0) {
         glow->m_sgProperties &= 0xfffffffbu;
-        ShowAtHotspot(glow, m_pHost, m_unk208, m_unk260, m_unk264, WordF32(m_unk268));
+        ShowAtHotspot(glow, m_pHost, m_ui8HotSpotIndex, m_fChargedNodeOffsetX, m_fChargedNodeOffsetY, WordF32(m_unk268));
     }
 }
 
@@ -291,7 +291,7 @@ void CKEarthMissile::UpdateCharge(float dt) {
 // matrix) and, above level index 0, the effect collection plays, the charge nodes hide and both sounds stop.
 uint8_t CKEarthMissile::Fire() {
     const CVector3 pos = GetLaunchPosDir(&kNullVector);
-    m_pHost->ComputeAimDirection(kFireAimCone, this, m_unk184);  // vt+0x58
+    m_pHost->ComputeAimDirection(kFireAimCone, this, m_pAimCone);  // vt+0x58
     IKSerializable* locked = m_pHost->GetLockedTarget();         // vt+0xd4
     CVector3 dir;
     if (locked != nullptr) {
@@ -309,29 +309,29 @@ uint8_t CKEarthMissile::Fire() {
         dir.z = dir.z * inv;
         dir.x = dir.x * inv;
     }
-    const uint32_t level = m_unk04;
-    const bool charged = m_unk200 > m_unk68[level] || m_unk200 == m_unk68[level];  // cror gt|eq
-    if (charged) m_unk274 = 0;
-    IKSerializable* const* accessors = charged ? m_unk238 : m_unk22c;
+    const uint32_t level = m_ui32LevelIndex;
+    const bool charged = m_fChargeTime > m_afFullChargeTime[level] || m_fChargeTime == m_afFullChargeTime[level];  // cror gt|eq
+    if (charged) m_bChargedBurstFired = 0;
+    IKSerializable* const* accessors = charged ? m_apChargedProjectiles : m_apNormalProjectiles;
     if (static_cast<CKProjectileAccessor*>(accessors[level])->m_pProjectileType == nullptr) return 1;
     ApplyDamageParams(0);  // vt+0x74
-    const float speed = charged ? m_unk220[m_unk04] : m_unk214[m_unk04];
-    CKProjectileAccessor* accessor = static_cast<CKProjectileAccessor*>(accessors[m_unk04]);
+    const float speed = charged ? m_afLaunchSpeedCharged[m_ui32LevelIndex] : m_afLaunchSpeedNormal[m_ui32LevelIndex];
+    CKProjectileAccessor* accessor = static_cast<CKProjectileAccessor*>(accessors[m_ui32LevelIndex]);
     const float heroSpeed = m_pHost->GetHeroSpeedForAbility();  // vt+0x48
-    IKSerializable* damage = m_unk20c;
+    IKSerializable* damage = m_pElementDamage;
     IKSerializable* owner = m_pHost->GetOwner();  // vt+0x08
     accessor->LaunchEx(&pos, &dir, speed + heroSpeed, damage, owner, nullptr);
-    if (m_unk04 != 0) {
-        CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_unk244);
+    if (m_ui32LevelIndex != 0) {
+        CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_pAnimFxCollection);
         CSGLeaf* node = static_cast<CSGLeaf*>(static_cast<IKHook*>(m_pHost->GetOwner())->m_pKGLObject);  // +0x1c
         SAnimatedFxRig* rigs = AttachmentSets(m_pHost);                                  // vt+0x104
-        CSGHotSpot* spot = static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_unk208));      // vt+0xcc
+        CSGHotSpot* spot = static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_ui8HotSpotIndex));      // vt+0xcc
         collection->Play(node, rigs, spot);  // TocBridge 0x0098f4d0
-        CNode* rock = static_cast<CNode*>(m_unk24c);
+        CNode* rock = static_cast<CNode*>(m_pChargeRockNode);
         if (rock != nullptr) rock->m_sgProperties = (rock->m_sgProperties & 0xfffffffbu) | 4u;
-        CNode* glow = static_cast<CNode*>(m_unk25c);
+        CNode* glow = static_cast<CNode*>(m_pChargedNode);
         if (glow != nullptr) glow->m_sgProperties = (glow->m_sgProperties & 0xfffffffbu) | 4u;
-        StopSounds(m_unk26c);
+        StopSounds(m_pSoundDico);
     }
     return 1;
 }

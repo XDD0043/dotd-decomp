@@ -36,7 +36,7 @@ const RwFrame* HookFrame(IKHook* hook) { return static_cast<CSGMovable*>(hook->m
 // 0x0029d290 CKHkS08Enemy_AuxSM00_PlayStartAnim_maybe (vt+0x230): enter: the animation 0x2e requested (blend 0.1); run:
 // the animation's end over this frame (the dt +0x1fc x the anim speed +0x774) is the next state (1 at its end, else 0).
 uint8_t CKHkS08Enemy::AuxState00_PlayStartAnim(IKTime* /*clock*/, int32_t phase, uint8_t /*other*/) {
-    if (phase == 0) return IsAnimEndReached(m_unk1fc * m_unk774, 0, 0) ? 1 : 0;  // 0x00285558
+    if (phase == 0) return IsAnimEndReached(m_fScaledDt * m_unk774, 0, 0) ? 1 : 0;  // 0x00285558
     if (phase == 1) RequestAnim(0x2e, 0, 0, 0, 0.1f, 0.0f);  // 0x00285340; TOC +0x113c / +0x1140
     return 0;
 }
@@ -53,8 +53,8 @@ uint8_t CKHkS08Enemy::AuxState01_SeekWeapon(IKTime* clock, int32_t phase, uint8_
             return 1;
         }
         if (m_unk344 * m_unk344 >= Cfg()->m_unk1ac) return 2;
-        if (m_unk330 == nullptr) return 1;
-        const RwV3d& target = FrameLtm(HookFrame(m_unk330))->pos;
+        if (m_pTarget == nullptr) return 1;
+        const RwV3d& target = FrameLtm(HookFrame(m_pTarget))->pos;
         float dx = m_v3Position.x - target.x;
         float dy = m_v3Position.y - target.y;
         float dz = m_v3Position.z - target.z;
@@ -82,11 +82,11 @@ uint8_t CKHkS08Enemy::AuxState01_SeekWeapon(IKTime* clock, int32_t phase, uint8_
         return 1;
     }
     if (phase == 1) {
-        CKHkS08Weapon* claimed = m_unk674;
+        CKHkS08Weapon* claimed = m_pClaimedWeapon;
         m_unk7d0 = 0.0f;
         if (claimed != nullptr && claimed->m_pOwnerB4 == this) claimed->m_pOwnerB4 = nullptr;
         CKHkS08Weapon* weapon = FindFreeWeapon();  // 0x0029d078
-        m_unk674 = weapon;
+        m_pClaimedWeapon = weapon;
         if (weapon != nullptr) weapon->m_pOwnerB4 = this;
     }
     return 1;
@@ -96,13 +96,13 @@ uint8_t CKHkS08Enemy::AuxState01_SeekWeapon(IKTime* clock, int32_t phase, uint8_
 // claimed: 3 (walk to it), or none: +0x7f9 = 1 and 0xff (the machine ends). Enter / leave: 2.
 uint8_t CKHkS08Enemy::AuxState02_ClaimWeapon(IKTime* /*clock*/, int32_t phase, uint8_t /*other*/) {
     if (phase != 0) return 2;
-    CKHkS08Weapon* claimed = m_unk674;
+    CKHkS08Weapon* claimed = m_pClaimedWeapon;
     if (claimed != nullptr && claimed->m_pOwnerB4 == this) claimed->m_pOwnerB4 = nullptr;
     CKHkS08Weapon* weapon = FindFreeWeapon();  // 0x0029d078
-    m_unk674 = weapon;
+    m_pClaimedWeapon = weapon;
     if (weapon != nullptr) {
         weapon->m_pOwnerB4 = this;
-        if (m_unk674 != nullptr) return 3;
+        if (m_pClaimedWeapon != nullptr) return 3;
     }
     m_unk7f9 = 1;
     return 0xff;
@@ -114,7 +114,7 @@ uint8_t CKHkS08Enemy::AuxState02_ClaimWeapon(IKTime* /*clock*/, int32_t phase, u
 // 4 once the weapon (its LTM) is within the kind's +0x1b0 (squared, in xz), else 3. Enter / leave: 3.
 uint8_t CKHkS08Enemy::AuxState03(IKTime* /*clock*/, int32_t phase, uint8_t /*other*/) {
     if (phase != 0) return 3;
-    CKHkS08Weapon* weapon = m_unk674;
+    CKHkS08Weapon* weapon = m_pClaimedWeapon;
     if (weapon == nullptr || weapon->m_pOwnerB4 != this || weapon->m_inHandA8 != 0 ||
         (weapon->m_landedAB == 0 && weapon->m_ejectedAA == 0)) {
         return 2;
@@ -123,7 +123,7 @@ uint8_t CKHkS08Enemy::AuxState03(IKTime* /*clock*/, int32_t phase, uint8_t /*oth
     m_unk37c = at.x;
     m_unk380 = at.y;
     m_unk384 = at.z;
-    const RwV3d& again = HookFrame(m_unk674)->modelling.pos;
+    const RwV3d& again = HookFrame(m_pClaimedWeapon)->modelling.pos;
     const float dy = again.y - m_v3Position.y;
     const float dx = again.x - m_v3Position.x;
     const float dz = again.z - m_v3Position.z;
@@ -138,7 +138,7 @@ uint8_t CKHkS08Enemy::AuxState03(IKTime* /*clock*/, int32_t phase, uint8_t /*oth
         m_unk388 = inv * m_unk388;
         m_unk38c = inv * m_unk38c;
     }
-    const RwV3d& ltm = FrameLtm(HookFrame(m_unk674))->pos;
+    const RwV3d& ltm = FrameLtm(HookFrame(m_pClaimedWeapon))->pos;
     const float ez = m_v3Position.z - ltm.z;
     const float ex = m_v3Position.x - ltm.x;
     if (ppc::fmadds(ex, ex, ez * ez) <= Cfg()->m_unk1b0) return 4;
@@ -157,22 +157,22 @@ uint8_t CKHkS08Enemy::AuxState04_PickUpWeapon(IKTime* clock, int32_t phase, uint
         return 4;
     }
     if (phase != 0) return 4;
-    if (m_unk520 == nullptr) {
-        if (m_unk674 == nullptr) return 2;
+    if (m_pHeldWeapon == nullptr) {
+        if (m_pClaimedWeapon == nullptr) return 2;
         CKGrpS08Enemy* group = static_cast<CKGrpS08Enemy*>(enemy::EnemyGroup());  // 0x00276f58
-        IKBaseGroup* weapons = static_cast<IKBaseGroup*>(group->m_pUnk190);
+        IKBaseGroup* weapons = static_cast<IKBaseGroup*>(group->m_pWeaponPool);
         IKHook* hook = *reinterpret_cast<IKHook**>(weapons->GetMemberListHead());  // vt+0xb0
-        while (hook != nullptr && hook != m_unk674) hook = hook->m_pNextHook;
+        while (hook != nullptr && hook != m_pClaimedWeapon) hook = hook->m_pNextHook;
         if (hook == nullptr) return 2;
-        if (m_unk674->m_inHandA8 != 0) return 2;
+        if (m_pClaimedWeapon->m_inHandA8 != 0) return 2;
     }
     RtAnimAnimation* animation = CurrentLayer0Animation();  // 0x002771c0, 0x002b3128, 0x00285408
     float t0 = GetAnimLayerTime(0, 0) - clock->m_afDeltaTime[0];  // 0x00285388
     if (t0 < 0.0f) t0 = 0.0f;  // TOC +0x1140
     AnimMark* mark = Anim_GetMarkById(animation, 0x15);  // 0x00078830
     if (mark != nullptr && AnimMark_CrossedValueR3(mark, t0, GetAnimLayerTime(0, 0)) != 0 && m_unk678 == 0) {  // vt+0x1c
-        EquipWeapon(m_unk674);  // 0x00292a10
-        m_unk674 = nullptr;
+        EquipWeapon(m_pClaimedWeapon);  // 0x00292a10
+        m_pClaimedWeapon = nullptr;
         m_unk678 = 1;
         m_unk37c = m_v3Position.x;
         m_unk380 = m_v3Position.y;
@@ -181,20 +181,20 @@ uint8_t CKHkS08Enemy::AuxState04_PickUpWeapon(IKTime* clock, int32_t phase, uint
         m_unk388 = at.x;
         m_unk38c = at.y;
         m_unk390 = at.z;
-        m_unk278 = 0.0f;
+        m_fDisarmGauge = 0.0f;
     }
     if (!IsAnimEndReached(clock->m_afDeltaTime[0], 0, 0)) return 4;  // 0x00285558
-    return m_unk520 != nullptr ? 0xff : 2;
+    return m_pHeldWeapon != nullptr ? 0xff : 2;
 }
 
 // 0x0029d390 CKHkS08Enemy_DropWeaponOrShield_maybe: with a shield, DropShield; else a held weapon is detached
 // (DetachWeapon), the auxiliary machine goes to 1 (seek; no clock), the weapon is ejected (SetEjected(1)) and unowned.
 void CKHkS08Enemy::DropWeaponOrShield() {
-    if (m_unk524 != nullptr) {
+    if (m_pHeldShield != nullptr) {
         DropShield();  // 0x002915e8
         return;
     }
-    CKHkS08Weapon* weapon = m_unk520;
+    CKHkS08Weapon* weapon = m_pHeldWeapon;
     if (weapon == nullptr) return;
     DetachWeapon();  // 0x002916f0
     const uint8_t old = m_auxState;

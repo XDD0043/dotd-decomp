@@ -54,10 +54,10 @@
 int32_t CKElectricalGrapple::Load(IKFile* file, int32_t type) {
     CKGrabElement::Load(file, type);
     if (type == 0) {
-        IKFile_ReadRef(file, &m_unk140[0]);
-        IKFile_ReadRef(file, &m_unk140[1]);
-        IKFile_ReadRef(file, &m_unk140[2]);
-        IKFile_ReadRef(file, &m_unk150);
+        IKFile_ReadRef(file, &m_apLightningBoltFxData[0]);
+        IKFile_ReadRef(file, &m_apLightningBoltFxData[1]);
+        IKFile_ReadRef(file, &m_apLightningBoltFxData[2]);
+        IKFile_ReadRef(file, &m_pSoundDico);
     }
     return 1;
 }
@@ -65,7 +65,7 @@ int32_t CKElectricalGrapple::Load(IKFile* file, int32_t type) {
 namespace {
 // The level's bolt data (+0x140).
 CKLightningBoltFxData* BoltData(CKElectricalGrapple* grapple) {
-    return static_cast<CKLightningBoltFxData*>(grapple->m_unk140[grapple->m_unk04]);
+    return static_cast<CKLightningBoltFxData*>(grapple->m_apLightningBoltFxData[grapple->m_dwLevelIndex]);
 }
 // A sound attached to the user's scene node (host vt+0x08, its +0x1c) and played from its start (TOC +0x35b0 0.0).
 void PlayAttached(CKS08AbilityHostBase* host, CKSound* sound) {
@@ -93,23 +93,23 @@ void CKElectricalGrapple::End(int32_t forced) {
 void CKElectricalGrapple::ResetRuntime() {
     CKGrabElement::ResetRuntime();
     m_pLoopSound = nullptr;
-    m_unk12c = 2;
+    m_bHotspotIndex = 2;
     m_pBolt = nullptr;
 }
 
 // 0x003950b8 CKElectricalGrapple_GetSoundForEvent_maybe
 CKSound* CKElectricalGrapple::GetSoundForEvent(int32_t event) {
-    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_unk150);
+    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_pSoundDico);
     if (event == 0) return sounds->GetSound(0);  // 0x00112bc0
     if (event == 4) return sounds->GetSound(4);
     if (event != 1) return nullptr;
     const auto playable = [sounds](uint32_t index) {
         return sounds->GetSound(index) != nullptr && sounds->GetSound(index)->GetSample() != nullptr;  // 0x00111000
     };
-    if (m_unk04 == 2) {
+    if (m_dwLevelIndex == 2) {
         if (playable(3)) return sounds->GetSound(3);
         if (playable(2)) return sounds->GetSound(2);
-    } else if (m_unk04 == 1) {
+    } else if (m_dwLevelIndex == 1) {
         if (playable(2)) return sounds->GetSound(2);
     }
     return sounds->GetSound(1);
@@ -147,7 +147,7 @@ void CKElectricalGrapple::SetFxActive(int32_t on) {
         m_pBolt->SetDamageOwner(m_pHost->GetOwner(), this);              // 0x0057aa10, host vt+0x08
         m_pBolt->SetDamageCategory(m_pHost->GetCollisionGroup(), this);  // 0x0057aa60, vt+0xb0
         m_pBolt->SetDamageFlags(m_pHost->GetCollisionMask(), this);      // 0x0057aa88, vt+0xb4
-        m_pBolt->SetDamage(m_unk138, this);                              // 0x0057aab0
+        m_pBolt->SetDamage(m_pElementDamage, this);                              // 0x0057aab0
         m_pBolt->SetUnk1e8(m_pTarget, this);                             // 0x0057aa38
         m_pBolt->SetActiveForOwner(this, 1);                             // 0x00581380
     }

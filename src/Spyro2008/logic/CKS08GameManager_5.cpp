@@ -120,7 +120,7 @@ void CKS08GameManager::LoadHudResources(IKFile* stream, int32_t mode) {
     ReadU32LE(stream, &m_unkBD8);
     ReadU32LE(stream, &m_unkBE0);
     ReadU32LE(stream, &m_unkC3C);
-    ReadF32LE(stream, &m_fUnkC40);
+    ReadF32LE(stream, &m_fComboTimerAccel);
     IKFile_ReadRef(stream, &m_unkC44);
     // +0xbec, +0xbe8, +0xbe4, +0xbf8, +0xbf4, +0xbf0, +0xc0c, +0xc08, +0xc04, +0xc00, +0xbfc, +0xc20,
     // +0xc1c, +0xc18, +0xc14, +0xc10
@@ -135,12 +135,12 @@ uint8_t CKS08GameManager::State6(int32_t phase, uint8_t other) {
     if (state != 6) return state;
     if (phase == 1) {
         m_unkAFC &= ~2u;
-        if (m_unk2FC == 1) {
+        if (m_i32FrontEndEntryMenu == 1) {
             m_aMenuStack[0] = MainMenuId();
             m_ui32MenuStackDepth = 1;
             return 6;
         }
-        if (m_unk2FC == 2) {
+        if (m_i32FrontEndEntryMenu == 2) {
             m_aMenuStack[0] = VfC4() == 0 ? 6 : 3;
             m_ui32MenuStackDepth = 1;
             return 6;
@@ -199,13 +199,13 @@ void CKS08GameManager::SelectCynderHudPanelElement(uint8_t element) {
 // health gauge (0x5013a8), health capacity marker (0x501188), mana gauge (0x500ee8) and mana capacity
 // marker (0x500cc8). Each refresh returns at once without its panel.
 void CKS08GameManager::ResetDragonStatHud() {
-    m_fUnkC2C = 0.0f;
-    m_unkBD4 = 0.0f;
-    m_fUnkC28 = 0.0f;
-    m_fUnkC30 = 0.0f;
-    m_fUnkC24 = 0.0f;
-    m_unkC34 = 0;
-    m_unkC38 = 0;
+    m_fSpyroComboTimer = 0.0f;
+    m_fHudCountdown = 0.0f;
+    m_fCynderComboElapsed = 0.0f;
+    m_fCynderComboTimer = 0.0f;
+    m_fSpyroComboElapsed = 0.0f;
+    m_ui32SpyroComboHits = 0;
+    m_ui32CynderComboHits = 0;
     UpdateDragonUpgradeText(1, 0);
     UpdateDragonUpgradeText(0, 0);
     UpdateDragonHealthGauge(1);
@@ -220,7 +220,7 @@ void CKS08GameManager::ResetDragonStatHud() {
 
 // 0x00502340 ResetDragonStatHud_2
 void CKS08GameManager::ResetDragonStatHud2() {
-    m_unkBD4 = 0.0f;
+    m_fHudCountdown = 0.0f;
     UpdateDragonHealthGauge(1);
     UpdateDragonHealthCapacityMarker(1);
     UpdateDragonManaGauge(1);
@@ -231,12 +231,12 @@ void CKS08GameManager::ResetDragonStatHud2() {
     UpdateDragonManaGauge(0);
     UpdateDragonManaCapacityMarker(0);
     UpdateDragonUpgradeText(0, 0);
-    m_fUnkC2C = 0.0f;
-    m_unkC34 = 0;
-    m_fUnkC28 = 0.0f;
-    m_fUnkC30 = 0.0f;
-    m_unkC38 = 0;
-    m_fUnkC24 = 0.0f;
+    m_fSpyroComboTimer = 0.0f;
+    m_ui32SpyroComboHits = 0;
+    m_fCynderComboElapsed = 0.0f;
+    m_fCynderComboTimer = 0.0f;
+    m_ui32CynderComboHits = 0;
+    m_fSpyroComboElapsed = 0.0f;
 }
 
 // ---- C2.2 gm: the dragon stat HUD and the in-game HUD update ----
@@ -263,7 +263,7 @@ void CKS08GameManager::UpdateDragonUpgradeText(uint8_t dragon, uint8_t shake) {
     if (dragon == 0) {
         CKS08InGameInterfaceLeft* hud = LeftHud(this);
         if (hud == nullptr) return;
-        const uint32_t costs = m_aUnkC48[3].m_unk8 + m_aUnkC48[2].m_unk8 + m_aUnkC48[1].m_unk8 + m_aUnkC48[0].m_unk8;
+        const uint32_t costs = m_aSpyroUpgradeCosts[3].m_unk8 + m_aSpyroUpgradeCosts[2].m_unk8 + m_aSpyroUpgradeCosts[1].m_unk8 + m_aSpyroUpgradeCosts[0].m_unk8;
         if (GetDragonTotalUpgradePoints(stats, 0) < costs) {
             std::snprintf(text, sizeof(text), "%d", static_cast<int32_t>(stats->RtWord(0x84)));
         } else {
@@ -273,7 +273,7 @@ void CKS08GameManager::UpdateDragonUpgradeText(uint8_t dragon, uint8_t shake) {
     } else if (dragon == 1) {
         CKS08InGameInterfaceRight* hud = RightHud(this);
         if (hud == nullptr) return;
-        const uint32_t costs = m_aUnkC84[3].m_unk8 + m_aUnkC84[2].m_unk8 + m_aUnkC84[1].m_unk8 + m_aUnkC84[0].m_unk8;
+        const uint32_t costs = m_aCynderUpgradeCosts[3].m_unk8 + m_aCynderUpgradeCosts[2].m_unk8 + m_aCynderUpgradeCosts[1].m_unk8 + m_aCynderUpgradeCosts[0].m_unk8;
         if (GetDragonTotalUpgradePoints(stats, 1) < costs) {
             std::snprintf(text, sizeof(text), "%d", static_cast<int32_t>(stats->RtWord(0x88)));
         } else {
@@ -290,17 +290,17 @@ void CKS08GameManager::UpdateDragonHealthGauge(uint8_t dragon) {
     if (dragon == 0) {
         CKS08InGameInterfaceLeft* hud = LeftHud(this);
         if (hud == nullptr) return;
-        const float health = static_cast<float>(stats->m_unk4c);
+        const float health = static_cast<float>(stats->m_dwSpyroHealth);
         SetSpyroHealthGaugeValue(health / static_cast<float>(static_cast<uint32_t>(ComputeSpyroHealthCapacity(stats, 1))), hud);
-        const uint32_t current = stats->m_unk4c;
+        const uint32_t current = stats->m_dwSpyroHealth;
         const uint32_t capacity = static_cast<uint32_t>(ComputeSpyroHealthCapacity(stats, 0));
         hudgauge::SuperGaugeSetFullFlag(static_cast<CKSuperGaugeCpntUpdater*>(hud->m_pGaugeUpdater224), current >= capacity ? 1 : 0);
     } else if (dragon == 1) {
         CKS08InGameInterfaceRight* hud = RightHud(this);
         if (hud == nullptr) return;
-        const float health = static_cast<float>(stats->m_unk54);
+        const float health = static_cast<float>(stats->m_dwCynderHealth);
         SetCynderHealthGaugeValue(health / static_cast<float>(static_cast<uint32_t>(ComputeCynderHealthCapacity(stats, 1))), hud);
-        const uint32_t current = stats->m_unk54;
+        const uint32_t current = stats->m_dwCynderHealth;
         const uint32_t capacity = static_cast<uint32_t>(ComputeCynderHealthCapacity(stats, 0));
         hudgauge::SuperGaugeSetFullFlag(static_cast<CKSuperGaugeCpntUpdater*>(hud->m_pGaugeUpdater21c), current >= capacity ? 1 : 0);
     }
@@ -332,17 +332,17 @@ void CKS08GameManager::UpdateDragonManaGauge(uint8_t dragon) {
     if (dragon == 0) {
         CKS08InGameInterfaceLeft* hud = LeftHud(this);
         if (hud == nullptr) return;
-        const float mana = static_cast<float>(stats->m_unk64);
+        const float mana = static_cast<float>(stats->m_dwSpyroMana);
         SetSpyroManaGaugeValue(mana / static_cast<float>(static_cast<uint32_t>(ComputeSpyroManaCapacity(stats, 1))), hud);
-        const uint32_t current = stats->m_unk64;
+        const uint32_t current = stats->m_dwSpyroMana;
         const uint32_t capacity = static_cast<uint32_t>(ComputeSpyroManaCapacity(stats, 0));
         hudgauge::SuperGaugeSetFullFlag(static_cast<CKSuperGaugeCpntUpdater*>(hud->m_pGaugeUpdater22c), current >= capacity ? 1 : 0);
     } else if (dragon == 1) {
         CKS08InGameInterfaceRight* hud = RightHud(this);
         if (hud == nullptr) return;
-        const float mana = static_cast<float>(stats->m_unk6c);
+        const float mana = static_cast<float>(stats->m_dwCynderMana);
         SetCynderManaGaugeValue(mana / static_cast<float>(static_cast<uint32_t>(ComputeCynderManaCapacity(stats, 1))), hud);
-        const uint32_t current = stats->m_unk6c;
+        const uint32_t current = stats->m_dwCynderMana;
         const uint32_t capacity = static_cast<uint32_t>(ComputeCynderManaCapacity(stats, 0));
         hudgauge::SuperGaugeSetFullFlag(static_cast<CKSuperGaugeCpntUpdater*>(hud->m_pGaugeUpdater224), current >= capacity ? 1 : 0);
     }
@@ -453,14 +453,14 @@ void SetBossScreen(CKS08GameManager* manager, uint32_t hud, const float* totals)
 
 void CKS08GameManager::UpdateBossGaugeTotals() {
     if (m_unkBB4.m_ui32NbUsedElt == 0) return;
-    SumBossZones(m_unkBB4, m_afUnkBAC);
-    SetBossScreen(this, 3, m_afUnkBAC);
+    SumBossZones(m_unkBB4, m_afBossGaugeTotals);
+    SetBossScreen(this, 3, m_afBossGaugeTotals);
 }
 
 void CKS08GameManager::UpdateSecondBossGaugeTotals() {
     if (m_unkBC8.m_ui32NbUsedElt == 0) return;
-    SumBossZones(m_unkBC8, m_afUnkBC0);
-    SetBossScreen(this, 4, m_afUnkBC0);
+    SumBossZones(m_unkBC8, m_afSecondBossGaugeTotals);
+    SetBossScreen(this, 4, m_afSecondBossGaugeTotals);
 }
 
 // 0x004feb00 / 0x004fea60 / 0x004fe9c0 (C2.8 golem): the boss gauge screen's (hud [3]) +0xf4 / +0xf8 / +0xfc.
@@ -501,37 +501,37 @@ static uint32_t ComboPoints(CKS08GameManager* manager, uint32_t hits) {
 
 void CKS08GameManager::UpdateComboTimers(IKTime* frameClock) {
     CKS08GameStructure* stats = StatsOf(this);
-    float timer = m_fUnkC30;
+    float timer = m_fCynderComboTimer;
     if (timer > 0.0f) {
-        const float elapsed = m_fUnkC28 + frameClock->m_afDeltaTime[IKTime::SCALABLE_GAME_TIME];
-        float step = ppc::fmadds(elapsed, m_fUnkC40, 1.0f);
-        m_fUnkC28 = elapsed;
+        const float elapsed = m_fCynderComboElapsed + frameClock->m_afDeltaTime[IKTime::SCALABLE_GAME_TIME];
+        float step = ppc::fmadds(elapsed, m_fComboTimerAccel, 1.0f);
+        m_fCynderComboElapsed = elapsed;
         step = step * frameClock->m_afDeltaTime[IKTime::SCALABLE_GAME_TIME];
         timer = timer - step;
-        m_fUnkC30 = timer;
+        m_fCynderComboTimer = timer;
         if (timer <= 0.0f) {
-            stats->RecordBestCombo(1, m_unkC38);
-            m_fUnkC30 = 0.0f;
-            m_fUnkC28 = 0.0f;
-            if (VfC4() == 0) AddDragonUpgradePoints(1, ComboPoints(this, m_unkC38));
-            m_unkC38 = 0;
+            stats->RecordBestCombo(1, m_ui32CynderComboHits);
+            m_fCynderComboTimer = 0.0f;
+            m_fCynderComboElapsed = 0.0f;
+            if (VfC4() == 0) AddDragonUpgradePoints(1, ComboPoints(this, m_ui32CynderComboHits));
+            m_ui32CynderComboHits = 0;
             EndComboDisplay(1);  // vt+0x364
         }
     }
-    timer = m_fUnkC2C;
+    timer = m_fSpyroComboTimer;
     if (timer > 0.0f) {
-        const float elapsed = m_fUnkC24 + frameClock->m_afDeltaTime[IKTime::SCALABLE_GAME_TIME];
-        float step = ppc::fmadds(elapsed, m_fUnkC40, 1.0f);
-        m_fUnkC24 = elapsed;
+        const float elapsed = m_fSpyroComboElapsed + frameClock->m_afDeltaTime[IKTime::SCALABLE_GAME_TIME];
+        float step = ppc::fmadds(elapsed, m_fComboTimerAccel, 1.0f);
+        m_fSpyroComboElapsed = elapsed;
         step = step * frameClock->m_afDeltaTime[IKTime::SCALABLE_GAME_TIME];
         timer = timer - step;
-        m_fUnkC2C = timer;
+        m_fSpyroComboTimer = timer;
         if (timer <= 0.0f) {
-            stats->RecordBestCombo(0, m_unkC34);
-            m_fUnkC2C = 0.0f;
-            m_fUnkC24 = 0.0f;
-            if (VfC4() == 0) AddDragonUpgradePoints(0, ComboPoints(this, m_unkC34));
-            m_unkC34 = 0;
+            stats->RecordBestCombo(0, m_ui32SpyroComboHits);
+            m_fSpyroComboTimer = 0.0f;
+            m_fSpyroComboElapsed = 0.0f;
+            if (VfC4() == 0) AddDragonUpgradePoints(0, ComboPoints(this, m_ui32SpyroComboHits));
+            m_ui32SpyroComboHits = 0;
             EndComboDisplay(0);  // vt+0x364
         }
     }
@@ -553,12 +553,12 @@ void CKS08GameManager::SetCenterTwinGauges(float first, float second) {
 // empty and it is shown), and the boss gauge totals.
 void CKS08GameManager::UpdateInGameHud(IKTime* frameClock) {
     UpdateComboTimers(frameClock);
-    if (m_unkBD4 <= 0.0f) m_unkBD4 = 0.0f;
-    else m_unkBD4 = m_unkBD4 - frameClock->m_afDeltaTime[IKTime::SCALABLE_GAME_TIME];
+    if (m_fHudCountdown <= 0.0f) m_fHudCountdown = 0.0f;
+    else m_fHudCountdown = m_fHudCountdown - frameClock->m_afDeltaTime[IKTime::SCALABLE_GAME_TIME];
     CKS08GameStructure* stats = StatsOf(this);
-    const float total = static_cast<float>(stats->m_unk7c);
-    const float first = static_cast<float>(stats->m_unk74) / total;
-    const float second = static_cast<float>(stats->m_unk78) / total;
+    const float total = static_cast<float>(stats->m_dwMaxTotalFury);
+    const float first = static_cast<float>(stats->m_dwSpyroFury) / total;
+    const float second = static_cast<float>(stats->m_dwCynderFury) / total;
     if (first > 0.0f || second > 0.0f) {
         SetCenterTwinGauges(first, second);
     } else if (CenterHud(this) != nullptr && CenterHud(this)->IsFuryGaugeShown()) {
@@ -770,7 +770,7 @@ void CKS08GameManager::ShowDragonStatChangeFeedback(int32_t dragon) {
 void CKS08GameManager::AddDragonUpgradePoints(uint8_t dragon, uint32_t points) {
     CKS08GameStructure* stats = StatsOf(this);
     const uint32_t total = GetDragonTotalUpgradePoints(stats, dragon);  // 0x50f050
-    const SRecord* costs = dragon == 0 ? m_aUnkC48 : m_aUnkC84;
+    const SRecord* costs = dragon == 0 ? m_aSpyroUpgradeCosts : m_aCynderUpgradeCosts;
     const uint32_t cap = costs[3].m_unk8 + costs[2].m_unk8 + costs[1].m_unk8 + costs[0].m_unk8;
     if (cap < total + points) points = cap - total;
     if (dragon == 0) stats->SetRtWord(0x84, points + stats->RtWord(0x84));
@@ -824,9 +824,9 @@ namespace {
 // The combo counters as text variables 0x30 / 0x31 (vt+0x354 entries +0xc0 / +0xc4).
 void SetComboTextVariables(CKS08GameManager* manager) {
     CLocManager* loc = g_pEngine->m_locManager;
-    loc->SetTextVariableValue(manager->GetCounterTextVarTable()[0x30], static_cast<int32_t>(manager->m_unkC34));
+    loc->SetTextVariableValue(manager->GetCounterTextVarTable()[0x30], static_cast<int32_t>(manager->m_ui32SpyroComboHits));
     loc = g_pEngine->m_locManager;
-    loc->SetTextVariableValue(manager->GetCounterTextVarTable()[0x31], static_cast<int32_t>(manager->m_unkC38));
+    loc->SetTextVariableValue(manager->GetCounterTextVarTable()[0x31], static_cast<int32_t>(manager->m_ui32CynderComboHits));
 }
 }  // namespace
 
@@ -927,9 +927,9 @@ void CKS08GameManager::HideFuryGaugeIfShown() {
 // +0xc0 / +0xc4 (words 0x30 / 0x31) take Spyro's and Cynder's combo hits (+0xc34 / +0xc38). No caller in the original
 // besides its OPD.
 void CKS08GameManager::RefreshComboCountText() {
-    const int32_t spyro = static_cast<int32_t>(m_unkC34);
+    const int32_t spyro = static_cast<int32_t>(m_ui32SpyroComboHits);
     g_pEngine->m_locManager->SetTextVariableValue(GetCounterTextVarTable()[0x30], spyro);
-    const int32_t cynder = static_cast<int32_t>(m_unkC38);
+    const int32_t cynder = static_cast<int32_t>(m_ui32CynderComboHits);
     g_pEngine->m_locManager->SetTextVariableValue(GetCounterTextVarTable()[0x31], cynder);
 }
 
@@ -939,9 +939,9 @@ void CKS08GameManager::RefreshComboCountText() {
 // shows it. No caller in the original besides its OPD.
 void CKS08GameManager::UpdateCenterTwinGauges() {
     const CKS08GameStructure* structure = static_cast<const CKS08GameStructure*>(m_gameStructure);
-    const float maximum = static_cast<float>(static_cast<double>(structure->m_unk7c));
-    const float first = static_cast<float>(static_cast<double>(structure->m_unk74)) / maximum;
-    const float second = static_cast<float>(static_cast<double>(structure->m_unk78)) / maximum;
+    const float maximum = static_cast<float>(static_cast<double>(structure->m_dwMaxTotalFury));
+    const float first = static_cast<float>(static_cast<double>(structure->m_dwSpyroFury)) / maximum;
+    const float second = static_cast<float>(static_cast<double>(structure->m_dwCynderFury)) / maximum;
     if (first > 0.0f || second > 0.0f) {
         SetCenterTwinGauges(first, second);
         return;

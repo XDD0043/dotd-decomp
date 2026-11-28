@@ -118,17 +118,17 @@ uint32_t WaitMenuReady(uint8_t id, uint32_t limit) {
     for (uint32_t i = 0; i < limit; ++i) {
         if (Menu() == id && shown == 0) shown = g_frame;
         // Ready: the opening animation ended (+0x61) and the 0.5 s open delay (+0x7c) ran out.
-        if (Menu() == id && MenuObject(id)->m_unk60[1] != 0 && MenuObject(id)->m_fUnk7c <= 0.0f) return shown;
+        if (Menu() == id && MenuObject(id)->m_unk60[1] != 0 && MenuObject(id)->m_fOpenInputDelay <= 0.0f) return shown;
         Step();
     }
     return Menu() == id ? shown : 0;
 }
 
-uint8_t Focus(uint8_t id) { return MenuObject(id)->m_unk6c[0]; }
+uint8_t Focus(uint8_t id) { return MenuObject(id)->m_aui8FocusedItem[0]; }
 
 void PrintButtons(uint8_t id) {
     CKMenuBase114c* menu = MenuObject(id);
-    std::printf("menus: menu 0x%02x focus %d, buttons:", id, menu->m_unk6c[0]);
+    std::printf("menus: menu 0x%02x focus %d, buttons:", id, menu->m_aui8FocusedItem[0]);
     for (uint32_t i = 0; i < menu->m_apButtons.m_ui32NbUsedElt; ++i) {
         auto* b = static_cast<CKInterfaceButtonBase*>(menu->m_apButtons.m_pBlock[i]);
         if (b != nullptr) std::printf(" [%u state %d flags %02x]", i, b->m_ui8State, b->m_baFlags);

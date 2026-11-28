@@ -43,9 +43,9 @@ CKAnimatedFxCollection::CKAnimatedFxCollection() {
     m_unk0c.m_pBlock = nullptr;
     m_unk0c.m_ui32NbElt = 1;
     m_unk0c.m_ui32NbUsedElt = 0;
-    m_unk18.m_ui32NbElt = 1;
-    m_unk18.m_pBlock = nullptr;
-    m_unk18.m_ui32NbUsedElt = 0;
+    m_vOwnRigs.m_ui32NbElt = 1;
+    m_vOwnRigs.m_pBlock = nullptr;
+    m_vOwnRigs.m_ui32NbUsedElt = 0;
     m_abActive.m_ui32NbElt = 1;
     m_abActive.m_ui32NbUsedElt = 0;
     m_abActive.m_pBlock = nullptr;
@@ -78,26 +78,26 @@ int32_t CKAnimatedFxCollection::Load(IKFile* file, int32_t type) {
         m_unk0c.m_ui32NbUsedElt = count;
     }
     for (uint32_t i = 0; i < count; ++i) IKFile_ReadRef(file, &m_unk0c.m_pBlock[i]);
-    ReadU32LE(file, &m_unk08);
-    ReadU8(file, &m_unk04);
-    ReadU8(file, &m_unk24);
-    if (m_unk24 != 0) {
-        m_unk18.m_ui32NbElt = 1;
-        m_unk18.m_pBlock = static_cast<Entry*>(Mem_AllocAligned16(static_cast<uint32_t>(sizeof(Entry))));
-        const uint32_t n = m_unk08;
-        if (m_unk18.m_ui32NbElt < n) {
+    ReadU32LE(file, &m_ui32NbOwnRigs);
+    ReadU8(file, &m_bLoop);
+    ReadU8(file, &m_bHasOwnRigs);
+    if (m_bHasOwnRigs != 0) {
+        m_vOwnRigs.m_ui32NbElt = 1;
+        m_vOwnRigs.m_pBlock = static_cast<Entry*>(Mem_AllocAligned16(static_cast<uint32_t>(sizeof(Entry))));
+        const uint32_t n = m_ui32NbOwnRigs;
+        if (m_vOwnRigs.m_ui32NbElt < n) {
             uint32_t capacity = n + 1;
             uint32_t bytes = capacity * static_cast<uint32_t>(sizeof(Entry));
             if (capacity == 0) {
                 capacity = 1;
                 bytes = static_cast<uint32_t>(sizeof(Entry));
             }
-            m_unk18.m_pBlock = static_cast<Entry*>(Mem_ReallocAligned16(m_unk18.m_pBlock, bytes));
-            m_unk18.m_ui32NbElt = capacity;
+            m_vOwnRigs.m_pBlock = static_cast<Entry*>(Mem_ReallocAligned16(m_vOwnRigs.m_pBlock, bytes));
+            m_vOwnRigs.m_ui32NbElt = capacity;
         }
-        m_unk18.m_ui32NbUsedElt = n;
-        for (uint32_t i = 0; i < m_unk08; ++i) {
-            Entry& e = m_unk18.m_pBlock[i];
+        m_vOwnRigs.m_ui32NbUsedElt = n;
+        for (uint32_t i = 0; i < m_ui32NbOwnRigs; ++i) {
+            Entry& e = m_vOwnRigs.m_pBlock[i];
             IKFile_ReadRef(file, &e.m_unk00);
             IKFile_ReadRef(file, &e.m_unk04);
             IKFile_ReadRef(file, &e.m_unk08);
@@ -122,8 +122,8 @@ int32_t CKAnimatedFxCollection::PostLoad(int32_t /*type*/) {
     m_abActive.m_ui32NbUsedElt = count;
     for (uint32_t i = 0; i < m_abActive.m_ui32NbUsedElt; ++i) m_abActive.m_pBlock[i] = 0;
     m_pOwner = nullptr;
-    for (uint32_t i = 0; i < m_unk18.m_ui32NbUsedElt; ++i) {
-        CSGLeaf* node = static_cast<CSGLeaf*>(m_unk18.m_pBlock[i].m_unk00);
+    for (uint32_t i = 0; i < m_vOwnRigs.m_ui32NbUsedElt; ++i) {
+        CSGLeaf* node = static_cast<CSGLeaf*>(m_vOwnRigs.m_pBlock[i].m_unk00);
         if (node != nullptr) node->m_sgProperties = (node->m_sgProperties & 0xfffffffbu) | 4u;  // the rig hidden
     }
     return 1;
@@ -135,8 +135,8 @@ CKAnimatedFx* FxAt(const TVector<IKSerializable*, 1>& fx, uint32_t i) { return s
 
 // The rig of effect `i`: the own rig with +0x24 (null past the own rigs), else the i-th of the rigs Play got.
 SAnimatedFxRig* CKAnimatedFxCollection::RigOf(uint32_t i) {
-    if (m_unk24 == 0) return &m_pRigs[i];
-    if (i < m_unk18.m_ui32NbUsedElt) return reinterpret_cast<SAnimatedFxRig*>(&m_unk18.m_pBlock[i]);
+    if (m_bHasOwnRigs == 0) return &m_pRigs[i];
+    if (i < m_vOwnRigs.m_ui32NbUsedElt) return reinterpret_cast<SAnimatedFxRig*>(&m_vOwnRigs.m_pBlock[i]);
     return nullptr;
 }
 
@@ -145,7 +145,7 @@ int32_t CKAnimatedFxCollection::Play(CSGLeaf* owner, SAnimatedFxRig* rigs, CSGHo
     if (owner == nullptr) return 0;
     m_pOwner = owner;
     m_pAttach = attach;
-    if (rigs == nullptr && m_unk24 == 0) return 0;
+    if (rigs == nullptr && m_bHasOwnRigs == 0) return 0;
     m_pRigs = rigs;
     if (m_bPlaying != 0) return 0;
     int32_t any = 0;
@@ -160,7 +160,7 @@ int32_t CKAnimatedFxCollection::Play(CSGLeaf* owner, SAnimatedFxRig* rigs, CSGHo
 
 // 0x005cd0a8 CKAnimatedFxCollection_PlayWithOwnRigs_maybe
 int32_t CKAnimatedFxCollection::PlayWithOwnRigs(CSGLeaf* owner, CSGHotSpot* attach) {
-    if (m_unk24 == 0) return 0;
+    if (m_bHasOwnRigs == 0) return 0;
     if (owner == nullptr) return 0;
     m_pOwner = owner;
     m_pAttach = attach;
@@ -222,13 +222,13 @@ uint8_t CKAnimatedFxCollection::Update(float dt) {
             return 1;
         }
     }
-    if (m_unk04 == 0) {
+    if (m_bLoop == 0) {
         m_bPlaying = 0;
         return 0;
     }
     if (count == 0) {
         m_bPlaying = 0;
-        return m_unk04;
+        return m_bLoop;
     }
     // Looping collection (+0x04): every effect plays again on its rig.
     uint8_t first = 0;
@@ -238,5 +238,5 @@ uint8_t CKAnimatedFxCollection::Update(float dt) {
     }
     m_bPlaying = first;
     if (first != 0) return 1;
-    return m_unk04;
+    return m_bLoop;
 }

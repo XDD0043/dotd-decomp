@@ -56,48 +56,48 @@ public:
     // the level's cone (+0x210 degrees, the aim cone +0x21c; host vt+0x58) with action 1 off; action 9 on; the base's.
     void SteerTowardsTarget(const CVector3* direction) override;
 
-    float m_unk1a8[3];               // +0x1a8
-    int32_t m_unk1b4[3];             // +0x1b4 (file: 150 175 254)
-    int32_t m_unk1c0[3];             // +0x1c0 (file: 0; int assumed, as +0x1b4)
-    int32_t m_unk1cc[3];             // +0x1cc (file: 0)
-    float m_unk1d8[3];               // +0x1d8
-    CKAttackMoveVec3 m_unk1e4[3];    // +0x1e4
-    float m_unk208;                  // +0x208
-    float m_unk20c;                  // +0x20c
-    float m_unk210[3];               // +0x210
-    IKSerializable* m_unk21c;        // +0x21c (live: CKAimCamembert)
-    IKSerializable* m_unk220;        // +0x220 (live: CKExplosionFxData)
-    IKSerializable* m_unk224;        // +0x224 (live: CKExplosionFxData)
-    IKSerializable* m_unk228;        // +0x228 (live: CKExplosionFxData)
-    IKSerializable* m_unk22c;        // +0x22c (live: CKExplosionFxData)
-    IKSerializable* m_unk230;        // +0x230 (live: CKExplosionFxData)
-    IKSerializable* m_unk234;        // +0x234
-    IKSerializable* m_unk238;        // +0x238 (not loaded; live 0) runtime: the running particles of +0x234
-    IKSerializable* m_unk23c;        // +0x23c
-    IKSerializable* m_unk240;        // +0x240 (not loaded; live 0) runtime: the running particles of +0x23c
-    IKSerializable* m_unk244;        // +0x244 (live: CKAnimatedFxCollection)
-    IKSerializable* m_unk248;        // +0x248 (live: CNode)
-    IKSerializable* m_unk24c;        // +0x24c (live: CTrailNodeFx)
-    uint32_t m_unk250;               // +0x250 runtime: the mesh's alpha when the fade-out last ran (a word store of the byte)
-    uint8_t m_unk254;                // +0x254 runtime: the mesh has faded in (Start / StopFxAndAttack clear it)
+    float m_afHitSphereRadius[3];               // +0x1a8
+    int32_t m_ai32MeshHoldAlpha[3];             // +0x1b4 (file: 150 175 254)
+    int32_t m_ai32MeshStartAlpha[3];             // +0x1c0 (file: 0; int assumed, as +0x1b4)
+    int32_t m_ai32MeshEndAlpha[3];             // +0x1cc (file: 0)
+    float m_afMeshSpinDegPerSec[3];               // +0x1d8
+    CKAttackMoveVec3 m_avMeshScale[3];    // +0x1e4
+    float m_fFadeInTime;                  // +0x208
+    float m_fFadeOutTime;                  // +0x20c
+    float m_afSteerConeDeg[3];               // +0x210
+    IKSerializable* m_pAimCone;        // +0x21c (live: CKAimCamembert)
+    IKSerializable* m_pStartExplosion;        // +0x220 (live: CKExplosionFxData)
+    IKSerializable* m_pStartExplosionLevel3;        // +0x224 (live: CKExplosionFxData)
+    IKSerializable* m_pHitExplosionLevel1;        // +0x228 (live: CKExplosionFxData)
+    IKSerializable* m_pHitExplosionLevel2;        // +0x22c (live: CKExplosionFxData)
+    IKSerializable* m_pHitExplosionLevel3;        // +0x230 (live: CKExplosionFxData)
+    IKSerializable* m_pParticlesDataA;        // +0x234
+    IKSerializable* m_pActiveParticlesA;        // +0x238 (not loaded; live 0) runtime: the running particles of +0x234
+    IKSerializable* m_pParticlesDataB;        // +0x23c
+    IKSerializable* m_pActiveParticlesB;        // +0x240 (not loaded; live 0) runtime: the running particles of +0x23c
+    IKSerializable* m_pAnimFxCollection;        // +0x244 (live: CKAnimatedFxCollection)
+    IKSerializable* m_pCloudMesh;        // +0x248 (live: CNode)
+    IKSerializable* m_pTrailNode;        // +0x24c (live: CTrailNodeFx)
+    uint32_t m_ui32LastFadeOutAlpha;               // +0x250 runtime: the mesh's alpha when the fade-out last ran (a word store of the byte)
+    uint8_t m_bMeshFadedIn;                // +0x254 runtime: the mesh has faded in (Start / StopFxAndAttack clear it)
     uint8_t m_pad255[3];
-    float m_unk258;                  // +0x258 runtime: the time left of a hit's slow-down (Start / ResetRuntime: 0)
-    uint8_t m_unk25c;                // +0x25c runtime (Start / ResetRuntime: 0)
+    float m_fHitSlowdownTimer;                  // +0x258 runtime: the time left of a hit's slow-down (Start / ResetRuntime: 0)
+    uint8_t m_bHitHeld;                // +0x25c runtime (Start / ResetRuntime: 0)
     uint8_t m_pad25d[3];
 };
 DOTD_ASSERT_SIZE(CKPoisonSpin, 0x260);
-DOTD_ASSERT_OFFSET(CKPoisonSpin, m_unk1a8, 0x1a8);
-DOTD_ASSERT_OFFSET(CKPoisonSpin, m_unk1b4, 0x1b4);
-DOTD_ASSERT_OFFSET(CKPoisonSpin, m_unk1c0, 0x1c0);
-DOTD_ASSERT_OFFSET(CKPoisonSpin, m_unk1cc, 0x1cc);
-DOTD_ASSERT_OFFSET(CKPoisonSpin, m_unk1d8, 0x1d8);
-DOTD_ASSERT_OFFSET(CKPoisonSpin, m_unk1e4, 0x1e4);
-DOTD_ASSERT_OFFSET(CKPoisonSpin, m_unk208, 0x208);
-DOTD_ASSERT_OFFSET(CKPoisonSpin, m_unk20c, 0x20c);
-DOTD_ASSERT_OFFSET(CKPoisonSpin, m_unk210, 0x210);
-DOTD_ASSERT_OFFSET(CKPoisonSpin, m_unk21c, 0x21c);
-DOTD_ASSERT_OFFSET(CKPoisonSpin, m_unk230, 0x230);
-DOTD_ASSERT_OFFSET(CKPoisonSpin, m_unk234, 0x234);
-DOTD_ASSERT_OFFSET(CKPoisonSpin, m_unk23c, 0x23c);
-DOTD_ASSERT_OFFSET(CKPoisonSpin, m_unk244, 0x244);
-DOTD_ASSERT_OFFSET(CKPoisonSpin, m_unk24c, 0x24c);
+DOTD_ASSERT_OFFSET(CKPoisonSpin, m_afHitSphereRadius, 0x1a8);
+DOTD_ASSERT_OFFSET(CKPoisonSpin, m_ai32MeshHoldAlpha, 0x1b4);
+DOTD_ASSERT_OFFSET(CKPoisonSpin, m_ai32MeshStartAlpha, 0x1c0);
+DOTD_ASSERT_OFFSET(CKPoisonSpin, m_ai32MeshEndAlpha, 0x1cc);
+DOTD_ASSERT_OFFSET(CKPoisonSpin, m_afMeshSpinDegPerSec, 0x1d8);
+DOTD_ASSERT_OFFSET(CKPoisonSpin, m_avMeshScale, 0x1e4);
+DOTD_ASSERT_OFFSET(CKPoisonSpin, m_fFadeInTime, 0x208);
+DOTD_ASSERT_OFFSET(CKPoisonSpin, m_fFadeOutTime, 0x20c);
+DOTD_ASSERT_OFFSET(CKPoisonSpin, m_afSteerConeDeg, 0x210);
+DOTD_ASSERT_OFFSET(CKPoisonSpin, m_pAimCone, 0x21c);
+DOTD_ASSERT_OFFSET(CKPoisonSpin, m_pHitExplosionLevel3, 0x230);
+DOTD_ASSERT_OFFSET(CKPoisonSpin, m_pParticlesDataA, 0x234);
+DOTD_ASSERT_OFFSET(CKPoisonSpin, m_pParticlesDataB, 0x23c);
+DOTD_ASSERT_OFFSET(CKPoisonSpin, m_pAnimFxCollection, 0x244);
+DOTD_ASSERT_OFFSET(CKPoisonSpin, m_pTrailNode, 0x24c);

@@ -77,8 +77,8 @@ CKGrpS08Hero* HeroGroup() { return static_cast<CKGrpS08Hero*>(g_pEngine->m_gameM
 
 // 0x002ca0f8 CKGrpS08Hero_GetFocusedHero (local copy, as CKHkHeroActivator.cpp's)
 CKHkS08Hero* FocusedHero(CKGrpS08Hero* group) {
-    if (group->m_unk66 == 0xff) return nullptr;
-    return static_cast<CKHkS08Hero*>(group->m_apHeros[static_cast<int32_t>(static_cast<int8_t>(group->m_unk66))]);
+    if (group->m_ui8FocusedDragon == 0xff) return nullptr;
+    return static_cast<CKHkS08Hero*>(group->m_apHeros[static_cast<int32_t>(static_cast<int8_t>(group->m_ui8FocusedDragon))]);
 }
 
 // The block of the hero's hazard query 0xc32 (CKHkS08Hero_6.cpp's HazardHitQuery, CKHkCrumblyZone.cpp's layout).
@@ -316,7 +316,7 @@ void CKHkMoss::SetActive(uint8_t active) {
     const float rightZ = ltm.right.z;
     CPFPoint point;
     point.m_position = {ltm.pos.x, ltm.pos.y, ltm.pos.z};
-    point.m_unk0c = 0xffff;
+    point.m_i16GraphNodeIndex = 0xffff;
     CVector3 low = {ltm.pos.x, ltm.pos.y, ltm.pos.z};
     CVector3 high = low;
     low.x = low.x - ppc::fmadds(FlipNegative(atX), b, std::fabs(rightX) * a);
@@ -325,7 +325,7 @@ void CKHkMoss::SetActive(uint8_t active) {
     high.z = high.z + ppc::fmadds(FlipNegative(atZ), b, FlipNegative(rightZ) * a);
     CKSrvPathFinding* pathFinding = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);
     pathFinding->FindSectorForPoint(&point);                                 // 0x001e5ca0
-    pathFinding->SetBoxBlocked(point.m_unk0c, &low, &high, active);          // 0x001e5f60
+    pathFinding->SetBoxBlocked(point.m_i16GraphNodeIndex, &low, &high, active);          // 0x001e5f60
 }
 
 // The puff Update inlines for each touching body and each hero on the ground (0.0 TOC +0x4ce0).

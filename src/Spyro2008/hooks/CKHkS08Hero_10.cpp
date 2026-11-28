@@ -92,7 +92,7 @@ uint8_t CKHkS08Hero::LocoTakeOffToPartner(IKTime*, int32_t phase, uint8_t) {
     }
     if (phase != 0) return 3;
     ApplyPartnerTetherToVelocity();  // 0x003105d8
-    if ((m_unk354 & 0x40000u) != 0) {
+    if ((m_ui32HeroFlags354 & 0x40000u) != 0) {
         const float nx = m_wallSlide.m_v3Normal.x;  // +0x61c
         const float ny = m_wallSlide.m_v3Normal.y;
         const float nz = m_wallSlide.m_v3Normal.z;
@@ -148,7 +148,7 @@ void CKHkS08Hero::UpdateTakeOffToPartnerLocomotion(float dt) {
     } else if (partnerMode == 2) {
         const RwFrame* frame = NodeFrame(partner->m_pKGLObject);
         // The partner's climb zone without its flag 0x10 (+0x0c) gives the right row; no zone or the flag, the at row.
-        const bool right = partner->m_unk1694 != nullptr && (partner->m_unk1694->m_bitArray & 0x10u) == 0;
+        const bool right = partner->m_pCurrentClimbZone != nullptr && (partner->m_pCurrentClimbZone->m_bitArray & 0x10u) == 0;
         const RwV3d& row = right ? frame->modelling.right : frame->modelling.at;
         m_unk15e0 = row.x;
         m_unk15e4 = row.y;
@@ -302,12 +302,12 @@ void CKHkS08Hero::UpdateTakeOffToPartnerLocomotion(float dt) {
         py = m_unk15d8;
     }
     if (AsF32(m_unk15ec) > 0.0f) SetF32(m_unk15ec, AsF32(m_unk15ec) - dt);
-    if ((m_unk358 & 0x100000u) == 0 && m_unk1618 > 0.0f) return;
+    if ((m_ui32HeroFlags358 & 0x100000u) == 0 && m_unk1618 > 0.0f) return;
     if (m_unk1378 == 0.0f) return;
     if (!(AsF32(m_unk15ec) <= 0.0f)) return;
     const uint32_t pushes = m_unk1610;
     if (pushes > 1) return;
-    if ((m_unk354 & 0x800u) != 0 || (m_unk35c & 2u) != 0) return;
+    if ((m_ui32HeroFlags354 & 0x800u) != 0 || (m_ui32HeroFlags35C & 2u) != 0) return;
     m_unk1618 = 0.800000011920928955f;  // TOC +0x24c4
     m_unk1610 = pushes + 1;
     HeroTimedImpulse push{m_unk156c, m_unk1570, m_unk1574, Vec(m_unk1578), AsF32(m_unk1584), AsF32(m_unk1588)};

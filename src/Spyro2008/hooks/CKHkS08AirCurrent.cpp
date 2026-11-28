@@ -83,54 +83,54 @@
 int32_t CKHkS08AirCurrent::Load(IKFile* file, int32_t type) {
     CKHkActorBase::Load(file, type);
     if (type != K_LEVEL_PLATEFORMS) return 1;
-    IKFile_ReadRef(file, &m_pUnk94);
-    IKFile_ReadRef(file, &m_pUnk98);
-    for (float& f : m_afUnk9C) ReadF32LE(file, &f);
-    ReadF32LE(file, &m_fUnkA8);
-    ReadF32LE(file, &m_fUnkAC);
-    ReadF32LE(file, &m_unkB4);
-    ReadF32LE(file, &m_unkB0);
-    ReadF32LE(file, &m_unkB8);
-    ReadF32LE(file, &m_fUnkBC);
+    IKFile_ReadRef(file, &m_pMultiGeometry);
+    IKFile_ReadRef(file, &m_pSpline);
+    for (float& f : m_vWindDir) ReadF32LE(file, &f);
+    ReadF32LE(file, &m_fBaseStrength);
+    ReadF32LE(file, &m_fTubeRadius);
+    ReadF32LE(file, &m_fGustIntervalMax);
+    ReadF32LE(file, &m_fGustIntervalMin);
+    ReadF32LE(file, &m_fGustStrengthMin);
+    ReadF32LE(file, &m_fGustStrengthMax);
     ReadF32LE(file, &m_fUnk5C);
     ReadF32LE(file, &m_fUnk60);
     for (float& f : m_afUnk68) ReadF32LE(file, &f);
     ReadF32LE(file, &m_fUnkC8);
     ReadF32LE(file, &m_fUnkCC);
-    ReadU16LE(file, &m_ui16NbUnk24);
-    if (m_ui16NbUnk24 == 0) {
-        m_aUnk28 = nullptr;
-        m_apUnk24 = nullptr;
+    ReadU16LE(file, &m_ui16NbStreamNodes);
+    if (m_ui16NbStreamNodes == 0) {
+        m_aui8StreamNodeAlpha = nullptr;
+        m_apStreamNodes = nullptr;
     } else {
-        m_apUnk24 = static_cast<IKSerializable**>(
-            Mem_AllocAligned16(m_ui16NbUnk24 * static_cast<uint32_t>(sizeof(IKSerializable*))));
-        IKFile_ReadObjectRefArray(file, m_apUnk24, m_ui16NbUnk24);
-        m_aUnk28 = new uint8_t[m_ui16NbUnk24];  // OperatorNewArray
-        ReadRaw(file, m_aUnk28, m_ui16NbUnk24);
+        m_apStreamNodes = static_cast<IKSerializable**>(
+            Mem_AllocAligned16(m_ui16NbStreamNodes * static_cast<uint32_t>(sizeof(IKSerializable*))));
+        IKFile_ReadObjectRefArray(file, m_apStreamNodes, m_ui16NbStreamNodes);
+        m_aui8StreamNodeAlpha = new uint8_t[m_ui16NbStreamNodes];  // OperatorNewArray
+        ReadRaw(file, m_aui8StreamNodeAlpha, m_ui16NbStreamNodes);
     }
-    IKFile_ReadRef(file, &m_pUnk2C);
-    IKFile_ReadRef(file, &m_pUnk30);
-    IKFile_ReadRef(file, &m_pUnk34);
+    IKFile_ReadRef(file, &m_pFlowNode);
+    IKFile_ReadRef(file, &m_pFlickerNode);
+    IKFile_ReadRef(file, &m_pSteadyNode);
     ReadU16LE(file, &m_unk38);
-    IKFile_ReadRef(file, &m_pUnk3C);
+    IKFile_ReadRef(file, &m_pFogBoxA);
     ReadU16LE(file, &m_unk40);
-    IKFile_ReadRef(file, &m_pUnk44);
-    ReadF32LE(file, &m_fUnk4C);
+    IKFile_ReadRef(file, &m_pFogBoxB);
+    ReadF32LE(file, &m_fRecordHeightBase);
     ReadF32LE(file, &m_fUnk50);
     ReadF32LE(file, &m_fUnk54);
     ReadF32LE(file, &m_fUnk58);
-    IKFile_ReadRef(file, &m_pUnkD0);
-    ReadF32LE(file, &m_unkD4);
-    IKFile_ReadRef(file, &m_pUnkD8);
+    IKFile_ReadRef(file, &m_pDetectorGroup);
+    ReadF32LE(file, &m_fPushRampTime);
+    IKFile_ReadRef(file, &m_pCameraConstraint);
     ReadF32LE(file, &m_fUnkC0);
     ReadF32LE(file, &m_fUnkC4);
     ReadF32LE(file, &m_fUnk64);
-    IKFile_ReadRef(file, &m_pUnkDC);
-    ReadU8(file, &m_ui8NbUnkE4);
-    m_apUnkE4 = static_cast<IKSerializable**>(
-        Mem_AllocAligned16(m_ui8NbUnkE4 * static_cast<uint32_t>(sizeof(IKSerializable*))));
-    IKFile_ReadObjectRefArray(file, m_apUnkE4, m_ui8NbUnkE4);
-    IKFile_ReadRef(file, &m_pUnk48);
+    IKFile_ReadRef(file, &m_pMainAnimFx);
+    ReadU8(file, &m_ui8NbFlowAnimFx);
+    m_apFlowAnimFx = static_cast<IKSerializable**>(
+        Mem_AllocAligned16(m_ui8NbFlowAnimFx * static_cast<uint32_t>(sizeof(IKSerializable*))));
+    IKFile_ReadObjectRefArray(file, m_apFlowAnimFx, m_ui8NbFlowAnimFx);
+    IKFile_ReadRef(file, &m_pSoundDico);
     return 1;
 }
 
@@ -166,7 +166,7 @@ uint8_t AlphaByte(float alpha) { return static_cast<uint8_t>(ppc::fctiwz(alpha))
 
 // 0x002ca0f8 CKGrpS08Hero_GetFocusedHero (local copy; CKGrpS08Hero.cpp, not ported there yet).
 CKHkS08Hero* FocusedHeroOf(const IKGrpHero* group) {
-    const int8_t index = static_cast<int8_t>(group->m_unk66);
+    const int8_t index = static_cast<int8_t>(group->m_ui8FocusedDragon);
     if (index == -1) return nullptr;
     return static_cast<CKHkS08Hero*>(group->m_apHeros[index]);
 }
@@ -176,7 +176,7 @@ CKHkS08Hero* HeroAt(const IKGrpHero* group, uint32_t index) {
 }
 // 0x00361968 CKHkS08Hero_GetPositionPtr (local copy; the same as CKHkDetectorGroup.cpp's).
 const float* HeroPositionOf(CKHkS08Hero* hero) {
-    if ((hero->m_bitArray & 2u) == 0 || ((hero->m_unked4 >> 4) & 1u) != 0) return &hero->m_unk54c;
+    if ((hero->m_bitArray & 2u) == 0 || ((hero->m_ui32StatusFlagsED4 >> 4) & 1u) != 0) return &hero->m_unk54c;
     return &FrameLtm(static_cast<CSGMovable*>(hero->m_pKGLObject)->m_pRwFrame)->pos.x;
 }
 // 0x00362af0 CKHkS08Hero_IsPlayerControlled: the hero is its own tracked leader.
@@ -332,14 +332,14 @@ void CKHkS08AirCurrent::AddRecords() {
     std::memset(&m, 0, sizeof m);
     CVector3 point;      // sp+0x70
     CVector3 direction;  // sp+0x7c
-    if (m_pUnk98 != nullptr) {
-        IKPath* spline = static_cast<IKPath*>(m_pUnk98);
+    if (m_pSpline != nullptr) {
+        IKPath* spline = static_cast<IKPath*>(m_pSpline);
         const float length = spline->GetLength();  // vt+0x5c
         struct Set {
             uint16_t count;
             IKSerializable* fog;
         };
-        const Set sets[2] = {{m_unk38, m_pUnk3C}, {m_unk40, m_pUnk44}};
+        const Set sets[2] = {{m_unk38, m_pFogBoxA}, {m_unk40, m_pFogBoxB}};
         for (const Set& set : sets) {
             const uint16_t count = set.count;
             if (count == 0) continue;
@@ -354,7 +354,7 @@ void CKHkS08AirCurrent::AddRecords() {
         }
         return;
     }
-    if (m_pUnk94 == nullptr) return;
+    if (m_pMultiGeometry == nullptr) return;
     direction = {m_afWind[0], m_afWind[1], m_afWind[2]};
     const float windLength = std::sqrt(ppc::fmadds(direction.z, direction.z,
                                                    ppc::fmadds(direction.x, direction.x, direction.y * direction.y)));  // 0x00010690
@@ -364,7 +364,7 @@ void CKHkS08AirCurrent::AddRecords() {
         direction.x = direction.x * inverse;
         direction.y = direction.y * inverse;
     }
-    const CMultiGeometryBasic* shape = static_cast<const CMultiGeometryBasic*>(m_pUnk94);
+    const CMultiGeometryBasic* shape = static_cast<const CMultiGeometryBasic*>(m_pMultiGeometry);
     const float* s = shape->m_afShape;
     const float halfX = (s[0] - s[3]) * 0.5f;  // TOC1 +0x5a3c
     const float halfZ = (s[2] - s[5]) * 0.5f;
@@ -393,7 +393,7 @@ void CKHkS08AirCurrent::AddRecords() {
                           static_cast<float>(static_cast<int32_t>(a))) - halfX;
         float x = ppc::fmadds(u1, m_fUnk50, x0);
         const float u2 = AirRandSigned();
-        const float base = m_fUnk4C;
+        const float base = m_fRecordHeightBase;
         x = centerX + x;
         const float z0 = (ppc::fmadds(static_cast<float>(static_cast<int32_t>((j << 1) & 0x1feu)), halfZ, halfZ) /
                           static_cast<float>(static_cast<int32_t>(b))) - halfZ;
@@ -412,7 +412,7 @@ void CKHkS08AirCurrent::AddRecords() {
                 const uint32_t index = rows * (i & 0xffu) + (j & 0xffu);
                 if (static_cast<int32_t>(index) < static_cast<int32_t>(m_unk38)) {
                     cell(i, j, rows, cols);
-                    PlaceRecord(static_cast<CFogBoxNodeFx*>(m_pUnk3C), index + 1, m);
+                    PlaceRecord(static_cast<CFogBoxNodeFx*>(m_pFogBoxA), index + 1, m);
                 }
                 ++j;
                 if (cols == (j & 0xffu)) break;
@@ -429,7 +429,7 @@ void CKHkS08AirCurrent::AddRecords() {
                 const uint32_t index = (j & 0xffu) + rows * (i & 0xffu);
                 if (static_cast<int32_t>(index) < static_cast<int32_t>(m_unk40)) {
                     cell(i, j, rows, cols);
-                    PlaceRecord(static_cast<CFogBoxNodeFx*>(m_pUnk44), index + 1, m);
+                    PlaceRecord(static_cast<CFogBoxNodeFx*>(m_pFogBoxB), index + 1, m);
                 }
                 ++j;
                 if (((colsFull - 1) & 0xffu) + 1 == j) break;
@@ -443,26 +443,26 @@ void CKHkS08AirCurrent::AddRecords() {
 // 0x00474f60 CKHkS08AirCurrent_RemoveRecords_maybe: the records of both fog boxes removed (no null test on +0x44).
 void CKHkS08AirCurrent::RemoveRecords() {
     for (int32_t i = 0; i < static_cast<int32_t>(m_unk38); ++i) {
-        if (m_pUnk3C != nullptr) RemoveRecord(static_cast<CFogBoxNodeFx*>(m_pUnk3C), static_cast<uint32_t>(i + 1));
+        if (m_pFogBoxA != nullptr) RemoveRecord(static_cast<CFogBoxNodeFx*>(m_pFogBoxA), static_cast<uint32_t>(i + 1));
     }
     for (int32_t i = 0; i < static_cast<int32_t>(m_unk40); ++i) {
-        RemoveRecord(static_cast<CFogBoxNodeFx*>(m_pUnk44), static_cast<uint32_t>(i + 1));
+        RemoveRecord(static_cast<CFogBoxNodeFx*>(m_pFogBoxB), static_cast<uint32_t>(i + 1));
     }
 }
 
 // 0x00474310 CKHkS08AirCurrent_SetFxIntensity_maybe
 void CKHkS08AirCurrent::SetFxIntensity(float a, float b) {
-    if (m_pUnk30 != nullptr) SceneNode_SetAlphaRecursive(m_pUnk30, AlphaByte(a * m_fAlpha), 1);
-    if (m_pUnk34 != nullptr) SceneNode_SetAlphaRecursive(m_pUnk34, AlphaByte(a * 255.0f), 1);
-    for (int32_t i = 0; i < static_cast<int32_t>(m_ui16NbUnk24); ++i) {
-        SceneNode_SetAlphaRecursive(m_apUnk24[i], AlphaByte(b * static_cast<float>(m_aUnk28[i])), 1);
+    if (m_pFlickerNode != nullptr) SceneNode_SetAlphaRecursive(m_pFlickerNode, AlphaByte(a * m_fAlpha), 1);
+    if (m_pSteadyNode != nullptr) SceneNode_SetAlphaRecursive(m_pSteadyNode, AlphaByte(a * 255.0f), 1);
+    for (int32_t i = 0; i < static_cast<int32_t>(m_ui16NbStreamNodes); ++i) {
+        SceneNode_SetAlphaRecursive(m_apStreamNodes[i], AlphaByte(b * static_cast<float>(m_aui8StreamNodeAlpha[i])), 1);
     }
-    if (m_pUnk2C != nullptr) SceneNode_SetAlphaRecursive(m_pUnk2C, AlphaByte(b * m_fFlowAlpha), 1);
+    if (m_pFlowNode != nullptr) SceneNode_SetAlphaRecursive(m_pFlowNode, AlphaByte(b * m_fFlowAlpha), 1);
 }
 
 // 0x00474208 CKHkS08AirCurrent_UpdateAlphaFlicker_maybe
 void CKHkS08AirCurrent::UpdateAlphaFlicker(float dt) {
-    if (m_pUnk30 == nullptr) return;
+    if (m_pFlickerNode == nullptr) return;
     float alpha = m_fAlpha;
     float target = m_fAlphaTarget;
     if (alpha == target) {
@@ -480,16 +480,16 @@ void CKHkS08AirCurrent::UpdateAlphaFlicker(float dt) {
         m_fAlpha = next;
         if (next > target) m_fAlpha = target;
     }
-    if (m_pUnk30 != nullptr) SceneNode_SetAlphaRecursive(m_pUnk30, AlphaByte(m_fAlpha), 1);
+    if (m_pFlickerNode != nullptr) SceneNode_SetAlphaRecursive(m_pFlickerNode, AlphaByte(m_fAlpha), 1);
 }
 
 // 0x00474470 CKHkS08AirCurrent_UpdateFlowFx_maybe
 void CKHkS08AirCurrent::UpdateFlowFx(float dt) {
-    IKPath* spline = static_cast<IKPath*>(m_pUnk98);
+    IKPath* spline = static_cast<IKPath*>(m_pSpline);
     if (spline == nullptr) return;
     const float timer = m_fFlowTimer - dt;
     m_fFlowTimer = timer;
-    CSGMovable* flow = static_cast<CSGMovable*>(m_pUnk2C);
+    CSGMovable* flow = static_cast<CSGMovable*>(m_pFlowNode);
     if (flow != nullptr) {
         const float* r = m_afUnk68;  // +0x68: index (offset - 0x68) / 4
         float distance;
@@ -539,14 +539,14 @@ void CKHkS08AirCurrent::UpdateFlowFx(float dt) {
         }
         SceneNode_SetAlphaRecursive(flow, AlphaByte(m_fFlowAlpha), 1);
     }
-    if (m_ui8NbUnkE4 == 0 || m_ui16NbUnk24 == 0) return;
-    for (int32_t i = 0; i < static_cast<int32_t>(m_ui8NbUnkE4); ++i) {
-        CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_apUnkE4[i]);
+    if (m_ui8NbFlowAnimFx == 0 || m_ui16NbStreamNodes == 0) return;
+    for (int32_t i = 0; i < static_cast<int32_t>(m_ui8NbFlowAnimFx); ++i) {
+        CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_apFlowAnimFx[i]);
         if (collection->m_bPlaying != 0) {
             collection->Update(dt);
         } else {
-            const uint32_t index = (static_cast<uint32_t>(static_cast<uint16_t>(Rand_Int())) * m_ui16NbUnk24) >> 16;
-            collection->PlayWithOwnRigs(static_cast<CSGLeaf*>(m_apUnk24[index]), nullptr);
+            const uint32_t index = (static_cast<uint32_t>(static_cast<uint16_t>(Rand_Int())) * m_ui16NbStreamNodes) >> 16;
+            collection->PlayWithOwnRigs(static_cast<CSGLeaf*>(m_apStreamNodes[index]), nullptr);
         }
     }
 }
@@ -554,17 +554,17 @@ void CKHkS08AirCurrent::UpdateFlowFx(float dt) {
 // 0x00476438 CKHkS08AirCurrent_OnActivate
 void CKHkS08AirCurrent::VfA0() {
     CKHkActorBase::VfA0();  // 0x003f7338 the active actor list
-    const float strength = m_fUnkA8;
+    const float strength = m_fBaseStrength;
     m_fStrength = strength;
-    m_afWind[0] = strength * m_afUnk9C[0];
-    m_afWind[2] = strength * m_afUnk9C[2];
-    m_afWind[1] = strength * m_afUnk9C[1];
+    m_afWind[0] = strength * m_vWindDir[0];
+    m_afWind[2] = strength * m_vWindDir[2];
+    m_afWind[1] = strength * m_vWindDir[1];
     const float u = AirRand01();
     m_fFlowTimer = 0.0f;
     m_fTimeInside = 0.0f;
     m_fAlphaTarget = m_afUnk68[(0x88 - 0x68) / 4];
     m_fAlpha = m_afUnk68[(0x88 - 0x68) / 4];
-    m_fGustTimer = ppc::fmadds(u, m_unkB4 - m_unkB0, m_unkB0);
+    m_fGustTimer = ppc::fmadds(u, m_fGustIntervalMax - m_fGustIntervalMin, m_fGustIntervalMin);
     if ((m_bitArray & 0x800u) == 0) {
         m_fIntensityB = 0.0f;
         m_fIntensityA = 0.0f;
@@ -576,19 +576,19 @@ void CKHkS08AirCurrent::VfA0() {
     m_fIntensityA = 1.0f;
     SetFxIntensity(1.0f, 0.0f);
     AddRecords();
-    if (m_pUnkDC == nullptr) return;
-    IKSerializable* owner = m_pUnk30;
+    if (m_pMainAnimFx == nullptr) return;
+    IKSerializable* owner = m_pFlickerNode;
     if (owner == nullptr) {
-        if (m_ui16NbUnk24 == 0) return;
-        owner = m_apUnk24[0];
+        if (m_ui16NbStreamNodes == 0) return;
+        owner = m_apStreamNodes[0];
     }
-    static_cast<CKAnimatedFxCollection*>(m_pUnkDC)->PlayWithOwnRigs(static_cast<CSGLeaf*>(owner), nullptr);
+    static_cast<CKAnimatedFxCollection*>(m_pMainAnimFx)->PlayWithOwnRigs(static_cast<CSGLeaf*>(owner), nullptr);
 }
 
 // 0x004748c0 CKHkS08AirCurrent_OnDeactivate
 void CKHkS08AirCurrent::VfA4() {
     CKHkActorBase::VfA4();  // 0x003f7370
-    if (SoundOf(m_pUnk48) != nullptr) SoundOf(m_pUnk48)->Stop(0);
+    if (SoundOf(m_pSoundDico) != nullptr) SoundOf(m_pSoundDico)->Stop(0);
 }
 
 // 0x004765c0 CKHkS08AirCurrent_Update
@@ -598,14 +598,14 @@ void CKHkS08AirCurrent::Update(IKTime* frameClock) {
     IKGrpHero* group = static_cast<IKGrpHero*>(g_pEngine->m_gameManager->m_unk04[1]);  // the game manager's +0x08
     UpdateFlowFx(dt);
     UpdateAlphaFlicker(dt);  // inlined
-    if (m_pUnkDC != nullptr) static_cast<CKAnimatedFxCollection*>(m_pUnkDC)->Update(frameClock->m_afDeltaTime[0]);
+    if (m_pMainAnimFx != nullptr) static_cast<CKAnimatedFxCollection*>(m_pMainAnimFx)->Update(frameClock->m_afDeltaTime[0]);
     const int8_t mode = static_cast<int8_t>(FocusedHeroOf(group)->GetMovementMode());  // 0x32a6c0 (the thunk)
     // The sound loops while the current is on, except while a hero inside flies.
     if ((m_bitArray & 0x800u) == 0 || (!(m_fTimeInside <= 0.0f) && mode == 1)) {
-        if (SoundOf(m_pUnk48) != nullptr) SoundOf(m_pUnk48)->Stop(0);
-    } else if (SoundOf(m_pUnk48) != nullptr && SoundOf(m_pUnk48)->m_pInstances == nullptr) {
-        SoundOf(m_pUnk48)->SetLoop(1);
-        SoundOf(m_pUnk48)->Play(0.0f);
+        if (SoundOf(m_pSoundDico) != nullptr) SoundOf(m_pSoundDico)->Stop(0);
+    } else if (SoundOf(m_pSoundDico) != nullptr && SoundOf(m_pSoundDico)->m_pInstances == nullptr) {
+        SoundOf(m_pSoundDico)->SetLoop(1);
+        SoundOf(m_pSoundDico)->Play(0.0f);
     }
     // The FX intensities fade in / out (1 per second).
     const float a = m_fIntensityA;
@@ -633,7 +633,7 @@ void CKHkS08AirCurrent::Update(IKTime* frameClock) {
         m_fIntensityB = nextB;
         SetFxIntensity(nextA, nextB);
     }
-    CKCameraConstraint* constraint = static_cast<CKCameraConstraint*>(m_pUnkD8);
+    CKCameraConstraint* constraint = static_cast<CKCameraConstraint*>(m_pCameraConstraint);
     if (constraint != nullptr && (m_bitArray & 0x80u) == 0) constraint->m_unk1c &= 0xfbu;
     if (group == nullptr || (m_bitArray & 0x800u) == 0) {
         if (constraint != nullptr) constraint->m_unk1c &= 0xfbu;
@@ -644,10 +644,10 @@ void CKHkS08AirCurrent::Update(IKTime* frameClock) {
         m_fGustTimer = left;
         if (left <= 0.0f) {
             // A gust: the next one's time, its strength and a direction turned at random around +0x9c (4 rand draws).
-            m_fGustTimer = ppc::fmadds(AirRand01(), m_unkB4 - m_unkB0, m_unkB0);
-            const float gust = ppc::fmadds(AirRand01(), m_fUnkBC - m_unkB8, m_unkB8);
-            const float yaw0 = Vec3_GetYawAngleFromZ(reinterpret_cast<const CVector3*>(m_afUnk9C));
-            const float pitch0 = crt::Asinf(m_afUnk9C[1]);
+            m_fGustTimer = ppc::fmadds(AirRand01(), m_fGustIntervalMax - m_fGustIntervalMin, m_fGustIntervalMin);
+            const float gust = ppc::fmadds(AirRand01(), m_fGustStrengthMax - m_fGustStrengthMin, m_fGustStrengthMin);
+            const float yaw0 = Vec3_GetYawAngleFromZ(reinterpret_cast<const CVector3*>(m_vWindDir));
+            const float pitch0 = crt::Asinf(m_vWindDir[1]);
             const float r1 = static_cast<float>(static_cast<uint16_t>(Rand_Int()));
             const float yaw = ppc::fmadds(ppc::fmadds(r1, kRandScale, 1.0f), m_fUnkC0 * kDegToRad, yaw0);
             const float r2 = static_cast<float>(static_cast<uint16_t>(Rand_Int()));
@@ -668,8 +668,8 @@ void CKHkS08AirCurrent::Update(IKTime* frameClock) {
         CKHkS08Hero* hero = HeroAt(group, i);
         const float* p = HeroPositionOf(hero);
         const float point[3] = {p[0], p[1], p[2]};
-        const CMultiGeometryBasic* shape = static_cast<const CMultiGeometryBasic*>(m_pUnk94);
-        IKPath* spline = static_cast<IKPath*>(m_pUnk98);
+        const CMultiGeometryBasic* shape = static_cast<const CMultiGeometryBasic*>(m_pMultiGeometry);
+        IKPath* spline = static_cast<IKPath*>(m_pSpline);
         uint32_t* record = WindRecord(i);
         auto markRecord = [&]() {
             uint8_t* bytes = reinterpret_cast<uint8_t*>(&record[6]);
@@ -693,7 +693,7 @@ void CKHkS08AirCurrent::Update(IKTime* frameClock) {
                 const float dx = onSpline.x - point[0];
                 const float dz = onSpline.z - point[2];
                 const float distanceSquared = ppc::fmadds(dz, dz, ppc::fmadds(dx, dx, dy * dy));
-                if (!(m_fUnkAC * m_fUnkAC <= distanceSquared)) {
+                if (!(m_fTubeRadius * m_fTubeRadius <= distanceSquared)) {
                     // Inside the tube: pushed along the spline, pulled toward it.
                     if (IsPlayerControlled(HeroAt(group, i))) playerInside = 1;
                     float tx = tangent.x * m_fStrength;
@@ -702,14 +702,14 @@ void CKHkS08AirCurrent::Update(IKTime* frameClock) {
                     float px = kVectorZero.x;
                     float py = kVectorZero.y;
                     float pz = kVectorZero.z;
-                    const float pullFrom = spline->GetLength() - m_fUnkAC;  // vt+0x5c
+                    const float pullFrom = spline->GetLength() - m_fTubeRadius;  // vt+0x5c
                     if (!(pullFrom <= along) && m_fUnkC8 != 0.0f && !(m_fUnkCC * m_fUnkCC >= distanceSquared)) {
                         px = (onSpline.x - point[0]) * m_fUnkC8;
                         py = (onSpline.y - point[1]) * m_fUnkC8;
                         pz = (onSpline.z - point[2]) * m_fUnkC8;
                     }
-                    if (!(m_fTimeInside >= m_unkD4)) {
-                        const float ramp = m_fTimeInside / m_unkD4;
+                    if (!(m_fTimeInside >= m_fPushRampTime)) {
+                        const float ramp = m_fTimeInside / m_fPushRampTime;
                         tz = tz * ramp;
                         tx = tx * ramp;
                         ty = ty * ramp;
@@ -719,19 +719,19 @@ void CKHkS08AirCurrent::Update(IKTime* frameClock) {
                     markRecord();
                     anyInside = true;
                     if ((m_bitArray & 0x40u) != 0) record[7] = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(this));
-                } else if (HeroAt(group, i) == FocusedHeroOf(group) && SoundOf(m_pUnk48) != nullptr) {
-                    SoundOf(m_pUnk48)->SetPosition(&onSpline);
+                } else if (HeroAt(group, i) == FocusedHeroOf(group) && SoundOf(m_pSoundDico) != nullptr) {
+                    SoundOf(m_pSoundDico)->SetPosition(&onSpline);
                 }
-            } else if (SoundOf(m_pUnk48) != nullptr && SoundOf(m_pUnk48)->GetSample() != nullptr &&
+            } else if (SoundOf(m_pSoundDico) != nullptr && SoundOf(m_pSoundDico)->GetSample() != nullptr &&
                        HeroAt(group, i) == FocusedHeroOf(group)) {
                 // The sound follows the focused hero's closest point on the spline.
                 const float along = spline->GetClosestDistanceAlong(reinterpret_cast<const CVector3*>(point), 1);
                 spline->GetPointAtDistance(along, &onSpline, &tangent);
-                SoundOf(m_pUnk48)->SetPosition(&onSpline);
+                SoundOf(m_pSoundDico)->SetPosition(&onSpline);
             }
             // The +0x24 nodes turn about their up axis.
-            for (int32_t k = 0; k < static_cast<int32_t>(m_ui16NbUnk24); ++k) {
-                CSGMovable* node = static_cast<CSGMovable*>(m_apUnk24[k]);
+            for (int32_t k = 0; k < static_cast<int32_t>(m_ui16NbStreamNodes); ++k) {
+                CSGMovable* node = static_cast<CSGMovable*>(m_apStreamNodes[k]);
                 node->RotateInPlace(&node->m_pRwFrame->modelling.up.x, m_fUnk64 * frameClock->m_afDeltaTime[0]);
             }
             continue;
@@ -739,7 +739,7 @@ void CKHkS08AirCurrent::Update(IKTime* frameClock) {
         // No spline: the shape (or the detector group) holds the hero, pushed by the wind vector.
         bool inside = false;
         if (shape == nullptr) {
-            CKHkDetectorGroup* detector = static_cast<CKHkDetectorGroup*>(m_pUnkD0);
+            CKHkDetectorGroup* detector = static_cast<CKHkDetectorGroup*>(m_pDetectorGroup);
             if (detector == nullptr) {
                 inside = true;  // no shape and no detector: every hero
             } else {
@@ -752,13 +752,13 @@ void CKHkS08AirCurrent::Update(IKTime* frameClock) {
             } else if (type == 1) {
                 inside = IsWithinRadius(shape->m_afShape[3], shape->m_afShape[4], shape->m_afShape, point);
             }
-            if (!inside && m_pUnkD0 != nullptr) inside = static_cast<CKHkDetectorGroup*>(m_pUnkD0)->IsTriggered(point) != 0;
+            if (!inside && m_pDetectorGroup != nullptr) inside = static_cast<CKHkDetectorGroup*>(m_pDetectorGroup)->IsTriggered(point) != 0;
         }
         if (!inside) continue;
         bool rampOnlyWhenBelow = false;
         if (IsPlayerControlled(HeroAt(group, i))) {
             playerInside = 1;
-        } else if (shape != nullptr || m_pUnkD0 != nullptr) {
+        } else if (shape != nullptr || m_pDetectorGroup != nullptr) {
             rampOnlyWhenBelow = true;
         }
         float wx = m_afWind[0];
@@ -766,8 +766,8 @@ void CKHkS08AirCurrent::Update(IKTime* frameClock) {
         float wz = m_afWind[2];
         // The ramp: below +0xd4 (an unordered time ramps too, except for a hero not player-controlled in the shape or
         // the detector: blt there, bge elsewhere).
-        if (rampOnlyWhenBelow ? (m_fTimeInside < m_unkD4) : !(m_fTimeInside >= m_unkD4)) {
-            const float ramp = m_fTimeInside / m_unkD4;
+        if (rampOnlyWhenBelow ? (m_fTimeInside < m_fPushRampTime) : !(m_fTimeInside >= m_fPushRampTime)) {
+            const float ramp = m_fTimeInside / m_fPushRampTime;
             wz = wz * ramp;
             wx = wx * ramp;
             wy = wy * ramp;
@@ -806,9 +806,9 @@ void CKHkS08AirCurrent::Update(IKTime* frameClock) {
 
 // 0x00474a70 CKHkS08AirCurrent_Destroy
 void CKHkS08AirCurrent::Destroy() {
-    Mem_FreeAligned16(m_apUnk24);
-    if (m_aUnk28 != nullptr) delete[] m_aUnk28;
-    Mem_FreeAligned16(m_apUnkE4);
+    Mem_FreeAligned16(m_apStreamNodes);
+    if (m_aui8StreamNodeAlpha != nullptr) delete[] m_aui8StreamNodeAlpha;
+    Mem_FreeAligned16(m_apFlowAnimFx);
 }
 
 // ==== P14 ===========================================================================================================
@@ -842,7 +842,7 @@ CKHkS08AirCurrent* CKHkS08AirCurrent::FromRecordWord(uint32_t word) {
 
 // 0x00475278 CKHkS08AirCurrent_ClampPositionToTube_maybe
 CVector3 CKHkS08AirCurrent::ClampPositionToTube(const CVector3* position) {
-    IKPath* spline = static_cast<IKPath*>(m_pUnk98);
+    IKPath* spline = static_cast<IKPath*>(m_pSpline);
     const float along = spline->GetClosestDistanceAlong(position, 1);  // vt+0x58
     CVector3 out;
     spline->GetPointAtDistance(along, &out, nullptr);  // vt+0x54
@@ -861,7 +861,7 @@ CVector3 CKHkS08AirCurrent::ClampPositionToTube(const CVector3* position) {
         distance = kZero;
     }
     const float kMargin = 0.05f;  // TOC1 +0x5a88
-    const float radius = m_fUnkAC - kMargin;
+    const float radius = m_fTubeRadius - kMargin;
     // ble / bgt / ble: a NaN distance or parameter keeps the position.
     if (distance > radius && (length - kMargin) > along && along > kMargin) {
         CVector3 wall;

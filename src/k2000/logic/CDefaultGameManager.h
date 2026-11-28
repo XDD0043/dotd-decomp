@@ -24,7 +24,7 @@ class CKLevel;
 struct SGameOptions {
     uint32_t m_ui32Language;      // +0x00 the language index (CLocManager); another one requests the reload
     uint8_t m_bSubtitles;         // +0x04 CKSrvSekensor_SetSubtitlesEnabled_maybe
-    uint8_t m_unk05;              // +0x05 InitDefaultOptions: 1 (IKGameManager_ToggleOptionF1)
+    uint8_t m_bTutorialInfoPopups;              // +0x05 InitDefaultOptions: 1 (IKGameManager_ToggleOptionF1)
     uint8_t m_pad06[2];
     uint32_t m_ui32SoundOutput;   // +0x08 index into the output-mode table (0x00a6f380: 0, 1, 3, 4, 5)
     uint32_t m_ui32AspectRatio;   // +0x0c index into the aspect table (0x00a6f394: 4/3, 16/9)
@@ -364,7 +364,7 @@ public:
     CKLevel* m_level;            // +0x18
     // +0x1c the save-state buffer (InitImpl: kSaveStateSlotSize * kSaveStateSlotCount bytes, the stream +0x3c reads it)
     KMemBuffer m_unk1c;
-    IKFile* m_unk3c;             // +0x3c the save-state memory stream over +0x1c (InitImpl; a KMemoryStream)
+    IKFile* m_pSaveStateStream;             // +0x3c the save-state memory stream over +0x1c (InitImpl; a KMemoryStream)
     IKSerializable* m_playerArray;     // +0x40 CreateObjectArray(GetPlayerClassKey(), 7)
     IKSerializable* m_players[7];      // +0x44 loaded as references (mode 1)
     uint16_t m_playerStride;     // +0x60
@@ -372,16 +372,16 @@ public:
     uint32_t m_flags64;          // +0x64
     uint32_t m_unk68;            // +0x68
     IKSerializable* m_gameStructure;   // +0x6c CreateObjectByKey(GetGameStructureClassKey())
-    CTriggerStarter m_unk70;     // +0x70 mode 0
-    CTriggerStarter m_unk78;     // +0x78 mode 0
+    CTriggerStarter m_tsRestart;     // +0x70 mode 0
+    CTriggerStarter m_tsStart;     // _maybe: +0x78 mode 0
     uint32_t m_unk80;            // +0x80
-    IKSerializable* m_unk84;           // +0x84 a reference (mode 1)
-    uint8_t m_unk88;             // +0x88
+    IKSerializable* m_pBootingVideo;           // +0x84 a reference (mode 1)
+    uint8_t m_bAutosavePending;             // _maybe: +0x88
     uint8_t m_unk89;             // +0x89 InitImpl: 0
     uint16_t m_pad8a;
-    uint32_t m_unk8c[4];         // +0x8c a UUID (constructor: 0)
-    int32_t m_unk9c;             // +0x9c InitImpl: -1
-    uint32_t m_unkA0[4];         // +0xa0 a UUID (constructor: 0)
+    uint32_t m_guidSave[4];         // +0x8c a UUID (constructor: 0)
+    int32_t m_i32SaveSlotIndex;             // +0x9c InitImpl: -1
+    uint32_t m_guidPendingSave[4];         // +0xa0 a UUID (constructor: 0)
     int32_t m_unkB0;             // +0xb0 InitImpl: -1
     uint8_t m_bSaveRequestPosted;  // +0xb4 the save-data request is posted (the flows set it, then poll)
     uint8_t m_padB5[3];
@@ -395,7 +395,7 @@ public:
     float m_afBackupVolumes[3];        // +0x130
     uint32_t m_unk13C;                 // +0x13c
     uint32_t m_ui32BackupBrightness;   // +0x140
-    IKSerializable* m_unk144;    // +0x144 mode 0
+    IKSerializable* m_pPromptTextAccessor;    // +0x144 mode 0
     // +0x148..+0x151 the save-check state machine (RunSaveCheckStateMachine; C2.8 port-rest R05): its owner (this while
     // it runs), the heap copy of its state table (Mem_AllocAligned16(0x28): five PS3 pointers to member), the state
     // count (5) and the current state (0xff: not running).
@@ -405,9 +405,9 @@ public:
     uint8_t m_unk151;            // +0x151 0xff
     uint16_t m_pad152;
     uint32_t m_unk154[6];        // +0x154 0
-    KMemBuffer m_unk16c;         // +0x16c
+    KMemBuffer m_memBuf16c;         // +0x16c
     uint32_t m_unk18c;           // +0x18c
-    KMemBuffer m_unk190;         // +0x190
+    KMemBuffer m_memBuf190;         // +0x190
     // +0x1b0..+0x1ff: the save-check states' request block (C2.8 port-rest R05: the fields the states write; nothing else
     // in DotD reads them).
     uint32_t m_unk1b0[2];        // +0x1b0
@@ -418,7 +418,7 @@ public:
     uint32_t m_unk1c8[10];       // +0x1c8
     uint8_t m_unk1f0[11];        // +0x1f0..+0x1fa bytes (+0x1f4: busy, +0x1f6: a request to stop)
     uint8_t m_pad1fb[5];
-    KMemBuffer m_unk200;         // +0x200
+    KMemBuffer m_memBuf200;         // +0x200
     uint32_t m_unk220[4];        // +0x220 0
     uint32_t m_unk230[4];        // +0x230 0
     uint32_t m_unk240[2];        // +0x240
@@ -439,8 +439,8 @@ public:
     int32_t m_requestedSector;   // +0x284 -2 = the level's default sector
     int32_t m_unk288;            // +0x288
     int32_t m_unk28c;            // +0x28c
-    int32_t m_unk290;            // +0x290 -1 = none; otherwise GameLoop exit reason 4
-    uint8_t m_unk294;            // +0x294 render gate in GameLoop
+    int32_t m_i32RequestedLanguage;            // +0x290 -1 = none; otherwise GameLoop exit reason 4
+    uint8_t m_bLevelChangePending;            // _maybe: +0x294 render gate in GameLoop
     uint8_t m_pad295[3];
 };
 DOTD_ASSERT_SIZE(CDefaultGameManager, 0x298);
@@ -449,20 +449,20 @@ DOTD_ASSERT_OFFSET(CDefaultGameManager, m_level, 0x18);
 DOTD_ASSERT_OFFSET(CDefaultGameManager, m_playerArray, 0x40);
 DOTD_ASSERT_OFFSET(CDefaultGameManager, m_players, 0x44);
 DOTD_ASSERT_OFFSET(CDefaultGameManager, m_gameStructure, 0x6c);
-DOTD_ASSERT_OFFSET(CDefaultGameManager, m_unk70, 0x70);
-DOTD_ASSERT_OFFSET(CDefaultGameManager, m_unk84, 0x84);
+DOTD_ASSERT_OFFSET(CDefaultGameManager, m_tsRestart, 0x70);
+DOTD_ASSERT_OFFSET(CDefaultGameManager, m_pBootingVideo, 0x84);
 DOTD_ASSERT_OFFSET(CDefaultGameManager, m_currentOptions, 0xb8);
 DOTD_ASSERT_OFFSET(CDefaultGameManager, m_editedOptions, 0xec);
 DOTD_ASSERT_OFFSET(CDefaultGameManager, m_i32BackupScreenOffsetX, 0x120);
 DOTD_ASSERT_OFFSET(CDefaultGameManager, m_ui32BackupBrightness, 0x140);
-DOTD_ASSERT_OFFSET(CDefaultGameManager, m_unk144, 0x144);
-DOTD_ASSERT_OFFSET(CDefaultGameManager, m_unk16c, 0x16c);
-DOTD_ASSERT_OFFSET(CDefaultGameManager, m_unk200, 0x200);
+DOTD_ASSERT_OFFSET(CDefaultGameManager, m_pPromptTextAccessor, 0x144);
+DOTD_ASSERT_OFFSET(CDefaultGameManager, m_memBuf16c, 0x16c);
+DOTD_ASSERT_OFFSET(CDefaultGameManager, m_memBuf200, 0x200);
 DOTD_ASSERT_OFFSET(CDefaultGameManager, m_unk249, 0x249);
 DOTD_ASSERT_OFFSET(CDefaultGameManager, m_unk274, 0x274);
 DOTD_ASSERT_OFFSET(CDefaultGameManager, m_currentLevel, 0x27c);
 DOTD_ASSERT_OFFSET(CDefaultGameManager, m_unk28c, 0x28c);
-DOTD_ASSERT_OFFSET(CDefaultGameManager, m_unk294, 0x294);
+DOTD_ASSERT_OFFSET(CDefaultGameManager, m_bLevelChangePending, 0x294);
 
 // 0x00013088 IKGameManager_UpdateLevelIfCtx30Zero_maybe: the level's Update while the clock runs.
 void IKGameManager_UpdateLevel(CDefaultGameManager* manager, IKTime* frameClock);

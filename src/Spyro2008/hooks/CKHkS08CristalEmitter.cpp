@@ -328,7 +328,7 @@ uint8_t CKHkS08CristalEmitter::State0(IKTime* /*clock*/, int32_t phase, uint8_t 
         }
         if (m_pUnk60 != nullptr) return other;
         // The data's byte +0x08 bit 4 cleared (rlwinm 27,1,31 / rlwinm 5,0,31: & 0xef).
-        static_cast<CKParticlesEffectFxData*>(m_pUnk5C)->m_unk08 &= 0xefu;
+        static_cast<CKParticlesEffectFxData*>(m_pUnk5C)->m_ui8Flags &= 0xefu;
         m_pUnk60 = EmitterSrvFx()->AcquireFx(static_cast<IKFxData*>(m_pUnk5C), this);
         if (m_pUnk60 == nullptr) return other;
         CVector3 position;

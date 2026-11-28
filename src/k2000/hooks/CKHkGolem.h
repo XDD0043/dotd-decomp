@@ -95,7 +95,7 @@ public:
     void Update(IKTime* clock) override;  // vt+0x7c 0x004c4838 CKHkGolem_Update
     void VfA0() override;  // vt+0xa0 0x004c00c8 CKHkGolem_OnActivate
     void VfA4() override;  // vt+0xa4 0x004bfc88 CKHkGolem_OnDeactivate
-    void SetEnabled(int32_t enabled) override { m_unk45 = static_cast<uint8_t>(enabled); }  // vt+0xcc 0x004bed50 SetByte45
+    void SetEnabled(int32_t enabled) override { m_bEnabled = static_cast<uint8_t>(enabled); }  // vt+0xcc 0x004bed50 SetByte45
     void VfD4(int32_t on, int32_t mode) override;  // vt+0xd4 0x004bfdf0 CKHkGolem_SetActiveWithBossGauge_maybe
     virtual void AddObject(IKSerializable* object);     // vt+0xf0 0x004bf8a0 CKHkGolem_AddObjectToList2C_maybe
     virtual void RemoveObject(IKSerializable* object);  // vt+0xf4 0x004c07c0 CKHkGolem_RemoveObjectFromList2C_maybe
@@ -125,11 +125,11 @@ public:
     CKGolemPhaseManager* PhaseManager() const;           // +0x30
 
     // The damage and time accessors (CKGolemPhaseQTE.cpp unit, 0x4bec68..0x4becc8).
-    int32_t GetDamageTakenSinceMark() const { return m_unk40 - m_unk48; }  // 0x004bec68
-    int32_t GetTotalDamageTaken() const { return m_unk40; }                // 0x004bec80
-    void MarkDamageTaken() { m_unk48 = m_unk40; }                          // 0x004bec88
-    float GetTime50() const { return m_fUnk50; }                           // 0x004becb0
-    float GetTime54() const { return m_fUnk54; }                           // 0x004becb8
+    int32_t GetDamageTakenSinceMark() const { return m_i32TotalDamageTaken - m_i32DamageMark; }  // 0x004bec68
+    int32_t GetTotalDamageTaken() const { return m_i32TotalDamageTaken; }                // 0x004bec80
+    void MarkDamageTaken() { m_i32DamageMark = m_i32TotalDamageTaken; }                          // 0x004bec88
+    float GetTime50() const { return m_fStartGameTime; }                           // 0x004becb0
+    float GetTime54() const { return m_fLastMarkGameTime; }                           // 0x004becb8
     void SetTime54ToNow();                                                 // 0x004bf9f8
     // 0x004becc8 CKHkGolem_ApplyDamagePoints_maybe: the damage counted, the health lowered (not below 0).
     void ApplyDamagePoints(int32_t points);
@@ -145,49 +145,49 @@ public:
     // `direction` (normalised in place) at the hot spot of the hit volume.
     void SpawnContactParticleFx(CSGHotSpot* hotSpot, const CVector3* point, CVector3* direction);
 
-    ContactHistoryNode* m_unk20;                            // +0x20 constructor 0: the contacts (ContactHistory)
-    IKSerializable* m_unk24;                                // +0x24 reference: the step explosions' default damage
-    IKSerializable* m_unk28;                                // +0x28 reference: the bonus table (SpawnBonuses)
-    ObjectNode* m_unk2C;                                    // +0x2c constructor 0: the attached objects
-    IKSerializable* m_unk30;                                // +0x30 reference (read first): the phase manager
+    ContactHistoryNode* m_pContactHistory;                            // +0x20 constructor 0: the contacts (ContactHistory)
+    IKSerializable* m_pDefaultStepDamage;                                // +0x24 reference: the step explosions' default damage
+    IKSerializable* m_pBonusTable;                                // +0x28 reference: the bonus table (SpawnBonuses)
+    ObjectNode* m_pAttachedObjects;                                    // +0x2c constructor 0: the attached objects
+    IKSerializable* m_pPhaseManager;                                // +0x30 reference (read first): the phase manager
     TVector<IKSerializable*, 1> m_unk34;                    // +0x34 references
-    int32_t m_unk40;                                        // +0x40 runtime (Start: 0): the damage taken
-    uint8_t m_unk44;                                        // +0x44 runtime (Start: 0): the boss fight runs
-    uint8_t m_unk45;                                        // +0x45 runtime (Start: 1): updated
+    int32_t m_i32TotalDamageTaken;                                        // +0x40 runtime (Start: 0): the damage taken
+    uint8_t m_bBossFightRunning;                                        // +0x44 runtime (Start: 0): the boss fight runs
+    uint8_t m_bEnabled;                                        // +0x45 runtime (Start: 1): updated
     uint8_t m_pad46[2];
-    int32_t m_unk48;                                        // +0x48 runtime (Start: 0): the damage mark
-    int32_t m_unk4C;                                        // +0x4c runtime: the damage taken at the frame's start
-    float m_fUnk50;                                         // +0x50 runtime (Start: the game time)
-    float m_fUnk54;                                         // +0x54 runtime (Start: the game time)
+    int32_t m_i32DamageMark;                                        // +0x48 runtime (Start: 0): the damage mark
+    int32_t m_i32FrameStartDamage;                                        // +0x4c runtime: the damage taken at the frame's start
+    float m_fStartGameTime;                                         // +0x50 runtime (Start: the game time)
+    float m_fLastMarkGameTime;                                         // +0x54 runtime (Start: the game time)
     TVector<CKHkGolemNode18*, 1> m_unk58;                   // +0x58
     TVector<CKHkGolemNode10<CKHkGolemRecordC>*, 1> m_unk64;  // +0x64
     TVector<CKHkGolemNode10<CKHkGolemRecord20>*, 1> m_unk70; // +0x70
-    IKSerializable* m_unk7C;                                // +0x7c reference: the hit explosion's FX data (SpawnFxAt)
-    IKSerializable* m_unk80;                                // +0x80 reference
-    CMatrix34* m_pUnk84;                                    // +0x84 PostLoad: RwMatrixCreate (OnActivate: the node's
+    IKSerializable* m_pHitExplosionFx;                                // +0x7c reference: the hit explosion's FX data (SpawnFxAt)
+    IKSerializable* m_pContactParticlesFx;                                // +0x80 reference
+    CMatrix34* m_pSavedMatrix;                                    // +0x84 PostLoad: RwMatrixCreate (OnActivate: the node's
                                                             // matrix; Restart / OnDeactivate put it back)
-    int32_t m_unk88;                                        // +0x88 (LVL050: 1000): the maximum health
-    int32_t m_unk8C;                                        // +0x8c the health
-    uint8_t m_unk90;                                        // +0x90 the boss gauge shows the health
+    int32_t m_i32MaxHealth;                                        // +0x88 (LVL050: 1000): the maximum health
+    int32_t m_i32Health;                                        // +0x8c the health
+    uint8_t m_bShowBossGauge;                                        // +0x90 the boss gauge shows the health
     uint8_t m_pad91[3];
     float m_af94[10];                                       // +0x94 (LVL010/120: 1.0, 0.7, 0.4, ...): the damage
                                                             // factors per damage kind (CKHkS08DragonCityGolem)
-    IKSerializable* m_unkBC;                                // +0xbc reference (read before +0x94): a CKMarkedFX
+    IKSerializable* m_pMarkedFx;                                // +0xbc reference (read before +0x94): a CKMarkedFX
 };
 DOTD_ASSERT_SIZE(CKHkGolem, 0xc0);
-DOTD_ASSERT_OFFSET(CKHkGolem, m_unk20, 0x20);
-DOTD_ASSERT_OFFSET(CKHkGolem, m_unk24, 0x24);
-DOTD_ASSERT_OFFSET(CKHkGolem, m_unk30, 0x30);
+DOTD_ASSERT_OFFSET(CKHkGolem, m_pContactHistory, 0x20);
+DOTD_ASSERT_OFFSET(CKHkGolem, m_pDefaultStepDamage, 0x24);
+DOTD_ASSERT_OFFSET(CKHkGolem, m_pPhaseManager, 0x30);
 DOTD_ASSERT_OFFSET(CKHkGolem, m_unk34, 0x34);
 DOTD_ASSERT_OFFSET(CKHkGolem, m_unk58, 0x58);
 DOTD_ASSERT_OFFSET(CKHkGolem, m_unk64, 0x64);
 DOTD_ASSERT_OFFSET(CKHkGolem, m_unk70, 0x70);
-DOTD_ASSERT_OFFSET(CKHkGolem, m_unk7C, 0x7c);
-DOTD_ASSERT_OFFSET(CKHkGolem, m_pUnk84, 0x84);
-DOTD_ASSERT_OFFSET(CKHkGolem, m_unk88, 0x88);
-DOTD_ASSERT_OFFSET(CKHkGolem, m_unk90, 0x90);
+DOTD_ASSERT_OFFSET(CKHkGolem, m_pHitExplosionFx, 0x7c);
+DOTD_ASSERT_OFFSET(CKHkGolem, m_pSavedMatrix, 0x84);
+DOTD_ASSERT_OFFSET(CKHkGolem, m_i32MaxHealth, 0x88);
+DOTD_ASSERT_OFFSET(CKHkGolem, m_bShowBossGauge, 0x90);
 DOTD_ASSERT_OFFSET(CKHkGolem, m_af94, 0x94);
-DOTD_ASSERT_OFFSET(CKHkGolem, m_unkBC, 0xbc);
+DOTD_ASSERT_OFFSET(CKHkGolem, m_pMarkedFx, 0xbc);
 DOTD_ASSERT_SIZE(CKHkGolemRecord20, 0x20);
 DOTD_ASSERT_SIZE(CKHkGolemNode18, 0x18);
 

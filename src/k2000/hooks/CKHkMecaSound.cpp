@@ -105,9 +105,9 @@ void CKHkMecaSound::Update(IKTime* /*frameClock*/) {
             StopMecaSounds(sounds);
             return;
         }
-        CKHkS08Hero* hero = group->m_unk66 == 0xff
+        CKHkS08Hero* hero = group->m_ui8FocusedDragon == 0xff
                                 ? nullptr
-                                : static_cast<CKHkS08Hero*>(group->m_apHeros[static_cast<int8_t>(group->m_unk66)]);  // 0x002ca0f8
+                                : static_cast<CKHkS08Hero*>(group->m_apHeros[static_cast<int8_t>(group->m_ui8FocusedDragon)]);  // 0x002ca0f8
         const float* p = hero->GetPositionPtr();  // 0x00361968
         listener = {p[0], p[1], p[2]};
     }

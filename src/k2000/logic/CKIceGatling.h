@@ -45,26 +45,26 @@ public:
     // (vt+0x80 0x009bff98 CKIceGatling_StartEmitterFx only calls the base's.)
 
     // Per level (the Load's loop): the hero's +0x1d20 while firing (host vt+0x84; file 1.0 / 1.25 / 1.75).
-    float m_unk214[3];             // +0x214 (read interleaved with +0x220: [i], then +0x220[i])
-    float m_unk220[3];             // +0x220 the launch point's jitter (file 0.1 / 0.1 / 0.5)
-    float m_unk22c[3];             // +0x22c the side offset of the launch point (file 0.2 / 0.45 / 0.8)
-    float m_unk238[3];             // +0x238 the launch speed (plus the hero's; file 7 / 9 / 12)
-    IKSerializable* m_unk244[3];   // +0x244 CKProjectileAccessor (live; LVL010: CKProjectileTypeBallisticPFX)
-    IKSerializable* m_unk250;      // +0x250 CKAnimatedFxCollection (live): played on the hero above level index 0
-    IKSerializable* m_unk254[3];   // +0x254 CKExplosionFxData (live): the muzzle explosion per level
+    float m_afHeroAnimSpeedScale[3];             // +0x214 (read interleaved with +0x220: [i], then +0x220[i])
+    float m_afLaunchJitter[3];             // +0x220 the launch point's jitter (file 0.1 / 0.1 / 0.5)
+    float m_afSideOffset[3];             // +0x22c the side offset of the launch point (file 0.2 / 0.45 / 0.8)
+    float m_afLaunchSpeed[3];             // +0x238 the launch speed (plus the hero's; file 7 / 9 / 12)
+    IKSerializable* m_apProjectiles[3];   // +0x244 CKProjectileAccessor (live; LVL010: CKProjectileTypeBallisticPFX)
+    IKSerializable* m_pAnimFxCollection;      // +0x250 CKAnimatedFxCollection (live): played on the hero above level index 0
+    IKSerializable* m_apMuzzleExplosions[3];   // +0x254 CKExplosionFxData (live): the muzzle explosion per level
     // Runtime (not read).
-    uint8_t m_unk260;              // +0x260 released past the tap window (Update): Fire launches nothing
-    uint8_t m_unk261;              // +0x261 the first Fire after Start only sets +0x262
-    uint8_t m_unk262;              // +0x262 Fire skipped its shot: Update clears the press time (+0x1fc)
-    uint8_t m_unk263;              // +0x263 the side of the next shot (0: -+0x22c, else +0x22c), flipped per shot
+    uint8_t m_bReleasedPastTap;              // +0x260 released past the tap window (Update): Fire launches nothing
+    uint8_t m_bHoldBackFirstShot;              // +0x261 the first Fire after Start only sets +0x262
+    uint8_t m_bFirstShotSkipped;              // +0x262 Fire skipped its shot: Update clears the press time (+0x1fc)
+    uint8_t m_bNextSide;              // +0x263 the side of the next shot (0: -+0x22c, else +0x22c), flipped per shot
 };
 DOTD_ASSERT_SIZE(CKIceGatling, 0x264);
-DOTD_ASSERT_OFFSET(CKIceGatling, m_unk214, 0x214);
-DOTD_ASSERT_OFFSET(CKIceGatling, m_unk220, 0x220);
-DOTD_ASSERT_OFFSET(CKIceGatling, m_unk22c, 0x22c);
-DOTD_ASSERT_OFFSET(CKIceGatling, m_unk238, 0x238);
-DOTD_ASSERT_OFFSET(CKIceGatling, m_unk244, 0x244);
-DOTD_ASSERT_OFFSET(CKIceGatling, m_unk250, 0x250);
-DOTD_ASSERT_OFFSET(CKIceGatling, m_unk254, 0x254);
-DOTD_ASSERT_OFFSET(CKIceGatling, m_unk260, 0x260);
-DOTD_ASSERT_OFFSET(CKIceGatling, m_unk263, 0x263);
+DOTD_ASSERT_OFFSET(CKIceGatling, m_afHeroAnimSpeedScale, 0x214);
+DOTD_ASSERT_OFFSET(CKIceGatling, m_afLaunchJitter, 0x220);
+DOTD_ASSERT_OFFSET(CKIceGatling, m_afSideOffset, 0x22c);
+DOTD_ASSERT_OFFSET(CKIceGatling, m_afLaunchSpeed, 0x238);
+DOTD_ASSERT_OFFSET(CKIceGatling, m_apProjectiles, 0x244);
+DOTD_ASSERT_OFFSET(CKIceGatling, m_pAnimFxCollection, 0x250);
+DOTD_ASSERT_OFFSET(CKIceGatling, m_apMuzzleExplosions, 0x254);
+DOTD_ASSERT_OFFSET(CKIceGatling, m_bReleasedPastTap, 0x260);
+DOTD_ASSERT_OFFSET(CKIceGatling, m_bNextSide, 0x263);

@@ -130,7 +130,7 @@ void CKCrumblyZoneElement::ReparentNodes() {
         CKParticlesEffectFxData* data = static_cast<CKParticlesEffectFxData*>(m_unk20);
         data->m_pAttachOwner = static_cast<CSGLeaf*>(zoneNode);
         data->m_pAttachHotSpot = nullptr;
-        data->m_unk08 = static_cast<uint8_t>((data->m_unk08 & 0xefu) | 0x10u);
+        data->m_ui8Flags = static_cast<uint8_t>((data->m_ui8Flags & 0xefu) | 0x10u);
     }
 }
 

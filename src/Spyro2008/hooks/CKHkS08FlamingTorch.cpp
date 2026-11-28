@@ -171,7 +171,7 @@ void CKHkS08FogHorn::DetectWindBeamContact() {
         if (damage == nullptr) continue;
         if (damage->GetClassID() != 0x267) continue;  // vt+0x18: CKS08ElementDamage
         if (owner->GetClassID() != 0x97) continue;    // CKHkS08Hero
-        if (static_cast<CKS08ElementDamage*>(damage)->m_unk20 != 7) continue;  // the damage type
+        if (static_cast<CKS08ElementDamage*>(damage)->m_ui32DamageType != 7) continue;  // the damage type
         m_bUnk48 = 1;
     }
 }
@@ -356,7 +356,7 @@ void CKHkS08FlamingTorch::DetectElementHits() {
         if (damage == nullptr) continue;
         m_unkC7 = 1;
         if (damage->GetClassID() == 0x267) {  // vt+0x18: CKS08ElementDamage
-            const uint32_t type = static_cast<CKS08ElementDamage*>(damage)->m_unk20;
+            const uint32_t type = static_cast<CKS08ElementDamage*>(damage)->m_ui32DamageType;
             if (type == 0) {
                 m_unkC4 = 1;
             } else if (type == 1) {
@@ -437,7 +437,7 @@ uint8_t CKHkS08FlamingTorch::State1(IKTime* clock, int32_t phase, uint8_t other)
         CKImpulsionCpnt* impulsion = static_cast<CKImpulsionCpnt*>(m_pUnk20);
         if (m_unkC4 != 0) impulsion->Impulse(1.0f);  // 0x0024bce0
         static_cast<CKImpulsionCpnt*>(m_pUnk20)->Update(clock->m_afDeltaTime[0]);  // 0x0024bd40
-        const float value = static_cast<CKImpulsionCpnt*>(m_pUnk20)->m_unk24;
+        const float value = static_cast<CKImpulsionCpnt*>(m_pUnk20)->m_fValue;
         float level;
         if (!(value >= 1.0f)) {  // cror eq|gt
             level = value * 0.8f;  // TOC +0x6014
@@ -448,7 +448,7 @@ uint8_t CKHkS08FlamingTorch::State1(IKTime* clock, int32_t phase, uint8_t other)
         }
         ScaleFlameParticles(level);
         TorchSounds(this)->GetSound(0)->SetVolume(m_fUnk84);  // 0x00110f10 (no null test)
-        const float now = static_cast<CKImpulsionCpnt*>(m_pUnk20)->m_unk24;
+        const float now = static_cast<CKImpulsionCpnt*>(m_pUnk20)->m_fValue;
         if (now >= 1.0f) {
             StartFlameFx();
             AddHotspotPointsToFx();
@@ -470,7 +470,7 @@ uint8_t CKHkS08FlamingTorch::State1(IKTime* clock, int32_t phase, uint8_t other)
     CKImpulsionCpnt* impulsion = static_cast<CKImpulsionCpnt*>(m_pUnk20);
     impulsion->m_unk04[1] = 0.0f;
     static_cast<CKImpulsionCpnt*>(m_pUnk20)->m_unk04[0] = 1.0f;
-    static_cast<CKImpulsionCpnt*>(m_pUnk20)->m_unk24 = 0.0f;
+    static_cast<CKImpulsionCpnt*>(m_pUnk20)->m_fValue = 0.0f;
     static_cast<CKImpulsionCpnt*>(m_pUnk20)->Impulse(1.0f);
     TorchSounds(this)->GetSound(0)->SetLoop(1);                    // 0x00110fd0
     TorchSounds(this)->GetSound(0)->SetPosition(TorchNodePos(this));  // 0x00110fa0
@@ -585,10 +585,10 @@ uint8_t CKHkS08FlamingTorch::State2(IKTime* clock, int32_t phase, uint8_t other)
         if (m_unkC5 != 0 || m_unkC6 != 0) static_cast<CKImpulsionCpnt*>(m_pUnk24)->Impulse(1.0f);
         if (m_unkC7 != 0 && m_unkC5 == 0) m_fUnkD4 = 1.0f;
         static_cast<CKImpulsionCpnt*>(m_pUnk24)->Update(clock->m_afDeltaTime[0]);
-        m_fUnk84 = 1.0f - static_cast<CKImpulsionCpnt*>(m_pUnk24)->m_unk24;
+        m_fUnk84 = 1.0f - static_cast<CKImpulsionCpnt*>(m_pUnk24)->m_fValue;
         TorchSounds(this)->GetSound(0)->SetVolume(m_fUnk84);
         ScaleFlameParticles(m_fUnk84);
-        const float value = static_cast<CKImpulsionCpnt*>(m_pUnk24)->m_unk24;
+        const float value = static_cast<CKImpulsionCpnt*>(m_pUnk24)->m_fValue;
         if (value >= 1.0f) {  // cror eq|gt
             TorchReleaseParticles(this);
             Sound_Stop(TorchSounds(this)->GetSound(0), 1);
@@ -608,7 +608,7 @@ uint8_t CKHkS08FlamingTorch::State2(IKTime* clock, int32_t phase, uint8_t other)
     m_unk40 = 0;
     static_cast<CKImpulsionCpnt*>(m_pUnk24)->m_unk04[1] = 0.0f;  // stw 0
     static_cast<CKImpulsionCpnt*>(m_pUnk24)->m_unk04[0] = 1.0f;
-    static_cast<CKImpulsionCpnt*>(m_pUnk24)->m_unk24 = 0.0f;  // stw 0
+    static_cast<CKImpulsionCpnt*>(m_pUnk24)->m_fValue = 0.0f;  // stw 0
     static_cast<CKImpulsionCpnt*>(m_pUnk24)->Impulse(1.0f);
     return other;
 }

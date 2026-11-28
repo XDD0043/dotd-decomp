@@ -160,7 +160,7 @@ void CKS08FightZoneCpnt::Update(IKTime* clock) {
         const float duration = m_unk40;
         if (duration > 0.0f && m_pFightZone->m_unk10d == 0) {
             float elapsed = m_unk44;
-            if (enemies->m_unk1bc != 0) {
+            if (enemies->m_bAlerted != 0) {
                 elapsed = elapsed + clock->m_afDeltaTime[0];
                 m_unk44 = elapsed;
             }

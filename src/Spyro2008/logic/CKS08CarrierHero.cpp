@@ -237,7 +237,7 @@ uint8_t CKS08CarrierHero::StartCarrying(IKSerializable* object) {
     hero->SetObjectControlsAnim(1);                          // 0x00362010
     hero->SetExternallyPositionedAndPhysics(1, nullptr, nullptr);  // 0x0032a638
     hero->SetAttachedMovementEnabled(1);                     // 0x00362050
-    if ((hero->m_unk358 & 8u) != 0) hero->m_unk3dc = 0.0f;   // 0x00362670 IKHkHero_SetAttachedMoveSpeed_maybe (TOC +0x6408)
+    if ((hero->m_ui32HeroFlags358 & 8u) != 0) hero->m_unk3dc = 0.0f;   // 0x00362670 IKHkHero_SetAttachedMoveSpeed_maybe (TOC +0x6408)
     hero->SetUnk530IfAttachedMovement(0.0f);                 // 0x003626a0
     m_pCarriedObject = object;
     if (m_bUnk90 == 0) return 1;

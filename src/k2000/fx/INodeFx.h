@@ -31,14 +31,14 @@ public:
     float m_fDeltaTime;
     // +0x28..+0x2a: CNodeFx_PostLoadBase_maybe (0xeca78) copies them into bits 22, 23 and 25 of every
     // geometry's render flags.
-    uint8_t m_unk28;
-    uint8_t m_unk29;
-    uint8_t m_unk2a;
+    uint8_t m_bFogEnabled;
+    uint8_t m_bReceiveShadows;
+    uint8_t m_bPointLights;
     uint8_t m_pad2b;  // never written
 };
 static_assert(INodeFx::kClassKey == 0x50b, "key");
 DOTD_ASSERT_SIZE(INodeFx, 0x2c);
 DOTD_ASSERT_OFFSET(INodeFx, m_fDeltaTime, 0x24);
-DOTD_ASSERT_OFFSET(INodeFx, m_unk28, 0x28);
-DOTD_ASSERT_OFFSET(INodeFx, m_unk29, 0x29);
-DOTD_ASSERT_OFFSET(INodeFx, m_unk2a, 0x2a);
+DOTD_ASSERT_OFFSET(INodeFx, m_bFogEnabled, 0x28);
+DOTD_ASSERT_OFFSET(INodeFx, m_bReceiveShadows, 0x29);
+DOTD_ASSERT_OFFSET(INodeFx, m_bPointLights, 0x2a);

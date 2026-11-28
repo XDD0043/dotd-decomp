@@ -88,7 +88,7 @@ bool ComboWindowConsumes(CKHkS08Hero* hero) {
 // the d-pad input bytes 0x12..0x15 (0x13: 1, 0x12: 3, 0x14: 0, 0x15: 2; the same again with +0xed0 bit 27 selects 4 and
 // keeps the previous in +0x1cc8); a change goes to the HUD.
 void CKHkS08Hero::QueueAttackInputAndSelectElement() {
-    if ((m_unk358 & 1u) != 0) {
+    if ((m_ui32HeroFlags358 & 1u) != 0) {
         m_unk1a84 = 0;
         return;
     }
@@ -123,9 +123,9 @@ void CKHkS08Hero::QueueAttackInputAndSelectElement() {
         }
     }
     const uint32_t previous = m_unk1cc4;
-    if (IsAbilityActive() == 0 && (m_unked0 & 0x10u) == 0) {  // 0x002fc228
-        const uint32_t flags = m_unked0;
-        const uint8_t* inputs = m_unk36c;
+    if (IsAbilityActive() == 0 && (m_ui32StatusFlagsED0 & 0x10u) == 0) {  // 0x002fc228
+        const uint32_t flags = m_ui32StatusFlagsED0;
+        const uint8_t* inputs = m_aui8JoyInputs;
         bool selected = true;
         if (inputs[0x13] != 0) {
             m_unk1cc4 = inputs[0x14] == 0 ? 1u : 0u;
@@ -175,7 +175,7 @@ bool ComboButtonsCancel(const CKHkS08Hero* hero) {
 // counts down instead (clock +0x1c).
 uint8_t CKHkS08Hero::ActGroundComboCondition(IKTime* clock, uint8_t) {
     if ((m_unkec8 & 0x400000u) != 0) return 0;
-    uint32_t flags = m_unk354;
+    uint32_t flags = m_ui32HeroFlags354;
     if ((flags & 1u) != 0 && m_unk1abc == 0) return 0;
     if (m_unk1aec < 0.0f) {
         if (static_cast<int8_t>(GetMovementMode()) == 0) {  // 0x003401b8
@@ -189,7 +189,7 @@ uint8_t CKHkS08Hero::ActGroundComboCondition(IKTime* clock, uint8_t) {
             if (m_unk1ac4 != 0 || m_unk1abd != 0 || m_unk1ac0 != 0 || m_unk1ac1 != 0 || m_unk1ac3 != 0) return 0;
             return static_cast<uint8_t>(m_unk1abf ^ 1);
         }
-        flags = m_unk354;
+        flags = m_ui32HeroFlags354;
     }
     if ((flags & 1u) != 0) return 0;
     if (!(m_unk1aec >= 0.0f)) return 0;  // TOC +0x279c (0)
@@ -210,7 +210,7 @@ uint8_t CKHkS08Hero::ActClimbComboCondition(IKTime*, uint8_t) {
     if ((m_unkec8 & 0x400000u) != 0) return 0;
     if (static_cast<int8_t>(GetMovementMode()) != 2) return 0;
     if (!(m_unk1aec < 0.0f)) return 0;
-    if (m_unk1a88 == m_unk1a8c && (m_unk1a84 == 0 || m_unk1a84 == 0xcu)) return 0;
+    if (m_pCurrentComboNode == m_unk1a8c && (m_unk1a84 == 0 || m_unk1a84 == 0xcu)) return 0;
     return static_cast<uint8_t>(m_unk1ac4 ^ 1);
 }
 
@@ -229,7 +229,7 @@ uint8_t CKHkS08Hero::ActFlyingComboCondition(IKTime* clock, uint8_t) {
         if (m_unk1ac4 != 0 || m_unk1abc != 0 || m_unk1ac0 != 0 || m_unk1abd != 0 || m_unk1ac3 != 0) return 0;
         return static_cast<uint8_t>(m_unk1abf ^ 1);
     }
-    if ((m_unk354 & 1u) == 0) return 0;
+    if ((m_ui32HeroFlags354 & 1u) == 0) return 0;
     if (!(m_unk1aec >= 0.0f)) return 0;
     m_unk1aec = m_unk1aec - clock->m_afDeltaTime[0];
     return 0;
@@ -239,7 +239,7 @@ uint8_t CKHkS08Hero::ActFlyingComboCondition(IKTime* clock, uint8_t) {
 // +0x354 bit 0 clear only for the kind 2 byte +0x1ac0), the kind 2 byte or the buttons.
 uint8_t CKHkS08Hero::ActGroundAltComboCondition(IKTime*, uint8_t) {
     if ((m_unkec8 & 0x400000u) != 0) return 0;
-    if ((m_unk354 & 1u) == 0 && m_unk1ac0 == 0) return 0;
+    if ((m_ui32HeroFlags354 & 1u) == 0 && m_unk1ac0 == 0) return 0;
     if (!(m_unk1aec < 0.0f)) return 0;
     if (static_cast<int8_t>(GetMovementMode()) != 0) return 0;
     if (m_unk1ac0 == 0) {
@@ -274,7 +274,7 @@ uint8_t CKHkS08Hero::ActGrabDashComboCondition(IKTime*, uint8_t) {
 // +0x354 bit 0 only for the kind 1 byte +0x1abd), the kind 1 byte or the attack button (+0xef0) pressed.
 uint8_t CKHkS08Hero::ActGroundGrabComboCondition(IKTime*, uint8_t) {
     if ((m_unkec8 & 0x400000u) != 0) return 0;
-    if ((m_unk354 & 1u) != 0 && m_unk1abd == 0) return 0;
+    if ((m_ui32HeroFlags354 & 1u) != 0 && m_unk1abd == 0) return 0;
     if (!(m_unk1aec < 0.0f)) return 0;
     if (static_cast<int8_t>(GetMovementMode()) != 0) return 0;
     if (m_unk1abd == 0 && ButtonPressed(m_unkef4, m_unkf00) == 0) return 0;
@@ -287,7 +287,7 @@ uint8_t CKHkS08Hero::ActGroundGrabComboCondition(IKTime*, uint8_t) {
 uint8_t CKHkS08Hero::ActDeadCondition(IKTime*, uint8_t) {
     if ((GetPartnerHero()->m_unkec8 & 0x08000000u) != 0) return 0;  // 0x002f85f8
     CKS08GameManager* manager = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager);  // TOC +0x277c -> +0x8c
-    const int32_t other = static_cast<int8_t>(static_cast<IKGrpHero*>(m_pGrpHero)->m_unk66);
+    const int32_t other = static_cast<int8_t>(static_cast<IKGrpHero*>(m_pGrpHero)->m_ui8FocusedDragon);
     if (static_cast<int32_t>(m_ui8Hero) != other && manager->GetDragonHealth(other) == 0) return 0;  // 0x004fd9c8
     if (manager->GetDragonHealth(m_ui8Hero) == 0) return 1;
     return static_cast<uint8_t>((m_unkec8 >> 27) & 1u);
@@ -311,11 +311,11 @@ void CKHkS08Hero::ApproachField1108AndNotifyCamera() {
 // (+0x1ab6) at the position + 0.3 x (+0x12a0) + 2 x the frame's right axis, or with -2 x the right axis (kind 0).
 void CKHkS08Hero::ApplyGrabbedEnemyMarkDamage() {
     m_unk1b30 = m_unk1b30 - m_unk88c;
-    if (m_unk1ac9 == 0 || m_unk124 == nullptr) return;
-    CKS08HeroCombo* combo = static_cast<CKS08HeroCombo*>(m_unk1a88);
+    if (m_unk1ac9 == 0 || m_pTargetedEnemy == nullptr) return;
+    CKS08HeroCombo* combo = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode);
     if (combo->m_pBlow == nullptr) return;  // vt+0x54 CKS08HeroCombo_GetBlow
     if ((m_unkedc & 0x100u) == 0) return;
-    CKHkS08Enemy* enemy = static_cast<CKHkS08Enemy*>(m_unk124);
+    CKHkS08Enemy* enemy = static_cast<CKHkS08Enemy*>(m_pTargetedEnemy);
     if (enemy->CanBeHeldAtPosition() != 0) {  // 0x00289b38
         enemy->ReceiveDamage(reinterpret_cast<IKSerializable*>(combo->m_pBlow->m_pDamage), this);  // vt+0xb0 GetDamage, 0x0028a6e0
     }
@@ -324,7 +324,7 @@ void CKHkS08Hero::ApplyGrabbedEnemyMarkDamage() {
         SpawnShockwave(1, &position);  // 0x0033c688
         return;
     }
-    if (m_unk160 != 0xb4) return;
+    if (m_i16CurAnimIndex != 0xb4) return;
     const RwV3d& right = static_cast<CSGMovable*>(m_pKGLObject)->m_pRwFrame->modelling.right;  // +0x1c -> +0x04 -> +0x10
     const float k = 0.3f;  // TOC +0x27a0
     CVector3 at;
@@ -353,7 +353,7 @@ void CKHkS08Hero::ApplyGrabbedEnemyMarkDamage() {
 // +0x1d9c starts (scale +0x8d0 x 100, time 0.01, active, the direction the null vector, then the Y axis); then with both
 // buttons +0xf18 / +0xf2c in state 1 or 3, +0x1afc = 0.22.
 void CKHkS08Hero::InitFlightField1D9CBlock() {
-    if ((m_unk354 & 0x02000000u) != 0) {
+    if ((m_ui32HeroFlags354 & 0x02000000u) != 0) {
         const int8_t mode = static_cast<int8_t>(GetMovementMode());
         if (mode == 1) {
             const CVector3 zero = kHeroZeroVector;   // TOC +0x27a8: 0x00c50d64, the null vector
@@ -392,12 +392,12 @@ const int32_t kBlowSounds[52] = {39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
 // field of view (+0x5d4), +0x111c the group's +0x1c0 (blow kind 2) or +0x1bc, +0x1b3c the blow's vt+0x88 and +0x1b34 the
 // field of view's change.
 void CKHkS08Hero::TryStartFinisherCamera() {
-    if (m_unk124 == nullptr || m_ui8Hero != m_ui8TrackedLeader) return;
-    CKS08HeroCombo* combo = static_cast<CKS08HeroCombo*>(m_unk1a88);
+    if (m_pTargetedEnemy == nullptr || m_ui8Hero != m_ui8TrackedLeader) return;
+    CKS08HeroCombo* combo = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode);
     CKS08HeroBlow* blow = combo->GetBlow();  // vt+0x54
     if (blow == nullptr || blow->Vf84() == 0) return;
     const uint32_t remaining = static_cast<uint32_t>(combo->GetMinRemainingDamage());  // 0x0036f610
-    const float health = static_cast<CKHkS08Enemy*>(m_unk124)->m_unk258;
+    const float health = static_cast<CKHkS08Enemy*>(m_pTargetedEnemy)->m_fHealth;
     CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_pGrpHero);
     if (group->AllowFinisherCamera(blow, health <= static_cast<float>(static_cast<double>(remaining)) ? 1 : 0) == 0) return;  // 0x002d5430
     m_unk1120 = 0.0f;
@@ -418,15 +418,15 @@ void CKHkS08Hero::AdvanceCombo() {
     const uint8_t dragon = m_ui8TrackedLeader;
     if (dragon == m_ui8Hero) {
         CKS08GameManager* manager = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager);  // TOC +0x277c -> +0x8c
-        const uint32_t hits = (&manager->m_unkC34)[dragon];
-        if (hits != 0 && (static_cast<CKGrpS08Hero*>(m_pGrpHero)->m_unk2c8 & 0x100u) == 0) {
+        const uint32_t hits = (&manager->m_ui32SpyroComboHits)[dragon];
+        if (hits != 0 && (static_cast<CKGrpS08Hero*>(m_pGrpHero)->m_ui32PairStateFlags & 0x100u) == 0) {
             manager->AddDragonFuryFromAttack(dragon, hits);  // 0x004fe1a0
         }
     }
-    CKS08HeroCombo* current = static_cast<CKS08HeroCombo*>(m_unk1a88);
+    CKS08HeroCombo* current = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode);
     m_unk1aec = current->GetBlow()->GetRecoveryDelay();  // vt+0x54, vt+0x7c
     m_unk1ac7 = 0;
-    m_unk1a88 = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetNext(m_unk1a84 & 0xffu);  // vt+0x68
+    m_pCurrentComboNode = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetNext(m_unk1a84 & 0xffu);  // vt+0x68
     m_unk1a84 = 0;
 }
 
@@ -443,15 +443,15 @@ void CKHkS08Hero::SetComboActive(uint8_t active, uint8_t kind) {
         m_unk1ac7 = 0;
         m_unkec8 &= ~0x80u;
         m_unk1ac8 = 0;
-        if (m_unk1acc != 0 && m_unk124 != nullptr) DropGrabbedEnemy();  // 0x002fc600
+        if (m_unk1acc != 0 && m_pTargetedEnemy != nullptr) DropGrabbedEnemy();  // 0x002fc600
         m_unk1aca = 0;
-        m_unk1a88 = m_unk1a8c;
+        m_pCurrentComboNode = m_unk1a8c;
         m_unk1ac9 = 0;
         m_unk1ab2 = 0;
         m_unk1ad1 = 0;
         if (m_unk1ac4 == 0) {
-            m_unk12c = nullptr;
-            m_unk124 = nullptr;
+            m_pTargetedMecaHook = nullptr;
+            m_pTargetedEnemy = nullptr;
         }
         SetupHitSphere(1.0f, 0, -1, nullptr);  // 0x0030cc40, TOC +0x2788
         if (m_unk1acd != 0) {
@@ -462,7 +462,7 @@ void CKHkS08Hero::SetComboActive(uint8_t active, uint8_t kind) {
         m_unk1a18 = 0;
         m_unk1b30 = 0.0f;
     } else {
-        CKS08HeroBlow* blow = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow();  // vt+0x54
+        CKS08HeroBlow* blow = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow();  // vt+0x54
         m_unk1aa8 = -1.0f;  // TOC +0x276c
         m_unk1ac8 = blow->IsGrabBlow();  // vt+0x9c
         m_unk1aac = blow->Vf70();
@@ -477,7 +477,7 @@ void CKHkS08Hero::SetComboActive(uint8_t active, uint8_t kind) {
             if (camera->Start(0.0f, static_cast<CKAnimatedCameraData*>(blow->GetCameraData()),
                               static_cast<CSGBranch*>(m_pKGLObject)) != 0) {  // vt+0x50
                 m_unkecc = (m_unkecc & ~0x20u) | 0x20u;
-                m_unked0 = (m_unked0 & ~0x40u) | 0x40u;
+                m_ui32StatusFlagsED0 = (m_ui32StatusFlagsED0 & ~0x40u) | 0x40u;
             }
         }
         if (m_unk1ac8 != 0) {
@@ -532,7 +532,7 @@ void CKHkS08Hero::SetComboActive(uint8_t active, uint8_t kind) {
             break;
     }
     const uint32_t on = active;
-    m_unk354 = (m_unk354 & ~0x800u) | (on << 11);
+    m_ui32HeroFlags354 = (m_ui32HeroFlags354 & ~0x800u) | (on << 11);
     m_unkec4 = (m_unkec4 & ~0x200u) | (on << 9);
     m_unkec8 = (m_unkec8 & ~0x10000000u) | (on << 28);
     m_unkec4 = (m_unkec4 & ~0x100u) | (on << 8);
@@ -553,7 +553,7 @@ uint8_t CKHkS08Hero::ActGroundCombo(IKTime* clock, int32_t phase, uint8_t other)
             m_unk1ab2 = 0x10f;
         }
         CKS08HeroCombo* next = static_cast<CKS08HeroCombo*>(m_unk1a8c)->GetNext(m_unk1a84 & 0xffu);  // vt+0x68
-        m_unk1a88 = next;
+        m_pCurrentComboNode = next;
         if (next == nullptr || next->GetBlow() == nullptr) {
             SetComboActive(0, 0xff);  // 0x0032d9b0
         } else {
@@ -572,10 +572,10 @@ uint8_t CKHkS08Hero::ActGroundCombo(IKTime* clock, int32_t phase, uint8_t other)
             m_unk1ace = 0;
             m_unk1acd = 0;
         }
-        if (m_unk1ac8 == 0) m_unk124 = nullptr;
-        if (m_unk1a88 != m_unk1a8c) SetComboActive(0, 0xff);
+        if (m_unk1ac8 == 0) m_pTargetedEnemy = nullptr;
+        if (m_pCurrentComboNode != m_unk1a8c) SetComboActive(0, 0xff);
         m_unk1ab2 = 0;
-        m_unk364 &= ~0x1000000u;
+        m_ui32HeroFlags364 &= ~0x1000000u;
         return other;
     }
     if (IsAnyComboKindActive() == 0) return other;  // 0x002fd030
@@ -592,7 +592,7 @@ uint8_t CKHkS08Hero::ActGroundCombo(IKTime* clock, int32_t phase, uint8_t other)
                                          ->GetDuration();  // 0x0007ab60
                 early = length / GetComboAnimSpeed() <= limit;
             }
-            if (early || (m_unked4 & 4u) != 0) {
+            if (early || (m_ui32StatusFlagsED4 & 4u) != 0) {
                 slam = true;
             } else {
                 m_unk1ad1 = 0;
@@ -600,12 +600,12 @@ uint8_t CKHkS08Hero::ActGroundCombo(IKTime* clock, int32_t phase, uint8_t other)
             }
         }
         if (slam) {
-            m_unked4 &= ~4u;
+            m_ui32StatusFlagsED4 &= ~4u;
             m_unkf3c = 1;
             CKS08HeroCombo* scratch = static_cast<CKS08HeroCombo*>(m_unk1aa4);
             scratch->SetBlow(static_cast<CKS08HeroBlow*>(m_apUnk1a30[0]));  // vt+0x58
-            m_unk1a88 = m_unk1aa4;
-            CKS08HeroCombo* current = static_cast<CKS08HeroCombo*>(m_unk1a88);
+            m_pCurrentComboNode = m_unk1aa4;
+            CKS08HeroCombo* current = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode);
             if (current != nullptr && current->GetBlow() != nullptr) {
                 const int32_t sound = kBlowSounds[current->GetBlow()->GetAnimId() - 0x91];
                 const float pitch = ComputeSoundPitchFromAnimSpeed(GetComboAnimSpeed());
@@ -616,17 +616,17 @@ uint8_t CKHkS08Hero::ActGroundCombo(IKTime* clock, int32_t phase, uint8_t other)
             return other;
         }
     }
-    CKS08HeroCombo* current = static_cast<CKS08HeroCombo*>(m_unk1a88);
+    CKS08HeroCombo* current = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode);
     if (current->GetBlow() == nullptr) SetComboActive(0, 0);
-    CKS08HeroBlow* blow = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow();
+    CKS08HeroBlow* blow = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow();
     const int32_t anim = blow->GetAnimId();  // vt+0x8c
     if (IsAnimFinished(anim) == 0) {
-        static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->TickTimer(clock->m_afDeltaTime[0]);  // vt+0xb4
+        static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->TickTimer(clock->m_afDeltaTime[0]);  // vt+0xb4
         UpdateComboHitSpheres();  // 0x0030f220
         return other;
     }
     AdvanceCombo();  // 0x0032d890
-    CKS08HeroCombo* next = static_cast<CKS08HeroCombo*>(m_unk1a88);
+    CKS08HeroCombo* next = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode);
     if (next == nullptr || next->GetBlow() == nullptr) {
         SetComboActive(0, 0);
     } else {
@@ -661,7 +661,7 @@ bool CKHkS08Hero::ComboLaunchEndsInSlam() {
             static_cast<CKAnmKeyFrameController*>(blender->m_apControllers[slot->m_unk10])->GetDuration();  // 0x0007ab60
         if (length / GetComboAnimSpeed() <= limit) return true;
     }
-    return (m_unked4 & 4u) != 0;
+    return (m_ui32StatusFlagsED4 & 4u) != 0;
 }
 
 // The air combos' test while the slam animation plays: the slam ends early (the combo off, the blow's recovery delay
@@ -675,7 +675,7 @@ bool CKHkS08Hero::ComboSlamEndsEarly(uint8_t kind) {
     if (m_ui8Hero == 0) {
         limit = WordAsFloat(group->m_unk2d4[16]);  // +0x314
     } else if (m_ui8Hero == 1) {
-        limit = WordAsFloat(group->m_unk318);
+        limit = WordAsFloat(group->m_fHero1ToMidDist);
     }
     const float ratio = distance / group->m_unk10c * (group->m_unk154 * 0.5f);  // TOC +0x27bc
     const bool near = ratio <= limit;
@@ -685,7 +685,7 @@ bool CKHkS08Hero::ComboSlamEndsEarly(uint8_t kind) {
         return false;
     }
     m_unkec4 &= ~0x8000000u;
-    m_unk1aec = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->GetRecoveryDelay();  // vt+0x54, vt+0x7c
+    m_unk1aec = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->GetRecoveryDelay();  // vt+0x54, vt+0x7c
     m_unk1ac7 = 0;
     SetComboActive(0, kind);  // 0x0032d9b0
     return true;
@@ -705,10 +705,10 @@ void CKHkS08Hero::ComboSlamShockwave() {
 // (AdvanceCombo): on with the re-attack cooldown at -1, or the combo off. Kind 2 also ends the combo (and the queued code)
 // when the hero left the ground (+0x1511).
 uint8_t CKHkS08Hero::ComboBlowStep(IKTime* clock, uint8_t kind, uint8_t other) {
-    if (static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow() == nullptr) SetComboActive(0, kind);  // vt+0x54
-    const int32_t anim = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->GetAnimId();  // vt+0x8c
+    if (static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow() == nullptr) SetComboActive(0, kind);  // vt+0x54
+    const int32_t anim = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->GetAnimId();  // vt+0x8c
     if (IsAnimFinished(anim) == 0) {  // 0x003013c8
-        static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->TickTimer(clock->m_afDeltaTime[0]);  // vt+0xb4
+        static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->TickTimer(clock->m_afDeltaTime[0]);  // vt+0xb4
         UpdateComboHitSpheres();  // 0x0030f220
         return other;
     }
@@ -718,7 +718,7 @@ uint8_t CKHkS08Hero::ComboBlowStep(IKTime* clock, uint8_t kind, uint8_t other) {
         m_unk1a84 = 0;
         return other;
     }
-    CKS08HeroCombo* next = static_cast<CKS08HeroCombo*>(m_unk1a88);
+    CKS08HeroCombo* next = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode);
     if (next == nullptr || next->GetBlow() == nullptr) {
         SetComboActive(0, kind);
     } else {
@@ -742,7 +742,7 @@ uint8_t CKHkS08Hero::ActGroundAltCombo(IKTime* clock, int32_t phase, uint8_t oth
             m_unk1ab2 = 0x110;
         }
         CKS08HeroCombo* next = static_cast<CKS08HeroCombo*>(m_unk1a94)->GetNext(m_unk1a84 & 0xffu);  // vt+0x68
-        m_unk1a88 = next;
+        m_pCurrentComboNode = next;
         if (next == nullptr || next->GetBlow() == nullptr) {
             SetComboActive(0, 0xff);
         } else {
@@ -760,17 +760,17 @@ uint8_t CKHkS08Hero::ActGroundAltCombo(IKTime* clock, int32_t phase, uint8_t oth
         return other;
     }
     if (phase != 0) {
-        if (m_unk1a88 != m_unk1a8c) SetComboActive(0, 0xff);
+        if (m_pCurrentComboNode != m_unk1a8c) SetComboActive(0, 0xff);
         if (m_unk1ace != 0) {
             g_pEngine->m_timeManager->m_fTimeScale = 1.0f;  // TOC +0x2788
             m_unk1ace = 0;
             m_unk1acd = 0;
         }
-        m_unk124 = nullptr;
+        m_pTargetedEnemy = nullptr;
         m_unkec4 &= ~0x8000000u;
         m_unkec8 &= 0xfffdfeffu;
         m_unk1ab2 = 0;
-        m_unk364 &= ~0x1000000u;
+        m_ui32HeroFlags364 &= ~0x1000000u;
         return other;
     }
     if (IsAnyComboKindActive() == 0) return other;  // 0x002fd030
@@ -782,15 +782,15 @@ uint8_t CKHkS08Hero::ActGroundAltCombo(IKTime* clock, int32_t phase, uint8_t oth
                     m_unk1ad1 = 0;
                     m_unk1a84 = 0;
                 } else {
-                    m_unked4 &= ~4u;
+                    m_ui32StatusFlagsED4 &= ~4u;
                     m_unkf3c = 1;
                     CKS08HeroCombo* scratch = static_cast<CKS08HeroCombo*>(m_unk1aa4);
                     scratch->SetBlow(static_cast<CKS08HeroBlow*>(m_apUnk1a30[1]));  // vt+0x58
-                    m_unk1a88 = m_unk1aa4;
+                    m_pCurrentComboNode = m_unk1aa4;
                     m_unk1b18 = 100.0f;  // TOC +0x2780
                     m_unkec4 = (m_unkec4 & ~0x8000000u) | 0x8000000u;
                     m_unkec8 &= ~0x20000u;
-                    CKS08HeroCombo* current = static_cast<CKS08HeroCombo*>(m_unk1a88);
+                    CKS08HeroCombo* current = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode);
                     if (current != nullptr && current->GetBlow() != nullptr) {
                         const int32_t sound = kBlowSounds[current->GetBlow()->GetAnimId() - 0x91];  // TOC +0x278c
                         const float pitch = ComputeSoundPitchFromAnimSpeed(GetComboAnimSpeed());  // 0x00333688
@@ -828,7 +828,7 @@ uint8_t CKHkS08Hero::ActGroundAltCombo(IKTime* clock, int32_t phase, uint8_t oth
 uint8_t CKHkS08Hero::ActClimbCombo(IKTime* clock, int32_t phase, uint8_t other) {
     if (phase == 1) {
         CKS08HeroCombo* next = static_cast<CKS08HeroCombo*>(m_unk1a9c)->GetNext(m_unk1a84 & 0xffu);  // vt+0x68
-        m_unk1a88 = next;
+        m_pCurrentComboNode = next;
         if (next == nullptr || next->GetBlow() == nullptr) {
             SetComboActive(0, 0xff);
         } else {
@@ -842,14 +842,14 @@ uint8_t CKHkS08Hero::ActClimbCombo(IKTime* clock, int32_t phase, uint8_t other) 
         return other;
     }
     if (phase != 0) {
-        if (m_unk1a88 != m_unk1a8c) SetComboActive(0, 0xff);
+        if (m_pCurrentComboNode != m_unk1a8c) SetComboActive(0, 0xff);
         if (m_unk1ace != 0) {
             g_pEngine->m_timeManager->m_fTimeScale = 1.0f;  // TOC +0x2788
             m_unk1ace = 0;
             m_unk1acd = 0;
         }
-        m_unk124 = nullptr;
-        m_unk364 &= ~0x1000000u;
+        m_pTargetedEnemy = nullptr;
+        m_ui32HeroFlags364 &= ~0x1000000u;
         return other;
     }
     if (IsAnyComboKindActive() == 0) return other;
@@ -866,7 +866,7 @@ uint8_t CKHkS08Hero::ActClimbCombo(IKTime* clock, int32_t phase, uint8_t other) 
 // end the next node and the combo off), then the blow step.
 uint8_t CKHkS08Hero::ActFlyingCombo(IKTime* clock, int32_t phase, uint8_t other) {
     if (phase == 1) {
-        if ((m_unk354 & 1u) == 0) {
+        if ((m_ui32HeroFlags354 & 1u) == 0) {
             if (m_unk1a84 != 3) {
                 SetMovementMode(0);  // 0x00340c18
                 return other;
@@ -876,7 +876,7 @@ uint8_t CKHkS08Hero::ActFlyingCombo(IKTime* clock, int32_t phase, uint8_t other)
             m_unk1ab2 = 0x111;
         }
         CKS08HeroCombo* next = static_cast<CKS08HeroCombo*>(m_unk1a98)->GetNext(m_unk1a84 & 0xffu);  // vt+0x68
-        m_unk1a88 = next;
+        m_pCurrentComboNode = next;
         if (next == nullptr || next->GetBlow() == nullptr) {
             SetComboActive(0, 0xff);
         } else {
@@ -899,13 +899,13 @@ uint8_t CKHkS08Hero::ActFlyingCombo(IKTime* clock, int32_t phase, uint8_t other)
             m_unk1ace = 0;
             m_unk1acd = 0;
         }
-        if (m_unk1ac8 == 0) m_unk124 = nullptr;
-        if (m_unk1a88 != m_unk1a8c) SetComboActive(0, 0xff);
+        if (m_unk1ac8 == 0) m_pTargetedEnemy = nullptr;
+        if (m_pCurrentComboNode != m_unk1a8c) SetComboActive(0, 0xff);
         m_unkec8 &= ~0x20000u;
         m_unkec4 &= ~0x8000000u;
         m_unkec8 &= ~0x100u;
         m_unk1ab2 = 0;
-        m_unk364 &= ~0x1000000u;
+        m_ui32HeroFlags364 &= ~0x1000000u;
         return other;
     }
     if (IsAnyComboKindActive() == 0) return other;
@@ -917,12 +917,12 @@ uint8_t CKHkS08Hero::ActFlyingCombo(IKTime* clock, int32_t phase, uint8_t other)
                     m_unk1ad1 = 0;
                     m_unk1a84 = 0;
                 } else {
-                    m_unked4 &= ~4u;
+                    m_ui32StatusFlagsED4 &= ~4u;
                     m_unkf3c = 1;
                     CKS08HeroCombo* scratch = static_cast<CKS08HeroCombo*>(m_unk1aa4);
                     scratch->SetBlow(static_cast<CKS08HeroBlow*>(m_apUnk1a30[2]));  // vt+0x58
-                    m_unk1a88 = m_unk1aa4;
-                    CKS08HeroCombo* current = static_cast<CKS08HeroCombo*>(m_unk1a88);
+                    m_pCurrentComboNode = m_unk1aa4;
+                    CKS08HeroCombo* current = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode);
                     if (current != nullptr && current->GetBlow() != nullptr) {
                         const int32_t sound = kBlowSounds[current->GetBlow()->GetAnimId() - 0x91];  // TOC +0x278c
                         const float pitch = ComputeSoundPitchFromAnimSpeed(GetComboAnimSpeed());
@@ -986,7 +986,7 @@ uint8_t CKHkS08Hero::ActHurtReaction(IKTime* /*clock*/, int32_t phase, uint8_t o
     if (phase == 1) {
         SetComboActive(0, 0xff);  // 0x0032d9b0
         m_unkec8 = (m_unkec8 & ~0x80u) | 0x80u;
-        m_unk354 = (m_unk354 & ~0x800u) | 0x800u;
+        m_ui32HeroFlags354 = (m_ui32HeroFlags354 & ~0x800u) | 0x800u;
         m_unkec4 |= 0xb00u;
         m_unkec8 &= ~0x18u;
         m_unk1acb = 0;
@@ -998,13 +998,13 @@ uint8_t CKHkS08Hero::ActHurtReaction(IKTime* /*clock*/, int32_t phase, uint8_t o
         return other;
     }
     if (phase != 0) {
-        m_unk124 = nullptr;
-        m_unk12c = nullptr;
+        m_pTargetedEnemy = nullptr;
+        m_pTargetedMecaHook = nullptr;
         m_unkf8 = zero.x;
         m_unk100 = zero.z;
         m_unkfc = zero.y;
         m_unk1a84 = 0;
-        m_unk354 &= ~0x800u;
+        m_ui32HeroFlags354 &= ~0x800u;
         m_unkec4 &= ~0xb00u;
         m_unkec8 = (m_unkec8 & ~0x188u) | 0x18u;
         return other;
@@ -1068,7 +1068,7 @@ uint8_t CKHkS08Hero::ActHurtReaction(IKTime* /*clock*/, int32_t phase, uint8_t o
 // 0x0032e0f0 CKHkS08Hero_GrantKillUpgradeBonus_maybe: Cynder (hero 1) with +0xed0 bit 18 earns +0xe9c upgrade points
 // per kill (CKS08GameManager_AddDragonUpgradePoints_2_maybe 0x5008c8, a tail call of AddDragonUpgradePoints).
 void CKHkS08Hero::GrantKillUpgradeBonus(IKSerializable* /*enemy*/) {
-    if (m_ui8Hero != 1 || (m_unked0 & 0x40000u) == 0) return;
+    if (m_ui8Hero != 1 || (m_ui32StatusFlagsED0 & 0x40000u) == 0) return;
     static_cast<CKS08GameManager*>(g_pEngine->m_gameManager)->AddDragonUpgradePoints(1, static_cast<uint32_t>(m_unke9c));
 }
 
@@ -1091,7 +1091,7 @@ void CKGrpS08Hero::OnEnemyKilled(IKSerializable* enemy) {
 // out or the target's animation ends (0xb5: sound 0x60).
 uint8_t CKHkS08Hero::ActGroundGrabCombo(IKTime* clock, int32_t phase, uint8_t other) {
     auto playBlowSound = [this]() {
-        const int32_t sound = kBlowSounds[static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->GetAnimId() - 0x91];
+        const int32_t sound = kBlowSounds[static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->GetAnimId() - 0x91];
         const float pitch = ComputeSoundPitchFromAnimSpeed(GetComboAnimSpeed());  // 0x00333688, 0x0032bee8
         PlaySound(1.0f, pitch, static_cast<uint32_t>(sound), 0);                 // 0x00334188, TOC +0x2788
     };
@@ -1103,7 +1103,7 @@ uint8_t CKHkS08Hero::ActGroundGrabCombo(IKTime* clock, int32_t phase, uint8_t ot
         }
         m_unk1ac8 = 1;
         CKS08HeroCombo* next = static_cast<CKS08HeroCombo*>(m_unk1a90)->GetNext(7);  // vt+0x68
-        m_unk1a88 = next;
+        m_pCurrentComboNode = next;
         if (next != nullptr && next->GetBlow() != nullptr) {
             SetComboActive(1, 1);  // 0x0032d9b0
         } else {
@@ -1113,20 +1113,20 @@ uint8_t CKHkS08Hero::ActGroundGrabCombo(IKTime* clock, int32_t phase, uint8_t ot
         return other;
     }
     if (phase != 0) {
-        if (m_unk1a88 != m_unk1a8c && m_unk1abe == 0) SetComboActive(0, 0xff);
+        if (m_pCurrentComboNode != m_unk1a8c && m_unk1abe == 0) SetComboActive(0, 0xff);
         if (m_unk1ace != 0) {
             g_pEngine->m_timeManager->m_fTimeScale = 1.0f;
             m_unk1ace = 0;
             m_unk1acd = 0;
         }
-        m_unk364 &= ~0x01000000u;
+        m_ui32HeroFlags364 &= ~0x01000000u;
         m_unkec4 &= 0xf7ffefffu;
         m_unk1ab6 = 1;
         return other;
     }
     if (IsAnyComboKindActive() == 0) return other;  // 0x002fd030
-    if (m_unk1acc != 0 && m_unk124 != nullptr) {
-        CKHkS08Enemy* held = static_cast<CKHkS08Enemy*>(m_unk124);
+    if (m_unk1acc != 0 && m_pTargetedEnemy != nullptr) {
+        CKHkS08Enemy* held = static_cast<CKHkS08Enemy*>(m_pTargetedEnemy);
         if (held->CanBeHeldAtPosition() == 0 || held->GetGrabbingHero() != this) {  // 0x00289b38
             SetComboActive(0, 1);
             return other;
@@ -1136,7 +1136,7 @@ uint8_t CKHkS08Hero::ActGroundGrabCombo(IKTime* clock, int32_t phase, uint8_t ot
     if (release != -10.0f) {  // TOC +0x2790
         if (m_unk1ac9 != 0 && m_unk1ad0 == 0 && release <= 0.0f) {  // cror lt / eq
             m_unk1ad0 = 1;
-            if (m_unk124 != nullptr) static_cast<CKHkS08Enemy*>(m_unk124)->SetAttackSpheresActive(1, nullptr);  // 0x00288e08
+            if (m_pTargetedEnemy != nullptr) static_cast<CKHkS08Enemy*>(m_pTargetedEnemy)->SetAttackSpheresActive(1, nullptr);  // 0x00288e08
         } else if (release > 0.0f) {
             m_unk1af4 = release - clock->m_afDeltaTime[0];
         }
@@ -1149,20 +1149,20 @@ uint8_t CKHkS08Hero::ActGroundGrabCombo(IKTime* clock, int32_t phase, uint8_t ot
             if (IsGrabTargetInRange() != 0) TryGrabTarget();  // 0x002fd5b0, 0x002fff48
             return other;
         }
-        CKS08HeroBlow* blow = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow();
+        CKS08HeroBlow* blow = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow();
         m_unk1aec = blow->GetRecoveryDelay();  // vt+0x7c
         m_unk1a84 = 0;
         m_unk1ac7 = 0;
         if (m_unk1ac9 == 0) {
             m_unk1acb = 1;
-            if (m_unk124 != nullptr) static_cast<CKHkS08Enemy*>(m_unk124)->EnableVolumeGroup(1);  // vt+0xf8
+            if (m_pTargetedEnemy != nullptr) static_cast<CKHkS08Enemy*>(m_pTargetedEnemy)->EnableVolumeGroup(1);  // vt+0xf8
             SetComboActive(0, 1);
             return other;
         }
         m_unk1ac8 = 0;
-        const uint8_t link = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->GetLinkCode();  // vt+0x58
-        CKS08HeroCombo* next = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetNext(link);          // vt+0x68
-        m_unk1a88 = next;
+        const uint8_t link = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->GetLinkCode();  // vt+0x58
+        CKS08HeroCombo* next = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetNext(link);          // vt+0x68
+        m_pCurrentComboNode = next;
         if (next == nullptr || next->GetBlow() == nullptr) {
             SetComboActive(0, 1);
             return other;
@@ -1172,36 +1172,36 @@ uint8_t CKHkS08Hero::ActGroundGrabCombo(IKTime* clock, int32_t phase, uint8_t ot
         return other;
     }
     const uint16_t anim =
-        static_cast<uint16_t>(static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->GetAnimId());  // vt+0x8c
+        static_cast<uint16_t>(static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->GetAnimId());  // vt+0x8c
     if (IsAnimFinished(anim) == 0) {
         if (m_unk1acc != 0) {
-            CKHkS08Enemy* held = static_cast<CKHkS08Enemy*>(m_unk124);
-            CKS08HeroBlow* blow = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow();
+            CKHkS08Enemy* held = static_cast<CKHkS08Enemy*>(m_pTargetedEnemy);
+            CKS08HeroBlow* blow = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow();
             if (blow->ShouldThrowOnTimeout() != 0) {  // vt+0xa0
                 if (m_unk1af0 < 0.0f) {
-                    ThrowGrabbedEnemy(static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow());  // 0x00300010
+                    ThrowGrabbedEnemy(static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow());  // 0x00300010
                 } else if (held->IsAnimEndReached(clock->m_afDeltaTime[0], 0, 0)) {  // 0x002893e8 -> 0x00285558
-                    ThrowGrabbedEnemy(static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow());
-                    if (static_cast<uint16_t>(m_unk160) == 0xb5) PlaySound(1.0f, 1.0f, 0x60, 0);
+                    ThrowGrabbedEnemy(static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow());
+                    if (static_cast<uint16_t>(m_i16CurAnimIndex) == 0xb5) PlaySound(1.0f, 1.0f, 0x60, 0);
                 }
             }
         }
         m_unk1af0 = m_unk1af0 - clock->m_afDeltaTime[0];
         return other;
     }
-    if (static_cast<uint16_t>(m_unk160) == 0xb6) m_unk1a84 = 2;
-    CKS08HeroBlow* finished = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow();
+    if (static_cast<uint16_t>(m_i16CurAnimIndex) == 0xb6) m_unk1a84 = 2;
+    CKS08HeroBlow* finished = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow();
     AdvanceCombo();  // 0x0032d890
     if (finished->GetLinkCode() == 3) {
         m_unk1abd = on;
         m_unk1abe = 1;
         m_unk1ac3 = 1;
         CKS08HeroCombo* throwRoot = static_cast<CKS08HeroCombo*>(m_unk1aa0)->GetNext(7);
-        m_unk1a88 = throwRoot;
+        m_pCurrentComboNode = throwRoot;
         if (throwRoot == nullptr) return other;
         CKS08HeroCombo* next = throwRoot->GetNext(7);
         m_unk1ac8 = on;
-        m_unk1a88 = next;
+        m_pCurrentComboNode = next;
         if (next == nullptr || next->GetBlow() == nullptr) {
             SetComboActive(0, 0xff);
             return other;
@@ -1210,7 +1210,7 @@ uint8_t CKHkS08Hero::ActGroundGrabCombo(IKTime* clock, int32_t phase, uint8_t ot
         playBlowSound();
         return other;
     }
-    CKS08HeroCombo* next = static_cast<CKS08HeroCombo*>(m_unk1a88);
+    CKS08HeroCombo* next = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode);
     if (next != nullptr && next->GetBlow() != nullptr) {
         SetComboActive(1, 1);
         m_unk1aec = -1.0f;
@@ -1219,7 +1219,7 @@ uint8_t CKHkS08Hero::ActGroundGrabCombo(IKTime* clock, int32_t phase, uint8_t ot
         return other;
     }
     if (m_unk1aca == 0) {
-        if (m_unk124 == nullptr) {
+        if (m_pTargetedEnemy == nullptr) {
             SetComboActive(0, 1);
             return other;
         }
@@ -1269,7 +1269,7 @@ uint8_t CKHkS08Hero::ActGrabDashCombo(IKTime* clock, int32_t phase, uint8_t othe
         } else {
             m_unk1ac8 = 1;
             CKS08HeroCombo* next = static_cast<CKS08HeroCombo*>(m_unk1aa0)->GetNext(7);  // vt+0x68
-            m_unk1a88 = next;
+            m_pCurrentComboNode = next;
             if (next == nullptr || next->GetBlow() == nullptr) {
                 SetComboActive(0, 3);  // 0x0032d9b0
             } else {
@@ -1287,18 +1287,18 @@ uint8_t CKHkS08Hero::ActGrabDashCombo(IKTime* clock, int32_t phase, uint8_t othe
     if (phase != 0) {
         if (static_cast<uint16_t>(m_unk1ab2 - 0xbd) > 1u) {
             IKSerializable* root = m_unk1a8c;
-            if (m_unk1a88 != root) {
+            if (m_pCurrentComboNode != root) {
                 SetComboActive(0, 0xff);
                 root = m_unk1a8c;
             }
-            m_unk1a88 = root;
+            m_pCurrentComboNode = root;
         }
         if (m_unk1ace != 0) {
             g_pEngine->m_timeManager->m_fTimeScale = 1.0f;  // TOC +0x2788
             m_unk1ace = 0;
             m_unk1acd = 0;
         }
-        m_unk364 &= ~0x01000000u;
+        m_ui32HeroFlags364 &= ~0x01000000u;
         m_unkec4 &= ~0x1000u;
         m_unkec8 &= 0xfffdfeffu;
         m_unk1d5c = 1.0f;
@@ -1312,8 +1312,8 @@ uint8_t CKHkS08Hero::ActGrabDashCombo(IKTime* clock, int32_t phase, uint8_t othe
         return other;
     }
     if (IsAnyComboKindActive() == 0) return other;  // 0x002fd030
-    if (m_unk1acc != 0 && m_unk124 != nullptr) {
-        CKHkS08Enemy* held = static_cast<CKHkS08Enemy*>(m_unk124);
+    if (m_unk1acc != 0 && m_pTargetedEnemy != nullptr) {
+        CKHkS08Enemy* held = static_cast<CKHkS08Enemy*>(m_pTargetedEnemy);
         if (held->CanBeHeldAtPosition() == 0 || held->GetGrabbingHero() != this) {  // 0x00289b38
             SetComboActive(0, 5);
             return other;
@@ -1324,29 +1324,29 @@ uint8_t CKHkS08Hero::ActGrabDashCombo(IKTime* clock, int32_t phase, uint8_t othe
     if (release != -10.0f) {  // TOC +0x2790
         if (m_unk1ac9 != 0 && m_unk1ad0 == 0 && !(0.0f < release)) {
             m_unk1ad0 = 1;
-            if (m_unk124 != nullptr) static_cast<CKHkS08Enemy*>(m_unk124)->SetAttackSpheresActive(1, nullptr);  // 0x00288e08
+            if (m_pTargetedEnemy != nullptr) static_cast<CKHkS08Enemy*>(m_pTargetedEnemy)->SetAttackSpheresActive(1, nullptr);  // 0x00288e08
         } else if (0.0f < release) {
             m_unk1af4 = release - dt;
         }
     }
-    if (static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow() == nullptr) SetComboActive(0, 5);  // vt+0x54
+    if (static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow() == nullptr) SetComboActive(0, 5);  // vt+0x54
     if (m_unk1ac9 == 0 || m_unk1ac8 != 0) {
-        const uint16_t anim = static_cast<uint16_t>(static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->GetAnimId());  // vt+0x8c
+        const uint16_t anim = static_cast<uint16_t>(static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->GetAnimId());  // vt+0x8c
         if (IsAnimFinished(anim) == 0) {  // 0x003013c8
             if (m_unk1ac9 == 0 && IsGrabTargetInRange() != 0) TryGrabTarget();  // 0x002fd5b0, 0x002fff48
             return other;
         }
-        m_unk1aec = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->GetRecoveryDelay();  // vt+0x7c
+        m_unk1aec = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->GetRecoveryDelay();  // vt+0x7c
         m_unk1a84 = 0;
         m_unk1ac7 = 0;
         if (m_unk1ac9 == 0) {
             m_unk1acb = 1;
-            if (m_unk124 != nullptr) static_cast<CKHkS08Enemy*>(m_unk124)->EnableVolumeGroup(1);  // vt+0xf8
+            if (m_pTargetedEnemy != nullptr) static_cast<CKHkS08Enemy*>(m_pTargetedEnemy)->EnableVolumeGroup(1);  // vt+0xf8
         } else {
             m_unk1ac8 = 0;
-            const uint8_t link = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->GetLinkCode();  // vt+0x58
-            CKS08HeroCombo* next = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetNext(link);          // vt+0x68
-            m_unk1a88 = next;
+            const uint8_t link = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->GetLinkCode();  // vt+0x58
+            CKS08HeroCombo* next = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetNext(link);          // vt+0x68
+            m_pCurrentComboNode = next;
             if (next != nullptr && next->GetBlow() != nullptr) {
                 // The lift: an impulse record up (the shared y axis) of 300 / the height above the ground (TOC +0x2784),
                 // at most 200 (+0x27d0), for 0.1 s (+0x27b8).
@@ -1380,35 +1380,35 @@ uint8_t CKHkS08Hero::ActGrabDashCombo(IKTime* clock, int32_t phase, uint8_t othe
         SetComboActive(0, 5);
         return other;
     }
-    const uint16_t anim = static_cast<uint16_t>(static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->GetAnimId());
+    const uint16_t anim = static_cast<uint16_t>(static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->GetAnimId());
     if (IsAnimFinished(anim) == 0) {
-        if (m_unk1acc != 0 && static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->ShouldThrowOnTimeout() != 0) {  // vt+0xa0
+        if (m_unk1acc != 0 && static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->ShouldThrowOnTimeout() != 0) {  // vt+0xa0
             // The original passes the anim-end test (0x002893e8 -> 0x00285558) a layer left over in r4 from the call
             // before; 0 as in ActGroundGrabCombo.
-            if (m_unk1af0 < 0.0f || static_cast<CKHkS08Enemy*>(m_unk124)->IsAnimEndReached(dt, 0, 0)) {
-                ThrowGrabbedEnemy(static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow());  // 0x00300010
+            if (m_unk1af0 < 0.0f || static_cast<CKHkS08Enemy*>(m_pTargetedEnemy)->IsAnimEndReached(dt, 0, 0)) {
+                ThrowGrabbedEnemy(static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow());  // 0x00300010
             }
         }
         m_unk1af0 = m_unk1af0 - dt;
         return other;
     }
-    m_unk1aec = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->GetRecoveryDelay();
+    m_unk1aec = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->GetRecoveryDelay();
     m_unk1ac7 = 0;
-    CKS08HeroBlow* finished = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow();
-    CKS08HeroCombo* next = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetNext(static_cast<uint8_t>(m_unk1a84));
+    CKS08HeroBlow* finished = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow();
+    CKS08HeroCombo* next = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetNext(static_cast<uint8_t>(m_unk1a84));
     m_unk1a84 = 0;
-    m_unk1a88 = next;
+    m_pCurrentComboNode = next;
     if (next != nullptr && next->GetBlow() != nullptr) {
         SetComboActive(1, 5);
         m_unk1aca = 1;
         SetMovementMode(0);
-        m_unk1ab2 = static_cast<uint16_t>(static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->GetAnimId());
+        m_unk1ab2 = static_cast<uint16_t>(static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->GetAnimId());
         m_unk1aec = -1.0f;
         m_unk1ac8 = 0;
         m_unkec8 &= 0xffffffe7u;
         return other;
     }
-    if (m_unk1aca != 0 || (m_unk124 != nullptr && (BreakGrabAndRecoil(), m_unk1aca != 0))) {  // 0x002fce90
+    if (m_unk1aca != 0 || (m_pTargetedEnemy != nullptr && (BreakGrabAndRecoil(), m_unk1aca != 0))) {  // 0x002fce90
         if (m_unk1acc != 0) ThrowGrabbedEnemy(finished);
     }
     SetComboActive(0, 5);
@@ -1417,14 +1417,14 @@ uint8_t CKHkS08Hero::ActGrabDashCombo(IKTime* clock, int32_t phase, uint8_t othe
 
 // 0x002fc6e0 CKHkS08Hero_IsTargetEnemyOnGround_maybe: no grab target counts as on the ground.
 uint8_t CKHkS08Hero::IsTargetEnemyOnGround() {
-    if (m_unk124 == nullptr) return 1;
-    return static_cast<CKHkS08Enemy*>(m_unk124)->IsOnGround();  // 0x00289a98
+    if (m_pTargetedEnemy == nullptr) return 1;
+    return static_cast<CKHkS08Enemy*>(m_pTargetedEnemy)->IsOnGround();  // 0x00289a98
 }
 
 // 0x002fc720 CKHkS08Hero_ReleaseGrabbedEnemyWithDamage: the grab target let go (not held, no grabber) and hurt by the
 // blow's damage (vt+0xb0) along the hero's facing (+0x12a0); no longer holding.
 void CKHkS08Hero::ReleaseGrabbedEnemyWithDamage(CKS08HeroBlow* blow) {
-    CKHkS08Enemy* enemy = static_cast<CKHkS08Enemy*>(m_unk124);
+    CKHkS08Enemy* enemy = static_cast<CKHkS08Enemy*>(m_pTargetedEnemy);
     if (enemy == nullptr) return;
     enemy->SetHeldFlag(0);       // 0x00289f08
     enemy->ClearGrabber(this);   // 0x00288c98
@@ -1467,7 +1467,7 @@ uint8_t CKHkS08Hero::ActGrabSlamSeq(IKTime* clock, int32_t phase, uint8_t other)
         return other;
     }
     if (phase != 0) {
-        if (m_unk1a88 != m_unk1a8c) SetComboActive(0, 0xff);  // 0x0032d9b0
+        if (m_pCurrentComboNode != m_unk1a8c) SetComboActive(0, 0xff);  // 0x0032d9b0
         float vertical = m_unk8a4;
         m_unk1b18 = vertical;
         if (m_unk1ace != 0) {
@@ -1481,13 +1481,13 @@ uint8_t CKHkS08Hero::ActGrabSlamSeq(IKTime* clock, int32_t phase, uint8_t other)
         m_unkec4 &= 0xf7ffffffu;
         m_unkec8 &= 0xfffdffffu;
         m_unkec4 &= 0xffffefffu;
-        m_unk364 &= 0xfeffffffu;
+        m_ui32HeroFlags364 &= 0xfeffffffu;
         m_unkec8 &= 0xfffffeffu;
         return other;
     }
     if (IsAnyComboKindActive() == 0) return other;  // 0x002fd030
-    if (m_unk1acc != 0 && m_unk124 != nullptr) {
-        CKHkS08Enemy* held = static_cast<CKHkS08Enemy*>(m_unk124);
+    if (m_unk1acc != 0 && m_pTargetedEnemy != nullptr) {
+        CKHkS08Enemy* held = static_cast<CKHkS08Enemy*>(m_pTargetedEnemy);
         if (held->CanBeHeldAtPosition() == 0 || held->GetGrabbingHero() != this) {  // 0x00289b38
             SetComboActive(0, 5);
             return other;
@@ -1498,7 +1498,7 @@ uint8_t CKHkS08Hero::ActGrabSlamSeq(IKTime* clock, int32_t phase, uint8_t other)
     if (release != -10.0f) {  // TOC +0x2790
         if (m_unk1ac9 != 0 && m_unk1ad0 == 0 && !(0.0f < release)) {
             m_unk1ad0 = 1;
-            if (m_unk124 != nullptr) static_cast<CKHkS08Enemy*>(m_unk124)->SetAttackSpheresActive(1, nullptr);  // 0x00288e08
+            if (m_pTargetedEnemy != nullptr) static_cast<CKHkS08Enemy*>(m_pTargetedEnemy)->SetAttackSpheresActive(1, nullptr);  // 0x00288e08
         } else if (0.0f < release) {
             m_unk1af4 = release - dt;
         }
@@ -1512,7 +1512,7 @@ uint8_t CKHkS08Hero::ActGrabSlamSeq(IKTime* clock, int32_t phase, uint8_t other)
                 m_unk1b18 = 0.0f;
                 m_unkec4 = (m_unkec4 & ~0x08000000u) | 0x08000000u;
                 m_unk1b04 = 1.0f;
-                if (m_unk1acc != 0) ReleaseGrabbedEnemyWithDamage(static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow());  // 0x002fc720
+                if (m_unk1acc != 0) ReleaseGrabbedEnemyWithDamage(static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow());  // 0x002fc720
                 return other;
             case 0xbe:
                 m_unk1ab2 = 0xc2;
@@ -1537,8 +1537,8 @@ uint8_t CKHkS08Hero::ActGrabSlamSeq(IKTime* clock, int32_t phase, uint8_t other)
         }
     }
     if (anim == 0xbd || anim == 0xc4) {
-        if (m_unk1acc != 0 && static_cast<CKHkS08Enemy*>(m_unk124)->IsAnimEndReached(dt, 0, 0)) {  // 0x002893e8 -> 0x00285558
-            CKS08HeroBlow* blow = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow();
+        if (m_unk1acc != 0 && static_cast<CKHkS08Enemy*>(m_pTargetedEnemy)->IsAnimEndReached(dt, 0, 0)) {  // 0x002893e8 -> 0x00285558
+            CKS08HeroBlow* blow = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow();
             if (anim == 0xbd) {
                 ReleaseGrabbedEnemyWithDamage(blow);
             } else {
@@ -1566,7 +1566,7 @@ uint8_t CKHkS08Hero::ActGrabSlamSeq(IKTime* clock, int32_t phase, uint8_t other)
     if (m_ui8Hero == 0) {
         std::memcpy(&partner, &group->m_unk2d4[16], 4);  // +0x314
     } else if (m_ui8Hero == 1) {
-        std::memcpy(&partner, &group->m_unk318, 4);      // +0x318
+        std::memcpy(&partner, &group->m_fHero1ToMidDist, 4);      // +0x318
     }
     const float limit = (distance / group->m_unk10c) * (group->m_unk154 * 0.5f);  // TOC +0x27bc
     bool drop;
@@ -1576,7 +1576,7 @@ uint8_t CKHkS08Hero::ActGrabSlamSeq(IKTime* clock, int32_t phase, uint8_t other)
         drop = (m_unkec4 & 0x400000u) == 0 || (m_unkec4 & 0x40000u) != 0;
     }
     if (drop) {
-        m_unk1aec = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->GetRecoveryDelay();  // vt+0x7c
+        m_unk1aec = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->GetRecoveryDelay();  // vt+0x7c
         DropGrabbedEnemy();  // 0x002fc600
         SetComboActive(0, 5);
         return other;
@@ -1597,7 +1597,7 @@ uint8_t CKHkS08Hero::ActRecovery(IKTime* /*clock*/, int32_t phase, uint8_t other
     }
     if (phase == 1) {
         SetComboActive(0, 0xff);  // 0x0032d9b0
-        m_unk354 = (m_unk354 & ~0x800u) | 0x800u;
+        m_ui32HeroFlags354 = (m_ui32HeroFlags354 & ~0x800u) | 0x800u;
         m_unkec4 = (m_unkec4 & ~0x1000u) | 0x1000u;
         m_unkec4 = (m_unkec4 & ~0x200u) | 0x200u;
         m_unkec4 = (m_unkec4 & ~0x100u) | 0x100u;
@@ -1612,10 +1612,10 @@ uint8_t CKHkS08Hero::ActRecovery(IKTime* /*clock*/, int32_t phase, uint8_t other
         }
         return other;
     }
-    m_unk124 = nullptr;
-    m_unk12c = nullptr;
+    m_pTargetedEnemy = nullptr;
+    m_pTargetedMecaHook = nullptr;
     m_unk1a84 = 0;
-    m_unk354 &= ~0x800u;
+    m_ui32HeroFlags354 &= ~0x800u;
     m_unkec4 &= 0xffffe4ffu;
     m_unkec8 &= 0xff3cfeffu;
     m_unk1acb = 0;
@@ -1641,15 +1641,15 @@ uint8_t CKHkS08Hero::ActDead(IKTime*, int32_t phase, uint8_t other) {
     if ((ground != nullptr && (ground->m_ui16PropertiesFlags & 0x200u) != 0) || GetHeightAboveGround() > 10.0f ||
         !(m_unk1160 > 0.0f)) {  // TOC +0x27e4 / +0x279c; bgt / ble
         mode = 2;
-    } else if ((m_unk354 & 1u) == 0) {
+    } else if ((m_ui32HeroFlags354 & 1u) == 0) {
         mode = 1;
     }
     if (mode != 0) {
         CKS08GameManager* manager = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager);  // TOC +0x277c
         if (manager->m_gameState.m_ui8Current != 9) {  // vt+0x26c
             CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_pGrpHero);
-            group->m_unk65 = group->m_unk64;
-            group->m_unkf8 = (group->m_unkf8 & 0xffffffddu) | 2u;
+            group->m_ui8RequestedDragon = group->m_ui8SelectedDragon;
+            group->m_baWorkFlags = (group->m_baWorkFlags & 0xffffffddu) | 2u;
             LeaveAttachedObject();                        // 0x00344e88
             manager->StartDeathSequence(mode, m_ui8Hero);  // vt+0x25c 0x004f8750
         }
@@ -1660,7 +1660,7 @@ uint8_t CKHkS08Hero::ActDead(IKTime*, int32_t phase, uint8_t other) {
     m_unkec4 |= 0x400u;
     m_unkec4 |= 0x2000u;
     m_unkec4 |= 0x1000u;
-    m_unk354 |= 0x800u;
+    m_ui32HeroFlags354 |= 0x800u;
     m_unkec8 |= 0x400000u;
     m_unkec8 |= 0x800000u;
     m_unkec8 |= 0x20000000u;

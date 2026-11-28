@@ -17,11 +17,11 @@ public:
     ~CKDamage() override {}
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x00253cf8 CKDamage_Load
 
-    float m_unk04;    // +0x04 (live: floats)
-    int32_t m_unk08;  // +0x08 (file: small integers, e.g. 3)
-    uint8_t m_unk0c;  // +0x0c (+0x0d..+0x0f padding)
+    float m_fAmount;    // +0x04 (live: floats)
+    int32_t m_i32DamageKind;  // _maybe: +0x08 (file: small integers, e.g. 3)
+    uint8_t m_bContinuous;  // +0x0c (+0x0d..+0x0f padding)
 };
 DOTD_ASSERT_SIZE(CKDamage, 0x10);
-DOTD_ASSERT_OFFSET(CKDamage, m_unk04, 0x04);
-DOTD_ASSERT_OFFSET(CKDamage, m_unk08, 0x08);
-DOTD_ASSERT_OFFSET(CKDamage, m_unk0c, 0x0c);
+DOTD_ASSERT_OFFSET(CKDamage, m_fAmount, 0x04);
+DOTD_ASSERT_OFFSET(CKDamage, m_i32DamageKind, 0x08);
+DOTD_ASSERT_OFFSET(CKDamage, m_bContinuous, 0x0c);

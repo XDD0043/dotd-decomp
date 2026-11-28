@@ -37,8 +37,8 @@ public:
     // vt+0x58 0x005be118 CKAimCamembert_vf58: the aim reset (vt+0x60), then the reference object set and used (+0x3c).
     virtual void SetReference(IKSerializable* object) {
         ResetAim();
-        m_pUnk20 = object;
-        m_unk3c = 1;
+        m_pReferenceObj = object;
+        m_bUseReference = 1;
     }
     // vt+0x30 0x005be830 CKAimCamembert_PostLoad: the aim reset (vt+0x60), then 1.
     int32_t PostLoad(int32_t /*type*/) override {
@@ -49,15 +49,15 @@ public:
     // The seven loaded floats (90, 2, 28, 0, 10, 1, 1 in LVL010): the opening angle in degrees, the nearest and farthest
     // distance along the aim, the apex width, the radius around the aim line, the distance and the angle weights.
     float m_afUnk04[7];    // +0x04
-    IKSerializable* m_pUnk20;  // +0x20 an object whose direction (+0x20) and origin (+0x30) replace the sector's while +0x3c
+    IKSerializable* m_pReferenceObj;  // +0x20 an object whose direction (+0x20) and origin (+0x30) replace the sector's while +0x3c
     CVector3 m_vOrigin;        // +0x24
     CVector3 m_vDirection;     // +0x30
-    uint8_t m_unk3c;           // +0x3c
+    uint8_t m_bUseReference;           // +0x3c
     uint8_t m_pad3d[3];
 };
 DOTD_ASSERT_SIZE(CKAimCamembert, 0x40);
 DOTD_ASSERT_OFFSET(CKAimCamembert, m_afUnk04, +0x04);
-DOTD_ASSERT_OFFSET(CKAimCamembert, m_pUnk20, +0x20);
+DOTD_ASSERT_OFFSET(CKAimCamembert, m_pReferenceObj, +0x20);
 DOTD_ASSERT_OFFSET(CKAimCamembert, m_vOrigin, +0x24);
 DOTD_ASSERT_OFFSET(CKAimCamembert, m_vDirection, +0x30);
-DOTD_ASSERT_OFFSET(CKAimCamembert, m_unk3c, +0x3c);
+DOTD_ASSERT_OFFSET(CKAimCamembert, m_bUseReference, +0x3c);

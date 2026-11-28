@@ -29,7 +29,7 @@ void CKHkS08Enemy::SetPartsFlagForCategory(int32_t category) {
     }
     if (category != 1) return;
     for (uint32_t i = 0; m_aui8BoundingNumberByType[1] > i; ++i) {
-        auto* volume = static_cast<IKBoundingVolume*>(m_unk2C[m_aui8BoundingIndexByType[1] + i]);
+        auto* volume = static_cast<IKBoundingVolume*>(m_apBV[m_aui8BoundingIndexByType[1] + i]);
         if (volume != nullptr) volume->m_ui16PropertiesFlags = static_cast<uint16_t>(volume->m_ui16PropertiesFlags | 0x100u);
     }
 }
@@ -44,7 +44,7 @@ void CKHkS08Enemy::ClearPartsFlagForCategory(int32_t category) {
     }
     if (category != 1) return;
     for (uint32_t i = 0; m_aui8BoundingNumberByType[1] > i; ++i) {
-        auto* volume = static_cast<IKBoundingVolume*>(m_unk2C[m_aui8BoundingIndexByType[1] + i]);
+        auto* volume = static_cast<IKBoundingVolume*>(m_apBV[m_aui8BoundingIndexByType[1] + i]);
         if (volume != nullptr) volume->m_ui16PropertiesFlags = static_cast<uint16_t>(volume->m_ui16PropertiesFlags & ~0x100u);
     }
 }
@@ -54,12 +54,12 @@ void CKHkS08Enemy::ClearPartsFlagForCategory(int32_t category) {
 void CKHkS08Enemy::UnregisterShadowCaster() {
     if (m_pShadowCpnt == nullptr || m_unk1ad == 0) return;
     static_cast<CKSrvShadow*>(g_pEngine->m_srvShadow)
-        ->UnregisterCaster(reinterpret_cast<CKShadowGround*>(&m_unk190), m_pShadowCpnt);  // 0x001fd6f0
+        ->UnregisterCaster(reinterpret_cast<CKShadowGround*>(&m_v3ShadowGroundPosition), m_pShadowCpnt);  // 0x001fd6f0
 }
 
 // The layer's slot's active track's evaluated time (+0x54, the time its last Evaluate used), as the states that test the
 // animation marks read it inline (State00_Spawn 0x2a0da8: layer 0's slot 0, the controller array (+4) at the active
 // index (+0x10)).
 float CKHkS08Enemy::LayerSlotAnimTime(int32_t layer, int32_t slot) {
-    return ActiveTrack(m_unk164[layer][slot])->m_unk54;
+    return ActiveTrack(m_apAnimLayerSlots[layer][slot])->m_unk54;
 }

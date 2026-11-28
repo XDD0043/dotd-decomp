@@ -167,7 +167,7 @@ void CKHkPressionStone::SetNavBox(int32_t blocked) {
     CKSrvPathFinding* pathFinding = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);
     CPFPoint point;
     point.m_position = m_vPosition;
-    point.m_unk0c = 0xffff;
+    point.m_i16GraphNodeIndex = 0xffff;
     const float size = m_unk60;
     if ((pathFinding->FindSectorForPoint(&point) & 0xff) == 0) return;  // 0x001e5ca0
     const float half = size * 0.75f;
@@ -175,7 +175,7 @@ void CKHkPressionStone::SetNavBox(int32_t blocked) {
     const float y = point.m_position.y + kHeight;
     const CVector3 low = {-half + point.m_position.x, y, -half + point.m_position.z};
     const CVector3 high = {half + point.m_position.x, y, half + point.m_position.z};
-    const uint16_t node = point.m_unk0c;
+    const uint16_t node = point.m_i16GraphNodeIndex;
     if (pathFinding->m_Graph.m_ui32GraphNodesSize <= node) return;
     static_cast<CKPFGraphNode*>(pathFinding->m_Graph.m_apGraphNodes[node])->m_Sector.SetBoxBlocked(&low, &high, static_cast<uint8_t>(blocked));  // 0x001ed3c0
 }

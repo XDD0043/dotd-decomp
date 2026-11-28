@@ -29,10 +29,10 @@ public:
     CVector3 GetAimDirection(int32_t raw) override;          // vt+0x24 0x002c5ed0 vf24: GetHeroForward (vt+0x18)
     CVector3 GetOwnerRight() override;                       // vt+0x28 0x002c6458: the node's LTM right
     CVector3 GetOwnerUp() override;                          // vt+0x2c 0x002c6420: the node's LTM up
-    uint8_t IsAirborne() override;                           // vt+0x30 0x002c60e0 IsOnGround_maybe: CKHkS08Enemy_IsOnGround
+    uint8_t IsOnGround() override;                           // vt+0x30 0x002c60e0 IsOnGround_maybe: CKHkS08Enemy_IsOnGround
     uint8_t CanUseAltLoopAnim() override { return 0; }       // vt+0x38 0x002c5f28
-    // vt+0x3c 0x002c5f30: `ground`.
-    uint8_t SelectByMovementContext(uint8_t /*air*/, uint8_t ground, uint8_t /*flying*/) override { return ground; }
+    // vt+0x3c 0x002c5f30: `air`.
+    uint8_t SelectByMovementContext(uint8_t /*ground*/, uint8_t air, uint8_t /*flying*/) override { return air; }
     uint8_t Vf40(CKAbilityElement* /*ability*/, uint32_t /*index*/) override { return 0; }  // vt+0x40 0x002c5f38
     void SetHeroActionPermission(uint32_t, uint8_t, uint8_t, uint8_t) override {}  // vt+0x44 0x002c5f40 (empty)
     float GetHeroSpeedForAbility() override { return 0.0f; }  // vt+0x48 0x002c5f68 (TOC +0x196c 0.0)

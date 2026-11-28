@@ -30,9 +30,9 @@ public:
         if (m_abActive.m_pBlock != nullptr) Mem_FreeAligned16(m_abActive.m_pBlock);
         m_abActive.m_ui32NbUsedElt = 0;
         m_abActive.m_pBlock = nullptr;
-        if (m_unk18.m_pBlock != nullptr) Mem_FreeAligned16(m_unk18.m_pBlock);
-        m_unk18.m_ui32NbUsedElt = 0;
-        m_unk18.m_pBlock = nullptr;
+        if (m_vOwnRigs.m_pBlock != nullptr) Mem_FreeAligned16(m_vOwnRigs.m_pBlock);
+        m_vOwnRigs.m_ui32NbUsedElt = 0;
+        m_vOwnRigs.m_pBlock = nullptr;
         if (m_unk0c.m_pBlock != nullptr) Mem_FreeAligned16(m_unk0c.m_pBlock);
         m_unk0c.m_ui32NbUsedElt = 0;
         m_unk0c.m_pBlock = nullptr;
@@ -62,12 +62,12 @@ public:
     // The rig of effect `i` (inlined in Play / PlayWithOwnRigs / Update).
     SAnimatedFxRig* RigOf(uint32_t i);
 
-    uint8_t m_unk04;                    // +0x04
+    uint8_t m_bLoop;                    // _maybe: +0x04
     uint8_t m_pad05[3];
-    uint32_t m_unk08;                   // +0x08 the number of entries in +0x18 (when +0x24 is set)
+    uint32_t m_ui32NbOwnRigs;                   // +0x08 the number of entries in +0x18 (when +0x24 is set)
     TVector<IKSerializable*, 1> m_unk0c;  // +0x0c object references (LVL010: CKAnimatedFx)
-    TVector<Entry, 1> m_unk18;          // +0x18
-    uint8_t m_unk24;                    // +0x24 non-zero: the +0x18 entries follow in the file (the own rigs)
+    TVector<Entry, 1> m_vOwnRigs;          // +0x18
+    uint8_t m_bHasOwnRigs;                    // +0x24 non-zero: the +0x18 entries follow in the file (the own rigs)
     uint8_t m_unk25;
     uint8_t m_bPlaying;                 // +0x26 not read: PostLoad 0; one of the effects plays
     uint8_t m_unk27;
@@ -79,11 +79,11 @@ public:
 static_assert(CKAnimatedFxCollection::kClassKey == 0xa08c, "key");
 DOTD_ASSERT_SIZE(CKAnimatedFxCollection::Entry, 0x10);
 DOTD_ASSERT_SIZE(CKAnimatedFxCollection, 0x40);
-DOTD_ASSERT_OFFSET(CKAnimatedFxCollection, m_unk04, 0x04);
-DOTD_ASSERT_OFFSET(CKAnimatedFxCollection, m_unk08, 0x08);
+DOTD_ASSERT_OFFSET(CKAnimatedFxCollection, m_bLoop, 0x04);
+DOTD_ASSERT_OFFSET(CKAnimatedFxCollection, m_ui32NbOwnRigs, 0x08);
 DOTD_ASSERT_OFFSET(CKAnimatedFxCollection, m_unk0c, 0x0c);
-DOTD_ASSERT_OFFSET(CKAnimatedFxCollection, m_unk18, 0x18);
-DOTD_ASSERT_OFFSET(CKAnimatedFxCollection, m_unk24, 0x24);
+DOTD_ASSERT_OFFSET(CKAnimatedFxCollection, m_vOwnRigs, 0x18);
+DOTD_ASSERT_OFFSET(CKAnimatedFxCollection, m_bHasOwnRigs, 0x24);
 DOTD_ASSERT_OFFSET(CKAnimatedFxCollection, m_pRigs, 0x28);
 DOTD_ASSERT_OFFSET(CKAnimatedFxCollection, m_bPlaying, 0x26);
 DOTD_ASSERT_OFFSET(CKAnimatedFxCollection, m_pOwner, 0x38);

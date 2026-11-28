@@ -107,13 +107,13 @@ CKGrpS08Enemy* EnemyGroupOfElements() {  // 0x00276f58 GetEnemyGroup (TOC +0x6c8
 bool GroupCameraActive() {
     const CKSrvCamera* cameras = static_cast<const CKSrvCamera*>(g_pEngine->m_srvCamera);
     return cameras->m_pCurrentCamera != nullptr && cameras->m_pScriptedCameraHandle != nullptr &&
-           EnemyGroupOfElements()->m_pUnk264 == cameras->m_pScriptedCameraHandle;
+           EnemyGroupOfElements()->m_pCameraEventCpnt == cameras->m_pScriptedCameraHandle;
 }
 
 // The flight's end: the group's scripted camera released when active (ScriptedCameraHandle_Release_maybe 0x166130), then
 // BreakOff.
 void EndFlight(CKS08EnemyElement* element) {
-    if (GroupCameraActive()) static_cast<CKCameraEventCpnt*>(EnemyGroupOfElements()->m_pUnk264)->Release();
+    if (GroupCameraActive()) static_cast<CKCameraEventCpnt*>(EnemyGroupOfElements()->m_pCameraEventCpnt)->Release();
     element->BreakOff();  // 0x0026b398
 }
 }  // namespace
@@ -171,7 +171,7 @@ void CKS08EnemyElement::UpdateMotion(IKTime* clock) {
                 m_unk48 = 1;
             }
             const CGroundContactDatasInOut* ground =
-                static_cast<CKS08AccessoryManager*>(EnemyGroupOfElements()->m_pUnk1ec)->ProbeGround(&m_v04);  // 0x002c7598
+                static_cast<CKS08AccessoryManager*>(EnemyGroupOfElements()->m_pAccessoryManager)->ProbeGround(&m_v04);  // 0x002c7598
             const int32_t status = static_cast<int32_t>(ground->m_eContactStatus);
             const float dh = ground->m_fdH;
             if (status == 1 || status == 2) {
@@ -264,9 +264,9 @@ void CKS08EnemyElement::LaunchFromHit(const CKS08Damage* damage, const CVector3*
         x = inverse * x;
         y = inverse * y;
     }
-    const float speed = damage->m_unk10 >= config->m_unk28 ? damage->m_unk10 : config->m_unk28;
+    const float speed = damage->m_fKnockbackForce >= config->m_unk28 ? damage->m_fKnockbackForce : config->m_unk28;
     m_v1c = CVector3{speed * x, speed * y, speed * z};
-    m_unk2c = damage->m_unk14;
+    m_unk2c = damage->m_fKnockbackTime;
     if (m_unk2c < config->m_unk2c) m_unk2c = config->m_unk2c;
     m_unk28 = m_unk2c;
     m_unk3c = 0;
@@ -295,7 +295,7 @@ void CKS08EnemyElement::BreakOff() {
         explosion->ReleaseReservation(this);      // vt+0x54
     }
     // ScriptedCameraHandle_Release_maybe 0x166130 of the group's active scripted camera.
-    if (GroupCameraActive()) static_cast<CKCameraEventCpnt*>(EnemyGroupOfElements()->m_pUnk264)->Release();
+    if (GroupCameraActive()) static_cast<CKCameraEventCpnt*>(EnemyGroupOfElements()->m_pCameraEventCpnt)->Release();
 }
 
 // 0x0026c158 CKS08EnemyElement_vf50

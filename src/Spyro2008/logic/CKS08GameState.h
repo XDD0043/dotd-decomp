@@ -66,38 +66,38 @@ public:
     uint8_t RestoresSpawnPoint() override { return 1; }   // vt+0xc4 0x00509518
 
     uint32_t m_aUnk90[8];         // +0x90 type-8 block and K_GAME_MEMCARD; InitializeGameData: 300 x4, 0 x4
-    uint32_t m_aUnkB0[5];         // +0xb0 one 20-byte read, five swapped words
-    uint32_t m_aUnkC4[5];         // +0xc4 the same
+    uint32_t m_adwSpyroElementXp[5];         // +0xb0 one 20-byte read, five swapped words
+    uint32_t m_adwCynderElementXp[5];         // +0xc4 the same
     TVector<ObjectState, 8> m_vObjectStates;  // +0xd8 type-8 block (references); level part adds new ones
-    uint8_t m_aUnkE4[2][3];       // +0xe4 K_GAME_MEMCARD (each triple from its last byte); InitializeGameData: 3
-    uint8_t m_unkEA;              // +0xea K_GAME_MEMCARD
-    uint8_t m_unkEB;              // +0xeb K_GAME_MEMCARD
-    uint32_t m_aUnkEC[2];         // +0xec K_GAME_MEMCARD
-    uint32_t m_aUnkF4[2];         // +0xf4 K_GAME_MEMCARD
-    uint32_t m_aUnkFC[5];         // +0xfc K_GAME_MEMCARD
-    uint32_t m_aUnk110[5];        // +0x110 K_GAME_MEMCARD
+    uint8_t m_abEquippedArmor[2][3];       // +0xe4 K_GAME_MEMCARD (each triple from its last byte); InitializeGameData: 3
+    uint8_t m_bCynderArmorMeshHidden;              // +0xea K_GAME_MEMCARD
+    uint8_t m_bSpyroArmorMeshHidden;              // +0xeb K_GAME_MEMCARD
+    uint32_t m_adwEnemyKills[2];         // +0xec K_GAME_MEMCARD
+    uint32_t m_adwBestCombo[2];         // +0xf4 K_GAME_MEMCARD
+    uint32_t m_adwSpyroElementManaSpent[5];         // +0xfc K_GAME_MEMCARD
+    uint32_t m_adwCynderElementManaSpent[5];        // +0x110 K_GAME_MEMCARD
     float m_afUnk124[3];          // +0x124 K_GAME_MEMCARD (Ghidra flUnk124..12c)
-    uint32_t m_unk130;            // +0x130 K_GAME_MEMCARD
-    TVector<uint8_t, 8> m_avbUnk134[12];  // +0x134 type-8 block (sized, then read byte by byte)
-    uint8_t m_aUnk1C4[6];         // +0x1c4 type-8 block and K_GAME_MEMCARD
+    uint32_t m_fPlayer1PlayTime;            // +0x130 K_GAME_MEMCARD
+    TVector<uint8_t, 8> m_avObjectiveStates[12];  // +0x134 type-8 block (sized, then read byte by byte)
+    uint8_t m_abScriptCounters[6];         // +0x1c4 type-8 block and K_GAME_MEMCARD
     uint8_t m_aUnk1CA[19];        // +0x1ca K_GAME_MEMCARD; InitializeGameData: 1, then 0 x18
     uint8_t m_pad1dd[3];
 };
 DOTD_ASSERT_SIZE(CKS08GameState::ObjectState, 0x8);
 DOTD_ASSERT_SIZE(CKS08GameState, 0x1e0);
 DOTD_ASSERT_OFFSET(CKS08GameState, m_aUnk90, 0x90);
-DOTD_ASSERT_OFFSET(CKS08GameState, m_aUnkB0, 0xb0);
-DOTD_ASSERT_OFFSET(CKS08GameState, m_aUnkC4, 0xc4);
+DOTD_ASSERT_OFFSET(CKS08GameState, m_adwSpyroElementXp, 0xb0);
+DOTD_ASSERT_OFFSET(CKS08GameState, m_adwCynderElementXp, 0xc4);
 DOTD_ASSERT_OFFSET(CKS08GameState, m_vObjectStates, 0xd8);
-DOTD_ASSERT_OFFSET(CKS08GameState, m_aUnkE4, 0xe4);
-DOTD_ASSERT_OFFSET(CKS08GameState, m_unkEA, 0xea);
-DOTD_ASSERT_OFFSET(CKS08GameState, m_aUnkEC, 0xec);
-DOTD_ASSERT_OFFSET(CKS08GameState, m_aUnkFC, 0xfc);
-DOTD_ASSERT_OFFSET(CKS08GameState, m_aUnk110, 0x110);
+DOTD_ASSERT_OFFSET(CKS08GameState, m_abEquippedArmor, 0xe4);
+DOTD_ASSERT_OFFSET(CKS08GameState, m_bCynderArmorMeshHidden, 0xea);
+DOTD_ASSERT_OFFSET(CKS08GameState, m_adwEnemyKills, 0xec);
+DOTD_ASSERT_OFFSET(CKS08GameState, m_adwSpyroElementManaSpent, 0xfc);
+DOTD_ASSERT_OFFSET(CKS08GameState, m_adwCynderElementManaSpent, 0x110);
 DOTD_ASSERT_OFFSET(CKS08GameState, m_afUnk124, 0x124);
-DOTD_ASSERT_OFFSET(CKS08GameState, m_unk130, 0x130);
-DOTD_ASSERT_OFFSET(CKS08GameState, m_avbUnk134, 0x134);
-DOTD_ASSERT_OFFSET(CKS08GameState, m_aUnk1C4, 0x1c4);
+DOTD_ASSERT_OFFSET(CKS08GameState, m_fPlayer1PlayTime, 0x130);
+DOTD_ASSERT_OFFSET(CKS08GameState, m_avObjectiveStates, 0x134);
+DOTD_ASSERT_OFFSET(CKS08GameState, m_abScriptCounters, 0x1c4);
 DOTD_ASSERT_OFFSET(CKS08GameState, m_aUnk1CA, 0x1ca);
 
 // 0x0050f288 AddDragonPlayTime_maybe / 0x0050f2a8 AddPlayerSlotPlayTime_maybe (CKS08GameState.cpp): the play time

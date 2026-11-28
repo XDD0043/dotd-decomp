@@ -47,25 +47,25 @@ public:
     // (vt+0x80 0x009c0798 CKShadowArms_StartEmitterFx only calls the base's.)
 
     // Per level (the Load's loop: +0x214[i], +0x220[i], +0x22c[i]).
-    float m_unk214[3];             // +0x214 the hero's +0x1d20 while the attack runs (host vt+0x84)
-    float m_unk220[3];             // +0x220 the launch point's jitter
-    float m_unk22c[3];             // +0x22c the launch speed (plus the hero's)
-    IKSerializable* m_unk238[3];   // +0x238 CKProjectileAccessor: the shot from the second hand (+0x262)
-    IKSerializable* m_unk244[3];   // +0x244 CKProjectileAccessor: the shot from the first hand (+0x261)
-    IKSerializable* m_unk250;      // +0x250 CKAnimatedFxCollection: played on the hero above level index 0
-    IKSerializable* m_unk254[3];   // +0x254 CKExplosionFxData: the muzzle explosion per level
+    float m_afHeroAnimSpeed[3];             // +0x214 the hero's +0x1d20 while the attack runs (host vt+0x84)
+    float m_afLaunchJitter[3];             // +0x220 the launch point's jitter
+    float m_afLaunchSpeed[3];             // +0x22c the launch speed (plus the hero's)
+    IKSerializable* m_apFirstHandProjectiles[3];   // +0x238 CKProjectileAccessor: the shot from the first hand (+0x261; Fire 0x3d27e0)
+    IKSerializable* m_apSecondHandProjectiles[3];   // +0x244 CKProjectileAccessor: the shot from the second hand (+0x262)
+    IKSerializable* m_pAnimFxCollection;      // +0x250 CKAnimatedFxCollection: played on the hero above level index 0
+    IKSerializable* m_apMuzzleExplosions[3];   // +0x254 CKExplosionFxData: the muzzle explosion per level
     // Runtime (not read).
-    uint8_t m_unk260;              // +0x260 released (Update): with the press past the tap window Fire launches nothing
-    uint8_t m_unk261;              // +0x261 the first hand's hot spot (ResetRuntime 7)
-    uint8_t m_unk262;              // +0x262 the second hand's hot spot (ResetRuntime 8)
+    uint8_t m_bReleased;              // +0x260 released (Update): with the press past the tap window Fire launches nothing
+    uint8_t m_ui8FirstHandHotSpot;              // +0x261 the first hand's hot spot (ResetRuntime 7)
+    uint8_t m_ui8SecondHandHotSpot;              // +0x262 the second hand's hot spot (ResetRuntime 8)
     uint8_t m_pad263;
 };
 DOTD_ASSERT_SIZE(CKShadowArms, 0x264);
-DOTD_ASSERT_OFFSET(CKShadowArms, m_unk214, 0x214);
-DOTD_ASSERT_OFFSET(CKShadowArms, m_unk22c, 0x22c);
-DOTD_ASSERT_OFFSET(CKShadowArms, m_unk238, 0x238);
-DOTD_ASSERT_OFFSET(CKShadowArms, m_unk244, 0x244);
-DOTD_ASSERT_OFFSET(CKShadowArms, m_unk250, 0x250);
-DOTD_ASSERT_OFFSET(CKShadowArms, m_unk254, 0x254);
-DOTD_ASSERT_OFFSET(CKShadowArms, m_unk260, 0x260);
-DOTD_ASSERT_OFFSET(CKShadowArms, m_unk262, 0x262);
+DOTD_ASSERT_OFFSET(CKShadowArms, m_afHeroAnimSpeed, 0x214);
+DOTD_ASSERT_OFFSET(CKShadowArms, m_afLaunchSpeed, 0x22c);
+DOTD_ASSERT_OFFSET(CKShadowArms, m_apFirstHandProjectiles, 0x238);
+DOTD_ASSERT_OFFSET(CKShadowArms, m_apSecondHandProjectiles, 0x244);
+DOTD_ASSERT_OFFSET(CKShadowArms, m_pAnimFxCollection, 0x250);
+DOTD_ASSERT_OFFSET(CKShadowArms, m_apMuzzleExplosions, 0x254);
+DOTD_ASSERT_OFFSET(CKShadowArms, m_bReleased, 0x260);
+DOTD_ASSERT_OFFSET(CKShadowArms, m_ui8SecondHandHotSpot, 0x262);

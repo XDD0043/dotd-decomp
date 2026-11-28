@@ -58,7 +58,7 @@ void CKS08MenuLanguage::OnItemState(uint8_t item, uint8_t state, uint8_t phase) 
 uint8_t CKS08MenuLanguage::OnMenuState(int32_t phase, uint8_t /*other*/) {
     if (phase == 2) {
         static_cast<CDefaultGameManager*>(m_pGameManager)->RevertOptions();
-    } else if (phase == 1 || (phase == 0 && (g_pEngine->m_input->m_unk148 & 1) != 0)) {
+    } else if (phase == 1 || (phase == 0 && (g_pEngine->m_input->m_ui8InputActivityFlags & 1) != 0)) {
         m_unkb8 = 0;
     }
     return static_cast<uint8_t>(GetMenuId());

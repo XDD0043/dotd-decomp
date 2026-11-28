@@ -169,15 +169,15 @@ void CKHkS08CrumblyZone::OnHit(IKBoundingVolume* volume) {
     CKDamage* damage = static_cast<CKDamage*>(volume->m_unk1c);
     if (volume->m_ui8OwnerType == 3 && damage != nullptr) {
         if (damage->IsKindOfClass(0x998c) != 0) {  // vt+0x08 CKS08HeroDamage
-            if (m_unk1C0 != 0 && static_cast<CKS08Damage*>(damage)->m_unk20 != 5) return;
+            if (m_unk1C0 != 0 && static_cast<CKS08Damage*>(damage)->m_ui32DamageType != 5) return;
         } else if (damage->IsKindOfClass(0x99cc) != 0 &&  // CKS08ElementDamage
-                   (ppc::slw(1u, static_cast<CKS08Damage*>(damage)->m_unk20) & m_unk1BC) != 0) {
+                   (ppc::slw(1u, static_cast<CKS08Damage*>(damage)->m_ui32DamageType) & m_unk1BC) != 0) {
             const float dt = g_pEngine->m_timeManager->m_pTime->m_afDeltaTime[0];  // +0x48 -> +0x04 -> +0x1c
-            const float amount = damage->m_unk0c != 0 ? dt * damage->m_unk04 : damage->m_unk04;
+            const float amount = damage->m_bContinuous != 0 ? dt * damage->m_fAmount : damage->m_fAmount;
             uint32_t hits = static_cast<uint32_t>(ppc::fctidz(amount));  // fctidz, the low word compared
             // --fps N (not in the original): a held (per-second) damage chips what this frame's 60 Hz frames would.
-            if (dotd::fps::Unlocked() && damage->m_unk0c != 0) {
-                hits = static_cast<uint32_t>(dotd::fps::TruncSteps(damage->m_unk04, dt));
+            if (dotd::fps::Unlocked() && damage->m_bContinuous != 0) {
+                hits = static_cast<uint32_t>(dotd::fps::TruncSteps(damage->m_fAmount, dt));
             }
             if (hits != 0) {
                 const RwFrame* frame = m_vUnkA4.m_ui32NbUsedElt != 0 ? volume->m_pRwFrame

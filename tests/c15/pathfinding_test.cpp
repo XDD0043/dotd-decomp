@@ -106,7 +106,7 @@ bool NodeHolds(uint16_t node, const CVector3& p) {
 CPFPoint Locate(const ProbeCase& c) {
     CPFPoint point;
     point.m_position = {F(c.projection[0]), F(c.projection[1]), F(c.projection[2])};
-    point.m_unk0c = 0xffff;
+    point.m_i16GraphNodeIndex = 0xffff;
     if (Service()->FindSectorForPoint(&point) == 0) point = Service()->ClampToNearestSector(&point);
     return point;
 }
@@ -115,9 +115,9 @@ CPFPoint Locate(const ProbeCase& c) {
 CPFCharacter Walker() {
     CPFCharacter character;
     character.m_bits = 0x407;
-    character.m_unk04 = g_pfGridScale.m_halfCellSize * 0x1.99999ap-3f;
-    character.m_unk08 = 0x1.99999ap-3f;
-    character.m_unk0c = 1.0f;
+    character.m_fRadius = g_pfGridScale.m_halfCellSize * 0x1.99999ap-3f;
+    character.m_fMaxStepHeight = 0x1.99999ap-3f;
+    character.m_fMaxStepRise = 1.0f;
     return character;
 }
 
@@ -195,9 +195,9 @@ int main() {
     std::vector<CPFPoint> points;
     for (const ProbeCase& c : kCases) {
         const CPFPoint point = Locate(c);
-        const bool inside = NodeHolds(point.m_unk0c, point.m_position);
+        const bool inside = NodeHolds(point.m_i16GraphNodeIndex, point.m_position);
         if (!inside) {
-            std::printf("FAIL pathfinding: %s: node %u does not hold (%.3f, %.3f, %.3f)\n", c.label, point.m_unk0c,
+            std::printf("FAIL pathfinding: %s: node %u does not hold (%.3f, %.3f, %.3f)\n", c.label, point.m_i16GraphNodeIndex,
                         point.m_position.x, point.m_position.y, point.m_position.z);
             ++c15::g_failures;
         }
@@ -207,9 +207,9 @@ int main() {
     {
         CPFPoint far;
         far.m_position = {10000.0f, 0.0f, 10000.0f};
-        far.m_unk0c = 0xffff;
+        far.m_i16GraphNodeIndex = 0xffff;
         const CPFPoint near = service->ClampToNearestSector(&far);
-        C15_CHECK(NodeHolds(near.m_unk0c, near.m_position));
+        C15_CHECK(NodeHolds(near.m_i16GraphNodeIndex, near.m_position));
     }
 
     // Queries from the first census point (the hero) to every other distinct point.
@@ -228,22 +228,22 @@ int main() {
         if ((state & 0x80) == 0) {
             ++failed;
             std::printf("pathfinding: %s: query state 0x%x (route of %u nodes) nodes %u -> %u\n", kCases[i].label, state,
-                        length, from.m_unk0c, to.m_unk0c);
+                        length, from.m_i16GraphNodeIndex, to.m_i16GraphNodeIndex);
             // The graph search's answer checked with a breadth-first search over the same transitions.
             {
                 size_t reachable = 0;
-                const bool connected = Connected(from.m_unk0c, to.m_unk0c, character, &reachable);
+                const bool connected = Connected(from.m_i16GraphNodeIndex, to.m_i16GraphNodeIndex, character, &reachable);
                 std::printf("   breadth-first: %zu nodes reachable, target %s\n", reachable,
                             connected ? "reachable" : "not reachable");
                 if (length == 0) C15_CHECK(!connected || state != 1);
             }
             if (std::getenv("DOTD_PF_DEBUG") != nullptr) {
-                const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(service->m_Graph.m_apGraphNodes[from.m_unk0c]);
+                const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(service->m_Graph.m_apGraphNodes[from.m_i16GraphNodeIndex]);
                 for (uint32_t t = 0; t < node->m_ui16TransitionSize; ++t) {
                     const CKPFGraphTransition* tr = node->m_ppTransition[t];
                     std::printf("   transition %u -> node %u flags 0x%x allowed 0x%x radius %g portals %u allows %u\n", t,
                                 static_cast<const CKPFGraphNode*>(tr->m_pNode)->m_ui16Node, tr->m_baFlags,
-                                tr->m_AllowedChar.m_bits, tr->m_AllowedChar.m_unk04, tr->m_ui32NbPortals,
+                                tr->m_AllowedChar.m_bits, tr->m_AllowedChar.m_fRadius, tr->m_ui32NbPortals,
                                 tr->AllowsCharacter(&character));
                 }
             }
@@ -251,7 +251,7 @@ int main() {
         }
         ++reached;
         if (length > 1) ++multiNode;
-        C15_CHECK(firstNode == from.m_unk0c || length == 0);
+        C15_CHECK(firstNode == from.m_i16GraphNodeIndex || length == 0);
         // The last waypoint is the target.
         const size_t n = first.size();
         C15_CHECK(n >= 3 && F(first[n - 3]) == to.m_position.x && F(first[n - 1]) == to.m_position.z);
@@ -274,10 +274,10 @@ int main() {
             PathFinding_SetWalkabilityMode(through.m_bits & 7);
             node->m_Sector.m_grid.m_ui8DynamicMask = 0xf7;
             CPFPoint to;
-            to.m_unk0c = 0xffff;
-            if (node->m_Sector.ClampPointWithClearance(through.m_unk04, &centre, &to.m_position) == 0) continue;
-            to.m_unk0c = static_cast<uint16_t>(n);
-            to.m_unk0c = node->FindBoxIdAtPoint(&to.m_position.x);
+            to.m_i16GraphNodeIndex = 0xffff;
+            if (node->m_Sector.ClampPointWithClearance(through.m_fRadius, &centre, &to.m_position) == 0) continue;
+            to.m_i16GraphNodeIndex = static_cast<uint16_t>(n);
+            to.m_i16GraphNodeIndex = node->FindBoxIdAtPoint(&to.m_position.x);
             if (service->IsPointWalkable(&to, &through) == 0) continue;
             std::vector<uint32_t> first, second;
             uint32_t length = 0, length2 = 0;
@@ -286,7 +286,7 @@ int main() {
             const uint32_t state2 = RunQuery(points[0], to, through, &second, &length2, &firstNode2, &lastNode2);
             C15_CHECK(state == state2 && first == second && length == length2);
             size_t reachable = 0;
-            const bool connected = Connected(points[0].m_unk0c, to.m_unk0c, through, &reachable);
+            const bool connected = Connected(points[0].m_i16GraphNodeIndex, to.m_i16GraphNodeIndex, through, &reachable);
             if ((state & 0x80) == 0) {
                 ++nodeFailed;
                 if (length == 0 && state == 1 && connected) {
@@ -302,15 +302,15 @@ int main() {
                 farthest = to.m_position;
             }
             waypointsTotal += static_cast<uint32_t>(first.size() / 3);
-            C15_CHECK(firstNode == points[0].m_unk0c);
-            C15_CHECK(lastNode == to.m_unk0c);
+            C15_CHECK(firstNode == points[0].m_i16GraphNodeIndex);
+            C15_CHECK(lastNode == to.m_i16GraphNodeIndex);
             const size_t count = first.size();
             C15_CHECK(count >= 3 && F(first[count - 3]) == to.m_position.x && F(first[count - 1]) == to.m_position.z);
             // Every waypoint inside a graph node.
             for (size_t w = 0; w + 2 < count; w += 3) {
                 CPFPoint p;
                 p.m_position = {F(first[w]), F(first[w + 1]), F(first[w + 2])};
-                p.m_unk0c = 0xffff;
+                p.m_i16GraphNodeIndex = 0xffff;
                 if (service->FindSectorForPoint(&p) == 0) {
                     std::printf("FAIL pathfinding: node %u: waypoint %zu (%.3f, %.3f, %.3f) in no node\n", n, w / 3,
                                 p.m_position.x, p.m_position.y, p.m_position.z);
@@ -332,14 +332,14 @@ int main() {
         component.m_CharacterType = character;
         component.m_InstantaneousCharacterType = character;
         component.m_bits70 = 0x90;
-        component.m_unk76 = 0xff;
-        component.m_unk74 = 0xffff;
-        component.m_unk34 = 0x40;
-        component.m_unk38 = 0x40;
-        component.m_unk3c = 0;
-        component.m_ptTargetPosition.m_unk0c = 0xffff;
-        component.m_ptOriginalTargetPosition.m_unk0c = 0xffff;
-        component.m_Destination.m_unk0c = 0xffff;
+        component.m_i8PFSlot = 0xff;
+        component.m_i16NextGrid = 0xffff;
+        component.m_ui32Action = 0x40;
+        component.m_ui32ReachabilityClass = 0x40;
+        component.m_eState = 0;
+        component.m_ptTargetPosition.m_i16GraphNodeIndex = 0xffff;
+        component.m_ptOriginalTargetPosition.m_i16GraphNodeIndex = 0xffff;
+        component.m_Destination.m_i16GraphNodeIndex = 0xffff;
         CVector3 position = points[0].m_position;
         C15_CHECK(component.SetDestination(&position) == 1);
         const CVector3 target = farthest;
@@ -351,7 +351,7 @@ int main() {
             if (std::getenv("DOTD_PF_DEBUG") != nullptr) {
                 std::printf("   update %d: result 0x%x phase %u mode %u flags 0x%x node %u next %u waypoint (%.3f, %.3f, %.3f)\n",
                             steps, result, (component.m_bits70 >> 7) & 7, (component.m_bits70 >> 4) & 7,
-                            component.m_bits70 & 0x40f, component.m_Destination.m_unk0c, component.m_unk74,
+                            component.m_bits70 & 0x40f, component.m_Destination.m_i16GraphNodeIndex, component.m_i16NextGrid,
                             component.m_vCurrentTarget.x, component.m_vCurrentTarget.y, component.m_vCurrentTarget.z);
             }
             for (uint8_t s = 0; s < 20; ++s) {

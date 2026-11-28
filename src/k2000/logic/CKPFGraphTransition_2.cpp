@@ -65,9 +65,9 @@ int32_t CPFGraph::Load(IKFile* file, int32_t type) {
 CKPFGraphTransition::CKPFGraphTransition() {
     m_AllowedChar.m_bits = 0;
     m_AllowedChar.m_bits = (m_AllowedChar.m_bits & 0xfffff800u) | 0x400u | 0x7u;  // the two bitfield stores
-    m_AllowedChar.m_unk0c = 1.0f;
-    m_AllowedChar.m_unk08 = 0x1.99999ap-3f;  // 0.2f
-    m_AllowedChar.m_unk04 = g_pfGridScale.m_halfCellSize * 0x1.99999ap-3f;
+    m_AllowedChar.m_fMaxStepRise = 1.0f;
+    m_AllowedChar.m_fMaxStepHeight = 0x1.99999ap-3f;  // 0.2f
+    m_AllowedChar.m_fRadius = g_pfGridScale.m_halfCellSize * 0x1.99999ap-3f;
     m_pNode = nullptr;
     m_AllowedChar.m_bits = (m_AllowedChar.m_bits & 0xfffffff8u) | 0x7u;
 }
@@ -121,7 +121,7 @@ uint8_t CKPFGraphTransition::AllowsCharacter(const CPFCharacter* character) cons
     const uint32_t bits = character->m_bits;
     if (types != 0x80u && ((bits >> 3) & types) == 0) return 0;
     if ((allowed & bits & 7u) == 0) return 0;
-    return m_AllowedChar.m_unk04 >= character->m_unk04 ? 1 : 0;
+    return m_AllowedChar.m_fRadius >= character->m_fRadius ? 1 : 0;
 }
 
 #include "k2000/ai/CKSrvPathFinding.h"

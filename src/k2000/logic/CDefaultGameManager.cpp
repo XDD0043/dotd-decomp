@@ -307,13 +307,13 @@ void CDefaultGameManager::Restart() {
 // 0x00014fe8 IKGameManager_vfD8: level -1 = the boot loading video (+0x84); otherwise the video (+0x84) of
 // the game structure's level whose number (+0x1c) matches, searched from the last; null when none does.
 IKVideo* CDefaultGameManager::GetLoadingVideo(int32_t level) {
-    if (level == -1) return static_cast<IKVideo*>(m_unk84);
+    if (level == -1) return static_cast<IKVideo*>(m_pBootingVideo);
     IKGameStructure* structure = static_cast<IKGameStructure*>(m_gameStructure);
     uint32_t count = structure->m_vpStages.m_ui32NbUsedElt;  // CKDefaultGameStructure_CountLevels(gs, null) 0x413c8
     while (count != 0) {
         --count;
         CKGameLevel* stage = structure->m_vpStages.m_pBlock[count];
-        if (stage->m_i32StageIndex == level) return static_cast<IKVideo*>(stage->m_pUnk84);
+        if (stage->m_i32StageIndex == level) return static_cast<IKVideo*>(stage->m_pLoadingVideo);
     }
     return nullptr;
 }
@@ -369,14 +369,14 @@ void CDefaultGameManager::InitImpl() {
     m_unk1c.Init(saveStateSize, 0);  // 0x48430
     m_unk1c.Resize(saveStateSize);   // 0x48ec0
     std::memset(m_unk1c.m_pData, 0, static_cast<uint32_t>(saveStateSize));
-    m_unk3c = g_pEngine->m_fileSystem->OpenFile(reinterpret_cast<const char*>(&m_unk1c), 2, KFileSystem::kDeviceMemory,
+    m_pSaveStateStream = g_pEngine->m_fileSystem->OpenFile(reinterpret_cast<const char*>(&m_unk1c), 2, KFileSystem::kDeviceMemory,
                                                 KFileSystem::kRootNone, 0, -1, 0);  // 0x4a288
     m_gameStructure = static_cast<IKSerializable*>(ClassRegistry_CreateObjectByKey(GetGameStructureClassKey()));
     static_cast<IKGameStructure*>(m_gameStructure)->SetGameManager(this);  // vt+0x70
-    m_unk84 = nullptr;
-    std::memset(m_unk8c, 0, sizeof(m_unk8c));  // 0x002461c0 Uuid_Clear
-    m_unk9c = -1;
-    std::memset(m_unkA0, 0, sizeof(m_unkA0));
+    m_pBootingVideo = nullptr;
+    std::memset(m_guidSave, 0, sizeof(m_guidSave));  // 0x002461c0 Uuid_Clear
+    m_i32SaveSlotIndex = -1;
+    std::memset(m_guidPendingSave, 0, sizeof(m_guidPendingSave));
     m_unkB0 = -1;
     m_unk89 = 0;
     m_bSaveRequestPosted = 0;
@@ -410,7 +410,7 @@ void CDefaultGameManager::LoadImpl(IKFile* stream, int32_t mode) {
     if (mode == 1) {
         ReadS32LE(stream, &m_requestedLevel);
         m_unk28c = -1;
-        IKFile_ReadRef(stream, &m_unk84);
+        IKFile_ReadRef(stream, &m_pBootingVideo);
         IKFile_ReadObjectRefArray(stream, m_players, 7);
         return;
     }
@@ -425,9 +425,9 @@ void CDefaultGameManager::LoadImpl(IKFile* stream, int32_t mode) {
     }
     if (mode != 0) return;
     IKFile_ReadObjectRefArray(stream, m_unk04, 5);
-    m_unk70.Load(stream, 0);
-    m_unk78.Load(stream, 0);
-    IKFile_ReadRef(stream, &m_unk144);
+    m_tsRestart.Load(stream, 0);
+    m_tsStart.Load(stream, 0);
+    IKFile_ReadRef(stream, &m_pPromptTextAccessor);
 }
 
 #include "k2000/logic/ui/CLocManager.h"
@@ -510,8 +510,8 @@ void CDefaultGameManager::ResetRuntimeImpl() {
         ((1u << level) & static_cast<IKPlayer*>(m_players[0])->m_baLevelSaved) != 0) {
         // C2.8 menus-load: the save-state stream (+0x3c) at the level's slot (level * the slot size 0x00c40710, vt+0x2c)
         // read in K_LEVEL_MEMCARD (CKLoadingManager_LoadSavedObjects_maybe 0x2a7c8).
-        m_unk3c->Seek(static_cast<int32_t>(level * static_cast<uint32_t>(kSaveStateSlotSize)), kSeekSet);
-        g_pEngine->m_objectDatabase->LoadSavedObjects(m_unk3c, K_LEVEL_MEMCARD);
+        m_pSaveStateStream->Seek(static_cast<int32_t>(level * static_cast<uint32_t>(kSaveStateSlotSize)), kSeekSet);
+        g_pEngine->m_objectDatabase->LoadSavedObjects(m_pSaveStateStream, K_LEVEL_MEMCARD);
     }
     IKGameStructure* structure = static_cast<IKGameStructure*>(m_gameStructure);
     m_unk80 = (m_unk80 & 0x00ffffffu) | 0x01000000u;  // the byte at +0x80
@@ -523,8 +523,8 @@ void CDefaultGameManager::ResetRuntimeImpl() {
 
 // 0x000159a8 CDefaultGameManager_ResetProgressImpl_maybe (XXL2 IKGameManager::BasicNewGame)
 void CDefaultGameManager::BasicNewGame() {
-    std::memset(m_unk8c, 0, sizeof(m_unk8c));  // 0x002461c0 Uuid_Clear
-    m_unk9c = -1;
+    std::memset(m_guidSave, 0, sizeof(m_guidSave));  // 0x002461c0 Uuid_Clear
+    m_i32SaveSlotIndex = -1;
     for (uint32_t i = 1; i <= 5; ++i) static_cast<IKPlayer*>(m_players[i])->InitializeNewGame();  // vt+0x54
     static_cast<IKPlayer*>(m_players[0])->InitializeNewGame();
     static_cast<IKPlayer*>(m_players[6])->InitializeNewGame();
@@ -539,7 +539,7 @@ void CDefaultGameManager::ReleaseGameData() {
     g_pEngine->m_classManager->DestroyObjectArray(m_playerArray);  // 0x1b400
     m_playerArray = nullptr;
     m_unk1c.Free();                                   // 0x483b8
-    g_pEngine->m_fileSystem->CloseFile(m_unk3c);      // 0x49dd8
+    g_pEngine->m_fileSystem->CloseFile(m_pSaveStateStream);      // 0x49dd8
     if (m_gameStructure != nullptr) ClassRegistry_DestroyObject(m_gameStructure);  // 0x11420
     SaveData_FreeWorkBuffer2();                       // 0x2d148
 }
@@ -766,7 +766,7 @@ uint32_t CDefaultGameManager::HaveOptionsChanged() {
     const SGameOptions& a = m_currentOptions;
     const SGameOptions& b = m_editedOptions;
     const bool changed = a.m_ui32Language != b.m_ui32Language || a.m_bSubtitles != b.m_bSubtitles ||
-                         a.m_unk05 != b.m_unk05 || a.m_ui32SoundOutput != b.m_ui32SoundOutput ||
+                         a.m_bTutorialInfoPopups != b.m_bTutorialInfoPopups || a.m_ui32SoundOutput != b.m_ui32SoundOutput ||
                          a.m_ui32AspectRatio != b.m_ui32AspectRatio || a.m_afVolumes[0] != b.m_afVolumes[0] ||
                          a.m_afVolumes[1] != b.m_afVolumes[1] || a.m_afVolumes[2] != b.m_afVolumes[2] ||
                          a.m_abVibration[0] != b.m_abVibration[0] || a.m_abVibration[1] != b.m_abVibration[1] ||
@@ -804,7 +804,7 @@ void CDefaultGameManager::ToggleVibrationBothPlayers() {
 // motion sensors.
 void CDefaultGameManager::ApplyOptions(SGameOptions* options, uint8_t current) {
     if (g_pEngine->m_locManager->m_languageIndex != options->m_ui32Language)
-        m_unk290 = static_cast<int32_t>(options->m_ui32Language);
+        m_i32RequestedLanguage = static_cast<int32_t>(options->m_ui32Language);
     static_cast<CKSrvSekensor*>(g_pEngine->m_srvSekensor)->SetSubtitlesEnabled(options->m_bSubtitles);
     CKSoundManager_SetVolumes(0x1p+0f, options->m_afVolumes[2], options->m_afVolumes[1], options->m_afVolumes[0],
                               g_pEngine->m_soundManager);  // TOC1 -0x7ef4: 1.0
@@ -850,7 +850,7 @@ void CDefaultGameManager::CopyOptionsToEditBlock() { m_editedOptions = m_current
 // manager's TRC copies, the language request cleared.
 void CDefaultGameManager::RecacheLocStringsAfterReload() {
     CManager2d_CacheLocStrings(g_pEngine->m_manager2d);
-    m_unk290 = -1;
+    m_i32RequestedLanguage = -1;
 }
 
 // 0x00014750 CDefaultGameManager_InitDefaultOptions_maybe: the defaults into the edited options: the
@@ -860,7 +860,7 @@ void CDefaultGameManager::InitDefaultOptions(int32_t withLanguage) {
     SGameOptions& options = m_editedOptions;
     if (withLanguage != 0) options.m_ui32Language = g_pEngine->m_locManager->GetSystemLanguageIndex();
     options.m_bSubtitles = 0;
-    options.m_unk05 = 1;
+    options.m_bTutorialInfoPopups = 1;
     options.m_ui32AspectRatio = 0;
     options.m_ui32SoundOutput = 0;
     const int32_t index = SoundOutputIndex(KStub_Return0_114508(g_pEngine->m_soundManager->m_pOutput));
@@ -894,7 +894,7 @@ void CDefaultGameManager::RefreshOptionsChangedFlag() {
 // 0x000162a0 CDefaultGameManager_RecacheLocStrings_maybe (boot mode 0): as RecacheLocStringsAfterReload.
 void CDefaultGameManager::RecacheLocStrings() {
     CManager2d_CacheLocStrings(g_pEngine->m_manager2d);
-    m_unk290 = -1;
+    m_i32RequestedLanguage = -1;
 }
 
 // 0x00016480 GameManager_RevertOptions_maybe: the edited options back into the current ones (the
@@ -1074,7 +1074,7 @@ void CDefaultGameManager::TogglePerPlayerOption1E(int32_t player) {
 
 // 0x00017758 IKGameManager_ToggleOptionF1
 void CDefaultGameManager::ToggleOption05() {
-    m_editedOptions.m_unk05 ^= 1;
+    m_editedOptions.m_bTutorialInfoPopups ^= 1;
     ApplyOptions(&m_editedOptions, 0);
 }
 
@@ -1104,12 +1104,12 @@ void CDefaultGameManager::TogglePerPlayerOption1EBothPlayers() {
 
 // 0x00013408 CDefaultGameManager_RequestSave_maybe (vt+0x104)
 void CDefaultGameManager::RequestSave(uint32_t /*unused*/, uint8_t value) {
-    m_unk88 = (m_currentOptions.m_bAutosave != 0 && value != 0) ? 1 : 0;
+    m_bAutosavePending = (m_currentOptions.m_bAutosave != 0 && value != 0) ? 1 : 0;
 }
 
 // 0x00014f20 CDefaultGameManager_SetSaveRequestFlag_maybe (vt+0x10c)
 void CDefaultGameManager::SetSaveRequestFlag(uint32_t /*unused*/, uint8_t value) {
-    m_unk88 = (m_currentOptions.m_bAutosave != 0 && value != 0) ? 1 : 0;
+    m_bAutosavePending = (m_currentOptions.m_bAutosave != 0 && value != 0) ? 1 : 0;
     m_flags64 = (m_flags64 & 0xfffffffdu) | 2;
 }
 
@@ -1130,11 +1130,11 @@ void CDefaultGameManager::OnLevelStart() {
     if (spawnPoint != nullptr && spawnPoint->m_pGameStage->GetMatchesThisLevel() != 0) spawnPoint->Activate();
     if (level != nullptr) PlayLaunchScene(level);
     if ((m_unk80 >> 24) != 0) {
-        QueueTriggerSignals(&m_unk78);
+        QueueTriggerSignals(&m_tsStart);
         m_unk80 &= 0x00ffffffu;
         return;
     }
-    QueueTriggerSignals(&m_unk70);
+    QueueTriggerSignals(&m_tsRestart);
 }
 
 namespace {
@@ -1145,11 +1145,11 @@ const CKLocText* PromptText(CKLocTextAccessor* accessor, uint32_t index) {
 }  // namespace
 
 // 0x000137b8 CDefaultGameManager_GetSkipVideoPromptText_maybe
-const CKLocText* CDefaultGameManager::GetSkipVideoPromptText() { return PromptText(static_cast<CKLocTextAccessor*>(m_unk144), 1); }
+const CKLocText* CDefaultGameManager::GetSkipVideoPromptText() { return PromptText(static_cast<CKLocTextAccessor*>(m_pPromptTextAccessor), 1); }
 // 0x00014ef0 CDefaultGameManager_GetSkipCinematicPromptText_maybe
-const CKLocText* CDefaultGameManager::GetSkipCinematicPromptText() { return PromptText(static_cast<CKLocTextAccessor*>(m_unk144), 2); }
+const CKLocText* CDefaultGameManager::GetSkipCinematicPromptText() { return PromptText(static_cast<CKLocTextAccessor*>(m_pPromptTextAccessor), 2); }
 // 0x00014ec0 CDefaultGameManager_GetCannotSkipPromptText_maybe
-const CKLocText* CDefaultGameManager::GetCannotSkipPromptText() { return PromptText(static_cast<CKLocTextAccessor*>(m_unk144), 3); }
+const CKLocText* CDefaultGameManager::GetCannotSkipPromptText() { return PromptText(static_cast<CKLocTextAccessor*>(m_pPromptTextAccessor), 3); }
 
 // 0x00013d60 IKGameManager_SwitchToFocusedHeroCamera_maybe
 uint8_t CDefaultGameManager::SwitchToFocusedHeroCamera() {
@@ -1180,7 +1180,7 @@ void OptionsToPS3(const SGameOptions& o, uint8_t* b) {
     std::memcpy(bits, o.m_afVolumes, sizeof(bits));
     word(0x00, o.m_ui32Language);
     b[0x04] = o.m_bSubtitles;
-    b[0x05] = o.m_unk05;
+    b[0x05] = o.m_bTutorialInfoPopups;
     b[0x06] = o.m_pad06[0];
     b[0x07] = o.m_pad06[1];
     word(0x08, o.m_ui32SoundOutput);
@@ -1214,7 +1214,7 @@ void OptionsFromPS3(const uint8_t* b, SGameOptions* o) {
     };
     o->m_ui32Language = word(0x00);
     o->m_bSubtitles = b[0x04];
-    o->m_unk05 = b[0x05];
+    o->m_bTutorialInfoPopups = b[0x05];
     o->m_pad06[0] = b[0x06];
     o->m_pad06[1] = b[0x07];
     o->m_ui32SoundOutput = word(0x08);
@@ -1436,7 +1436,7 @@ int32_t CDefaultGameManager::RunSaveCheckStateMachine() {
 // 0x000157e8 CDefaultGameManager_SaveFlowA_State0_maybe
 uint8_t CDefaultGameManager::SaveCheckState0(int32_t event, uint8_t /*state*/) {
     if (event == 1) {
-        std::memset(m_unkA0, 0, sizeof(m_unkA0));  // 0x002461c0 Uuid_Clear
+        std::memset(m_guidPendingSave, 0, sizeof(m_guidPendingSave));  // 0x002461c0 Uuid_Clear
         m_unkB0 = -1;
         if (m_unk268[2] != 0) {
             m_unk1c0 = -1;
@@ -1469,8 +1469,8 @@ uint8_t CDefaultGameManager::SaveCheckState0(int32_t event, uint8_t /*state*/) {
     }
     if (event == 2) {
         if (m_unk1c4 != 0) {
-            std::memset(m_unk8c, 0, sizeof(m_unk8c));
-            m_unk9c = -1;
+            std::memset(m_guidSave, 0, sizeof(m_guidSave));
+            m_i32SaveSlotIndex = -1;
             m_unk288 = -1;
         }
         return 0;
@@ -1514,8 +1514,8 @@ uint8_t CDefaultGameManager::SaveCheckState1(int32_t event, uint8_t /*state*/) {
     }
     static_cast<IKPlayer*>(m_players[0])->CopyPlayerGameData(static_cast<IKPlayer*>(m_players[slot + 1]));  // vt+0x50
     const int32_t index = m_unk1c0;
-    Uuid_Copy(m_unk8c, m_unk230);  // 0x00246190
-    m_unk9c = index;
+    Uuid_Copy(m_guidSave, m_unk230);  // 0x00246190
+    m_i32SaveSlotIndex = index;
     m_unk268[0] = 1;
     return 0xff;
 }
@@ -1538,8 +1538,8 @@ uint8_t CDefaultGameManager::SaveCheckState3(int32_t event, uint8_t /*state*/) {
         if (m_unk1f0[4] != 0) return 3;
         if (m_unk1c4 != 0) return 4;
         const int32_t index = m_unk1c0;
-        Uuid_Copy(m_unk8c, m_unk230);
-        m_unk9c = index;
+        Uuid_Copy(m_guidSave, m_unk230);
+        m_i32SaveSlotIndex = index;
         m_unk268[0] = 1;
         return 0xff;
     }

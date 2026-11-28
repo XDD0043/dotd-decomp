@@ -54,18 +54,18 @@ public:
 
     IKSerializable* m_unk214[7];   // +0x214 CKExplosionFxData (live): [0..2] the normal scream per level, [3..5] the
                                    // charged one, [6] the full-charge burst
-    IKSerializable* m_unk230;      // +0x230 CNode (live): the charge node
-    float m_unk234[3];             // +0x234 one 12-byte read, three swapped words (live: 0, then floats): the charge
+    IKSerializable* m_pChargeNode;      // +0x230 CNode (live): the charge node
+    float m_vChargeNodeOffset[3];             // +0x234 one 12-byte read, three swapped words (live: 0, then floats): the charge
                                    // node's offset under the hot spot
-    IKSerializable* m_unk240;      // +0x240 CKSoundDictionaryID (live)
-    uint8_t m_unk244;              // +0x244 (not read) runtime: the full-charge burst went off
+    IKSerializable* m_pSoundDico;      // +0x240 CKSoundDictionaryID (live)
+    uint8_t m_bFullChargeBurstFired;              // +0x244 (not read) runtime: the full-charge burst went off
     uint8_t m_pad245[3];
     CKSound* m_pLoopSound;         // +0x248 (not read) runtime: the loop sound playing (Fire)
 };
 DOTD_ASSERT_SIZE(CKFearScream, 0x24c);
 DOTD_ASSERT_OFFSET(CKFearScream, m_unk214, 0x214);
-DOTD_ASSERT_OFFSET(CKFearScream, m_unk230, 0x230);
-DOTD_ASSERT_OFFSET(CKFearScream, m_unk234, 0x234);
-DOTD_ASSERT_OFFSET(CKFearScream, m_unk240, 0x240);
-DOTD_ASSERT_OFFSET(CKFearScream, m_unk244, 0x244);
+DOTD_ASSERT_OFFSET(CKFearScream, m_pChargeNode, 0x230);
+DOTD_ASSERT_OFFSET(CKFearScream, m_vChargeNodeOffset, 0x234);
+DOTD_ASSERT_OFFSET(CKFearScream, m_pSoundDico, 0x240);
+DOTD_ASSERT_OFFSET(CKFearScream, m_bFullChargeBurstFired, 0x244);
 DOTD_ASSERT_OFFSET(CKFearScream, m_pLoopSound, 0x248);

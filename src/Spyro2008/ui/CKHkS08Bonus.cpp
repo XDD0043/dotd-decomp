@@ -93,8 +93,8 @@ constexpr float kFltMax = 3.40282347e+38f;         // 0x00c4ace0 (the float limi
 
 CSGMovable* NodeOf(const CKHkS08Bonus* bonus) { return static_cast<CSGMovable*>(bonus->m_pKGLObject); }
 RwFrame* FrameOf(const CKHkS08Bonus* bonus) { return NodeOf(bonus)->m_pRwFrame; }
-CKGrpBonusPool* PoolOf(const CKHkS08Bonus* bonus) { return static_cast<CKGrpBonusPool*>(bonus->m_pUnk28); }
-CKS08BonusCpnt* CpntOf(const CKHkS08Bonus* bonus) { return static_cast<CKS08BonusCpnt*>(bonus->m_pUnk2C); }
+CKGrpBonusPool* PoolOf(const CKHkS08Bonus* bonus) { return static_cast<CKGrpBonusPool*>(bonus->m_pGroup); }
+CKS08BonusCpnt* CpntOf(const CKHkS08Bonus* bonus) { return static_cast<CKS08BonusCpnt*>(bonus->m_pBonusCpnt); }
 CVector3* AsVec(RwV3d* v) { return reinterpret_cast<CVector3*>(v); }
 
 // The frame's modelling position set (z, x, y as the original stores it), rwMATRIXINTERNALIDENTITY cleared (the
@@ -112,8 +112,8 @@ void PlaceFrame(CKHkS08Bonus* bonus, const CVector3& position) {
 // normalised (`h` its length), or the frame's right axis when it is (almost) still.
 void SpinAxis(const CKHkS08Bonus* bonus, CVector3* axis) {
     const float zero = 0.0f;  // TOC2 -0x642c
-    const float vx = bonus->m_unk44.x;
-    const float vz = bonus->m_unk44.z;
+    const float vx = bonus->m_v3Velocity.x;
+    const float vz = bonus->m_v3Velocity.z;
     const float h = std::sqrt(ppc::fmadds(vz, vz, ppc::fmadds(vx, vx, zero)));  // 0x00010690 Math_Sqrtf
     if (h == zero || h < 0.05f) {  // TOC2 -0x641c
         const RwFrame* frame = FrameOf(bonus);
@@ -180,8 +180,8 @@ void IdentityMatrix(CMatrix34* m) {
 void CKHkS08Bonus::ReturnToPool() {
     CSGLeaf* node = static_cast<CSGLeaf*>(m_pKGLObject);
     node->m_sgProperties = (node->m_sgProperties & 0xfffffffbu) | 4u;
-    PoolOf(this)->ReleaseBonusFx(m_pUnk80);  // 0x005b1668
-    PoolOf(this)->StopBonusTrail(m_unk24);   // 0x005b3e50
+    PoolOf(this)->ReleaseBonusFx(m_pFxNode);  // 0x005b1668
+    PoolOf(this)->StopBonusTrail(m_ui32PoolIndex);   // 0x005b3e50
 }
 
 // 0x005b7890 CKHkS08Bonus_DisableAndReleaseFx_maybe (vt+0xd8; CKGrpBonusPool_ReleaseAllActive_maybe): hidden, its effect
@@ -189,30 +189,30 @@ void CKHkS08Bonus::ReturnToPool() {
 void CKHkS08Bonus::DisableAndReleaseFx() {
     CSGLeaf* node = static_cast<CSGLeaf*>(m_pKGLObject);
     node->m_sgProperties = node->m_sgProperties | 4u;
-    PoolOf(this)->ReleaseBonusFx(m_pUnk80);  // 0x005b1668
-    PoolOf(this)->StopBonusTrail(m_unk24);   // 0x005b3e50
+    PoolOf(this)->ReleaseBonusFx(m_pFxNode);  // 0x005b1668
+    PoolOf(this)->StopBonusTrail(m_ui32PoolIndex);   // 0x005b3e50
 }
 
 // 0x005b76d0 CKHkS08Bonus_vfE4 (vt+0xe4)
 void CKHkS08Bonus::VfE4(const CVector3* velocity, IKSerializable* hero) {
-    m_unk44.x = velocity->x;
-    m_unk44.z = velocity->z;
-    m_unk44.y = velocity->y;
-    m_unk3c = CpntOf(this)->m_unk24;
+    m_v3Velocity.x = velocity->x;
+    m_v3Velocity.z = velocity->z;
+    m_v3Velocity.y = velocity->y;
+    m_fAge = CpntOf(this)->m_unk24;
     Collect(hero, nullptr);  // vt+0xc8
-    m_unk34 = 1;
+    m_bSharedCopy = 1;
 }
 
 // 0x005b7758 CKHkS08Bonus_SetLaunchVelocity_maybe (vt+0xe0)
 void CKHkS08Bonus::SetLaunchVelocity(const CVector3* velocity, const CGroundContactDatasInOut* contact) {
-    m_unk44.x = velocity->x;
-    m_unk44.y = velocity->y;
-    m_unk44.z = velocity->z;
+    m_v3Velocity.x = velocity->x;
+    m_v3Velocity.y = velocity->y;
+    m_v3Velocity.z = velocity->z;
     const float jitter = CpntOf(this)->m_unk30[0];  // +0x30
     const float k = ppc::fmadds(jitter, BONUS_RAND_SIGNED(), 1.0f);
-    m_unk44.z = k * m_unk44.z;
-    m_unk44.x = k * m_unk44.x;
-    m_unk44.y = k * m_unk44.y;
+    m_v3Velocity.z = k * m_v3Velocity.z;
+    m_v3Velocity.x = k * m_v3Velocity.x;
+    m_v3Velocity.y = k * m_v3Velocity.y;
     if (contact != nullptr) CopyGroundContact(m_GContactInOut, *contact);
 }
 
@@ -234,14 +234,14 @@ void CKHkS08Bonus::SpawnAtBeacon(const uint16_t* accessor) {
 
 // 0x005b7f88 CKHkS08Bonus_SpawnAtPosition_maybe (vt+0xd4)
 void CKHkS08Bonus::SpawnAtPosition(const CVector3* position) {
-    m_unk40 = -1.0f;  // TOC2 -0x6468
-    m_unk3c = 0.0f;
+    m_fSeekAge = -1.0f;  // TOC2 -0x6468
+    m_fAge = 0.0f;
     const float r = BONUS_RAND_U16();
     const CKS08BonusCpnt* cpnt = CpntOf(this);
-    m_unk50 = 0;
-    m_unk38 = ppc::fmadds(r / kRand65535, cpnt->m_unk14[3] - cpnt->m_unk14[2], cpnt->m_unk14[2]);
-    m_unk44 = kNullVector;
-    m_pUnk30 = nullptr;
+    m_ui32BounceCount = 0;
+    m_fSpinSpeed = ppc::fmadds(r / kRand65535, cpnt->m_unk14[3] - cpnt->m_unk14[2], cpnt->m_unk14[2]);
+    m_v3Velocity = kNullVector;
+    m_pCatcher = nullptr;
     CMatrix34 matrix;
     IdentityMatrix(&matrix);
     Mat4_RotateLocalZDeg(0.0f, &matrix);  // 0x002419c0
@@ -251,29 +251,29 @@ void CKHkS08Bonus::SpawnAtPosition(const CVector3* position) {
     PlaceFrame(this, *position);
     CSGLeaf* node = static_cast<CSGLeaf*>(m_pKGLObject);
     node->m_sgProperties &= 0xfffffffbu;
-    m_pUnk80 = PoolOf(this)->AcquireBonusFx(m_pKGLObject);  // 0x005b3958
+    m_pFxNode = PoolOf(this)->AcquireBonusFx(m_pKGLObject);  // 0x005b3958
     RwFrame* frame = FrameOf(this);
-    PoolOf(this)->ResetBonusTrail(m_unk24, AsVec(&frame->modelling.pos), AsVec(&frame->modelling.up));  // 0x005b3ea8
+    PoolOf(this)->ResetBonusTrail(m_ui32PoolIndex, AsVec(&frame->modelling.pos), AsVec(&frame->modelling.up));  // 0x005b3ea8
 }
 
 // 0x005b8178 CKHkS08Bonus_SpawnAt_maybe (vt+0xc4)
 void CKHkS08Bonus::SpawnAt(float seekTime, const CVector3* position) {
     NodeOf(this)->SetIdentity();  // 0x000d08f0
-    m_pUnk30 = nullptr;
+    m_pCatcher = nullptr;
     m_GContactInOut.m_i32FaceIndex = -1;
     m_GContactInOut.m_eContactStatus = 3;
     m_GContactInOut.m_ui8SectorNumber = 0;
     m_GContactInOut.m_pGround = nullptr;
-    m_unk35 = 1;
-    m_unk40 = seekTime;
-    m_unk34 = 0;
-    m_unk3c = 0.0f;
+    m_bPlayCollectSound = 1;
+    m_fSeekAge = seekTime;
+    m_bSharedCopy = 0;
+    m_fAge = 0.0f;
     const float r = BONUS_RAND_U16();
     const CKS08BonusCpnt* cpnt = CpntOf(this);
-    m_unk50 = 0;
-    m_unk38 = ppc::fmadds(r / kRand65535, cpnt->m_unk14[3] - cpnt->m_unk14[2], cpnt->m_unk14[2]);
-    m_unk44 = kNullVector;
-    if (CpntOf(this)->m_unk10 == 0) {
+    m_ui32BounceCount = 0;
+    m_fSpinSpeed = ppc::fmadds(r / kRand65535, cpnt->m_unk14[3] - cpnt->m_unk14[2], cpnt->m_unk14[2]);
+    m_v3Velocity = kNullVector;
+    if (CpntOf(this)->m_bFloatingOrbMode == 0) {
         const float rz = BONUS_RAND_U16();
         const float ry = BONUS_RAND_U16();
         const float rx = BONUS_RAND_U16();
@@ -287,40 +287,40 @@ void CKHkS08Bonus::SpawnAt(float seekTime, const CVector3* position) {
     PlaceFrame(this, *position);
     CSGLeaf* node = static_cast<CSGLeaf*>(m_pKGLObject);
     node->m_sgProperties &= 0xfffffffbu;
-    m_pUnk80 = PoolOf(this)->AcquireBonusFx(m_pKGLObject);  // 0x005b3958
+    m_pFxNode = PoolOf(this)->AcquireBonusFx(m_pKGLObject);  // 0x005b3958
     RwFrame* frame = FrameOf(this);
-    PoolOf(this)->ResetBonusTrail(m_unk24, AsVec(&frame->modelling.pos), AsVec(&frame->modelling.up));  // 0x005b3ea8
+    PoolOf(this)->ResetBonusTrail(m_ui32PoolIndex, AsVec(&frame->modelling.pos), AsVec(&frame->modelling.up));  // 0x005b3ea8
 }
 
 // 0x005b8590 CKHkS08Bonus_InitFlyToHeroCurve_maybe
 void CKHkS08Bonus::InitFlyToHeroCurve() {
-    m_unkA0.x = BONUS_RAND_SIGNED();
+    m_v3FlyEndTangent.x = BONUS_RAND_SIGNED();
     const float r = BONUS_RAND_SIGNED();
-    m_unkA0.y = 0.0f;
-    m_unkA0.z = r;
-    TangentFrom(&m_unkA0, CpntOf(this)->m_unk54[2], CpntOf(this)->m_unk54[1]);  // +0x5c, +0x58
+    m_v3FlyEndTangent.y = 0.0f;
+    m_v3FlyEndTangent.z = r;
+    TangentFrom(&m_v3FlyEndTangent, CpntOf(this)->m_unk54[2], CpntOf(this)->m_unk54[1]);  // +0x5c, +0x58
     const RwFrame* frame = FrameOf(this);
-    m_unk88.x = frame->modelling.pos.x;
-    m_unk88.z = frame->modelling.pos.z;
-    m_unk88.y = frame->modelling.pos.y;
-    if (CpntOf(this)->m_unk10 != 0) m_unk88.y = m_unk88.y + 2.0f;  // TOC2 -0x6420
-    m_unk94.x = BONUS_RAND_SIGNED();
+    m_v3FlyStart.x = frame->modelling.pos.x;
+    m_v3FlyStart.z = frame->modelling.pos.z;
+    m_v3FlyStart.y = frame->modelling.pos.y;
+    if (CpntOf(this)->m_bFloatingOrbMode != 0) m_v3FlyStart.y = m_v3FlyStart.y + 2.0f;  // TOC2 -0x6420
+    m_v3FlyStartTangent.x = BONUS_RAND_SIGNED();
     const float s = BONUS_RAND_SIGNED();
-    m_unk94.y = 0.0f;
-    m_unk94.z = s;
-    TangentFrom(&m_unk94, CpntOf(this)->m_unk54[3], CpntOf(this)->m_unk54[1]);  // +0x60, +0x58
+    m_v3FlyStartTangent.y = 0.0f;
+    m_v3FlyStartTangent.z = s;
+    TangentFrom(&m_v3FlyStartTangent, CpntOf(this)->m_unk54[3], CpntOf(this)->m_unk54[1]);  // +0x60, +0x58
 }
 
 // 0x005b8900 BonusGem_Collect (vt+0xc8)
 void CKHkS08Bonus::Collect(IKSerializable* hero, const uint16_t* accessor) {
     // bge on the age (cror: equal counts), else a negative seek time (blt).
-    if (!(m_unk3c >= CpntOf(this)->m_unk24) && !(m_unk40 < 0.0f)) return;
-    m_pUnk30 = hero;
+    if (!(m_fAge >= CpntOf(this)->m_unk24) && !(m_fSeekAge < 0.0f)) return;
+    m_pCatcher = hero;
     if (accessor != nullptr) {
-        m_unkB0[0] = accessor[0];
-        m_unkB0[3] = accessor[3];
-        m_unkB0[1] = accessor[1];
-        m_unkB0[2] = accessor[2];
+        m_au16BeaconAccessor[0] = accessor[0];
+        m_au16BeaconAccessor[3] = accessor[3];
+        m_au16BeaconAccessor[1] = accessor[1];
+        m_au16BeaconAccessor[2] = accessor[2];
         CKSrvBeacon* beacons = static_cast<CKSrvBeacon*>(g_pEngine->m_srvBeacon);
         CKSrvBeacon::CKBeaconSector& sector = beacons->m_aBeaconSectors[accessor[0]];
         if (sector.m_apBeaconKlusters != nullptr) {
@@ -339,7 +339,7 @@ void CKHkS08Bonus::Collect(IKSerializable* hero, const uint16_t* accessor) {
     const RwFrame* frame = FrameOf(this);
     const CVector3 at = {frame->ltm.pos.x, frame->ltm.pos.y, frame->ltm.pos.z};
     PoolOf(this)->TriggerCollectExplosion(&at);  // 0x005b3bc0
-    m_unk84 = 0.0f;
+    m_fFlyTime = 0.0f;
     InitFlyToHeroCurve();
     if (hero->IsKindOfClass(0x25c2) == 0) return;  // vt+0x08
     CKS08GameManager* manager = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager);
@@ -374,7 +374,7 @@ void CKHkS08Bonus::SeekNearestHero() {
             }
         }
         if (nearest != nullptr) {
-            m_unk3c = CpntOf(this)->m_unk24;
+            m_fAge = CpntOf(this)->m_unk24;
             Collect(nearest, nullptr);  // vt+0xc8
             return;
         }
@@ -429,13 +429,13 @@ void CKHkS08Bonus::ResolveBounceCollision(CVector3* position) {
             position->x = ppc::fmadds(nx, e, position->x);
             position->y = ppc::fmadds(ny, e, position->y);
             position->z = ppc::fmadds(nz, e, position->z);
-            float v = ny * m_unk44.y;
-            v = ppc::fmadds(nx, m_unk44.x, v);
-            v = ppc::fnmadds(nz, m_unk44.z, v);
+            float v = ny * m_v3Velocity.y;
+            v = ppc::fmadds(nx, m_v3Velocity.x, v);
+            v = ppc::fnmadds(nz, m_v3Velocity.z, v);
             e = ppc::fmadds(CpntOf(this)->m_unk14[1], v, v);
-            m_unk44.z = ppc::fmadds(nz, e, m_unk44.z);
-            m_unk44.x = ppc::fmadds(nx, e, m_unk44.x);
-            m_unk44.y = ppc::fmadds(ny, e, m_unk44.y);
+            m_v3Velocity.z = ppc::fmadds(nz, e, m_v3Velocity.z);
+            m_v3Velocity.x = ppc::fmadds(nx, e, m_v3Velocity.x);
+            m_v3Velocity.y = ppc::fmadds(ny, e, m_v3Velocity.y);
         }
     }
     // The ground below the new position.
@@ -466,8 +466,8 @@ void CKHkS08Bonus::ResolveBounceCollision(CVector3* position) {
         return;
     }
     if ((static_cast<ICollisionMesh*>(m_GContactInOut.m_pGround)->m_ui16PropertiesFlags & 0x200u) != 0) SeekNearestHero();
-    ++m_unk50;
-    if (CpntOf(this)->m_unk2c > m_unk50) {
+    ++m_ui32BounceCount;
+    if (CpntOf(this)->m_unk2c > m_ui32BounceCount) {
         // A bounce off the ground: its normal jittered by three draws.
         const float gx = m_GContactInOut.m_Normal.x;
         const float gz = m_GContactInOut.m_Normal.z;
@@ -483,13 +483,13 @@ void CKHkS08Bonus::ResolveBounceCollision(CVector3* position) {
             nx = nx * k;
             ny = ny * k;
         }
-        float v = ny * m_unk44.y;
-        v = ppc::fmadds(m_unk44.x, nx, v);
-        v = ppc::fnmadds(nz, m_unk44.z, v);
+        float v = ny * m_v3Velocity.y;
+        v = ppc::fmadds(m_v3Velocity.x, nx, v);
+        v = ppc::fnmadds(nz, m_v3Velocity.z, v);
         float e = ppc::fmadds(CpntOf(this)->m_unk14[1], v, v);
-        m_unk44.z = ppc::fmadds(e, nz, m_unk44.z);
-        m_unk44.x = ppc::fmadds(e, nx, m_unk44.x);
-        m_unk44.y = ppc::fmadds(e, ny, m_unk44.y);
+        m_v3Velocity.z = ppc::fmadds(e, nz, m_v3Velocity.z);
+        m_v3Velocity.x = ppc::fmadds(e, nx, m_v3Velocity.x);
+        m_v3Velocity.y = ppc::fmadds(e, ny, m_v3Velocity.y);
         const float h = ny * m_GContactInOut.m_fdH;
         e = ppc::fmadds(CpntOf(this)->m_unk14[1], h, h);
         position->z = ppc::fmadds(e, nz, position->z);
@@ -498,7 +498,7 @@ void CKHkS08Bonus::ResolveBounceCollision(CVector3* position) {
         return;
     }
     // No bounce left: it rests on the ground.
-    m_unk44 = kNullVector;
+    m_v3Velocity = kNullVector;
     const float px = m_GContactInOut.m_ProjectionOnGround.x;
     const float py = m_GContactInOut.m_ProjectionOnGround.y + lift;
     const float pz = m_GContactInOut.m_ProjectionOnGround.z;
@@ -510,23 +510,23 @@ void CKHkS08Bonus::ResolveBounceCollision(CVector3* position) {
 // 0x005b8cf8 CKHkS08Bonus_UpdateFlyToHero_maybe
 void CKHkS08Bonus::UpdateFlyToHero(IKTime* frameClock) {
     const float dt = frameClock->m_afDeltaTime[0];
-    const float t = m_unk84 + dt;
-    m_unk84 = t;
+    const float t = m_fFlyTime + dt;
+    m_fFlyTime = t;
     const float duration = CpntOf(this)->m_unk54[0];  // +0x54
     if (t >= duration) {
-        PoolOf(this)->ApplyBonusToHero(m_pUnk30, this);  // vt+0x12c
-        if (m_pUnk30->IsKindOfClass(0x25c2) != 0) {
-            static_cast<CKHkS08Hero*>(m_pUnk30)->ShareCollectedBonusWithPartner(this);  // 0x0032afc8
+        PoolOf(this)->ApplyBonusToHero(m_pCatcher, this);  // vt+0x12c
+        if (m_pCatcher->IsKindOfClass(0x25c2) != 0) {
+            static_cast<CKHkS08Hero*>(m_pCatcher)->ShareCollectedBonusWithPartner(this);  // 0x0032afc8
         }
         const RwFrame* frame = FrameOf(this);
         const CVector3 at = {frame->ltm.pos.x, frame->ltm.pos.y, frame->ltm.pos.z};
         static_cast<CKGrpS08BonusPool*>(PoolOf(this))->PlayCollectFx(&at);  // 0x005af800
-        if (m_unk35 != 0) ++PoolOf(this)->m_unk68;
+        if (m_bPlayCollectSound != 0) ++PoolOf(this)->m_unk68;
         ReturnToPool();  // vt+0xc0
         return;
     }
     float s;
-    if (CpntOf(this)->m_unk10 != 0) {
+    if (CpntOf(this)->m_bFloatingOrbMode != 0) {
         s = t - (duration - 0.5f);  // TOC2 -0x63f4
         s = s + s;
         if (!(s > 0.0f)) s = 0.0f;  // ble
@@ -534,35 +534,35 @@ void CKHkS08Bonus::UpdateFlyToHero(IKTime* frameClock) {
         s = t / duration;
     }
     CVector3 target;
-    if (m_pUnk30->IsKindOfClass(0x25c2) != 0) {
-        CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(m_pUnk30);
+    if (m_pCatcher->IsKindOfClass(0x25c2) != 0) {
+        CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(m_pCatcher);
         hero->GetDragonIndex();  // 0x00361960 (the result is not used)
         static_cast<CSGHotSpot*>(hero->GetHotSpot(5))->GetWorldPosition(&target);  // 0x00361b70, 0x000ce790
     } else {
-        const RwFrame* frame = static_cast<CSGMovable*>(static_cast<IKHook*>(m_pUnk30)->m_pKGLObject)->m_pRwFrame;
+        const RwFrame* frame = static_cast<CSGMovable*>(static_cast<IKHook*>(m_pCatcher)->m_pKGLObject)->m_pRwFrame;
         target.z = frame->ltm.pos.z;
         target.x = frame->ltm.pos.x;
         target.y = frame->ltm.pos.y;
     }
     CVector3 p2;
-    p2.x = target.x + m_unkA0.x;
-    p2.y = target.y + m_unkA0.y;
-    p2.z = target.z + m_unkA0.z;
+    p2.x = target.x + m_v3FlyEndTangent.x;
+    p2.y = target.y + m_v3FlyEndTangent.y;
+    p2.z = target.z + m_v3FlyEndTangent.z;
     CVector3 p1;
-    p1.x = m_unk88.x + m_unk94.x;
-    p1.y = m_unk88.y + m_unk94.y;
-    p1.z = m_unk88.z + m_unk94.z;
+    p1.x = m_v3FlyStart.x + m_v3FlyStartTangent.x;
+    p1.y = m_v3FlyStart.y + m_v3FlyStartTangent.y;
+    p1.z = m_v3FlyStart.z + m_v3FlyStartTangent.z;
     CVector3 out;
-    Vec3_CubicBezier(s, &out, &m_unk88, &p1, &p2, &target);  // 0x00010fc0
+    Vec3_CubicBezier(s, &out, &m_v3FlyStart, &p1, &p2, &target);  // 0x00010fc0
     PlaceFrame(this, out);
     CVector3 axis;
-    if (CpntOf(this)->m_unk10 != 0) {
+    if (CpntOf(this)->m_bFloatingOrbMode != 0) {
         axis = kAxisY;
     } else {
         SpinAxis(this, &axis);
     }
-    NodeOf(this)->RotateInPlace(&axis.x, m_unk38 * kRadToDeg * dt);  // 0x000d11b0
-    if (CpntOf(this)->m_unk10 != 0) return;
+    NodeOf(this)->RotateInPlace(&axis.x, m_fSpinSpeed * kRadToDeg * dt);  // 0x000d11b0
+    if (CpntOf(this)->m_bFloatingOrbMode != 0) return;
     // It shrinks as it arrives: each row normalised and scaled by 1 - s^2 (the flags' identity and orthogonal bits
     // cleared, 0xfffdfffc), the frame marked dirty after each.
     const float scale = 1.0f - s * s;
@@ -582,50 +582,50 @@ void CKHkS08Bonus::UpdateFlyToHero(IKTime* frameClock) {
 
 // 0x005b9c28 CKHkS08Bonus_Update (vt+0x7c)
 void CKHkS08Bonus::Update(IKTime* frameClock) {
-    const float age = frameClock->m_afDeltaTime[0] + m_unk3c;
-    m_unk3c = age;
-    if (m_pUnk30 != nullptr) {
+    const float age = frameClock->m_afDeltaTime[0] + m_fAge;
+    m_fAge = age;
+    if (m_pCatcher != nullptr) {
         UpdateFlyToHero(frameClock);
     } else {
         // ble on the seek time, then bge (cror) on the age.
-        if (m_unk40 > 0.0f && age >= m_unk40) {
+        if (m_fSeekAge > 0.0f && age >= m_fSeekAge) {
             SeekNearestHero();
             return;
         }
-        if (m_unk50 < CpntOf(this)->m_unk2c) {
+        if (m_ui32BounceCount < CpntOf(this)->m_unk2c) {
             const float dt = frameClock->m_afDeltaTime[0];
             const float g = -CpntOf(this)->m_unk14[0] * dt;  // +0x14
-            m_unk44.z = ppc::fmadds(g, kAxisY.z, m_unk44.z);
-            m_unk44.x = ppc::fmadds(g, kAxisY.x, m_unk44.x);
-            m_unk44.y = ppc::fmadds(g, kAxisY.y, m_unk44.y);
+            m_v3Velocity.z = ppc::fmadds(g, kAxisY.z, m_v3Velocity.z);
+            m_v3Velocity.x = ppc::fmadds(g, kAxisY.x, m_v3Velocity.x);
+            m_v3Velocity.y = ppc::fmadds(g, kAxisY.y, m_v3Velocity.y);
             const float step = frameClock->m_afDeltaTime[0];
             const RwFrame* frame = FrameOf(this);
             CVector3 next;
-            next.x = ppc::fmadds(step, m_unk44.x, frame->modelling.pos.x);
-            next.z = ppc::fmadds(step, m_unk44.z, frame->modelling.pos.z);
-            next.y = ppc::fmadds(step, m_unk44.y, frame->modelling.pos.y);
+            next.x = ppc::fmadds(step, m_v3Velocity.x, frame->modelling.pos.x);
+            next.z = ppc::fmadds(step, m_v3Velocity.z, frame->modelling.pos.z);
+            next.y = ppc::fmadds(step, m_v3Velocity.y, frame->modelling.pos.y);
             ResolveBounceCollision(&next);
             PlaceFrame(this, next);
             CVector3 axis;
-            if (CpntOf(this)->m_unk10 != 0) {
+            if (CpntOf(this)->m_bFloatingOrbMode != 0) {
                 axis = kAxisY;
             } else {
                 SpinAxis(this, &axis);
             }
-            NodeOf(this)->RotateInPlace(&axis.x, m_unk38 * kRadToDeg * frameClock->m_afDeltaTime[0]);  // 0x000d11b0
+            NodeOf(this)->RotateInPlace(&axis.x, m_fSpinSpeed * kRadToDeg * frameClock->m_afDeltaTime[0]);  // 0x000d11b0
         }
     }
     RwFrame* frame = FrameOf(this);
-    PoolOf(this)->SetBonusTrailEndpoints(m_unk24, AsVec(&frame->modelling.pos), AsVec(&frame->modelling.up));  // 0x005b1508
+    PoolOf(this)->SetBonusTrailEndpoints(m_ui32PoolIndex, AsVec(&frame->modelling.pos), AsVec(&frame->modelling.up));  // 0x005b1508
 }
 
 // 0x005b7bf0 CKHkS08Bonus_Load
 int32_t CKHkS08Bonus::Load(IKFile* file, int32_t type) {
     IKHook::Load(file, type);  // through TocBridge_CKHook_Load
     if (type != K_LEVEL_PLATEFORMS) return 1;
-    IKFile_ReadRef(file, &m_pUnk20);
-    IKFile_ReadRef(file, &m_pUnk28);
-    IKFile_ReadRef(file, &m_pUnk2C);
+    IKFile_ReadRef(file, &m_pNextBonus);
+    IKFile_ReadRef(file, &m_pGroup);
+    IKFile_ReadRef(file, &m_pBonusCpnt);
     return 1;
 }
 

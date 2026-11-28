@@ -191,7 +191,7 @@ bool DetectorContains(const CKHkDetectorGroup::Detector* detector, float x, floa
 // 0x002ca0f8 CKGrpS08Hero_GetFocusedHero (local copy; CKGrpS08Hero.cpp, not ported there yet): the focused dragon
 // (+0x66, -1 none) among the group's heroes (+0x30).
 IKSerializable* FocusedHeroOf(const IKGrpHero* group) {
-    const int8_t index = static_cast<int8_t>(group->m_unk66);
+    const int8_t index = static_cast<int8_t>(group->m_ui8FocusedDragon);
     if (index == -1) return nullptr;
     return group->m_apHeros[index];
 }
@@ -200,7 +200,7 @@ IKSerializable* FocusedHeroOf(const IKGrpHero* group) {
 // (+0x54c) unless m_bitArray bit 1 is set and the hero's vt+0x164 (CKHkS08Hero_vf164 0x009bd700: +0xed4 bit 4) is
 // clear; then the LTM position (+0x80) of its scene node's frame (m_pKGLObject +4), as stored (FrameLtm).
 const float* HeroPositionOf(CKHkS08Hero* hero) {
-    if ((hero->m_bitArray & 2u) == 0 || ((hero->m_unked4 >> 4) & 1u) != 0) return &hero->m_unk54c;
+    if ((hero->m_bitArray & 2u) == 0 || ((hero->m_ui32StatusFlagsED4 >> 4) & 1u) != 0) return &hero->m_unk54c;
     return &FrameLtm(static_cast<CSGMovable*>(hero->m_pKGLObject)->m_pRwFrame)->pos.x;
 }
 

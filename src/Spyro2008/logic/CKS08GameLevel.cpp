@@ -119,8 +119,8 @@ uint32_t CountStatEntriesByCategory(CKS08GameLevel* level, uint8_t category, int
     uint32_t count = 0;
     for (uint32_t i = 0; i < level->m_vpCollectibles.m_ui32NbUsedElt; ++i) {
         const CKS08GameLevelCollectible* entry = level->m_vpCollectibles.m_pBlock[i];
-        if (entry->m_unk1d != category) continue;
-        if (requireFlag != 0 && entry->m_unk1c == 0) continue;
+        if (entry->m_ui8Category != category) continue;
+        if (requireFlag != 0 && entry->m_bCollected == 0) continue;
         ++count;
     }
     return count;
@@ -131,8 +131,8 @@ uint32_t CountStatEntriesByCategory(CKS08GameLevel* level, uint8_t category, int
 uint8_t IsArmorPieceCollected(CKS08GameLevel* level, uint8_t dragon, uint8_t armor, uint8_t slot) {
     for (uint32_t i = 0; i < level->m_vpCollectibles.m_ui32NbUsedElt; ++i) {
         const CKS08GameLevelCollectible* entry = level->m_vpCollectibles.m_pBlock[i];
-        if (entry->m_unk1d == 0 && entry->m_unk1e == dragon && entry->m_unk1f == armor && entry->m_unk20 == slot &&
-            entry->m_unk1c != 0)
+        if (entry->m_ui8Category == 0 && entry->m_ui8DragonIndex == dragon && entry->m_ui8ArmorSet == armor && entry->m_ui8ArmorSlot == slot &&
+            entry->m_bCollected != 0)
             return 1;
     }
     return 0;
@@ -155,8 +155,8 @@ uint32_t CKS08GameLevel::CountCollectedOfType(uint8_t category) const {
     uint32_t count = 0;
     for (uint32_t i = 0; i < m_vpCollectibles.m_ui32NbUsedElt; ++i) {
         const CKS08GameLevelCollectible* entry = m_vpCollectibles.m_pBlock[i];
-        if (entry->m_unk1d != category) continue;
-        count += (static_cast<uint32_t>(entry->m_unk1c) - 1u) >> 31;
+        if (entry->m_ui8Category != category) continue;
+        count += (static_cast<uint32_t>(entry->m_bCollected) - 1u) >> 31;
     }
     return count;
 }

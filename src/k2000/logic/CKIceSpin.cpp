@@ -176,7 +176,7 @@ struct SRingData {
     float scale;
 };
 void UpdateRing(CKIceSpin* self, const SRingData& ring) {
-    const float now = self->m_unk30c;
+    const float now = self->m_fEffectTimer;
     float alpha = SignedToFloat(ring.fullAlpha);
     if (now < ring.fadeIn && self->m_bLoop != 0) {
         // The fade-in, from the start alpha.
@@ -192,8 +192,8 @@ void UpdateRing(CKIceSpin* self, const SRingData& ring) {
             *ring.flag = 0;
             TransformFx::HideNode(ring.node);
         }
-        const float rest = (ring.fadeOut - self->m_unk30c) / ring.fadeOut;
-        const float done = self->m_unk30c / ring.fadeOut;
+        const float rest = (ring.fadeOut - self->m_fEffectTimer) / ring.fadeOut;
+        const float done = self->m_fEffectTimer / ring.fadeOut;
         alpha = ppc::fmadds(UnsignedToFloat(ring.stopAlpha), rest, SignedToFloat(ring.endAlpha) * done);
     }
     // The user's height above the ground under it (host vt+0x10 / +0x14): invisible above `high`, fading from `low`.
@@ -211,7 +211,7 @@ void UpdateRing(CKIceSpin* self, const SRingData& ring) {
     // The original reads the first geometry's alpha before it tests the list (never empty for these nodes).
     CGeometry* first = FirstGeometry(ring.node);
     if (first != nullptr && value != first->m_cGeometryColor[3]) TransformFx::SetGeometriesAlpha(ring.node, value);
-    const float spin = WrapDegrees(ring.spin * self->m_unk30c);
+    const float spin = WrapDegrees(ring.spin * self->m_fEffectTimer);
     const float scale = RandomScale(ring.spread, ring.scale);
     PlaceNode(ring.node, -height, spin, scale);
 }
@@ -219,38 +219,38 @@ void UpdateRing(CKIceSpin* self, const SRingData& ring) {
 // Node A: its fade (+0x16c -> +0x160 over +0x194 while the loop runs; after StopFx +0x31c -> +0x178 over +0x198,
 // then hidden) and its frame at its own height.
 void UpdateTopNode(CKIceSpin* self) {
-    IKSerializable* node = self->m_unk2b0;
+    IKSerializable* node = self->m_pNodeA;
     const uint32_t level = static_cast<uint32_t>(self->m_levelIndex);
-    const float now = self->m_unk30c;
+    const float now = self->m_fEffectTimer;
     if (self->m_bLoop != 0) {
-        if (now < self->m_unk194) {
+        if (now < self->m_fNodeAFadeInTime) {
             if (FirstGeometry(node) != nullptr) {
-                const float done = now / self->m_unk194;
-                const float rest = (self->m_unk194 - now) / self->m_unk194;
-                TransformFx::SetGeometriesAlpha(node, AlphaByte(ppc::fmadds(SignedToFloat(self->m_unk16c[level]), rest,
-                                                                            SignedToFloat(self->m_unk160[level]) * done)));
+                const float done = now / self->m_fNodeAFadeInTime;
+                const float rest = (self->m_fNodeAFadeInTime - now) / self->m_fNodeAFadeInTime;
+                TransformFx::SetGeometriesAlpha(node, AlphaByte(ppc::fmadds(SignedToFloat(self->m_ai32NodeAStartAlpha[level]), rest,
+                                                                            SignedToFloat(self->m_ai32NodeAFullAlpha[level]) * done)));
             }
-        } else if (self->m_unk328[0] == 0) {
+        } else if (self->m_abNodeFadeState[0] == 0) {
             if (FirstGeometry(node) != nullptr) {
-                TransformFx::SetGeometriesAlpha(node, AlphaByte(SignedToFloat(self->m_unk160[level])));
+                TransformFx::SetGeometriesAlpha(node, AlphaByte(SignedToFloat(self->m_ai32NodeAFullAlpha[level])));
             }
-            self->m_unk328[0] = 1;
+            self->m_abNodeFadeState[0] = 1;
         }
-    } else if (self->m_unk328[0] != 0) {
-        if (now - self->m_unk310 >= self->m_unk198) {
-            self->m_unk328[0] = 0;
+    } else if (self->m_abNodeFadeState[0] != 0) {
+        if (now - self->m_fStopFxTime >= self->m_fNodeAFadeOutTime) {
+            self->m_abNodeFadeState[0] = 0;
             TransformFx::HideNode(node);
         } else if (FirstGeometry(node) != nullptr) {
             // BUG(original): the alpha runs on the whole timer, not on the time since the fade-out started.
-            const float rest = (self->m_unk198 - now) / self->m_unk198;
-            const float done = now / self->m_unk198;
+            const float rest = (self->m_fNodeAFadeOutTime - now) / self->m_fNodeAFadeOutTime;
+            const float done = now / self->m_fNodeAFadeOutTime;
             TransformFx::SetGeometriesAlpha(node, AlphaByte(ppc::fmadds(UnsignedToFloat(self->m_unk31c), rest,
-                                                                        SignedToFloat(self->m_unk178[level]) * done)));
+                                                                        SignedToFloat(self->m_ai32NodeAEndAlpha[level]) * done)));
         }
     }
     const float y = static_cast<CSGMovable*>(node)->m_pRwFrame->modelling.pos.y;
-    const float spin = WrapDegrees(self->m_unk184[level] * self->m_unk30c);
-    const float scale = RandomScale(self->m_unk190, self->m_unk19c[level]);
+    const float spin = WrapDegrees(self->m_afNodeASpinDegPerSec[level] * self->m_fEffectTimer);
+    const float scale = RandomScale(self->m_fNodeAScaleWobble, self->m_afNodeAScale[level]);
     PlaceNode(node, y, spin, scale);
 }
 
@@ -259,19 +259,19 @@ void UpdateTopNode(CKIceSpin* self) {
 // dash's value; one of the two accessors by a draw (each only when it has a type); the next one in +0x2f0 +- +0x2f4
 // seconds of the scaled timer. Three Rand_Int draws.
 void ThrowShard(CKIceSpin* self) {
-    CKImpulsionCpnt* dash = static_cast<CKImpulsionCpnt*>(self->m_unk268);
-    const float value = self->m_unk318;
+    CKImpulsionCpnt* dash = static_cast<CKImpulsionCpnt*>(self->m_pDashImpulsion);
+    const float value = self->m_fDashTimeScale;
     const float bottom = dash->m_unk04[1];
     const float top = dash->m_unk04[0];
     CVector3 direction = kNullVector;
-    const float half = ppc::fmadds(self->m_unk300, 0.5f, 0.0f);  // TOC +0x3a58
+    const float half = ppc::fmadds(self->m_fShardConeDeg, 0.5f, 0.0f);  // TOC +0x3a58
     const float range = top - bottom;
-    const float speed = ppc::fmadds((top - value) / range, self->m_unk2e8, (value - bottom) / range * self->m_unk2ec);
+    const float speed = ppc::fmadds((top - value) / range, self->m_fShardSpeedMin, (value - bottom) / range * self->m_fShardSpeedMax);
     const float draw = RandUnit16();  // 0x00011500
     const CVector3 forward = self->m_pHost->GetHeroForward();  // vt+0x18
     float spread = draw / kRandMax;
     spread = spread + spread;
-    spread = spread * self->m_unk300;
+    spread = spread * self->m_fShardConeDeg;
     const float angle = ppc::fmadds(spread, -0.5f, half) * kDegToRad;  // TOC +0x3a5c
     const float c = GameCosf(angle);
     direction.x = ppc::fmadds(c, forward.x, direction.x);
@@ -290,59 +290,59 @@ void ThrowShard(CKIceSpin* self) {
         direction.x = direction.x * inverse;
         direction.y = direction.y * inverse;
     }
-    direction.y = self->m_unk2fc;
+    direction.y = self->m_fShardDirY;
     const CVector3 spot = self->m_pHost->GetHotspotPosition(self->m_ui8HotSpot);  // vt+0xd0
-    const CVector3 start = {spot.x, spot.y + self->m_unk2f8, spot.z};
+    const CVector3 start = {spot.x, spot.y + self->m_fShardHeightOffset, spot.z};
     // fmadds(r, -1 / 32767.5, 1) below 0 (blt; a NaN is not) takes the second accessor.
     const uint8_t second = ppc::fmadds(RandUnit16(), kRandScale, 1.0f) < 0.0f ? 1 : 0;
-    CKProjectileAccessor* first = static_cast<CKProjectileAccessor*>(self->m_unk2dc);
+    CKProjectileAccessor* first = static_cast<CKProjectileAccessor*>(self->m_pShardAccessorA);
     if (first->m_pProjectileType != nullptr && second == 0) {
-        first->LaunchEx(&start, &direction, speed, self->m_unk2e4, self->m_pHost->GetOwner(), nullptr);  // 0x001f2988
+        first->LaunchEx(&start, &direction, speed, self->m_pShardDamage, self->m_pHost->GetOwner(), nullptr);  // 0x001f2988
     }
-    CKProjectileAccessor* other = static_cast<CKProjectileAccessor*>(self->m_unk2e0);
+    CKProjectileAccessor* other = static_cast<CKProjectileAccessor*>(self->m_pShardAccessorB);
     if (other->m_pProjectileType != nullptr && second != 0) {
-        other->LaunchEx(&start, &direction, speed, self->m_unk2e4, self->m_pHost->GetOwner(), nullptr);
+        other->LaunchEx(&start, &direction, speed, self->m_pShardDamage, self->m_pHost->GetOwner(), nullptr);
     }
-    const float base = self->m_unk2f4 + 0.0f;
-    const float wait = self->m_unk2f0;
+    const float base = self->m_fShardIntervalSpread + 0.0f;
+    const float wait = self->m_fShardInterval;
     const float t = RandUnit16() / kRandMax * -2.0f;
-    self->m_unk32c = (wait + ppc::fmadds(t, self->m_unk2f4, base)) / self->m_unk318;
+    self->m_fNextShardTimer = (wait + ppc::fmadds(t, self->m_fShardIntervalSpread, base)) / self->m_fDashTimeScale;
 }
 }  // namespace
 
 // 0x003ac318 CKIceSpin_ResetRuntime
 void CKIceSpin::ResetRuntime() {
     CKTransformElement::ResetRuntime();
-    m_unk318 = 1.0f;  // TOC +0x39a8
+    m_fDashTimeScale = 1.0f;  // TOC +0x39a8
     m_ui8HotSpot = 0;
-    m_unk2cc = nullptr;
+    m_pActivePointLight = nullptr;
     m_unk330 = 0;
-    m_unk298 = nullptr;
-    m_unk2a4 = nullptr;
-    m_unk2ac = nullptr;
-    m_unk270 = nullptr;
-    m_unk30c = 0.0f;
-    m_unk310 = 0.0f;
-    m_unk314 = 0.0f;
-    m_unk32c = 0.0f;
-    m_unk328[0] = 0;
-    m_unk328[1] = 0;
-    m_unk328[2] = 0;
-    m_unk334 = nullptr;
-    m_unk338 = nullptr;
-    m_unk2d8 = nullptr;
-    static_cast<CKS08ElementDamage*>(m_unk2e4)->SetAbilityId(GetAbilityId());  // vt+0x68
+    m_pActiveDashTopSparks = nullptr;
+    m_pActiveLoopParticles = nullptr;
+    m_pActiveDashParticles = nullptr;
+    m_pActiveMeshPopFx = nullptr;
+    m_fEffectTimer = 0.0f;
+    m_fStopFxTime = 0.0f;
+    m_fUnusedTimer2 = 0.0f;
+    m_fNextShardTimer = 0.0f;
+    m_abNodeFadeState[0] = 0;
+    m_abNodeFadeState[1] = 0;
+    m_abNodeFadeState[2] = 0;
+    m_pLoopSound = nullptr;
+    m_pDashSound = nullptr;
+    m_pActiveAnimFx = nullptr;
+    static_cast<CKS08ElementDamage*>(m_pShardDamage)->SetAbilityId(GetAbilityId());  // vt+0x68
 }
 
 // 0x003abf20 CKIceSpin_IsGroundTrailActive_maybe
 uint8_t CKIceSpin::IsGroundTrailActive() {
     if (m_levelIndex == 0) return 0;
-    return m_pHost->IsAirborne();  // vt+0x30
+    return m_pHost->IsOnGround();  // vt+0x30
 }
 
 // 0x003abf80 CKIceSpin_GetFxSound_maybe
 CKSound* CKIceSpin::GetFxSound(uint32_t which) {
-    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_unk304);
+    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_pSoundDico);
     auto usable = [sounds](uint32_t index) {
         return sounds->GetSound(index) != nullptr && sounds->GetSound(index)->GetSample() != nullptr;  // 0x00111000
     };
@@ -369,87 +369,87 @@ void CKIceSpin::ApplyHeroControl(uint8_t on) { CKTransformElement::ApplyHeroCont
 // 0x003ac1b0 CKIceSpin_End
 void CKIceSpin::End(int32_t forced) {
     m_pHost->SetHero1d20(1.0f);  // vt+0x84; TOC +0x39a8
-    if (m_unk334 != nullptr) {
-        m_unk334->Stop(0);  // 0x001111b0
-        m_unk334 = nullptr;
+    if (m_pLoopSound != nullptr) {
+        m_pLoopSound->Stop(0);  // 0x001111b0
+        m_pLoopSound = nullptr;
     }
-    if (m_unk338 != nullptr) {
-        m_unk338->Stop(0);
-        m_unk338 = nullptr;
+    if (m_pDashSound != nullptr) {
+        m_pDashSound->Stop(0);
+        m_pDashSound = nullptr;
     }
     CKTransformElement::End(forced);
-    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_unk2b0), 1, 0, 0);  // 0x005832a8 (through its TocBridge)
-    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_unk2b4), 1, 0, 0);
-    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_unk2b8), 1, 0, 0);
-    TransformFx::ReleaseMeshPop(&m_unk270, this);  // CKMeshPopNodeFx_SetActive_maybe 0x001cb568, vt+0x54
+    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_pNodeA), 1, 0, 0);  // 0x005832a8 (through its TocBridge)
+    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_pRingB), 1, 0, 0);
+    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_pRingC), 1, 0, 0);
+    TransformFx::ReleaseMeshPop(&m_pActiveMeshPopFx, this);  // CKMeshPopNodeFx_SetActive_maybe 0x001cb568, vt+0x54
 }
 
 // 0x003acb50 CKIceSpin_Start
 void CKIceSpin::Start(CKS08AbilityHostBase* host) {
-    m_unk338 = nullptr;
-    m_unk334 = nullptr;
+    m_pDashSound = nullptr;
+    m_pLoopSound = nullptr;
     CKTransformElement::Start(host);
-    if (m_unk2b0 != nullptr) {
-        TransformFx::ShowNode(m_unk2b0);
+    if (m_pNodeA != nullptr) {
+        TransformFx::ShowNode(m_pNodeA);
         // The low byte of the level's word (lbz +3).
-        TransformFx::SetGeometriesAlpha(m_unk2b0, static_cast<uint8_t>(m_unk16c[m_levelIndex]));
-        HangUnderHotSpot(m_unk2b0, m_pHost, m_ui8HotSpot);
+        TransformFx::SetGeometriesAlpha(m_pNodeA, static_cast<uint8_t>(m_ai32NodeAStartAlpha[m_levelIndex]));
+        HangUnderHotSpot(m_pNodeA, m_pHost, m_ui8HotSpot);
     }
-    if (m_unk2b4 != nullptr) {
-        TransformFx::ShowNode(m_unk2b4);
-        TransformFx::SetGeometriesAlpha(m_unk2b4, 0);
-        HangUnderHotSpot(m_unk2b4, m_pHost, m_ui8HotSpot);
+    if (m_pRingB != nullptr) {
+        TransformFx::ShowNode(m_pRingB);
+        TransformFx::SetGeometriesAlpha(m_pRingB, 0);
+        HangUnderHotSpot(m_pRingB, m_pHost, m_ui8HotSpot);
     }
-    if (m_unk2b8 != nullptr && m_levelIndex == 2) {
-        TransformFx::ShowNode(m_unk2b8);
-        TransformFx::SetGeometriesAlpha(m_unk2b8, 0);
-        HangUnderHotSpot(m_unk2b8, m_pHost, m_ui8HotSpot);
+    if (m_pRingC != nullptr && m_levelIndex == 2) {
+        TransformFx::ShowNode(m_pRingC);
+        TransformFx::SetGeometriesAlpha(m_pRingC, 0);
+        HangUnderHotSpot(m_pRingC, m_pHost, m_ui8HotSpot);
     }
-    CKImpulsionCpnt* dash = static_cast<CKImpulsionCpnt*>(m_unk268);
-    dash->m_unk2c = 0.0f;
-    dash->m_unk24 = 0.0f;
-    dash->m_unk28 = 0.0f;
-    m_unk328[2] = 0;
+    CKImpulsionCpnt* dash = static_cast<CKImpulsionCpnt*>(m_pDashImpulsion);
+    dash->m_fImpulseTimer = 0.0f;
+    dash->m_fValue = 0.0f;
+    dash->m_fSpeed = 0.0f;
+    m_abNodeFadeState[2] = 0;
     m_unk330 = 0;
-    m_unk32c = m_unk2f0;
-    m_unk318 = 1.0f;  // TOC +0x39a8
-    m_unk30c = 0.0f;
-    m_unk314 = 0.0f;
-    m_unk328[0] = 0;
-    m_unk328[1] = 0;
+    m_fNextShardTimer = m_fShardInterval;
+    m_fDashTimeScale = 1.0f;  // TOC +0x39a8
+    m_fEffectTimer = 0.0f;
+    m_fUnusedTimer2 = 0.0f;
+    m_abNodeFadeState[0] = 0;
+    m_abNodeFadeState[1] = 0;
 }
 
 // 0x003ac7f8 CKIceSpin_StopFx: each node keeps its alpha (its first geometry's, else the level's full alpha word) for
 // its fade-out, or is hidden at once when its fade-out time is 0 (a NaN time fades).
 void CKIceSpin::StopFx() {
     CKTransformElement::StopFx();
-    m_unk310 = m_unk30c;
+    m_fStopFxTime = m_fEffectTimer;
     const uint32_t level = static_cast<uint32_t>(m_levelIndex);
-    if (m_unk2b0 != nullptr) {
-        CGeometry* first = FirstGeometry(m_unk2b0);
-        m_unk31c = first != nullptr ? first->m_cGeometryColor[3] : static_cast<uint32_t>(m_unk160[level]);
-        if (m_unk198 == 0.0f) {
-            TransformFx::HideNode(m_unk2b0);
+    if (m_pNodeA != nullptr) {
+        CGeometry* first = FirstGeometry(m_pNodeA);
+        m_unk31c = first != nullptr ? first->m_cGeometryColor[3] : static_cast<uint32_t>(m_ai32NodeAFullAlpha[level]);
+        if (m_fNodeAFadeOutTime == 0.0f) {
+            TransformFx::HideNode(m_pNodeA);
         } else {
-            m_unk328[0] = 1;
+            m_abNodeFadeState[0] = 1;
         }
     }
-    if (m_unk2b4 != nullptr) {
-        CGeometry* first = FirstGeometry(m_unk2b4);
-        m_unk320 = first != nullptr ? first->m_cGeometryColor[3] : static_cast<uint32_t>(m_unk1a8[level]);
-        if (m_unk1e0 == 0.0f) {
-            TransformFx::HideNode(m_unk2b4);
+    if (m_pRingB != nullptr) {
+        CGeometry* first = FirstGeometry(m_pRingB);
+        m_unk320 = first != nullptr ? first->m_cGeometryColor[3] : static_cast<uint32_t>(m_ai32RingBFullAlpha[level]);
+        if (m_fRingBFadeOutTime == 0.0f) {
+            TransformFx::HideNode(m_pRingB);
         } else {
-            m_unk328[1] = 1;
+            m_abNodeFadeState[1] = 1;
         }
     }
-    if (m_unk2b8 != nullptr) {
-        CGeometry* first = FirstGeometry(m_unk2b8);
-        m_unk324 = first != nullptr ? first->m_cGeometryColor[3] : static_cast<uint32_t>(m_unk208[level]);
-        if (m_unk240 == 0.0f) {
-            TransformFx::HideNode(m_unk2b8);
+    if (m_pRingC != nullptr) {
+        CGeometry* first = FirstGeometry(m_pRingC);
+        m_unk324 = first != nullptr ? first->m_cGeometryColor[3] : static_cast<uint32_t>(m_ai32RingCFullAlpha[level]);
+        if (m_fRingCFadeOutTime == 0.0f) {
+            TransformFx::HideNode(m_pRingC);
         } else {
-            m_unk328[2] = 1;
+            m_abNodeFadeState[2] = 1;
         }
     }
     m_pHost->SetAbilityAttackSpheres(this, 0, 1.0f, nullptr, 1.0f, nullptr);  // vt+0xfc; TOC +0x39a8
@@ -460,175 +460,175 @@ void CKIceSpin::StopFx() {
 void CKIceSpin::UpdateAttack(float dt) {
     if (m_levelIndex == 0) return;
     if (m_pHost->IsAbilityButtonDown(3) != 0) {  // vt+0x8c
-        static_cast<CKImpulsionCpnt*>(m_unk268)->Impulse(1.0f);  // 0x0024bce0
+        static_cast<CKImpulsionCpnt*>(m_pDashImpulsion)->Impulse(1.0f);  // 0x0024bce0
         // The kick's sparks on the hot spot (the inlined CKSrvFx::StartEffect: not reserved, not kept).
-        CKSparkFxData* kick = static_cast<CKSparkFxData*>(m_unk29c);
+        CKSparkFxData* kick = static_cast<CKSparkFxData*>(m_pDashKickSparkFxData);
         kick->m_unk10 = m_pHost->GetHotspot(m_ui8HotSpot);  // vt+0xcc
         kick->m_unk0c = nullptr;
-        TransformFx::Start(m_unk29c, this);
+        TransformFx::Start(m_pDashKickSparkFxData, this);
     }
-    CKImpulsionCpnt* dash = static_cast<CKImpulsionCpnt*>(m_unk268);
+    CKImpulsionCpnt* dash = static_cast<CKImpulsionCpnt*>(m_pDashImpulsion);
     dash->Update(dt);  // 0x0024bd40
-    m_unk318 = dash->m_unk24;
-    m_pHost->SetHero1d20(m_unk318);  // vt+0x84
+    m_fDashTimeScale = dash->m_fValue;
+    m_pHost->SetHero1d20(m_fDashTimeScale);  // vt+0x84
     // Near the dash's top (cror: a NaN is not), its particles and sparks run on the hot spot; below it they are let go.
-    if (m_unk318 >= dash->m_unk04[0] - kDashTopMargin) {
-        if (m_unk2ac == nullptr) {
-            CKParticlesEffectFxData* particles = static_cast<CKParticlesEffectFxData*>(m_unk2a8);
+    if (m_fDashTimeScale >= dash->m_unk04[0] - kDashTopMargin) {
+        if (m_pActiveDashParticles == nullptr) {
+            CKParticlesEffectFxData* particles = static_cast<CKParticlesEffectFxData*>(m_pDashParticlesData);
             IKSerializable* spot = m_pHost->GetHotspot(m_ui8HotSpot);  // vt+0xcc
             particles->m_pAttachOwner = nullptr;
             particles->m_pAttachHotSpot = spot;
-            m_unk2ac = TransformFx::Acquire(m_unk2a8, this);
+            m_pActiveDashParticles = TransformFx::Acquire(m_pDashParticlesData, this);
         }
-        if (m_unk298 == nullptr) {
-            CKSparkFxData* sparks = static_cast<CKSparkFxData*>(m_unk294);
+        if (m_pActiveDashTopSparks == nullptr) {
+            CKSparkFxData* sparks = static_cast<CKSparkFxData*>(m_pDashTopSparkFxData);
             IKSerializable* spot = m_pHost->GetHotspot(m_ui8HotSpot);
             sparks->m_unk0c = nullptr;
             sparks->m_unk10 = spot;
-            m_unk298 = TransformFx::Acquire(m_unk294, this);
+            m_pActiveDashTopSparks = TransformFx::Acquire(m_pDashTopSparkFxData, this);
         }
     }
-    if (m_unk318 < static_cast<CKImpulsionCpnt*>(m_unk268)->m_unk04[0] - kDashTopMargin) {
-        TransformFx::ReleaseParticles(&m_unk2ac, this);  // StopOwnedParticleEffect 0x001cdde8, vt+0x54
-        TransformFx::ReleaseSpark(&m_unk298, this);      // StopOwnedSparkEffect_maybe 0x001d4698, vt+0x54
+    if (m_fDashTimeScale < static_cast<CKImpulsionCpnt*>(m_pDashImpulsion)->m_unk04[0] - kDashTopMargin) {
+        TransformFx::ReleaseParticles(&m_pActiveDashParticles, this);  // StopOwnedParticleEffect 0x001cdde8, vt+0x54
+        TransformFx::ReleaseSpark(&m_pActiveDashTopSparks, this);      // StopOwnedSparkEffect_maybe 0x001d4698, vt+0x54
     }
 }
 
 // 0x003b1848 CKIceSpin_UpdateEffect_maybe
 void CKIceSpin::UpdateEffect(float dt) {
-    const float step = dt * m_unk318;
-    m_unk30c = step + m_unk30c;
-    m_unk314 = step + m_unk314;
-    if (m_unk338 != nullptr) {
+    const float step = dt * m_fDashTimeScale;
+    m_fEffectTimer = step + m_fEffectTimer;
+    m_fUnusedTimer2 = step + m_fUnusedTimer2;
+    if (m_pDashSound != nullptr) {
         // The dash sound's pitch with the dash's value between its bottom and its top (1 .. +0x308).
-        CKImpulsionCpnt* dash = static_cast<CKImpulsionCpnt*>(m_unk268);
+        CKImpulsionCpnt* dash = static_cast<CKImpulsionCpnt*>(m_pDashImpulsion);
         const float bottom = dash->m_unk04[1];
-        float t = (m_unk318 - bottom) / (dash->m_unk04[0] - bottom);
+        float t = (m_fDashTimeScale - bottom) / (dash->m_unk04[0] - bottom);
         if (t <= 0.0f) {
             t = 0.0f;
         } else if (t >= 1.0f) {
             t = 1.0f;
         }
-        m_unk338->SetPitch(ppc::fmadds(t, m_unk308 - 1.0f, 1.0f));  // 0x00110ea0
+        m_pDashSound->SetPitch(ppc::fmadds(t, m_fDashSoundTopPitch - 1.0f, 1.0f));  // 0x00110ea0
     }
     const uint32_t level = static_cast<uint32_t>(m_levelIndex);
-    if (IsShownUnderParent(m_unk2b0)) UpdateTopNode(this);
-    if (IsShownUnderParent(m_unk2b4)) {
-        UpdateRing(this, SRingData{m_unk2b4, &m_unk328[1], m_unk1dc, m_unk1a8[level], m_unk1b4[level], m_unk1e0,
-                                   m_unk1c0[level], m_unk320, m_unk1f0[level], m_unk1fc[level], m_unk1d8,
-                                   m_unk1cc[level], m_unk1e4[level]});
+    if (IsShownUnderParent(m_pNodeA)) UpdateTopNode(this);
+    if (IsShownUnderParent(m_pRingB)) {
+        UpdateRing(this, SRingData{m_pRingB, &m_abNodeFadeState[1], m_fRingBFadeInTime, m_ai32RingBFullAlpha[level], m_ai32RingBStartAlpha[level], m_fRingBFadeOutTime,
+                                   m_ai32RingBEndAlpha[level], m_unk320, m_afRingBFadeHeightStart[level], m_afRingBFadeHeightEnd[level], m_fRingBScaleWobble,
+                                   m_afRingBSpinDegPerSec[level], m_afRingBScale[level]});
     }
-    if (m_levelIndex == 2 && IsShownUnderParent(m_unk2b8)) {
+    if (m_levelIndex == 2 && IsShownUnderParent(m_pRingC)) {
         // Ring C runs at level 2 only: its alphas are read at +0x210 / +0x21c (the level 2 words).
-        UpdateRing(this, SRingData{m_unk2b8, &m_unk328[2], m_unk23c, m_unk208[2], m_unk214[2], m_unk240,
-                                   m_unk220[level], m_unk324, m_unk250[level], m_unk25c[level], m_unk238,
-                                   m_unk22c[level], m_unk244[level]});
+        UpdateRing(this, SRingData{m_pRingC, &m_abNodeFadeState[2], m_fRingCFadeInTime, m_ai32RingCFullAlpha[2], m_ai32RingCStartAlpha[2], m_fRingCFadeOutTime,
+                                   m_ai32RingCEndAlpha[level], m_unk324, m_afRingCFadeHeightStart[level], m_afRingCFadeHeightEnd[level], m_fRingCScaleWobble,
+                                   m_afRingCSpinDegPerSec[level], m_afRingCScale[level]});
     }
-    if (m_unk2d8 != nullptr) static_cast<CKAnimatedFxCollection*>(m_unk2d8)->Update(step);  // 0x005cccb0 (TocBridge)
+    if (m_pActiveAnimFx != nullptr) static_cast<CKAnimatedFxCollection*>(m_pActiveAnimFx)->Update(step);  // 0x005cccb0 (TocBridge)
     if (IsGroundTrailActive() != 0) {  // vt+0x8c
-        if (m_unk270 == nullptr) {
+        if (m_pActiveMeshPopFx == nullptr) {
             // The ground mesh pop on the hot spot 0 (the inlined CKSrvFx::AcquireFx), switched on.
-            CKMeshPopFxData* data = static_cast<CKMeshPopFxData*>(m_unk26c);
+            CKMeshPopFxData* data = static_cast<CKMeshPopFxData*>(m_pMeshPopFxData);
             CSGHotSpot* spot = static_cast<CSGHotSpot*>(m_pHost->GetHotspot(0));  // vt+0xcc
             data->m_unk08 = nullptr;
             data->m_unk0c = spot;
-            m_unk270 = TransformFx::Acquire(m_unk26c, this);
-            if (m_unk270 != nullptr) static_cast<CKMeshPopNodeFx*>(m_unk270)->SetActive(this, 1);  // 0x001cb568
+            m_pActiveMeshPopFx = TransformFx::Acquire(m_pMeshPopFxData, this);
+            if (m_pActiveMeshPopFx != nullptr) static_cast<CKMeshPopNodeFx*>(m_pActiveMeshPopFx)->SetActive(this, 1);  // 0x001cb568
         }
     } else {
-        TransformFx::ReleaseMeshPop(&m_unk270, this);
+        TransformFx::ReleaseMeshPop(&m_pActiveMeshPopFx, this);
     }
     if (m_levelIndex != 2) return;
-    if (m_unk32c < 0.0f) {
+    if (m_fNextShardTimer < 0.0f) {
         ThrowShard(this);
         return;
     }
-    m_unk32c = m_unk32c - step;
+    m_fNextShardTimer = m_fNextShardTimer - step;
 }
 
 // 0x003b3668 CKIceSpin_SetFxActive
 void CKIceSpin::SetFxActive(int32_t on) {
     if (on != 0) {
-        CKParticlesEffectFxData* loop = static_cast<CKParticlesEffectFxData*>(m_unk2a0);
+        CKParticlesEffectFxData* loop = static_cast<CKParticlesEffectFxData*>(m_pLoopParticlesData);
         loop->m_pAttachHotSpot = m_pHost->GetHotspot(m_ui8HotSpot);  // vt+0xcc
         loop->m_pAttachOwner = nullptr;
-        m_unk2a4 = TransformFx::Acquire(m_unk2a0, this);
+        m_pActiveLoopParticles = TransformFx::Acquire(m_pLoopParticlesData, this);
         if (m_levelIndex == 1 || static_cast<uint32_t>(m_levelIndex) > 1) {
-            IKSerializable* collection = m_levelIndex == 1 ? m_unk2d0 : m_unk2d4;
-            m_unk2d8 = collection;
+            IKSerializable* collection = m_levelIndex == 1 ? m_pAnimFxLevel1 : m_pAnimFxLevel2;
+            m_pActiveAnimFx = collection;
             CSGLeaf* node = TransformFx::OwnerNode(m_pHost);                // vt+0x08, +0x1c
             SAnimatedFxRig* rigs = TransformFx::AttachmentSets(m_pHost);    // vt+0x104
             static_cast<CKAnimatedFxCollection*>(collection)->Play(
                 node, rigs, static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_ui8HotSpot)));  // 0x005cc528 (TocBridge)
         }
-        CKPointLightFxData* light = static_cast<CKPointLightFxData*>(m_unk2c0[m_levelIndex]);
+        CKPointLightFxData* light = static_cast<CKPointLightFxData*>(m_apPointLightFxData[m_levelIndex]);
         light->m_pAttachHotSpot = m_pHost->GetHotspot(m_ui8HotSpot);
         light->m_pAttachNode = nullptr;
-        m_unk2cc = TransformFx::Acquire(m_unk2c0[m_levelIndex], this);
-        m_unk334 = GetFxSound(1);
-        if (m_unk334 != nullptr) {
-            m_unk334->SetAttachObject(TransformFx::OwnerNode(m_pHost));  // 0x00111350
-            m_unk334->Play(0.0f);                                       // 0x00111230
+        m_pActivePointLight = TransformFx::Acquire(m_apPointLightFxData[m_levelIndex], this);
+        m_pLoopSound = GetFxSound(1);
+        if (m_pLoopSound != nullptr) {
+            m_pLoopSound->SetAttachObject(TransformFx::OwnerNode(m_pHost));  // 0x00111350
+            m_pLoopSound->Play(0.0f);                                       // 0x00111230
         }
-        m_unk338 = GetFxSound(3);
-        if (m_unk338 != nullptr) {
-            m_unk338->SetPitch(1.0f);  // 0x00110ea0
-            m_unk338->SetAttachObject(TransformFx::OwnerNode(m_pHost));
-            m_unk338->Play(0.0f);
+        m_pDashSound = GetFxSound(3);
+        if (m_pDashSound != nullptr) {
+            m_pDashSound->SetPitch(1.0f);  // 0x00110ea0
+            m_pDashSound->SetAttachObject(TransformFx::OwnerNode(m_pHost));
+            m_pDashSound->Play(0.0f);
         }
         ApplyDamageParams(0);  // vt+0x88 (one Rand_Int)
-        m_pHost->SetAbilityAttackSpheres(this, 1, m_unk154[m_levelIndex], m_elementDamage, 1.0f, nullptr);  // vt+0xfc
-        if (m_unk2bc != nullptr) {
-            if (m_unk2b0 != nullptr) static_cast<CSGLeaf*>(m_unk2b0)->ForceWorldMatrixUpdate();  // vt+0x50
+        m_pHost->SetAbilityAttackSpheres(this, 1, m_afHitSphereRadius[m_levelIndex], m_elementDamage, 1.0f, nullptr);  // vt+0xfc
+        if (m_pTrailNode != nullptr) {
+            if (m_pNodeA != nullptr) static_cast<CSGLeaf*>(m_pNodeA)->ForceWorldMatrixUpdate();  // vt+0x50
             // Every ribbon of the trail on (CTrailNodeFx_SetRibbonActive_maybe 0x009bdfb8, inlined).
-            const uint32_t count = static_cast<CTrailNodeFx*>(m_unk2bc)->m_ui32NbTrail;
-            for (uint32_t i = 0; i < count; ++i) static_cast<CTrailNodeFx*>(m_unk2bc)->SetRibbonActive(i, 1, 1);
+            const uint32_t count = static_cast<CTrailNodeFx*>(m_pTrailNode)->m_ui32NbTrail;
+            for (uint32_t i = 0; i < count; ++i) static_cast<CTrailNodeFx*>(m_pTrailNode)->SetRibbonActive(i, 1, 1);
         }
         return;
     }
-    TransformFx::ReleaseParticles(&m_unk2a4, this);
-    TransformFx::ReleaseParticles(&m_unk2ac, this);
-    TransformFx::ReleaseSpark(&m_unk298, this);
-    if (m_unk2d8 != nullptr) {
-        static_cast<CKAnimatedFxCollection*>(m_unk2d8)->Stop();  // 0x005cc990 (TocBridge)
-        m_unk2d8 = nullptr;
+    TransformFx::ReleaseParticles(&m_pActiveLoopParticles, this);
+    TransformFx::ReleaseParticles(&m_pActiveDashParticles, this);
+    TransformFx::ReleaseSpark(&m_pActiveDashTopSparks, this);
+    if (m_pActiveAnimFx != nullptr) {
+        static_cast<CKAnimatedFxCollection*>(m_pActiveAnimFx)->Stop();  // 0x005cc990 (TocBridge)
+        m_pActiveAnimFx = nullptr;
     }
-    if (m_unk2cc != nullptr) {
-        static_cast<IKFx*>(m_unk2cc)->StopAndRelease(this);  // vt+0x58
-        m_unk2cc = nullptr;
+    if (m_pActivePointLight != nullptr) {
+        static_cast<IKFx*>(m_pActivePointLight)->StopAndRelease(this);  // vt+0x58
+        m_pActivePointLight = nullptr;
     }
-    if (m_unk334 != nullptr) {
+    if (m_pLoopSound != nullptr) {
         // The end sound (not kept), then the loop sound stopped.
         CKSound* end = GetFxSound(4);
         if (end != nullptr) {
             end->SetAttachObject(TransformFx::OwnerNode(m_pHost));
             end->Play(0.0f);
         }
-        m_unk334->Stop(0);  // 0x001111b0
-        m_unk334 = nullptr;
+        m_pLoopSound->Stop(0);  // 0x001111b0
+        m_pLoopSound = nullptr;
     }
-    if (m_unk338 != nullptr) {
-        m_unk338->Stop(0);
-        m_unk338 = nullptr;
+    if (m_pDashSound != nullptr) {
+        m_pDashSound->Stop(0);
+        m_pDashSound = nullptr;
     }
-    if (m_unk2bc == nullptr) return;
+    if (m_pTrailNode == nullptr) return;
     // Every ribbon of the trail off, its points laid out again (CTrailNodeFx_SetRibbonActive_maybe, inlined).
-    const uint32_t count = static_cast<CTrailNodeFx*>(m_unk2bc)->m_ui32NbTrail;
-    for (uint32_t i = 0; i < count; ++i) static_cast<CTrailNodeFx*>(m_unk2bc)->SetRibbonActive(i, 0, 1);
+    const uint32_t count = static_cast<CTrailNodeFx*>(m_pTrailNode)->m_ui32NbTrail;
+    for (uint32_t i = 0; i < count; ++i) static_cast<CTrailNodeFx*>(m_pTrailNode)->SetRibbonActive(i, 0, 1);
 }
 
 // 0x003ac600 CKIceSpin_PostLoad
 int32_t CKIceSpin::PostLoad(int32_t type) {
     CKTransformElement::PostLoad(type);
-    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_unk2b0), 1, 0, 0);  // 0x005832a8
-    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_unk2b4), 1, 0, 0);
-    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_unk2b8), 1, 0, 0);
-    CSGLeaf* trail = static_cast<CSGLeaf*>(m_unk2bc);
+    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_pNodeA), 1, 0, 0);  // 0x005832a8
+    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_pRingB), 1, 0, 0);
+    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_pRingC), 1, 0, 0);
+    CSGLeaf* trail = static_cast<CSGLeaf*>(m_pTrailNode);
     if (trail == nullptr) return 1;
     if (trail->m_pParent != nullptr) trail->m_pParent->RemoveChild(trail);  // vt+0x78
-    CSGBranch* parent = m_unk2b0 != nullptr ? static_cast<CSGBranch*>(m_unk2b0)
+    CSGBranch* parent = m_pNodeA != nullptr ? static_cast<CSGBranch*>(m_pNodeA)
                                             : static_cast<CSGBranch*>(g_pEngine->m_dynamicSceneRoot);
-    parent->AddChild(static_cast<CSGLeaf*>(m_unk2bc));  // vt+0x70
+    parent->AddChild(static_cast<CSGLeaf*>(m_pTrailNode));  // vt+0x70
     return 1;
 }
 
@@ -637,47 +637,47 @@ int32_t CKIceSpin::PostLoad(int32_t type) {
 int32_t CKIceSpin::Load(IKFile* file, int32_t type) {
     CKTransformElement::Load(file, type);
     if (type == 0) {
-        IKFile_ReadRef(file, &m_unk294);
-        IKFile_ReadRef(file, &m_unk2a0);
-        IKFile_ReadRef(file, &m_unk2b0);
-        IKFile_ReadRef(file, &m_unk268);
-        IKFile_ReadRef(file, &m_unk2dc);
+        IKFile_ReadRef(file, &m_pDashTopSparkFxData);
+        IKFile_ReadRef(file, &m_pLoopParticlesData);
+        IKFile_ReadRef(file, &m_pNodeA);
+        IKFile_ReadRef(file, &m_pDashImpulsion);
+        IKFile_ReadRef(file, &m_pShardAccessorA);
         for (int32_t i = 0; i < 3; ++i) {
-            ReadF32LE(file, &m_unk154[i]);
-            ReadS32LE(file, &m_unk160[i]);
-            ReadS32LE(file, &m_unk16c[i]);
-            ReadS32LE(file, &m_unk178[i]);
-            ReadF32LE(file, &m_unk19c[i]);
+            ReadF32LE(file, &m_afHitSphereRadius[i]);
+            ReadS32LE(file, &m_ai32NodeAFullAlpha[i]);
+            ReadS32LE(file, &m_ai32NodeAStartAlpha[i]);
+            ReadS32LE(file, &m_ai32NodeAEndAlpha[i]);
+            ReadF32LE(file, &m_afNodeAScale[i]);
         }
-        ReadF32LE(file, &m_unk190);
-        ReadF32LE(file, &m_unk194);
-        ReadF32LE(file, &m_unk198);
-        ReadF32LE(file, &m_unk2e8);
-        ReadF32LE(file, &m_unk2ec);
-        ReadF32LE(file, &m_unk2f0);
-        ReadF32LE(file, &m_unk2f4);
-        ReadF32LE(file, &m_unk2f8);
-        ReadF32LE(file, &m_unk2fc);
-        ReadF32LE(file, &m_unk184[0]);
-        ReadF32LE(file, &m_unk184[1]);
-        ReadF32LE(file, &m_unk184[2]);
+        ReadF32LE(file, &m_fNodeAScaleWobble);
+        ReadF32LE(file, &m_fNodeAFadeInTime);
+        ReadF32LE(file, &m_fNodeAFadeOutTime);
+        ReadF32LE(file, &m_fShardSpeedMin);
+        ReadF32LE(file, &m_fShardSpeedMax);
+        ReadF32LE(file, &m_fShardInterval);
+        ReadF32LE(file, &m_fShardIntervalSpread);
+        ReadF32LE(file, &m_fShardHeightOffset);
+        ReadF32LE(file, &m_fShardDirY);
+        ReadF32LE(file, &m_afNodeASpinDegPerSec[0]);
+        ReadF32LE(file, &m_afNodeASpinDegPerSec[1]);
+        ReadF32LE(file, &m_afNodeASpinDegPerSec[2]);
         for (int32_t i = 0; i < 3; ++i) {
-            ReadS32LE(file, &m_unk1a8[i]);
-            ReadS32LE(file, &m_unk1b4[i]);
-            ReadS32LE(file, &m_unk1c0[i]);
-            ReadF32LE(file, &m_unk1e4[i]);
-            ReadF32LE(file, &m_unk1cc[i]);
+            ReadS32LE(file, &m_ai32RingBFullAlpha[i]);
+            ReadS32LE(file, &m_ai32RingBStartAlpha[i]);
+            ReadS32LE(file, &m_ai32RingBEndAlpha[i]);
+            ReadF32LE(file, &m_afRingBScale[i]);
+            ReadF32LE(file, &m_afRingBSpinDegPerSec[i]);
         }
-        ReadF32LE(file, &m_unk1d8);
-        ReadF32LE(file, &m_unk1dc);
-        ReadF32LE(file, &m_unk1e0);
-        IKFile_ReadRef(file, &m_unk2b4);
-        IKFile_ReadRef(file, &m_unk29c);
-        IKFile_ReadRef(file, &m_unk2d0);
-        IKFile_ReadRef(file, &m_unk2d4);
+        ReadF32LE(file, &m_fRingBScaleWobble);
+        ReadF32LE(file, &m_fRingBFadeInTime);
+        ReadF32LE(file, &m_fRingBFadeOutTime);
+        IKFile_ReadRef(file, &m_pRingB);
+        IKFile_ReadRef(file, &m_pDashKickSparkFxData);
+        IKFile_ReadRef(file, &m_pAnimFxLevel1);
+        IKFile_ReadRef(file, &m_pAnimFxLevel2);
         for (int32_t i = 0; i < 3; ++i) {
-            ReadF32LE(file, &m_unk1f0[i]);
-            ReadF32LE(file, &m_unk1fc[i]);
+            ReadF32LE(file, &m_afRingBFadeHeightStart[i]);
+            ReadF32LE(file, &m_afRingBFadeHeightEnd[i]);
         }
         ReadF32LE(file, &m_unk274);
         ReadF32LE(file, &m_unk278);
@@ -687,32 +687,32 @@ int32_t CKIceSpin::Load(IKFile* file, int32_t type) {
         ReadF32LE(file, &m_unk288);
         ReadS32LE(file, &m_unk28c);
         ReadU32LE(file, &m_unk290);
-        IKFile_ReadRef(file, &m_unk26c);
+        IKFile_ReadRef(file, &m_pMeshPopFxData);
         for (int32_t i = 0; i < 3; ++i) {
-            ReadS32LE(file, &m_unk208[i]);
-            ReadS32LE(file, &m_unk214[i]);
-            ReadS32LE(file, &m_unk220[i]);
-            ReadF32LE(file, &m_unk244[i]);
-            ReadF32LE(file, &m_unk22c[i]);
+            ReadS32LE(file, &m_ai32RingCFullAlpha[i]);
+            ReadS32LE(file, &m_ai32RingCStartAlpha[i]);
+            ReadS32LE(file, &m_ai32RingCEndAlpha[i]);
+            ReadF32LE(file, &m_afRingCScale[i]);
+            ReadF32LE(file, &m_afRingCSpinDegPerSec[i]);
             // C2.8 gate-l20: ring C's heights are read per level with its other words (the C2.1 Load's order; a
             // second loop read them after all three levels: objects_diff against both in-game dumps).
-            ReadF32LE(file, &m_unk250[i]);
-            ReadF32LE(file, &m_unk25c[i]);
+            ReadF32LE(file, &m_afRingCFadeHeightStart[i]);
+            ReadF32LE(file, &m_afRingCFadeHeightEnd[i]);
         }
-        ReadF32LE(file, &m_unk238);
-        ReadF32LE(file, &m_unk23c);
-        ReadF32LE(file, &m_unk240);
-        IKFile_ReadRef(file, &m_unk2b8);
-        IKFile_ReadRef(file, &m_unk2e0);
-        IKFile_ReadRef(file, &m_unk2a8);
-        IKFile_ReadRef(file, &m_unk304);
-        ReadF32LE(file, &m_unk308);
-        IKFile_ReadRef(file, &m_unk2e4);
-        IKFile_ReadRef(file, &m_unk2c0[0]);
-        IKFile_ReadRef(file, &m_unk2c0[1]);
-        IKFile_ReadRef(file, &m_unk2c0[2]);
-        ReadF32LE(file, &m_unk300);
-        IKFile_ReadRef(file, &m_unk2bc);
+        ReadF32LE(file, &m_fRingCScaleWobble);
+        ReadF32LE(file, &m_fRingCFadeInTime);
+        ReadF32LE(file, &m_fRingCFadeOutTime);
+        IKFile_ReadRef(file, &m_pRingC);
+        IKFile_ReadRef(file, &m_pShardAccessorB);
+        IKFile_ReadRef(file, &m_pDashParticlesData);
+        IKFile_ReadRef(file, &m_pSoundDico);
+        ReadF32LE(file, &m_fDashSoundTopPitch);
+        IKFile_ReadRef(file, &m_pShardDamage);
+        IKFile_ReadRef(file, &m_apPointLightFxData[0]);
+        IKFile_ReadRef(file, &m_apPointLightFxData[1]);
+        IKFile_ReadRef(file, &m_apPointLightFxData[2]);
+        ReadF32LE(file, &m_fShardConeDeg);
+        IKFile_ReadRef(file, &m_pTrailNode);
     }
     return 1;
 }

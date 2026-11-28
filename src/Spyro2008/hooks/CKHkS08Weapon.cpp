@@ -150,7 +150,7 @@ void CKHkS08Weapon::TakeFromPool() {
     for (IKHook* hook = *reinterpret_cast<IKHook**>(pool->GetMemberListHead()); hook != nullptr; hook = hook->m_pNextHook) {
         if (hook == this) {
             // 0x0001d5c0 Group_TransferHook_maybe(core, this, weapon group, pool, 0)
-            GroupTransferHook(core, this, static_cast<IKBaseGroup*>(enemies->m_pUnk190), pool, 0);
+            GroupTransferHook(core, this, static_cast<IKBaseGroup*>(enemies->m_pWeaponPool), pool, 0);
             break;
         }
     }
@@ -160,7 +160,7 @@ void CKHkS08Weapon::TakeFromPool() {
     const uint8_t old = m_unkBC;
     if (old != 0xff) CallState(static_cast<uint32_t*>(m_unkB8) + old * 2, nullptr, 2, 0xff);
     m_unkBC = 0xff;
-    SetObjectActiveInContext(core, this, 1, static_cast<IKBaseGroup*>(enemies->m_pUnk190));  // 0x0001cb10
+    SetObjectActiveInContext(core, this, 1, static_cast<IKBaseGroup*>(enemies->m_pWeaponPool));  // 0x0001cb10
     CSGLeaf* node = static_cast<CSGLeaf*>(m_pKGLObject);
     node->m_sgProperties &= 0xfffffffbu;
 }
@@ -169,7 +169,7 @@ void CKHkS08Weapon::TakeFromPool() {
 void CKHkS08Weapon::ReturnToPool() {
     CKCoreManager* core = g_pEngine->m_coreManager;  // +0x2c
     CKGrpS08Enemy* enemies = static_cast<CKGrpS08Enemy*>(g_pEngine->m_gameManager->m_unk04[0]);
-    IKBaseGroup* weapons = static_cast<IKBaseGroup*>(enemies->m_pUnk190);
+    IKBaseGroup* weapons = static_cast<IKBaseGroup*>(enemies->m_pWeaponPool);
     SetObjectActiveInContext(core, this, 0, weapons);  // 0x0001cb10
     for (IKHook* hook = *reinterpret_cast<IKHook**>(weapons->GetMemberListHead()); hook != nullptr; hook = hook->m_pNextHook) {
         if (hook == this) {

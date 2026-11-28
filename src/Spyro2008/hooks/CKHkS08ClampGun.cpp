@@ -590,9 +590,9 @@ void CKHkS08ClampGun::ProcessContacts(IKTime* clock) {
             continue;  // TocBridge 0x98f380
         }
         CKDamage* hit = static_cast<CKDamage*>(other->m_unk1c);
-        if (hit->m_unk08 != 0) continue;
+        if (hit->m_i32DamageKind != 0) continue;
         const CVector3 point = *c->GetWorldContactPoint();  // vt+0x20
-        TakeDamage(static_cast<uint32_t>(ppc::fctidz(hit->m_unk04)), &point);  // 0x00486e60
+        TakeDamage(static_cast<uint32_t>(ppc::fctidz(hit->m_fAmount)), &point);  // 0x00486e60
     }
     ContactHistory_Update(&m_pContactHistory, clock);  // TocBridge 0x98f430
 }
@@ -797,7 +797,7 @@ IKFx* CKHkS08ClampGun::StartParticles(IKSerializable* data, IKFx* current) {
     fxData->m_pAttachOwner = static_cast<CSGLeaf*>(m_pUnk20);
     fxData->m_pAttachHotSpot = nullptr;  // the original stores the effect word (+0x100 / +0x108) there: null
     (void)current;
-    RwMatrix* matrix = fxData->m_unk24;
+    RwMatrix* matrix = fxData->m_pLocalMatrix;
     matrix->pos.z = 0.0f;  // stw 0
     matrix->pos.y = kGunTwo;
     matrix->pos.x = 0.0f;

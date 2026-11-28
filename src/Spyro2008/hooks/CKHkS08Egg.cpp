@@ -165,7 +165,7 @@ void CKHkS08Egg::AssignEnemy(IKSerializable* enemy) {
     static_cast<CKHkS08Enemy*>(enemy)->SetPosition(&at);  // 0x00289718
     CKHkS08Enemy* waiting = static_cast<CKHkS08Enemy*>(m_pUnk4C);
     waiting->m_bitArray = (waiting->m_bitArray & 0xf3ffffffu) | 0x0c000000u;
-    waiting->m_unk680 = this;
+    waiting->m_pSpawnEgg = this;
 }
 
 // 0x00473398 CKHkS08Egg_ReleaseNextEnemy_maybe

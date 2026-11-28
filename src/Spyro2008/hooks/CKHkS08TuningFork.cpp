@@ -409,7 +409,7 @@ void CKHkS08TuningFork::CheckHitByFearScream() {
         IKSerializable* damage = volume->m_unk1c;
         if (damage == nullptr) continue;
         if (damage->GetClassID() != 0x267) continue;
-        if (static_cast<CKS08Damage*>(damage)->m_unk20 != 6) continue;
+        if (static_cast<CKS08Damage*>(damage)->m_ui32DamageType != 6) continue;
         m_bUnk28 = 1;
     }
 }
@@ -800,7 +800,7 @@ uint8_t CKHkS08TuningFork::State1(IKTime* clock, int32_t phase, uint8_t other) {
     if (phase == 1) {
         std::memset(&impulsion->m_unk04[1], 0, 4);  // stw 0
         static_cast<CKImpulsionCpnt*>(m_pUnk20)->m_unk04[0] = 1.0f;
-        std::memset(&static_cast<CKImpulsionCpnt*>(m_pUnk20)->m_unk24, 0, 4);
+        std::memset(&static_cast<CKImpulsionCpnt*>(m_pUnk20)->m_fValue, 0, 4);
         static_cast<CKImpulsionCpnt*>(m_pUnk20)->Impulse(1.0f);  // 0x0024bce0
         PlayShockWaveFx();  // inlined
         if (m_pUnkE0 != nullptr) ForkShow(m_pUnkE0, true);
@@ -839,11 +839,11 @@ uint8_t CKHkS08TuningFork::State1(IKTime* clock, int32_t phase, uint8_t other) {
         const float t = m_fUnk124 + clock->m_afDeltaTime[0];
         m_fUnk124 = t;
         if (!(m_fUnk128 <= t)) goto L29f8;  // cror eq|lt
-        static_cast<CKImpulsionCpnt*>(m_pUnk20)->m_unk24 = 1.0f;
+        static_cast<CKImpulsionCpnt*>(m_pUnk20)->m_fValue = 1.0f;
         m_unk122 = 0;  // stb r29 (the phase, 0)
         goto L2a0c;
     } else {
-        const float value = static_cast<CKImpulsionCpnt*>(m_pUnk20)->m_unk24;
+        const float value = static_cast<CKImpulsionCpnt*>(m_pUnk20)->m_fValue;
         if (value <= 0.0f) {
             // L32f8: died down.
             if (static_cast<uint8_t>(ForkGroup()->ClearGroupPendingFlagForFork(this, m_unk2C)) != 0) {
@@ -871,7 +871,7 @@ L29f8:
     level = 1.0f;
     if (held != 0) goto L2a1c;
 L2a0c:
-    level = static_cast<CKImpulsionCpnt*>(m_pUnk20)->m_unk24;
+    level = static_cast<CKImpulsionCpnt*>(m_pUnk20)->m_fValue;
     if (level < 1.0f) {
         ApplyVibrationShake(level * 0.8f, clock);  // TOC +0x69d8
         goto L2a2c;

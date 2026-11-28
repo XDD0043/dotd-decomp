@@ -62,7 +62,7 @@
 // vt+0x154) and +0x36c at or above 0 (cror gt|eq: a NaN is false).
 uint8_t CKGrpS08Hero::IsSinglePlayerAndTimer36cSet() {
     if (g_pEngine->m_gameManager->GetPlayerCount() > 1) return 0;
-    return m_unk36c >= 0.0f ? 1 : 0;
+    return m_fFinisherCooldown >= 0.0f ? 1 : 0;
 }
 
 // 0x002d57a8 CKGrpS08Hero_UpdateSinglePlayerPartnerFlags_maybe: the free AI slots (+0x378: the entries of +0x74
@@ -71,7 +71,7 @@ uint8_t CKGrpS08Hero::IsSinglePlayerAndTimer36cSet() {
 void CKGrpS08Hero::UpdateSinglePlayerPartnerFlags() {
     uint8_t freeSlots = 0;
     for (uint32_t i = 0; i < m_sProperties.m_ui8Value; ++i) {
-        const uint8_t* entry = static_cast<const uint8_t*>(m_pUnk74) + i * 0x18u;
+        const uint8_t* entry = static_cast<const uint8_t*>(m_asPosAroundLead) + i * 0x18u;
         if (entry[0x11] == 0) ++freeSlots;
     }
     m_unk378 = (m_unk378 & 0x00ffffffu) | (static_cast<uint32_t>(freeSlots) << 24);  // the byte at +0x378
@@ -86,12 +86,12 @@ void CKGrpS08Hero::UpdateSinglePlayerPartnerFlags() {
     }
     controlled->GetPartnerHero();  // 0x002f85f8 (the result is not used)
     const CKHkS08Hero* partner = controlled->GetPartnerHero();
-    if (static_cast<int16_t>(partner->m_PFCpnt.m_Destination.m_unk0c) ==
-        static_cast<int16_t>(controlled->m_PFCpnt.m_Destination.m_unk0c)) {  // +0x43c
-        m_unk2c8 &= 0xffffff7fu;
+    if (static_cast<int16_t>(partner->m_PFCpnt.m_Destination.m_i16GraphNodeIndex) ==
+        static_cast<int16_t>(controlled->m_PFCpnt.m_Destination.m_i16GraphNodeIndex)) {  // +0x43c
+        m_ui32PairStateFlags &= 0xffffff7fu;
         return;
     }
-    m_unk2c8 = (m_unk2c8 & 0xffffff7fu) | 0x80u;
+    m_ui32PairStateFlags = (m_ui32PairStateFlags & 0xffffff7fu) | 0x80u;
 }
 
 // 0x002d4fd8 CKGrpS08Hero_GetFollowTrailPoint_maybe (step 6 AI): the follow trail's record (TOC +0x1d20: the zero
@@ -100,13 +100,13 @@ CKGrpS08Hero::SFollowWaypoint CKGrpS08Hero::GetFollowWaypoint() const {
     static_assert(sizeof(SFollowWaypoint) == 0x24, "SFollowWaypoint is 0x24 bytes");
     SFollowWaypoint result;
     result.m_vPosition = kHeroZeroVector;
-    result.m_vUnk0c = kHeroZeroVector;
+    result.m_vDirection = kHeroZeroVector;
     result.m_unk18 = 0.0f;  // stw 0
     result.m_unk1c = 0;
     result.m_unk20 = 0xffff;
     result.m_pad22 = 0;
-    const SFollowWaypoint* trail = reinterpret_cast<const SFollowWaypoint*>(m_unk380);  // +0x380
-    const int32_t count = static_cast<int32_t>(m_unka88);
+    const SFollowWaypoint* trail = reinterpret_cast<const SFollowWaypoint*>(m_aFollowTrail);  // +0x380
+    const int32_t count = static_cast<int32_t>(m_ui32FollowTrailCount);
     const uint32_t back = m_unkaa0[2];  // +0xaa8
     const SFollowWaypoint* record = nullptr;
     if (back != 0) {
@@ -118,7 +118,7 @@ CKGrpS08Hero::SFollowWaypoint CKGrpS08Hero::GetFollowWaypoint() const {
         record = &trail[count - 1];
     }
     result.m_vPosition = record->m_vPosition;
-    result.m_vUnk0c = record->m_vUnk0c;
+    result.m_vDirection = record->m_vDirection;
     result.m_unk18 = record->m_unk18;
     result.m_unk1c = record->m_unk1c;
     result.m_unk20 = record->m_unk20;
@@ -132,8 +132,8 @@ CKGrpS08Hero::SFollowWaypoint CKGrpS08Hero::GetFollowWaypoint() const {
 // list +0x370 goes back to its pool once the time reaches +0x1d0.
 void CKGrpS08Hero::UpdateTimers364(IKTime* clock) {
     const float dt = clock->m_afDeltaTime[0];
-    FloatApproach_Step(dt, &m_unk364);  // 0x002436e8
-    m_unk374 = dt + m_unk374;
+    FloatApproach_Step(dt, &m_fFinisherCooldownTarget);  // 0x002436e8
+    m_fAnnouncerElapsedTime = dt + m_fAnnouncerElapsedTime;
     CKHkS08Hero* first = static_cast<CKHkS08Hero*>(m_apHeros[0]);
     CKHkS08Hero* second = static_cast<CKHkS08Hero*>(m_apHeros[1]);
     // A player-controlled hero arms the announcer unless it grabs during a combo.
@@ -144,18 +144,18 @@ void CKGrpS08Hero::UpdateTimers364(IKTime* clock) {
     } else {
         armed = second->IsPlayerControlled() != 0 && arms(second);
     }
-    bool restart = m_unk36c == 0.0f;  // TOC +0x1d54
+    bool restart = m_fFinisherCooldown == 0.0f;  // TOC +0x1d54
     if (!restart) {
         const uint8_t players = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager)->GetPlayerCount();  // vt+0x154
-        restart = players <= 1 && m_unk36c >= 0.0f && armed;
+        restart = players <= 1 && m_fFinisherCooldown >= 0.0f && armed;
     }
     if (restart) {
-        m_unk36c = -0.001f;           // TOC +0x1d60
-        m_unk364 = -1.0f;             // TOC +0x1d38
-        m_unk368 = 1.0f / m_unk1cc;   // TOC +0x1d4c
+        m_fFinisherCooldown = -0.001f;           // TOC +0x1d60
+        m_fFinisherCooldownTarget = -1.0f;             // TOC +0x1d38
+        m_fFinisherCooldownSpeed = 1.0f / m_unk1cc;   // TOC +0x1d4c
     }
     // The announced blows are forgotten together once the announcer's time reaches +0x1d0.
-    if (m_pAnnounced == nullptr || !(m_unk1d0 <= m_unk374)) return;
+    if (m_pAnnounced == nullptr || !(m_unk1d0 <= m_fAnnouncerElapsedTime)) return;
     for (AnnouncedBlow* node = m_pAnnounced; node != nullptr;) {
         AnnouncedBlow* next = node->m_pNext;
         delete node;  // back to FreeListPool 0x00ceaa20 in the original
@@ -176,8 +176,8 @@ void CKGrpS08Hero::SynchronizeHeroPlayerAssignments() {
     uint8_t firstLeader;
     if (players < 2) {
         m_unk37c = 0;
-        m_unk2c8 = (m_unk2c8 & 0xfffffffdu) | 2u;
-        m_unka88 = 0;
+        m_ui32PairStateFlags = (m_ui32PairStateFlags & 0xfffffffdu) | 2u;
+        m_ui32FollowTrailCount = 0;
         for (uint32_t i = GetHeroCount(); i != 0; --i) {  // vt+0xf4
             CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(m_apHeros[i - 1]);
             hero->m_unkec4 = (hero->m_unkec4 & 0xffbfffffu) | 0x400000u;
@@ -187,7 +187,7 @@ void CKGrpS08Hero::SynchronizeHeroPlayerAssignments() {
         firstHero = first->m_ui8Hero;
         firstLeader = first->m_ui8TrackedLeader;
     } else {
-        m_unk2c8 &= 0xfffffffdu;
+        m_ui32PairStateFlags &= 0xfffffffdu;
         for (uint32_t i = GetHeroCount(); i != 0; --i) {
             CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(m_apHeros[i - 1]);
             hero->m_unkec4 &= 0xffbfffffu;
@@ -217,10 +217,10 @@ void CKGrpS08Hero::SynchronizeHeroPlayerAssignments() {
 // zone for the partner; 2 flying with the partner; 1 climbing; 0 none): a partner ranked above the focused dragon takes
 // the focus (+0xf8 bit 17, the dragon's +0x364 bit 29); one ranked below only sets bit 17.
 void CKGrpS08Hero::UpdateCoopFocusedDragon(IKTime*) {
-    m_unkf8 &= 0xfffdffffu;
+    m_baWorkFlags &= 0xfffdffffu;
     if (m_ui8ControlledHeroCount < 2) return;
-    if (m_unk66 > 2) return;
-    const int32_t index = static_cast<int8_t>(m_unk66);
+    if (m_ui8FocusedDragon > 2) return;
+    const int32_t index = static_cast<int8_t>(m_ui8FocusedDragon);
     CKSrvCamera* camera = static_cast<CKSrvCamera*>(g_pEngine->m_srvCamera);
     CKHkS08Hero* focused = static_cast<CKHkS08Hero*>(m_apHeros[index]);
     CKHkS08Hero* partner = static_cast<CKHkS08Hero*>(m_apHeros[(index + 1) % 2]);
@@ -250,16 +250,16 @@ void CKGrpS08Hero::UpdateCoopFocusedDragon(IKTime*) {
         }
     }
     if (focusedRank < partnerRank) {
-        m_unkf8 = (m_unkf8 & 0xfffdffffu) | 0x20000u;
+        m_baWorkFlags = (m_baWorkFlags & 0xfffdffffu) | 0x20000u;
         IKSerializable** heroes = m_apHeros;
         CKHkS08Hero* next = static_cast<CKHkS08Hero*>(heroes[0]);
         if (partner->m_ui8Hero <= 1 && focused->m_ui8Hero <= 1) next = static_cast<CKHkS08Hero*>(heroes[partner->m_ui8Hero]);
         // KStub_Nop_2ca970 (the two positions, the new one's +0x1818, +0xf8 bits 7 / 8): empty.
         SetFocusedDragon(next, 1);  // 0x002cc3f0
-        next->m_unk364 = (next->m_unk364 & 0xdfffffffu) | 0x20000000u;
+        next->m_ui32HeroFlags364 = (next->m_ui32HeroFlags364 & 0xdfffffffu) | 0x20000000u;
         return;
     }
-    if (focusedRank > partnerRank) m_unkf8 = (m_unkf8 & 0xfffdffffu) | 0x20000u;
+    if (focusedRank > partnerRank) m_baWorkFlags = (m_baWorkFlags & 0xfffdffffu) | 0x20000u;
 }
 
 // 0x002d6f90 CKGrpS08Hero_ProcessDragonSwitchRequest (vt+0x180): with +0x2c8 bit 9 the request is dropped. Two
@@ -267,9 +267,9 @@ void CKGrpS08Hero::UpdateCoopFocusedDragon(IKTime*) {
 // requested dragon (+0x364 bit 29, the time +0x6c). One player: ApplyRequestedDragonSelection, the companion's player the
 // other one, the new dragon's panel feedback, the companion's timed panel closed, +0x2d0 = 2.
 void CKGrpS08Hero::ProcessDragonSwitchRequest(uint8_t applyArg) {
-    if ((m_unk2c8 & 0x200u) != 0) {
-        m_unk65 = m_unk64;
-        m_unkf8 &= ~0x20u;
+    if ((m_ui32PairStateFlags & 0x200u) != 0) {
+        m_ui8RequestedDragon = m_ui8SelectedDragon;
+        m_baWorkFlags &= ~0x20u;
         return;
     }
     CKS08GameManager* gm = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager);
@@ -277,14 +277,14 @@ void CKGrpS08Hero::ProcessDragonSwitchRequest(uint8_t applyArg) {
     const bool pendingChange = change != 0 && (change ^ gm->m_unkDF4[16]) != 0;  // +0xe34
     if (m_ui8ControlledHeroCount > 1 || pendingChange) {  // 0x002ca288
         IKSerializable* hero = m_apHeros[0];
-        if (m_unk65 <= 1 && m_unk64 <= 1) hero = m_apHeros[m_unk65];
+        if (m_ui8RequestedDragon <= 1 && m_ui8SelectedDragon <= 1) hero = m_apHeros[m_ui8RequestedDragon];
         // KStub_Nop_2ca970 (the other hero's and this one's positions +0x54c, its +0x1818, +0xf8 bits 7 / 8) is empty.
         SetFocusedDragon(hero, 1);  // 0x002cc3f0
         CKHkS08Hero* focused = static_cast<CKHkS08Hero*>(hero);
-        focused->m_unk364 = (focused->m_unk364 & ~0x20000000u) | 0x20000000u;
+        focused->m_ui32HeroFlags364 = (focused->m_ui32HeroFlags364 & ~0x20000000u) | 0x20000000u;
         m_unk6c = g_pEngine->m_timeManager->m_pTime->m_afCurrentTime[0];
-        m_unk65 = m_unk64;
-        m_unkf8 &= ~0x20u;
+        m_ui8RequestedDragon = m_ui8SelectedDragon;
+        m_baWorkFlags &= ~0x20u;
         return;
     }
     ApplyRequestedDragonSelection(applyArg);  // 0x002cc7c0
@@ -293,7 +293,7 @@ void CKGrpS08Hero::ProcessDragonSwitchRequest(uint8_t applyArg) {
     companion->m_ui8Leader = static_cast<uint8_t>((controlled->m_ui8Leader + 1) % 2);
     gm->ShowDragonStatChangeFeedback(controlled->m_ui8Hero);  // 0x00501fb8
     gm->CloseDragonHudTimedPanel(companion->m_ui8Hero);       // 0x00501700
-    m_unk2d0 = 2.0f;  // TOC1 +0x1d74
+    m_fSwitchFeedbackTimer = 2.0f;  // TOC1 +0x1d74
 }
 
 namespace {
@@ -318,7 +318,7 @@ void SetFuryWordF32(uint32_t& word, float value) { std::memcpy(&word, &value, si
 //   the explosion, charging cleared, +0x324 = the fury over min(+0x328, +0x180), +0xed4 bit 6 cleared, the heroes' fury
 //   timers +0x1b00 = +0x190 and the fury mode.
 void CKGrpS08Hero::UpdateFury(IKTime* clock) {
-    const uint32_t flags = m_unk2c8;
+    const uint32_t flags = m_ui32PairStateFlags;
     float dt = clock->m_afDeltaTime[0];  // +0x1c
     CKHkS08Hero* hero1 = static_cast<CKHkS08Hero*>(m_apHeros[1]);
     CKHkS08Hero* hero0 = static_cast<CKHkS08Hero*>(m_apHeros[0]);
@@ -327,9 +327,9 @@ void CKGrpS08Hero::UpdateFury(IKTime* clock) {
     // The fury's effects: the filter (+0x34c, reserved, into +0x350), the explosion (+0x354, reserved), the HDR blend
     // (+0x358 into +0x35c), then the explosion at the middle of the heroes (0.5 of each position over the zero vector).
     auto startEffects = [&]() {
-        m_unk350 = fx->AcquireFx(reinterpret_cast<IKFxData*>(m_pUnk34c), this);  // inlined
-        IKFx* explosion = fx->AcquireFx(reinterpret_cast<IKFxData*>(m_pUnk354), this);
-        m_unk35c = fx->StartEffect(reinterpret_cast<IKFxData*>(m_pUnk358), this);
+        m_pActiveFuryFilterFx = fx->AcquireFx(reinterpret_cast<IKFxData*>(m_pFuryFilterFxData), this);  // inlined
+        IKFx* explosion = fx->AcquireFx(reinterpret_cast<IKFxData*>(m_pFuryExplosionFxData), this);
+        m_pActiveFuryHdrFx = fx->StartEffect(reinterpret_cast<IKFxData*>(m_pFuryHdrFxData), this);
         if (explosion != nullptr) {
             const CVector3& zero = kHeroZeroVector;  // TOC +0x1d20 -> 0x00c50d64
             const float half = 0.5f;                 // TOC +0x1d9c
@@ -359,29 +359,29 @@ void CKGrpS08Hero::UpdateFury(IKTime* clock) {
             SetFuryWordF32(m_unk32c, pending - static_cast<float>(static_cast<double>(drained)));
             manager->DrainDragonFury(0, drained, 1);  // 0x004fdb28
             if (manager->GetDragonFury(0) != 0) return;  // 0x004fd680
-            fx->StartEffect(reinterpret_cast<IKFxData*>(m_pUnk348), this);  // inlined (the result is not kept)
-            if (m_unk350 != nullptr) {
-                static_cast<IKFx*>(m_unk350)->StopAndRelease(this);  // vt+0x58
-                m_unk350 = nullptr;
+            fx->StartEffect(reinterpret_cast<IKFxData*>(m_pFuryFlashFxData), this);  // inlined (the result is not kept)
+            if (m_pActiveFuryFilterFx != nullptr) {
+                static_cast<IKFx*>(m_pActiveFuryFilterFx)->StopAndRelease(this);  // vt+0x58
+                m_pActiveFuryFilterFx = nullptr;
             }
-            if (m_unk35c != nullptr) {
-                static_cast<CKHDRNodeFx*>(m_unk35c)->StartBlendToSetting(m_pUnk358, this);  // 0x001c0200
-                m_unk35c = nullptr;
+            if (m_pActiveFuryHdrFx != nullptr) {
+                static_cast<CKHDRNodeFx*>(m_pActiveFuryHdrFx)->StartBlendToSetting(m_pFuryHdrFxData, this);  // 0x001c0200
+                m_pActiveFuryHdrFx = nullptr;
             }
-            m_unk2c8 &= ~0x100u;
+            m_ui32PairStateFlags &= ~0x100u;
             hero0->SetFuryMode(0);  // 0x00328e40
             hero1->SetFuryMode(0);
-            QueueTriggerSignals(&m_tsUnk340);  // 0x00236338 (the group as the second argument)
+            QueueTriggerSignals(&m_tsOnFuryEnd);  // 0x00236338 (the group as the second argument)
             return;
         }
         if (manager->IsFuryGaugeFull(&m_unk334) == 0) return;  // 0x004fe148
         if (hero0->CanStartFury() == 0) return;             // 0x00326830
         if (hero1->CanStartFury() == 0) return;
         if ((hero0->m_unkecc & 0x20u) == 0 && (hero1->m_unkecc & 0x20u) == 0) {
-            QueueTriggerSignals(&m_tsUnk338);  // 0x00236338
-            hero0->m_unked4 = (hero0->m_unked4 & ~0x40u) | 0x40u;
-            hero1->m_unked4 = (hero1->m_unked4 & ~0x40u) | 0x40u;
-            m_unk2c8 = (m_unk2c8 & ~0x200u) | 0x200u;
+            QueueTriggerSignals(&m_tsOnFuryChargeStart);  // 0x00236338
+            hero0->m_ui32StatusFlagsED4 = (hero0->m_ui32StatusFlagsED4 & ~0x40u) | 0x40u;
+            hero1->m_ui32StatusFlagsED4 = (hero1->m_ui32StatusFlagsED4 & ~0x40u) | 0x40u;
+            m_ui32PairStateFlags = (m_ui32PairStateFlags & ~0x200u) | 0x200u;
             manager->DrainDragonFury(0, m_unk334, 1);
             m_unk328 = m_unk17c;
             SetFuryWordF32(m_unk2d4[0], m_unk18c);
@@ -394,7 +394,7 @@ void CKGrpS08Hero::UpdateFury(IKTime* clock) {
         m_unk324 = static_cast<float>(static_cast<double>(total)) / m_unk180;
         hero0->SetFuryMode(1);
         hero1->SetFuryMode(1);
-        m_unk2c8 = (m_unk2c8 & ~0x100u) | 0x100u;
+        m_ui32PairStateFlags = (m_ui32PairStateFlags & ~0x100u) | 0x100u;
         return;
     }
     if ((flags & 0x100u) == 0) {
@@ -439,18 +439,18 @@ void CKGrpS08Hero::UpdateFury(IKTime* clock) {
             SetFuryWordF32(m_unk32c, rest);
         }
         if (FuryWordF32(m_unk2d4[0]) > 0.0f) return;  // bgt
-        m_unk2c8 = (m_unk2c8 & ~0x100u) | 0x100u;
+        m_ui32PairStateFlags = (m_ui32PairStateFlags & ~0x100u) | 0x100u;
         return;
     }
     startEffects();
-    m_unk2c8 &= ~0x200u;
+    m_ui32PairStateFlags &= ~0x200u;
     const uint32_t total = manager->GetTotalFury();
     float span = m_unk180;
     if (!(m_unk328 > m_unk180)) span = m_unk328;  // bgt
     m_unk32c = 0;
     m_unk324 = static_cast<float>(static_cast<double>(total)) / span;
-    hero0->m_unked4 &= ~0x40u;
-    hero1->m_unked4 &= ~0x40u;
+    hero0->m_ui32StatusFlagsED4 &= ~0x40u;
+    hero1->m_ui32StatusFlagsED4 &= ~0x40u;
     hero0->m_unk1b00 = m_unk190;
     hero1->m_unk1b00 = m_unk190;
     hero0->SetFuryMode(1);
@@ -460,7 +460,7 @@ void CKGrpS08Hero::UpdateFury(IKTime* clock) {
 // 0x002d5430 CKGrpS08Hero_AllowFinisherCamera_maybe (see the header).
 uint8_t CKGrpS08Hero::AllowFinisherCamera(const void* blow, int32_t lethal) {
     const uint8_t players = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager)->GetPlayerCount();  // vt+0x154
-    if (players > 1 || m_unk36c != -1.0f) return 0;
+    if (players > 1 || m_fFinisherCooldown != -1.0f) return 0;
     if (lethal == 0) {
         for (const AnnouncedBlow* node = m_pAnnounced; node != nullptr; node = node->m_pNext) {
             if (node->m_pBlow == blow) return 0;
@@ -486,10 +486,10 @@ uint8_t CKGrpS08Hero::AllowFinisherCamera(const void* blow, int32_t lethal) {
     }
     const float base = m_unk1c4 + m_unk1c8;
     const uint32_t r = static_cast<uint32_t>(Rand_Int()) & 0xffffu;  // 0x00011500
-    m_unk364 = 0.0f;
-    m_unk368 = 1.0f;  // TOC +0x1d4c
-    m_unk36c = ppc::fmadds((static_cast<float>(static_cast<double>(r)) / 65535.0f) * -2.0f, m_unk1c8, base);  // +0x1d44 / +0x1d48
-    m_unk374 = 0.0f;
+    m_fFinisherCooldownTarget = 0.0f;
+    m_fFinisherCooldownSpeed = 1.0f;  // TOC +0x1d4c
+    m_fFinisherCooldown = ppc::fmadds((static_cast<float>(static_cast<double>(r)) / 65535.0f) * -2.0f, m_unk1c8, base);  // +0x1d44 / +0x1d48
+    m_fAnnouncerElapsedTime = 0.0f;
     if (m_unk1d4 == 0) return 1;
     if (count >= static_cast<uint32_t>(m_unk1d4) && last != nullptr) {
         if (beforeLast == nullptr) {

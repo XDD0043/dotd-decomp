@@ -18,8 +18,8 @@
 //   [x] 0x1cf758  CKPointLightFxData_MessageProc  (header)
 //   [x] 0x1cf788  CKPointLightFxData_Destroy  (empty: IKSerializable's)
 //   [x] 0x1cf790  CKPointLightFxData_Create
-//   [x] 0x1cf810  CKPointLightFxData_EvaluateRadiusLooped_maybe
-//   [x] 0x1cf898  CKPointLightFxData_EvaluateIntensityLooped_maybe
+//   [x] 0x1cf810  CKPointLightFxData_EvaluateIntensityLooped_maybe
+//   [x] 0x1cf898  CKPointLightFxData_EvaluateRadiusLooped
 //   [x] 0x1cf920  CKPointLightFxData_Load
 //
 //   [ ] 0x9ace40  CKPointLightFxData_IsKindOfClass  [inline]
@@ -50,10 +50,10 @@ CKPointLightFxData::CKPointLightFxData() {
 int32_t CKPointLightFxData::Load(IKFile* file, int32_t type) {
     IKFxData::Load(file, type);
     if (type != K_LEVEL_PLATEFORMS) return 1;
-    IKFile_ReadRef(file, &m_unk08);
-    IKFile_ReadRef(file, &m_unk0c);
+    IKFile_ReadRef(file, &m_pRadiusCurve);
+    IKFile_ReadRef(file, &m_pIntensityCurve);
     CurveKeys_Load(&m_colorKeys, file);
-    ReadF32LE(file, &m_unk1c);
+    ReadF32LE(file, &m_fLoopPeriod);
     ReadF32LE(file, &m_unk20);
     return 1;
 }
@@ -88,22 +88,22 @@ float WrapIntoPeriod(float t, float period) {
 
 // 0x001cf430 CKPointLightNodeFx_EvaluateColorLooped_maybe
 void CKPointLightFxData::EvaluateColorLooped(float t, uint8_t out[4]) const {
-    ColorCurve_Evaluate(WrapIntoPeriod(t, m_unk1c), out, &m_colorKeys);  // 0x00246408
+    ColorCurve_Evaluate(WrapIntoPeriod(t, m_fLoopPeriod), out, &m_colorKeys);  // 0x00246408
 }
 
-// 0x001cf810 CKPointLightFxData_EvaluateRadiusLooped_maybe
-float CKPointLightFxData::EvaluateRadiusLooped(float t) const {
-    return static_cast<CKCurve2DCpnt*>(m_unk0c)->Evaluate(WrapIntoPeriod(t, m_unk1c));  // 0x00249ea8
-}
-
-// 0x001cf898 CKPointLightFxData_EvaluateIntensityLooped_maybe
+// 0x001cf810 CKPointLightFxData_EvaluateIntensityLooped_maybe
 float CKPointLightFxData::EvaluateIntensityLooped(float t) const {
-    return static_cast<CKCurve2DCpnt*>(m_unk08)->Evaluate(WrapIntoPeriod(t, m_unk1c));  // 0x00249ea8
+    return static_cast<CKCurve2DCpnt*>(m_pIntensityCurve)->Evaluate(WrapIntoPeriod(t, m_fLoopPeriod));  // 0x00249ea8
+}
+
+// 0x001cf898 CKPointLightFxData_EvaluateRadiusLooped
+float CKPointLightFxData::EvaluateRadiusLooped(float t) const {
+    return static_cast<CKCurve2DCpnt*>(m_pRadiusCurve)->Evaluate(WrapIntoPeriod(t, m_fLoopPeriod));  // 0x00249ea8
 }
 
 // 0x001cf4f8 CKPointLightFxData_RecursiveRegistration (KStub_Return1_1d8340 first: nothing)
 void CKPointLightFxData::RecursiveRegistration(int32_t type) {
     if (type != 0) return;
-    m_unk08->RecursiveRegistration(0);  // vt+0x24
-    m_unk0c->RecursiveRegistration(0);
+    m_pRadiusCurve->RecursiveRegistration(0);  // vt+0x24
+    m_pIntensityCurve->RecursiveRegistration(0);
 }

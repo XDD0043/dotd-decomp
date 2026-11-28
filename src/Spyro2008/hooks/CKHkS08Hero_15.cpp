@@ -156,9 +156,9 @@ float Math_RemapClamped(float from0, float from1, float value, float to0, float 
 uint8_t CKHkS08Hero::GetFootstepSurfaceType() {
     if (IsClimbingMovementMode2() != 0) return 4;  // 0x003401a0
     const ICollisionMesh* ground;
-    const int16_t animation = static_cast<int16_t>(m_unk160);
-    if (m_unk1960 == 0xb && animation != 0x27 && animation != 0x26) {
-        ground = static_cast<const ICollisionMesh*>(m_unk11fc.m_pGround);
+    const int16_t animation = static_cast<int16_t>(m_i16CurAnimIndex);
+    if (m_ui8GroundAnimState == 0xb && animation != 0x27 && animation != 0x26) {
+        ground = static_cast<const ICollisionMesh*>(m_gcContact11FC.m_pGround);
     } else {
         ground = static_cast<const ICollisionMesh*>(GetGroundInfo());  // 0x00361b68
     }
@@ -228,7 +228,7 @@ float GroupWordAsFloat(uint32_t word) {
 // The group's distance from hero `index` to the tether's middle (+0x314 / +0x318; 0 for another index).
 float PartnerLinkDistance(const CKGrpS08Hero* group, uint8_t index) {
     if (index == 0) return GroupWordAsFloat(group->m_unk2d4[16]);  // +0x314
-    if (index == 1) return GroupWordAsFloat(group->m_unk318);
+    if (index == 1) return GroupWordAsFloat(group->m_fHero1ToMidDist);
     return 0.0f;  // TOC1 +0x2814
 }
 // The lightning bolt of `data` taken from the FX pool for `hero`, its source the hero's hot spot 19 (no node). The
@@ -456,7 +456,7 @@ void CKHkS08Hero::UpdatePartnerLinkFx(uint32_t active) {
     CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_pGrpHero);
     const float kHalf = 0.5f;  // TOC1 +0x2810
     CVector3 middle;
-    if ((group->m_unk2c8 & 1u) == 0) {
+    if ((group->m_ui32PairStateFlags & 1u) == 0) {
         middle = {(own.x + other.x) * kHalf, (own.y + other.y) * kHalf, (own.z + other.z) * kHalf};
     } else {
         middle = {GroupWordAsFloat(group->m_unk2d4[7]), GroupWordAsFloat(group->m_unk2d4[8]),
@@ -494,7 +494,7 @@ void CKHkS08Hero::UpdatePartnerLinkFx(uint32_t active) {
             endAlpha = 0;
             m_unk177c = 0.0f;
         }
-        if ((group->m_unk2c8 & 2u) != 0) {
+        if ((group->m_ui32PairStateFlags & 2u) != 0) {
             startAlpha = 0;
             endAlpha = 0;
         }
@@ -503,7 +503,7 @@ void CKHkS08Hero::UpdatePartnerLinkFx(uint32_t active) {
     // hot spot 19 (taken from the pool into +0x19d8 when none is held) and points along the group's direction for the
     // hero (+0x2fc hero 0, +0x308 hero 1, else the null vector), in the node's own space; otherwise a held spark stops
     // bursting, is let go (vt+0x54) and forgotten.
-    if (group->m_unk158 * kHalf < PartnerLinkDistance(group, m_ui8Hero) && (group->m_unk2c8 & 2u) == 0) {
+    if (group->m_unk158 * kHalf < PartnerLinkDistance(group, m_ui8Hero) && (group->m_ui32PairStateFlags & 2u) == 0) {
         CKSparkFxData* data = static_cast<CKSparkFxData*>(m_unk19d4);
         data->m_unk0c = nullptr;
         data->m_unk10 = m_apHotSpots[19];  // +0x4c
@@ -549,11 +549,11 @@ void CKHkS08Hero::UpdatePartnerLinkFx(uint32_t active) {
     }
     const uint8_t startIntensity = m_unk1194;
     const uint8_t endIntensity = m_unk1195;
-    if ((group->m_unk2c8 & 0x400u) == 0) return;
+    if ((group->m_ui32PairStateFlags & 0x400u) == 0) return;
     CKHkS08Hero* partner = GetPartnerHero();
     IKSerializable** slots[4] = {&m_unk19c8, &m_unk19d0, &partner->m_unk19c8, &partner->m_unk19d0};
     CKHkS08Hero* owners[4] = {this, this, partner, partner};
-    const uint32_t flags = group->m_unk2c8;
+    const uint32_t flags = group->m_ui32PairStateFlags;
     if ((flags & 2u) != 0 && (flags & 4u) == 0) {
         for (int i = 0; i < 4; ++i) {
             CKLightningBoltNodeFx* bolt = static_cast<CKLightningBoltNodeFx*>(*slots[i]);
@@ -563,7 +563,7 @@ void CKHkS08Hero::UpdatePartnerLinkFx(uint32_t active) {
     }
     const float kFadeRate = 10.0f;  // TOC1 +0x28d8
     uint32_t linked = 1;
-    if ((m_unked4 & 0x20u) == 0) linked = (partner->m_unked4 >> 5) & 1u;
+    if ((m_ui32StatusFlagsED4 & 0x20u) == 0) linked = (partner->m_ui32StatusFlagsED4 >> 5) & 1u;
     bool fade = true;
     float startTarget = 1.0f;  // TOC1 +0x2854
     float timer = 1.0f;
@@ -713,7 +713,7 @@ void CKHkS08Hero::UpdateShadowsAndFlightFx() {
     // BUG(original): another dragon index takes a stale register for the wings' node; the heroes are 0 and 1.
     CNode* wings = static_cast<CNode*>(m_apObjects[0]);
     bool flight = false;
-    if (m_unk160 == 0x40 && IsFlyingMovementMode1() != 0) {  // 0x00340188
+    if (m_i16CurAnimIndex == 0x40 && IsFlyingMovementMode1() != 0) {  // 0x00340188
         // The animation's length (its dictionary entry's +0x10), at most +0xe0c when +0xe08 is set.
         const RtAnimAnimation* animation = CAnimationManager_GetAnimation(
             static_cast<uint32_t>(static_cast<CAnimationDictionary*>(m_pAnimDico)->m_apAnimations[0x40]));
@@ -788,7 +788,7 @@ void CKHkS08Hero::UpdateShadowsAndFlightFx() {
         wings->m_sgProperties = (wings->m_sgProperties & 0xfffffffbu) | 4u;  // hidden
     }
     CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_pGrpHero);
-    uint32_t active = ((group->m_unk2c8 >> 2) & 1u) ^ 1u;
+    uint32_t active = ((group->m_ui32PairStateFlags >> 2) & 1u) ^ 1u;
     CKCameraConstraint* zone = static_cast<CKSrvCamera*>(g_pEngine->m_srvCamera)->m_pActiveConstraint;
     if (zone != nullptr) {
         uint32_t zoneFlags;
@@ -806,7 +806,7 @@ void CKHkS08Hero::UpdateShadowsAndFlightFx() {
         reinterpret_cast<CKShadowGround*>(&m_unkfd0), reinterpret_cast<CKShadowGround*>(&m_unkff0),
         reinterpret_cast<CKShadowGround*>(&m_unk1010), reinterpret_cast<CKShadowGround*>(&m_unk1030),
         reinterpret_cast<CKShadowGround*>(&m_unk1050)};
-    if ((m_unk358 & 0x800000u) != 0 || (m_unk35c & 8u) != 0) {
+    if ((m_ui32HeroFlags358 & 0x800000u) != 0 || (m_ui32HeroFlags35C & 8u) != 0) {
         for (uint32_t i = 0; i < 5; ++i) {
             if (grounds[i]->m_bUsed_maybe != 0) shadows->UnregisterCaster(grounds[i], m_apUnkfbc[i]);  // 0x001fd6f0
         }
@@ -930,11 +930,11 @@ void StartParticleNode(IKSerializable* object) {
     node->m_pRpPrtStdEmitter->flag |= 0xau;
 }
 uint8_t HeroAnimFinished(const CKHkS08Hero* hero, uint16_t animation) {  // 0x003013c8 CKHkS08Hero_IsAnimFinished (inlined copy)
-    if (hero->m_unk160 != animation) return 0;
-    return static_cast<uint8_t>((hero->m_unk354 >> 15) & 1u);
+    if (hero->m_i16CurAnimIndex != animation) return 0;
+    return static_cast<uint8_t>((hero->m_ui32HeroFlags354 >> 15) & 1u);
 }
 uint8_t HeroInSpecialAnim(const CKHkS08Hero* hero) {  // 0x00301348 CKHkS08Hero_IsInSpecialAnim_maybe
-    switch (static_cast<int16_t>(hero->m_unk160)) {
+    switch (static_cast<int16_t>(hero->m_i16CurAnimIndex)) {
     case 0x33: case 0x36: case 0x3a: case 0x3d: case 0x41: case 0x43: case 0x44: return 1;
     default: return 0;
     }
@@ -949,10 +949,10 @@ uint8_t HeroInSpecialAnim(const CKHkS08Hero* hero) {  // 0x00301348 CKHkS08Hero_
 void CKHkS08Hero::UpdateTrailAndFootstepFx() {
     const bool leader = m_ui8Hero == m_ui8TrackedLeader;
     bool landing;
-    if ((m_unk358 & 0x10000u) != 0 && leader && (m_unk354 & 0x1000u) == 0) {
-        landing = (m_unk364 & 0x40u) == 0 || (m_unk364 & 0x20000000u) != 0;
+    if ((m_ui32HeroFlags358 & 0x10000u) != 0 && leader && (m_ui32HeroFlags354 & 0x1000u) == 0) {
+        landing = (m_ui32HeroFlags364 & 0x40u) == 0 || (m_ui32HeroFlags364 & 0x20000000u) != 0;
     } else {
-        landing = (m_unk364 & 0x20000000u) != 0;
+        landing = (m_ui32HeroFlags364 & 0x20000000u) != 0;
     }
     if (landing) {
         StartParticleNode(m_apParticles[10]);  // +0x28
@@ -995,7 +995,7 @@ void CKHkS08Hero::UpdateTrailAndFootstepFx() {
                 const int32_t* emit = &m_unk1c70;
                 const int32_t* bias = &m_unk1c84;
                 if (IsComboKindFlagSet() != 0 &&
-                    static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->GetLinkCode() == 2) {  // 0x002fc1b0
+                    static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->GetLinkCode() == 2) {  // 0x002fc1b0
                     emit = &m_unk1c98;
                     bias = &m_unk1cac;
                 }
@@ -1019,8 +1019,8 @@ void CKHkS08Hero::UpdateTrailAndFootstepFx() {
     uint32_t surface = 4;
     if (IsClimbingMovementMode2() == 0) {
         const ICollisionMesh* ground;
-        if (m_unk1960 == 0xb && static_cast<int16_t>(m_unk160) != 0x27 && static_cast<int16_t>(m_unk160) != 0x26) {
-            ground = static_cast<const ICollisionMesh*>(m_unk11fc.m_pGround);
+        if (m_ui8GroundAnimState == 0xb && static_cast<int16_t>(m_i16CurAnimIndex) != 0x27 && static_cast<int16_t>(m_i16CurAnimIndex) != 0x26) {
+            ground = static_cast<const ICollisionMesh*>(m_gcContact11FC.m_pGround);
         } else {
             ground = static_cast<const ICollisionMesh*>(GetGroundInfo());  // 0x00361b68
         }
@@ -1041,7 +1041,7 @@ void CKHkS08Hero::UpdateTrailAndFootstepFx() {
     const uint8_t spots[4] = {2, 3, 6, 7};
     for (int k = 0; k < 4; ++k) static_cast<CSGHotSpot*>(GetHotSpot(spots[k]))->GetWorldPosition(&feet[k]);  // 0x00361b70
     auto spawn = [&](uint32_t mode, const float* at) { manager->SpawnSurfaceFx(volume, this, surface, mode, at); };
-    if ((m_unk354 & 1u) == 0) {
+    if ((m_ui32HeroFlags354 & 1u) == 0) {
         for (int k = 0; k < 4; ++k) {
             if ((m_unkedc & (1u << k)) != 0) spawn(0, &feet[k].x);
         }
@@ -1055,22 +1055,22 @@ void CKHkS08Hero::UpdateTrailAndFootstepFx() {
         m_gcCurDatasInOut.m_fdH < m_unke3c && soft != 0) {
         spawn(2, &m_unk570);
     }
-    if (ground != nullptr && m_unk115c <= 0.0f && (m_unk354 & 4u) != 0 && (ground->m_ba16EngineFlags & 2u) != 0 &&
+    if (ground != nullptr && m_unk115c <= 0.0f && (m_ui32HeroFlags354 & 4u) != 0 && (ground->m_ba16EngineFlags & 2u) != 0 &&
         (ground->m_ui16PropertiesFlags & 0x200u) != 0) {
         m_unk115c = 0.5f;  // TOC1 +0x2810
         spawn(1, &m_unk570);
     }
     if (m_unk16f9 != 0 && ShouldStayClimbing() != 0) spawn(1, &m_unk570);
-    if (static_cast<int16_t>(m_unk160) == 0x2a) {
+    if (static_cast<int16_t>(m_i16CurAnimIndex) == 0x2a) {
         if ((m_unkedc & 1u) != 0) spawn(0, &feet[0].x);
         if ((m_unkedc & 2u) != 0) spawn(0, &feet[1].x);
     }
-    if (m_unk1960 == 0xc && m_unk1511 == 0) {
+    if (m_ui8GroundAnimState == 0xc && m_unk1511 == 0) {
         for (int k = 0; k < 4; ++k) {
             if ((m_unkedc & (1u << k)) != 0) spawn(1, &feet[k].x);
         }
     }
-    const int16_t animation = static_cast<int16_t>(m_unk160);
+    const int16_t animation = static_cast<int16_t>(m_i16CurAnimIndex);
     bool vibrate = false;
     if (animation == 0x63 || animation == 0x67) {
         if (m_unk19f4 == nullptr) {
@@ -1193,7 +1193,7 @@ void CKHkS08Hero::SpawnShockwave(uint8_t kind, const CVector3* position) {
         return;
     }
     if (data == nullptr) return;
-    std::memcpy(static_cast<CKExplosionFxData*>(data)->m_unk38, &color, sizeof color);  // the data's colour (+0x38)
+    std::memcpy(static_cast<CKExplosionFxData*>(data)->m_cColor, &color, sizeof color);  // the data's colour (+0x38)
     IKFx* fx = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(static_cast<CKExplosionFxData*>(data), this);
     if (fx == nullptr) return;
     CKExplosionNodeFx* explosion = static_cast<CKExplosionNodeFx*>(fx);
@@ -1201,7 +1201,7 @@ void CKHkS08Hero::SpawnShockwave(uint8_t kind, const CVector3* position) {
     explosion->SetDamageOwner(this, this);        // 0x001b6340
     explosion->SetDamageCategory(3, this);        // 0x001b6318
     explosion->SetDamageFlags(0x28, this);        // 0x001b62f0
-    CKS08HeroCombo* combo = static_cast<CKS08HeroCombo*>(m_unk1a88);
+    CKS08HeroCombo* combo = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode);
     if (combo->GetBlow() != nullptr) {
         explosion->SetDamage(reinterpret_cast<IKSerializable*>(combo->GetBlow()->m_pDamage), this);  // vt+0xb0, 0x001b62c8
     }
@@ -1277,7 +1277,7 @@ void CKHkS08Hero::UpdateSwingTrails() {
             for (uint32_t i = 0; i < count; ++i) trail(first)->SetRibbonActive(i & 0xffu, 1, 0);
             paint(trail(first), (&m_unk1c20)[m_unk1cc4]);
             if (IsComboKindFlagSet() != 0 &&
-                static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->GetLinkCode() == 2) {  // 0x002fc1b0, vt+0x54 / +0x58
+                static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->GetLinkCode() == 2) {  // 0x002fc1b0, vt+0x54 / +0x58
                 for (uint32_t i = 0; i < count; ++i) trail(first + 1)->SetRibbonActive(i & 0xffu, 1, 0);
                 paint(trail(first + 1), (&m_unk1c34)[m_unk1cc4]);
             }
@@ -1321,7 +1321,7 @@ void CKHkS08Hero::UpdateSwingTrails() {
     } else if (on(6)) {
         for (int k = 6; k <= 9; ++k) set(k, 0);
     }
-    const int16_t anim = static_cast<int16_t>(m_unk160);
+    const int16_t anim = static_cast<int16_t>(m_i16CurAnimIndex);
     if (anim == 0x40) {
         if (!on(10)) {
             for (int k = 10; k <= 12; ++k) set(k, 1);
@@ -1332,10 +1332,10 @@ void CKHkS08Hero::UpdateSwingTrails() {
     } else if ((m_unkec8 & 2u) == 0 && anim != 0x55 && on(10)) {
         for (int k = 10; k <= 12; ++k) set(k, 0);
     }
-    if ((m_unkec8 & 2u) != 0 || static_cast<int16_t>(m_unk160) == 0x55) {
+    if ((m_unkec8 & 2u) != 0 || static_cast<int16_t>(m_i16CurAnimIndex) == 0x55) {
         if (!on(11)) set(11, 1);
         if (!on(12)) set(12, 1);
-    } else if (static_cast<int16_t>(m_unk160) != 0x40) {
+    } else if (static_cast<int16_t>(m_i16CurAnimIndex) != 0x40) {
         if (on(11)) set(11, 0);
         if (on(12)) set(12, 0);
     }

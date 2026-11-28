@@ -95,48 +95,48 @@
 int32_t CKHkS08Malefor::Load(IKFile* file, int32_t type) {
     CKHkGolem::Load(file, type);
     if (type != K_LEVEL_PLATEFORMS) return 1;
-    IKFile_ReadRef(file, &m_unkE4);
-    IKFile_ReadRef(file, &m_unkE8);
-    ReadU8(file, &m_unkEC);
-    m_apUnkF0 = static_cast<IKSerializable**>(
-        Mem_AllocAligned16(m_unkEC * static_cast<uint32_t>(sizeof(IKSerializable*))));
-    IKFile_ReadObjectRefArray(file, m_apUnkF0, m_unkEC);
-    IKFile_ReadObjectRefArray(file, m_apUnkF4, 2);
-    for (uint32_t& word : m_unkFC) ReadU32LE(file, &word);
-    IKFile_ReadRef(file, &m_unk164);
-    ReadU8(file, &m_unk168);
-    IKFile_ReadRef(file, &m_unk174);
-    IKFile_ReadRef(file, &m_pUnk178);
-    IKFile_ReadRef(file, &m_unk17C);
-    IKFile_ReadRef(file, &m_unk180);
-    IKFile_ReadRef(file, &m_unk184);
-    ReadF32LE(file, &m_unkE0);
-    ReadU32LE(file, &m_unk16C);
-    ReadU32LE(file, &m_unk170);
-    IKFile_ReadRef(file, &m_unk188);
-    for (IKSerializable*& object : m_apUnk110) IKFile_ReadRef(file, &object);
-    for (IKSerializable*& object : m_apUnk140) IKFile_ReadRef(file, &object);
-    IKFile_ReadRef(file, &m_unk18C);
-    IKFile_ReadRef(file, &m_unk190);
+    IKFile_ReadRef(file, &m_pLowHealthParticlesA);
+    IKFile_ReadRef(file, &m_pLowHealthParticlesB);
+    ReadU8(file, &m_ui8NbEmitHotSpotsA);
+    m_apEmitHotSpotsA = static_cast<IKSerializable**>(
+        Mem_AllocAligned16(m_ui8NbEmitHotSpotsA * static_cast<uint32_t>(sizeof(IKSerializable*))));
+    IKFile_ReadObjectRefArray(file, m_apEmitHotSpotsA, m_ui8NbEmitHotSpotsA);
+    IKFile_ReadObjectRefArray(file, m_apEmitHotSpotsB, 2);
+    for (uint32_t& word : m_aui32LowHealthEmitParams) ReadU32LE(file, &word);
+    IKFile_ReadRef(file, &m_pWeakVolume);
+    ReadU8(file, &m_bWeakState);
+    IKFile_ReadRef(file, &m_pWeakStartExplosion);
+    IKFile_ReadRef(file, &m_pWeakNode);
+    IKFile_ReadRef(file, &m_pWeakEndExplosion);
+    IKFile_ReadRef(file, &m_pWeakOneShotHitExplosion);
+    IKFile_ReadRef(file, &m_pWeakHitExplosion);
+    ReadF32LE(file, &m_fContinuousHitCountInterval);
+    ReadU32LE(file, &m_ui32WeakOneShotFury);
+    ReadU32LE(file, &m_ui32WeakContinuousFury);
+    IKFile_ReadRef(file, &m_pWeakFuryHitExplosion);
+    for (IKSerializable*& object : m_apImpactExplosions) IKFile_ReadRef(file, &object);
+    for (IKSerializable*& object : m_apHitExplosions) IKFile_ReadRef(file, &object);
+    IKFile_ReadRef(file, &m_pTrailA);
+    IKFile_ReadRef(file, &m_pTrailB);
     for (float& value : m_afUnk194) ReadF32LE(file, &value);  // the words as read (ReadU32LE's bits)
     return 1;
 }
 
 // 0x004e2e60 CKHkS08Malefor_Destructor: the contact history's nodes (+0xc0) back to their pool, the list cleared.
 CKHkS08Malefor::~CKHkS08Malefor() {
-    for (ContactHistoryNode* node = m_unkC0; node != nullptr;) {
+    for (ContactHistoryNode* node = m_pPerVolumeContactHistory; node != nullptr;) {
         ContactHistoryNode* next = node->m_pNext;  // +0x14
         ContactHistory_FreeNode(node);
         node = next;
     }
-    m_unkC0 = nullptr;
+    m_pPerVolumeContactHistory = nullptr;
 }
 
 // 0x004e2760 CKHkS08Malefor_Destroy
 void CKHkS08Malefor::Destroy() {
     CKHkGolem::Destroy();  // 0x004c0388
-    Mem_FreeAligned16(m_apUnkF0);  // 0x00052fb8
-    m_apUnkF0 = nullptr;
+    Mem_FreeAligned16(m_apEmitHotSpotsA);  // 0x00052fb8
+    m_apEmitHotSpotsA = nullptr;
 }
 
 // 0x004e2080 CKHkS08Malefor_GetInfo
@@ -231,7 +231,7 @@ void TriggerExplosionAt(CKHkS08Malefor* owner, IKSerializable* data, const CVect
 
 // The damage's amount this frame (+0x0c: per second, dt x amount).
 float FrameAmount(const CKS08Damage* damage, float dt) {
-    return damage->m_unk0c != 0 ? dt * damage->m_unk04 : damage->m_unk04;
+    return damage->m_bContinuous != 0 ? dt * damage->m_fAmount : damage->m_fAmount;
 }
 
 // The pending damage's whole part applied (fcmpu + cror: a NaN waits): the fraction kept (fctidz, its low word as
@@ -252,33 +252,33 @@ void ApplyWholePoints(CKHkGolem* golem, float* pending) {
 // a hero damage (0x998c) adds amount x +0x1bc; any other damage replaces the slot with the amount.
 void CKHkS08Malefor::AccumulateWeakDamage(float amount, CKS08Damage* damage, uint32_t slot) {
     if (damage->IsKindOfClass(0x99cc) != 0) {
-        const uint32_t kind = damage->m_unk20;
+        const uint32_t kind = damage->m_ui32DamageType;
         if (kind <= 9) {
             const float factor = kind >= 8 ? kWeakFactorKind89 : m_afUnk194[2 + kind];
-            m_afUnkCC[slot] = ppc::fmadds(amount, factor, m_afUnkCC[slot]);
+            m_afPendingFractionalDamage[slot] = ppc::fmadds(amount, factor, m_afPendingFractionalDamage[slot]);
         }
     } else if (damage->IsKindOfClass(0x998c) != 0) {
-        m_afUnkCC[slot] = ppc::fmadds(amount, m_afUnk194[10], m_afUnkCC[slot]);
+        m_afPendingFractionalDamage[slot] = ppc::fmadds(amount, m_afUnk194[10], m_afPendingFractionalDamage[slot]);
     } else {
-        m_afUnkCC[slot] = amount;
+        m_afPendingFractionalDamage[slot] = amount;
     }
-    ApplyWholePoints(this, &m_afUnkCC[slot]);
+    ApplyWholePoints(this, &m_afPendingFractionalDamage[slot]);
 }
 
 // 0x004e1a80 CKHkS08Malefor_AccumulateDamage_2_maybe: CKHkS08DragonCityGolem's: kinds 0..7 the golem's factors
 // (+0x94 + 4 x kind, the jump table 0x004e1bcc), kinds 8 / 9 kind 8's (+0xb4), a hero damage +0xb8.
 void CKHkS08Malefor::AccumulateDamage(float amount, CKS08Damage* damage, uint32_t slot) {
     if (damage->IsKindOfClass(0x99cc) != 0) {
-        const uint32_t kind = damage->m_unk20;
+        const uint32_t kind = damage->m_ui32DamageType;
         if (kind <= 9) {
-            m_afUnkCC[slot] = ppc::fmadds(amount, m_af94[kind >= 8 ? 8 : kind], m_afUnkCC[slot]);
+            m_afPendingFractionalDamage[slot] = ppc::fmadds(amount, m_af94[kind >= 8 ? 8 : kind], m_afPendingFractionalDamage[slot]);
         }
     } else if (damage->IsKindOfClass(0x998c) != 0) {
-        m_afUnkCC[slot] = ppc::fmadds(amount, m_af94[9], m_afUnkCC[slot]);
+        m_afPendingFractionalDamage[slot] = ppc::fmadds(amount, m_af94[9], m_afPendingFractionalDamage[slot]);
     } else {
-        m_afUnkCC[slot] = amount;
+        m_afPendingFractionalDamage[slot] = amount;
     }
-    ApplyWholePoints(this, &m_afUnkCC[slot]);
+    ApplyWholePoints(this, &m_afPendingFractionalDamage[slot]);
 }
 
 // 0x004e1d80 CKHkS08Malefor_UpdateHotSpotSegmentVolumes_maybe (from SetTrailRibbonsActive on): the node's world matrices
@@ -288,7 +288,7 @@ void CKHkS08Malefor::AccumulateDamage(float amount, CKS08Damage* damage, uint32_
 void CKHkS08Malefor::UpdateTrailAnchors() {
     CSGHotSpot* hotSpots[2] = {MaleforHotSpot(this, 0xc), MaleforHotSpot(this, 0xd)};
     static_cast<CSGMovable*>(m_pKGLObject)->ForceWorldMatrixUpdate();  // vt+0x50
-    CTrailNodeFx* trails[2] = {m_unk18C, m_unk190};
+    CTrailNodeFx* trails[2] = {m_pTrailA, m_pTrailB};
     for (uint32_t t = 0; t < 2; ++t) {
         if (trails[t] == nullptr) continue;
         CMatrix34 matrix;
@@ -327,9 +327,9 @@ void CKHkS08Malefor::SpawnDamageImpactFx(const CVector3* position, const CVector
         SpawnFxAt(&at, &along);  // 0x004c2758
         return;
     }
-    const uint32_t kind = damage->m_unk20;
+    const uint32_t kind = damage->m_ui32DamageType;
     if (kind > 9) return;
-    IKFx* fx = MaleforSrvFx()->AcquireFx(static_cast<IKFxData*>(m_apUnk110[kind >= 8 ? 8 : kind]), this);
+    IKFx* fx = MaleforSrvFx()->AcquireFx(static_cast<IKFxData*>(m_apImpactExplosions[kind >= 8 ? 8 : kind]), this);
     if (fx == nullptr) return;
     CKExplosionNodeFx* explosion = static_cast<CKExplosionNodeFx*>(fx);
     explosion->SetPosition(direction, position, this);  // 0x001b6438
@@ -342,25 +342,25 @@ void CKHkS08Malefor::SpawnDamageImpactFx(const CVector3* position, const CVector
 // hidden, the volume switched off with property 0x100 cleared. The byte +0x168 takes `on` either way.
 void CKHkS08Malefor::SetWeak(uint8_t on) {
     if (on == 0) {
-        if (m_unk168 != 0) {
-            TriggerExplosion(m_unk17C);
-            m_unk168 = 0;
-            if (m_pUnk178 != nullptr) HideNode(m_pUnk178);
-            if (m_unk164 != nullptr) {
-                MaleforSrvCollision()->DisableVolume(m_unk164);  // 0x001920e8
-                m_unk164->m_ui16PropertiesFlags = static_cast<uint16_t>(m_unk164->m_ui16PropertiesFlags & ~0x100u);
+        if (m_bWeakState != 0) {
+            TriggerExplosion(m_pWeakEndExplosion);
+            m_bWeakState = 0;
+            if (m_pWeakNode != nullptr) HideNode(m_pWeakNode);
+            if (m_pWeakVolume != nullptr) {
+                MaleforSrvCollision()->DisableVolume(m_pWeakVolume);  // 0x001920e8
+                m_pWeakVolume->m_ui16PropertiesFlags = static_cast<uint16_t>(m_pWeakVolume->m_ui16PropertiesFlags & ~0x100u);
             }
         }
-    } else if (m_unk168 == 0) {
-        TriggerExplosion(m_unk174);
-        m_unk168 = 1;
-        if (m_pUnk178 != nullptr) ShowNode(m_pUnk178);
-        if (m_unk164 != nullptr) {
-            MaleforSrvCollision()->EnableVolume(m_unk164);  // 0x00192090
-            m_unk164->m_ui16PropertiesFlags = static_cast<uint16_t>(m_unk164->m_ui16PropertiesFlags | 0x100u);
+    } else if (m_bWeakState == 0) {
+        TriggerExplosion(m_pWeakStartExplosion);
+        m_bWeakState = 1;
+        if (m_pWeakNode != nullptr) ShowNode(m_pWeakNode);
+        if (m_pWeakVolume != nullptr) {
+            MaleforSrvCollision()->EnableVolume(m_pWeakVolume);  // 0x00192090
+            m_pWeakVolume->m_ui16PropertiesFlags = static_cast<uint16_t>(m_pWeakVolume->m_ui16PropertiesFlags | 0x100u);
         }
     }
-    m_unk168 = on;
+    m_bWeakState = on;
 }
 
 // 0x004e29e8 CKHkS08Malefor_OnDeactivate: CKHkGolem's, weak off, the node +0x178 hidden, the volume out of its parent
@@ -368,10 +368,10 @@ void CKHkS08Malefor::SetWeak(uint8_t on) {
 void CKHkS08Malefor::VfA4() {
     CKHkGolem::VfA4();  // 0x004bfc88
     SetWeak(0);
-    if (m_pUnk178 != nullptr) HideNode(m_pUnk178);
-    if (m_unk164->m_pParent != nullptr) m_unk164->m_pParent->RemoveChild(m_unk164);  // vt+0x78
+    if (m_pWeakNode != nullptr) HideNode(m_pWeakNode);
+    if (m_pWeakVolume->m_pParent != nullptr) m_pWeakVolume->m_pParent->RemoveChild(m_pWeakVolume);  // vt+0x78
     CKSector* base = static_cast<CKSector*>(g_pEngine->m_level->m_vpSectors.m_pBlock[0]);
-    base->m_pSectorRoot->AddChild(m_unk164);  // vt+0x70
+    base->m_pSectorRoot->AddChild(m_pWeakVolume);  // vt+0x70
 }
 
 // 0x004e2ad8 CKHkS08Malefor_OnActivate: CKHkGolem's, weak off; the node +0x178 hidden and its geometries of blend mode
@@ -380,17 +380,17 @@ void CKHkS08Malefor::VfA4() {
 void CKHkS08Malefor::VfA0() {
     CKHkGolem::VfA0();  // 0x004c00c8
     SetWeak(0);
-    if (m_pUnk178 != nullptr) {
-        HideNode(m_pUnk178);
-        for (CGeometry* geometry = static_cast<CGeometry*>(m_pUnk178->m_lGeometryList); geometry != nullptr;
+    if (m_pWeakNode != nullptr) {
+        HideNode(m_pWeakNode);
+        for (CGeometry* geometry = static_cast<CGeometry*>(m_pWeakNode->m_lGeometryList); geometry != nullptr;
              geometry = geometry->m_pNext) {
             if (((geometry->m_BitProperties >> 8) & 3u) != 2u) continue;
             geometry->m_BitProperties = (((geometry->m_BitProperties & ~0x20u) | 0x20u) & 0xffffffe0u) | 0xeu;
         }
     }
-    if (m_unk164->m_pParent != nullptr) m_unk164->m_pParent->RemoveChild(m_unk164);  // vt+0x78
-    MaleforHotSpot(this, 6)->AttachVolume(m_unk164);    // 0x000ce2b8
-    MaleforSrvCollision()->DisableVolume(m_unk164);     // 0x001920e8
+    if (m_pWeakVolume->m_pParent != nullptr) m_pWeakVolume->m_pParent->RemoveChild(m_pWeakVolume);  // vt+0x78
+    MaleforHotSpot(this, 6)->AttachVolume(m_pWeakVolume);    // 0x000ce2b8
+    MaleforSrvCollision()->DisableVolume(m_pWeakVolume);     // 0x001920e8
 }
 
 // 0x004e2c48 CKHkS08Malefor_MessageProc: CKHkGolem's answer merged with Malefor's: 0x99e weak on, 0x99f weak off, 0x9a0
@@ -402,10 +402,10 @@ int32_t CKHkS08Malefor::MessageProc(uint16_t message, void* data) {
     case 0x99e: SetWeak(1); break;
     case 0x99f: SetWeak(0); break;
     case 0x9a0:
-        if (m_unk168 != 0 && m_pUnk178 != nullptr) ShowNode(m_pUnk178);
+        if (m_bWeakState != 0 && m_pWeakNode != nullptr) ShowNode(m_pWeakNode);
         break;
     case 0x9a1:
-        if (m_unk168 != 0 && m_pUnk178 != nullptr) HideNode(m_pUnk178);
+        if (m_bWeakState != 0 && m_pWeakNode != nullptr) HideNode(m_pWeakNode);
         break;
     default: own = 1; break;
     }
@@ -421,45 +421,45 @@ void CKHkS08Malefor::Restart() {
     CKHkGolem::Restart();  // 0x004bfa18
     if ((m_bitArray & 4u) == 0) {
         SetWeak(0);
-        MaleforSrvCollision()->DisableVolume(m_unk164);  // 0x001920e8
+        MaleforSrvCollision()->DisableVolume(m_pWeakVolume);  // 0x001920e8
     } else {
-        m_unk168 = 0;
+        m_bWeakState = 0;
     }
-    m_afUnkCC[1] = 0.0f;
-    m_apUnkC4[0] = nullptr;
-    m_abUnkD4[0] = 0;
-    m_afUnkD8[0] = 0.0f;
+    m_afPendingFractionalDamage[1] = 0.0f;
+    m_apActiveContinuousDamage[0] = nullptr;
+    m_abContinuousDamageActive[0] = 0;
+    m_afTimeSinceHitCount[0] = 0.0f;
     m_afUnk134[1] = 0.0f;
-    m_afUnkCC[0] = 0.0f;
-    m_apUnkC4[1] = nullptr;
-    m_abUnkD4[1] = 0;
-    m_afUnkD8[1] = 0.0f;
+    m_afPendingFractionalDamage[0] = 0.0f;
+    m_apActiveContinuousDamage[1] = nullptr;
+    m_abContinuousDamageActive[1] = 0;
+    m_afTimeSinceHitCount[1] = 0.0f;
     m_afUnk134[2] = 0.0f;
-    if (m_pUnk178 != nullptr) HideNode(m_pUnk178);
-    m_unk168 = 0;
+    if (m_pWeakNode != nullptr) HideNode(m_pWeakNode);
+    m_bWeakState = 0;
 }
 
 // 0x004e30d0 CKHkS08Malefor_Start: CKHkGolem's, the damage state cleared, the weak volume set up.
 void CKHkS08Malefor::Start() {
     CKHkGolem::Start();  // 0x004bf970
-    m_apUnkC4[0] = nullptr;
-    m_abUnkD4[0] = 0;
-    m_apUnkC4[1] = nullptr;
-    m_abUnkD4[1] = 0;
-    m_afUnkCC[1] = 0.0f;
-    m_afUnkD8[0] = 0.0f;
+    m_apActiveContinuousDamage[0] = nullptr;
+    m_abContinuousDamageActive[0] = 0;
+    m_apActiveContinuousDamage[1] = nullptr;
+    m_abContinuousDamageActive[1] = 0;
+    m_afPendingFractionalDamage[1] = 0.0f;
+    m_afTimeSinceHitCount[0] = 0.0f;
     m_afUnk134[1] = 0.0f;
-    m_afUnkCC[0] = 0.0f;
-    m_afUnkD8[1] = 0.0f;
+    m_afPendingFractionalDamage[0] = 0.0f;
+    m_afTimeSinceHitCount[1] = 0.0f;
     m_afUnk134[2] = 0.0f;
-    SetUpWeakVolume(m_unk164, this);
+    SetUpWeakVolume(m_pWeakVolume, this);
 }
 
 // 0x004e3198 CKHkS08Malefor_PostLoad: CKHkGolem's; a level load (type 0) sets the weak volume up. Returns 0 (li r3, 0
 // on both paths).
 int32_t CKHkS08Malefor::PostLoad(int32_t type) {
     CKHkGolem::PostLoad(type);  // 0x004bf308
-    if (type == K_LEVEL_PLATEFORMS) SetUpWeakVolume(m_unk164, this);
+    if (type == K_LEVEL_PLATEFORMS) SetUpWeakVolume(m_pWeakVolume, this);
     return 0;
 }
 
@@ -474,8 +474,8 @@ int32_t CKHkS08Malefor::PostLoad(int32_t type) {
 // hero and, for a non-element damage, the bonuses; a combo hit for a hero (0x25c2) and the damage accumulated. Both
 // histories age at the end.
 void CKHkS08Malefor::ProcessContacts(IKTime* clock, CKGolemAttackCommon* attack) {
-    if (m_unk168 != 0) {
-        for (ICollision* c = static_cast<ICollision*>(m_unk164->m_CollisionResList); c != nullptr; c = c->m_pNext) {
+    if (m_bWeakState != 0) {
+        for (ICollision* c = static_cast<ICollision*>(m_pWeakVolume->m_CollisionResList); c != nullptr; c = c->m_pNext) {
             IKBoundingVolume* own;
             IKBoundingVolume* other;
             if (static_cast<IKBoundingVolume*>(c->GetBoundingVolume1())->m_pOwner == this) {  // vt+0x00
@@ -491,21 +491,21 @@ void CKHkS08Malefor::ProcessContacts(IKTime* clock, CKGolemAttackCommon* attack)
             CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(other->m_pOwner);
             if (damage == nullptr) continue;
             (void)damage->IsKindOfClass(0x99cc);  // the answer is not used
-            if (damage->m_unk08 != 0 || m_unk164 != own) continue;
-            if (damage->m_unk0c != 0) {
-                m_apUnkC4[hero->GetDragonIndex()] = damage;  // 0x00361960
+            if (damage->m_i32DamageKind != 0 || m_pWeakVolume != own) continue;
+            if (damage->m_bContinuous != 0) {
+                m_apActiveContinuousDamage[hero->GetDragonIndex()] = damage;  // 0x00361960
                 continue;
             }
             uint8_t hit;
             if (damage->m_unk26 == 0) {
-                hit = ContactHistory_Touch(kHistoryTime, kHistoryTime, &m_unk20, other, hero);  // 0x0098f380
+                hit = ContactHistory_Touch(kHistoryTime, kHistoryTime, &m_pContactHistory, other, hero);  // 0x0098f380
             } else {
-                hit = ContactHistory_Touch(kHistoryTime, kHistoryTime, &m_unkC0, other, nullptr);
+                hit = ContactHistory_Touch(kHistoryTime, kHistoryTime, &m_pPerVolumeContactHistory, other, nullptr);
             }
             if (hit == 0) continue;
             const CVector3 contact = *c->GetWorldContactPoint();  // vt+0x20
-            TriggerExplosionAt(this, m_unk180, &contact);
-            MaleforGameManager()->AddDragonFury(hero->GetDragonIndex(), m_unk16C);  // 0x004fd528
+            TriggerExplosionAt(this, m_pWeakOneShotHitExplosion, &contact);
+            MaleforGameManager()->AddDragonFury(hero->GetDragonIndex(), m_ui32WeakOneShotFury);  // 0x004fd528
             const float amount = FrameAmount(damage, clock->m_afDeltaTime[IKTime::SCALABLE_GAME_TIME]);
             AccumulateWeakDamage(amount, damage, hero->GetDragonIndex());
         }
@@ -533,18 +533,18 @@ void CKHkS08Malefor::ProcessContacts(IKTime* clock, CKGolemAttackCommon* attack)
             // (+0x24 byte) whatever it is.
             CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(other->m_pOwner);
             if (damage == nullptr) continue;
-            const bool kind89 = damage->IsKindOfClass(0x99cc) != 0 && (damage->m_unk20 == 8 || damage->m_unk20 == 9);
-            if (!kind89 && m_unk168 != 0) continue;
-            if (entry == nullptr || damage->m_unk08 != 0 || entry->m_unk0c == 0 || m_unk164 == own) continue;
-            if (damage->m_unk0c != 0) {
-                m_apUnkC4[hero->GetDragonIndex()] = damage;
+            const bool kind89 = damage->IsKindOfClass(0x99cc) != 0 && (damage->m_ui32DamageType == 8 || damage->m_ui32DamageType == 9);
+            if (!kind89 && m_bWeakState != 0) continue;
+            if (entry == nullptr || damage->m_i32DamageKind != 0 || entry->m_unk0c == 0 || m_pWeakVolume == own) continue;
+            if (damage->m_bContinuous != 0) {
+                m_apActiveContinuousDamage[hero->GetDragonIndex()] = damage;
                 continue;
             }
             uint8_t hit;
             if (damage->m_unk26 == 0) {
-                hit = ContactHistory_Touch(kHistoryTime, kHistoryTime, &m_unk20, other, hero);
+                hit = ContactHistory_Touch(kHistoryTime, kHistoryTime, &m_pContactHistory, other, hero);
             } else {
-                hit = ContactHistory_Touch(kHistoryTime, kHistoryTime, &m_unkC0, other, nullptr);
+                hit = ContactHistory_Touch(kHistoryTime, kHistoryTime, &m_pPerVolumeContactHistory, other, nullptr);
             }
             if (hit == 0) continue;
             {
@@ -580,8 +580,8 @@ void CKHkS08Malefor::ProcessContacts(IKTime* clock, CKGolemAttackCommon* attack)
             AccumulateDamage(amount, damage, hero->GetDragonIndex());
         }
     }
-    ContactHistory_Update(&m_unk20, clock);  // 0x0098f430
-    ContactHistory_Update(&m_unkC0, clock);
+    ContactHistory_Update(&m_pContactHistory, clock);  // 0x0098f430
+    ContactHistory_Update(&m_pPerVolumeContactHistory, clock);
 }
 
 // 0x004e54d0 CKHkS08Malefor_UpdateCollisionVolumesFromBones_maybe (vt+0x10c / +0x110 with on 1 / 0): the trails' ribbons
@@ -591,11 +591,11 @@ void CKHkS08Malefor::ProcessContacts(IKTime* clock, CKGolemAttackCommon* attack)
 void CKHkS08Malefor::SetTrailRibbonsActive(int32_t on, uint32_t value) {
     const uint32_t active = on != 0 ? 1u : 0u;
     if (on != 0) UpdateTrailAnchors();  // 0x004e1d80
-    if (m_unk18C != nullptr && (value == 1 || value == 3)) {
-        for (uint32_t ribbon = 0; ribbon < 2; ++ribbon) m_unk18C->SetRibbonActive(ribbon, active, 1);
+    if (m_pTrailA != nullptr && (value == 1 || value == 3)) {
+        for (uint32_t ribbon = 0; ribbon < 2; ++ribbon) m_pTrailA->SetRibbonActive(ribbon, active, 1);
     }
-    if (m_unk190 != nullptr && value - 2u <= 1u) {
-        for (uint32_t ribbon = 0; ribbon < 2; ++ribbon) m_unk190->SetRibbonActive(ribbon, active, 1);
+    if (m_pTrailB != nullptr && value - 2u <= 1u) {
+        for (uint32_t ribbon = 0; ribbon < 2; ++ribbon) m_pTrailB->SetRibbonActive(ribbon, active, 1);
     }
 }
 
@@ -612,13 +612,13 @@ void CKHkS08Malefor::SpawnElementHitFx(CKS08Damage* damage) {
         hotSpot->GetWorldPosition(&position);  // 0x000ce790
     }
     if (damage->IsKindOfClass(0x99cc) == 0) return;
-    const uint32_t kind = damage->m_unk20;
+    const uint32_t kind = damage->m_ui32DamageType;
     if (kind > 9) return;
     IKSerializable* data;
     if (kind == 4) {
-        data = m_apUnk110[4];
+        data = m_apImpactExplosions[4];
     } else {
-        data = m_apUnk140[kind >= 8 ? 8 : kind];
+        data = m_apHitExplosions[kind >= 8 ? 8 : kind];
     }
     TriggerExplosionAt(this, data, &position);
 }
@@ -633,20 +633,20 @@ void CKHkS08Malefor::SpawnElementHitFx(CKS08Damage* damage) {
 // stops its timer.
 void CKHkS08Malefor::ApplyPendingDamage(IKTime* clock) {
     for (uint32_t slot = 0; slot < 2; ++slot) {
-        CKS08Damage* damage = m_apUnkC4[slot];
+        CKS08Damage* damage = m_apActiveContinuousDamage[slot];
         if (damage == nullptr) {
-            if (m_abUnkD4[slot] != 0) m_abUnkD4[slot] = 0;
-            m_afUnkD8[slot] = kZero;
+            if (m_abContinuousDamageActive[slot] != 0) m_abContinuousDamageActive[slot] = 0;
+            m_afTimeSinceHitCount[slot] = kZero;
             continue;
         }
-        const uint32_t kind = damage->m_unk20;
+        const uint32_t kind = damage->m_ui32DamageType;
         const uint8_t kind89 = (kind == 8 || kind == 9) ? 1 : 0;
         const float dt = clock->m_afDeltaTime[IKTime::SCALABLE_GAME_TIME];
         float amount = FrameAmount(damage, dt);
         if (kind == 7 && amount == kZero) {
             IKGrpHero* group = static_cast<IKGrpHero*>(g_pEngine->m_gameManager->m_unk04[1]);
             CKHkS08Hero* cynder = static_cast<CKHkS08Hero*>(group->m_apHeros[1]);  // GetHeroByDragonIndex 0x002ca080
-            const uint8_t ability = static_cast<uint8_t>(static_cast<const CKS08ElementDamage*>(damage)->m_unk38);
+            const uint8_t ability = static_cast<uint8_t>(static_cast<const CKS08ElementDamage*>(damage)->m_i32AbilityId);
             const uint8_t level = cynder->GetAbilityElementLevel(ability);  // 0x0032a8d0
             if (level == 2) {
                 amount = dt * kLevel2Rate;
@@ -656,44 +656,44 @@ void CKHkS08Malefor::ApplyPendingDamage(IKTime* clock) {
                 amount = dt * kLevel3Rate;
             }
         }
-        if (m_unk168 == 0 || kind89 != 0) {
+        if (m_bWeakState == 0 || kind89 != 0) {
             AccumulateDamage(amount, damage, slot);  // 0x004e1a80
         } else {
             AccumulateWeakDamage(amount, damage, slot);  // 0x004e17d8
         }
         float timer;
-        if (m_abUnkD4[slot] == 0) {
-            m_abUnkD4[slot] = 1;
+        if (m_abContinuousDamageActive[slot] == 0) {
+            m_abContinuousDamageActive[slot] = 1;
             m_afUnk134[1 + slot] = m_afUnk134[0];
-            m_afUnkD8[slot] = m_unkE0;
-            timer = m_unkE0;
+            m_afTimeSinceHitCount[slot] = m_fContinuousHitCountInterval;
+            timer = m_fContinuousHitCountInterval;
         } else {
-            timer = m_afUnkD8[slot] + dt;
-            m_afUnkD8[slot] = timer;
+            timer = m_afTimeSinceHitCount[slot] + dt;
+            m_afTimeSinceHitCount[slot] = timer;
             m_afUnk134[1 + slot] = m_afUnk134[1 + slot] + dt;
         }
-        if (timer >= m_unkE0) {
+        if (timer >= m_fContinuousHitCountInterval) {
             CKS08GameManager* manager = MaleforGameManager();
-            if (m_unk168 == 0 || kind89 != 0) {
+            if (m_bWeakState == 0 || kind89 != 0) {
                 const CVector3 point = kNullVector;
                 OnNewHitW(manager, static_cast<uint8_t>(slot), &point);  // OnNewHitW_2 0x004fe5f8
-                if (m_unk168 != 0 && kind89 == 0) manager->AddDragonFury(static_cast<int32_t>(slot), m_unk170);
+                if (m_bWeakState != 0 && kind89 == 0) manager->AddDragonFury(static_cast<int32_t>(slot), m_ui32WeakContinuousFury);
             } else {
-                manager->AddDragonFury(static_cast<int32_t>(slot), m_unk170);  // 0x004fd528
+                manager->AddDragonFury(static_cast<int32_t>(slot), m_ui32WeakContinuousFury);  // 0x004fd528
             }
-            m_afUnkD8[slot] = kZero;
+            m_afTimeSinceHitCount[slot] = kZero;
         }
         if (m_afUnk134[1 + slot] >= m_afUnk134[0]) {
-            if (m_unk168 == 0) {
-                SpawnElementHitFx(m_apUnkC4[slot]);
+            if (m_bWeakState == 0) {
+                SpawnElementHitFx(m_apActiveContinuousDamage[slot]);
             } else if (kind89 == 0) {
-                TriggerExplosion(m_unk184);
+                TriggerExplosion(m_pWeakHitExplosion);
             } else {
-                TriggerExplosion(m_unk188);
+                TriggerExplosion(m_pWeakFuryHitExplosion);
             }
             m_afUnk134[1 + slot] = 0.0f;
         }
-        m_apUnkC4[slot] = nullptr;
+        m_apActiveContinuousDamage[slot] = nullptr;
     }
 }
 
@@ -705,31 +705,31 @@ void CKHkS08Malefor::ApplyPendingDamage(IKTime* clock) {
 // radius the scale x +0x1d0 when above 0 (else 0.001).
 void CKHkS08Malefor::Update(IKTime* clock) {
     CKHkGolem::Update(clock);  // 0x004c4838
-    if (m_unk45 == 0) return;
-    if (m_unk8C <= static_cast<int32_t>(m_unkFC[0])) {
-        const float ratio = SignedToFloat(m_unk8C) / SignedToFloat(static_cast<int32_t>(m_unkFC[0]));
+    if (m_bEnabled == 0) return;
+    if (m_i32Health <= static_cast<int32_t>(m_aui32LowHealthEmitParams[0])) {
+        const float ratio = SignedToFloat(m_i32Health) / SignedToFloat(static_cast<int32_t>(m_aui32LowHealthEmitParams[0]));
         const float rest = kOne - ratio;
-        if (m_unkE4 != nullptr) {
-            SetParticlesPerPoint(m_unkE4, ppc::fctidz(ppc::fmadds(rest, UnsignedToFloat(m_unkFC[2]),
-                                                                  ratio * UnsignedToFloat(m_unkFC[1]))));
-            for (uint32_t i = 0; i < m_unkEC; ++i) {
+        if (m_pLowHealthParticlesA != nullptr) {
+            SetParticlesPerPoint(m_pLowHealthParticlesA, ppc::fctidz(ppc::fmadds(rest, UnsignedToFloat(m_aui32LowHealthEmitParams[2]),
+                                                                  ratio * UnsignedToFloat(m_aui32LowHealthEmitParams[1]))));
+            for (uint32_t i = 0; i < m_ui8NbEmitHotSpotsA; ++i) {
                 CVector3 position;
-                static_cast<CSGHotSpot*>(m_apUnkF0[i])->GetWorldPosition(&position);  // 0x000ce790
-                AppendEmitPoint(m_unkE4, position);
+                static_cast<CSGHotSpot*>(m_apEmitHotSpotsA[i])->GetWorldPosition(&position);  // 0x000ce790
+                AppendEmitPoint(m_pLowHealthParticlesA, position);
             }
         }
-        if (m_unkE8 != nullptr) {
-            SetParticlesPerPoint(m_unkE8, ppc::fctidz(ppc::fmadds(rest, UnsignedToFloat(m_unkFC[4]),
-                                                                  ratio * UnsignedToFloat(m_unkFC[3]))));
+        if (m_pLowHealthParticlesB != nullptr) {
+            SetParticlesPerPoint(m_pLowHealthParticlesB, ppc::fctidz(ppc::fmadds(rest, UnsignedToFloat(m_aui32LowHealthEmitParams[4]),
+                                                                  ratio * UnsignedToFloat(m_aui32LowHealthEmitParams[3]))));
             CVector3 position;
-            static_cast<CSGHotSpot*>(m_apUnkF4[0])->GetWorldPosition(&position);
-            AppendEmitPoint(m_unkE8, position);
-            static_cast<CSGHotSpot*>(m_apUnkF4[1])->GetWorldPosition(&position);
-            AppendEmitPoint(m_unkE8, position);
+            static_cast<CSGHotSpot*>(m_apEmitHotSpotsB[0])->GetWorldPosition(&position);
+            AppendEmitPoint(m_pLowHealthParticlesB, position);
+            static_cast<CSGHotSpot*>(m_apEmitHotSpotsB[1])->GetWorldPosition(&position);
+            AppendEmitPoint(m_pLowHealthParticlesB, position);
         }
     }
     ApplyPendingDamage(clock);  // 0x004e6fd8
-    if (m_pUnk178 == nullptr) return;
+    if (m_pWeakNode == nullptr) return;
     const float percent = GetHealthPercent();  // 0x004bed00
     const float high = m_afUnk194[11];
     float t;
@@ -744,7 +744,7 @@ void CKHkS08Malefor::Update(IKTime* clock) {
         }
     }
     const float scale = m_afUnk194[14] - t * (m_afUnk194[14] - m_afUnk194[13]);
-    m_pUnk178->SetUniformScale(scale);  // 0x000d0970
+    m_pWeakNode->SetUniformScale(scale);  // 0x000d0970
     const float radius = scale * m_afUnk194[15];
-    m_unk164->m_fRadius = radius > kZero ? radius : kMinRadius;  // ble: a NaN takes 0.001
+    m_pWeakVolume->m_fRadius = radius > kZero ? radius : kMinRadius;  // ble: a NaN takes 0.001
 }

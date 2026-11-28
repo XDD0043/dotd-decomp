@@ -58,7 +58,7 @@ CKParticlesEffectFxData::CKParticlesEffectFxData() {
     m_parameterBlocks.m_pBlock = nullptr;
     m_parameterBlocks.m_ui32NbElt = 1;
     m_parameterBlocks.m_ui32NbUsedElt = 0;
-    m_unk38 = 0;
+    m_bScreenSpace = 0;
 }
 
 // 0x001cc080 KBase20CC_Load
@@ -66,7 +66,7 @@ int32_t CKParticlesEffectFxData::Load(IKFile* file, int32_t type) {
     IKFxData::Load(file, type);
     if (type != K_LEVEL_PLATEFORMS) return 1;
     ReadU32LE(file, &m_unk0c);
-    ReadU8(file, &m_unk08);
+    ReadU8(file, &m_ui8Flags);
     uint32_t count = 0;
     ReadU32LE(file, &count);
     // The capacity is set to count before the block is allocated (the old block, if any, is not freed).
@@ -116,11 +116,11 @@ int32_t CKParticlesEffectFxData::PostLoad(int32_t type) {
     IKFxData::PostLoad(type);
     if (type != K_LEVEL_PLATEFORMS) return 1;
     m_pReservedFx = nullptr;
-    m_unk18 = {0.0f, 0.0f, 0.0f};  // the vector at 0x00c50d64 (TOC -0x1bf0)
+    m_vPosition = {0.0f, 0.0f, 0.0f};  // the vector at 0x00c50d64 (TOC -0x1bf0)
     m_pAttachHotSpot = nullptr;
     m_pAttachOwner = nullptr;
     RwMatrix* matrix = RwMatrixCreate();  // RwMatrixCreate_Thunk 0x23fa68
-    m_unk24 = matrix;
+    m_pLocalMatrix = matrix;
     matrix->flags = 0x20003u;
     matrix->right = {1.0f, 0.0f, 0.0f};  // TOC -0x1bec 1.0f
     matrix->up = {0.0f, 1.0f, 0.0f};
@@ -147,8 +147,8 @@ int32_t CKParticlesEffectFxData::MessageProc(uint16_t message, void* data) {
         // The marker beacon's position and orientation (read through the members: the original reads +0x04 / +0x10 of
         // the object sent; LVL010 sends CKMarkerBeacons).
         const CKMarkerBeacon* marker = static_cast<const CKMarkerBeacon*>(object);
-        m_unk18 = marker->m_v3Position;
-        CMatrix34* matrix = reinterpret_cast<CMatrix34*>(m_unk24);
+        m_vPosition = marker->m_v3Position;
+        CMatrix34* matrix = reinterpret_cast<CMatrix34*>(m_pLocalMatrix);
         Quat_ToMatrixNormalizing(marker->m_qOrientation, matrix);  // 0x00241d78
         matrix->m_pos = marker->m_v3Position;
         matrix->m_ui32Flags &= 0xfffdffffu;
@@ -156,7 +156,7 @@ int32_t CKParticlesEffectFxData::MessageProc(uint16_t message, void* data) {
         m_pAttachOwner = nullptr;
     }
     CKSrvFx* service = static_cast<CKSrvFx*>(g_pEngine->m_srvFx);
-    if ((m_unk08 & 8) == 0 && (m_unk08 & 4) == 0) {
+    if ((m_ui8Flags & 8) == 0 && (m_ui8Flags & 4) == 0) {
         if (m_pReservedFx != nullptr) {
             m_pReservedFx->StopAndRelease(this);  // vt+0x58
             m_pReservedFx = nullptr;
@@ -197,7 +197,7 @@ void CKParticlesEffectFxData::DeleteOwnedEntries() {
 
 // 0x001cbef8 KBase20CC_ClearReferences (CKParticlesEffectFxData_Destroy)
 void CKParticlesEffectFxData::Destroy() {
-    RwMatrixDestroy(m_unk24);  // RwMatrixDestroy_Thunk 0x0023f968
-    m_unk24 = nullptr;
+    RwMatrixDestroy(m_pLocalMatrix);  // RwMatrixDestroy_Thunk 0x0023f968
+    m_pLocalMatrix = nullptr;
     DeleteOwnedEntries();
 }

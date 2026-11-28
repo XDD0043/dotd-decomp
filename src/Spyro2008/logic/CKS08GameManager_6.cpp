@@ -270,10 +270,10 @@ uint8_t CKS08GameManager::StateHeroDeath(int32_t phase, uint8_t /*other*/) {
         hero->SetFlag360Bit14IfAttached(1);          // 0x363dc8
         hero->SetFlag360Bit15IfAttached(1);          // 0x363df8
         hero->SetFlag35CBit21IfAttached(1);          // 0x363fc8
-        if (m_unkD98 != nullptr) {
+        if (m_pDeathMusic != nullptr) {
             CKSrvMusic* music = static_cast<CKSrvMusic*>(g_pEngine->m_srvMusic);
             music->ClearChannelRequests();      // 0x2101a0
-            music->RequestTrack(static_cast<CKMusicPlayList*>(m_unkD98), 1);   // 0x210358
+            music->RequestTrack(static_cast<CKMusicPlayList*>(m_pDeathMusic), 1);   // 0x210358
         }
         RwFrame* frame = static_cast<CSGMovable*>(hero->m_pKGLObject)->m_pRwFrame;
         if (m_ui8DeathMode == 1) {
@@ -282,7 +282,7 @@ uint8_t CKS08GameManager::StateHeroDeath(int32_t phase, uint8_t /*other*/) {
             const float x = position[0];
             const float y = position[1];
             (void)hero->GetDragonIndex();
-            IKCamera* camera = static_cast<IKCamera*>(m_unkDA8);
+            IKCamera* camera = static_cast<IKCamera*>(m_pDeathCamera1);
             camera->m_WorldPosition.x = x - frame->ltm.at.x;
             camera->m_WorldPosition.y = (y + 2.0f) - frame->ltm.at.y;  // TOC +0x73d0
             camera->m_WorldPosition.z = z - frame->ltm.at.z;
@@ -301,7 +301,7 @@ uint8_t CKS08GameManager::StateHeroDeath(int32_t phase, uint8_t /*other*/) {
             const uint8_t dragon = hero->GetDragonIndex();
             hero->SetFlag35CBit3IfAttached(1);  // 0x363ee8
             hero->SetObjectControlsAnim(1);     // 0x362010
-            IKCamera* camera = static_cast<IKCamera*>(m_unkDDC);
+            IKCamera* camera = static_cast<IKCamera*>(m_pDeathCamera2);
             const float above = y + 3.0f;  // TOC +0x73d4
             camera->m_WorldPosition.x = ppc::fmadds(frame->ltm.at.x, -2.0f, x);  // TOC +0x73d8
             camera->m_WorldPosition.y = ppc::fmadds(frame->ltm.at.y, -2.0f, above);
@@ -318,7 +318,7 @@ uint8_t CKS08GameManager::StateHeroDeath(int32_t phase, uint8_t /*other*/) {
             tint->m_BitProperties = (tint->m_BitProperties & ~0x1fu) | 0xfu;
             TintNodeGeometry(hero->m_pKGLObject);
             for (uint32_t i = 13; i != 0xffffffffu; --i) TintNodeGeometry(hero->GetSubNodeB(i));  // 0x329eb8
-            CAnimationDictionary* animations = static_cast<CAnimationDictionary*>(m_unkD9C[dragon]);
+            CAnimationDictionary* animations = static_cast<CAnimationDictionary*>(m_apDeathAnimDico[dragon]);
             hero->PlayAnimResource(0.0f, static_cast<uint32_t>(animations->m_apAnimations[0]));  // vt+0xc0
             const float zero = 0.0f;
             std::memcpy(&m_unkDF4[0], &zero, 4);
@@ -340,7 +340,7 @@ uint8_t CKS08GameManager::StateHeroDeath(int32_t phase, uint8_t /*other*/) {
             m_unkDB8 = nullptr;
         }
         RemoveDeathCameraOwner(this);
-        if (m_unkD98 != nullptr) static_cast<CKSrvMusic*>(g_pEngine->m_srvMusic)->StopPlayList(static_cast<CKMusicPlayList*>(m_unkD98));  // 0x210bd8
+        if (m_pDeathMusic != nullptr) static_cast<CKSrvMusic*>(g_pEngine->m_srvMusic)->StopPlayList(static_cast<CKMusicPlayList*>(m_pDeathMusic));  // 0x210bd8
         if (m_ui8DeathMode <= 1) return 0;
         if (m_ui8DeathMode != 2) return 9;
         CColorizedScreenFx* tint = static_cast<CColorizedScreenFx*>(m_unkDE0);
@@ -362,7 +362,7 @@ uint8_t CKS08GameManager::StateHeroDeath(int32_t phase, uint8_t /*other*/) {
     if (IsAnyMenuButtonPressed() != 0 && m_fDeathTime > m_fDeathSkipDelay) return 0;  // 0x4f89d8
     if (m_ui8DeathMode == 1) {
         if (m_fDeathTime >= m_fDeathDuration1) return 0;  // cror gt|eq
-        UpdateDeathCamera(this, static_cast<IKCamera*>(m_unkDA8), dt, m_fDeathCameraAccel);
+        UpdateDeathCamera(this, static_cast<IKCamera*>(m_pDeathCamera1), dt, m_fDeathCameraAccel);
         return 9;
     }
     if (m_ui8DeathMode < 1) return 0;
@@ -385,6 +385,6 @@ uint8_t CKS08GameManager::StateHeroDeath(int32_t phase, uint8_t /*other*/) {
         RwFrame_MarkDirty(frame);  // 0x10698
     }
     hero->AdvanceObjectAnimTime(dt);  // 0x363410
-    UpdateDeathCamera(this, static_cast<IKCamera*>(m_unkDDC), dt, 3.0f);  // TOC +0x73d4
+    UpdateDeathCamera(this, static_cast<IKCamera*>(m_pDeathCamera2), dt, 3.0f);  // TOC +0x73d4
     return 9;
 }

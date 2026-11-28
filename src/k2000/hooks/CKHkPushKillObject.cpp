@@ -412,7 +412,7 @@ void CKHkPushKillObject::UpdateVolumesAndFx(uint8_t active) {
     CKSparkFxData* sparkData = static_cast<CKSparkFxData*>(m_pFxData2C);
     *static_cast<CMatrix34*>(sparkData->m_unk14) = spark;
     CKParticlesEffectFxData* particleData = static_cast<CKParticlesEffectFxData*>(m_pFxData30);
-    *reinterpret_cast<CMatrix34*>(particleData->m_unk24) = particles;
+    *reinterpret_cast<CMatrix34*>(particleData->m_pLocalMatrix) = particles;
 
     if (active == 0) {
         if (m_pFxB8 != nullptr) {
@@ -433,7 +433,7 @@ void CKHkPushKillObject::UpdateVolumesAndFx(uint8_t active) {
         if (Sound(this, 1)->CountInstances() == 0) CKSound_Play(kZero, Sound(this, 1));
     }
     if (m_pFxBC != nullptr) return;
-    particleData->m_unk08 = static_cast<uint8_t>(particleData->m_unk08 | 0x10u);
+    particleData->m_ui8Flags = static_cast<uint8_t>(particleData->m_ui8Flags | 0x10u);
     particleData->m_pAttachHotSpot = nullptr;  // +0x14 (the null +0xbc)
     particleData->m_pAttachOwner = static_cast<CSGLeaf*>(m_pKGLObject);
     IKFx* fx = FxService()->AcquireFx(particleData, this);
@@ -574,7 +574,7 @@ int32_t CKHkPushKillObject::MessageProc(uint16_t message, void* data) {
             cameras->m_baTemporaryFlags = (cameras->m_baTemporaryFlags | 0x400000u) & ~0x30u;
         }
         CKParticlesEffectFxData* hitData = static_cast<CKParticlesEffectFxData*>(m_pFxData34);
-        RwMatrix* matrix = hitData->m_unk24;
+        RwMatrix* matrix = hitData->m_pLocalMatrix;
         matrix->pos.z = at.z;
         matrix->pos.x = at.x;
         matrix->pos.y = at.y;

@@ -366,7 +366,7 @@ bool FlashUIActive(CKFlashUI* ui) {
 // started, the widgets reset (with vt+0xb4), the buttons opened (focused: a player's selection, vt+0xe4,
 // is the button), the selections focused, the transition flag cleared.
 void CKMenuBase114c::Open() {
-    m_fUnk7c = 0x1p-1f;  // TOC +0x7680
+    m_fOpenInputDelay = 0x1p-1f;  // TOC +0x7680
     if (m_pFlashUI != nullptr) {
         g_pEngine->m_input->SetMappingEnabled(1, 1);
         FlashUIOf(this)->StartInterface(1);
@@ -471,15 +471,15 @@ void CKMenuBase114c::Reset() {
 // the same way, their dynamic references and states cleared. (No front-end menu has node, element or
 // delayed-show entries nor reference groups, LVL000 and live RPCS3; the HUD screens have.)
 void CKMenuBase114c::ResetWidgets() {
-    m_aUnk78[0] = 0xff;
+    m_aui8NavDirection[0] = 0xff;
     m_unk80[2] = 0;
-    m_unk6c[1] = 0;
-    m_aUnk78[1] = 0xff;
-    m_unk6c[0] = 0;
+    m_aui8FocusedItem[1] = 0;
+    m_aui8NavDirection[1] = 0xff;
+    m_aui8FocusedItem[0] = 0;
     m_unk80[3] = 1;
     m_unk80[0] = 1;
     m_ui32Flags = (m_ui32Flags & ~0x1fu) | (m_ui32Flags & 1) | 2;
-    m_unk90 = 0;
+    m_ui8NextTransitionMenu = 0;
     m_fTime = 0.0f;
     const float one = 0x1p+0f;  // TOC 0x7684
     for (uint32_t i = m_aNodeAnims.m_ui32NbUsedElt; i-- != 0;) {
@@ -776,9 +776,9 @@ void CKMenuBase114c::UpdateElementAnimations() {
 // every button ready and input allowed (+0x61), each player's navigation; otherwise the delay counts
 // down. Then every button updated.
 void CKMenuBase114c::UpdateInput(IKTime* frameClock) {
-    for (uint32_t i = m_unk80[0]; i != 0; --i) m_aUnk78[i - 1] = 0xff;
+    for (uint32_t i = m_unk80[0]; i != 0; --i) m_aui8NavDirection[i - 1] = 0xff;
     bool countDown = true;
-    if ((m_ui32Flags & 8) == 0 && (m_ui32Flags & 0x10) == 0 && m_fUnk7c <= 0.0f) {
+    if ((m_ui32Flags & 8) == 0 && (m_ui32Flags & 0x10) == 0 && m_fOpenInputDelay <= 0.0f) {
         countDown = false;
         // Every button's fade-out finished (vt+0x78), and at least one button.
         const uint32_t count = m_apButtons.m_ui32NbUsedElt;
@@ -794,14 +794,14 @@ void CKMenuBase114c::UpdateInput(IKTime* frameClock) {
                 g_pEngine->m_gameManager->GetPlayerCount();
                 m_unk80[1] = 1;
                 const uint8_t dir = ReadNavDirection(0, frameClock);
-                m_aUnk78[0] = dir;
+                m_aui8NavDirection[0] = dir;
                 if (m_unk64 <= 0.0f && HandleShortcutButtons(0, frameClock) != 0) continue;
                 if (HandleValidateButton(0, dir, frameClock) != 0) continue;
                 UpdateFocus(0, dir);
             }
         }
     }
-    if (countDown) m_fUnk7c = m_fUnk7c - frameClock->m_afDeltaTime[IKTime::FIXED_GAME_TIME];  // fsubs
+    if (countDown) m_fOpenInputDelay = m_fOpenInputDelay - frameClock->m_afDeltaTime[IKTime::FIXED_GAME_TIME];  // fsubs
     // Every button updated (vt+0x58), then the menu's vt+0xe8 with its state (phase 0).
     for (uint32_t i = m_apButtons.m_ui32NbUsedElt; i-- != 0;) {
         CKInterfaceButtonBase* button = ButtonAt(this, i);
@@ -822,12 +822,12 @@ uint8_t CKMenuBase114c::HandleStatePhase(int32_t phase, uint8_t other) {
         m_unk60[1] = 0;
         m_ui32Flags &= ~4u;
         m_unk68 = 0;
-        m_unk6c[1] = GetSelection(1);
+        m_aui8FocusedItem[1] = GetSelection(1);
         m_fUnk74 = 0x1.99999ap-3f;  // 0.2f (0x3e4ccccd)
         m_unk64 = 0;
-        m_unk6c[0] = GetSelection(0);
+        m_aui8FocusedItem[0] = GetSelection(0);
         m_fUnk70 = 0x1.99999ap-3f;
-        m_fUnk5c = 0.0f;
+        m_fDelayedItemTimer = 0.0f;
         m_unk60[0] = 0;
         OnMenuState(1, other);
         UpdateElementAnimations();
@@ -855,7 +855,7 @@ uint8_t CKMenuBase114c::HandleStatePhase(int32_t phase, uint8_t other) {
             if ((m_ui32Flags & 8) != 0) {
                 CKS08GameManager* manager = GameManagerOf(this);
                 manager->m_ui32MenuStackDepth = 1;
-                manager->m_aMenuStack[0] = m_unk90;
+                manager->m_aMenuStack[0] = m_ui8NextTransitionMenu;
             }
             if (m_unk44[0] != 0xff) {
                 VfCC()[static_cast<int8_t>(m_unk44[0])] = 1;
@@ -991,11 +991,11 @@ void RefreshPointer(CKS08GameManager* manager, uint8_t player) {
     if (manager->Vf310(player) == 0 || g_pEngine->m_gameLoop->m_unk5c != 0) {
         manager->Vf314(player, 1);
         const CVector2 position = GameManagerPointer(manager, player);
-        manager->m_afUnk298[player * 2] = position.m_fX;
-        manager->m_afUnk298[player * 2 + 1] = position.m_fY;
+        manager->m_afPointerPos[player * 2] = position.m_fX;
+        manager->m_afPointerPos[player * 2 + 1] = position.m_fY;
     }
     IKNode2d* billboard = static_cast<IKNode2d*>(manager->m_unk2A8[player]);
-    billboard->SetPos(CVector2{manager->m_afUnk298[player * 2], manager->m_afUnk298[player * 2 + 1]});
+    billboard->SetPos(CVector2{manager->m_afPointerPos[player * 2], manager->m_afPointerPos[player * 2 + 1]});
     billboard->Enable();
 }
 
@@ -1097,12 +1097,12 @@ bool DoubleUnderPointer(CKInterfaceButtonDouble* item, float px, float py) {
 // 0x00512040 KBase730C_SetItemState
 void CKMenuBase114c::SetItemState(uint8_t item, uint32_t state, uint8_t delayed) {
     if (item == 0xff || ButtonAt(this, item) == nullptr) return;
-    if (delayed != 0 && state == 1 && !(m_fUnk5c <= 0.0f)) return;
+    if (delayed != 0 && state == 1 && !(m_fDelayedItemTimer <= 0.0f)) return;
     OnItemState(item, ButtonAt(this, item)->m_ui8State, 2);  // vt+0xe8
     ButtonAt(this, item)->SetInteractionState(static_cast<uint8_t>(state));  // vt+0x5c
     if (delayed != 0 && state == 1) {
         m_unk60[0] = item;
-        m_fUnk5c = ButtonAt(this, item)->m_fDelay;
+        m_fDelayedItemTimer = ButtonAt(this, item)->m_fDelay;
     }
     OnItemState(item, ButtonAt(this, item)->m_ui8State, 1);
 }
@@ -1151,7 +1151,7 @@ uint8_t CKMenuBase114c::ReadNavDirection(uint8_t player, IKTime* frameClock) {
 
 // 0x00512d68 KBase730C_HandleShortcutButtons
 uint8_t CKMenuBase114c::HandleShortcutButtons(uint8_t /*player*/, IKTime* frameClock) {
-    float timer = m_fUnk5c;
+    float timer = m_fDelayedItemTimer;
     if (timer <= 0.0f) {
         CKInputDico* dico = FlashManagerDico();
         CDefaultGameManager* manager = GameManagerOf(this);
@@ -1159,7 +1159,7 @@ uint8_t CKMenuBase114c::HandleShortcutButtons(uint8_t /*player*/, IKTime* frameC
         bool found = false;
         for (uint32_t i = m_apButtons.m_ui32NbUsedElt; i-- != 0;) {
             // BUG(original)?: the focus tested is player 0's (+0x6c), whatever the player.
-            const uint8_t focus = m_unk6c[0];
+            const uint8_t focus = m_aui8FocusedItem[0];
             if (focus != 0xff && ButtonAt(this, focus) == nullptr) continue;
             IKSerializable* object = m_apButtons.m_pBlock[i];
             if (object == nullptr || object->IsKindOfClass(0x630c) == 0) continue;
@@ -1178,16 +1178,16 @@ uint8_t CKMenuBase114c::HandleShortcutButtons(uint8_t /*player*/, IKTime* frameC
             break;
         }
         if (!found && VfF0() != 0) used = TryBackButton(VfF4());  // vt+0xf8(vt+0xf4())
-        timer = m_fUnk5c;
+        timer = m_fDelayedItemTimer;
         if (used == 0 && timer <= 0.0f) return 0;
     } else if (timer <= 0.0f) {
         return 0;
     }
     timer = timer - frameClock->m_afDeltaTime[IKTime::FIXED_GAME_TIME];  // fsubs
-    m_fUnk5c = timer;
+    m_fDelayedItemTimer = timer;
     if (timer <= 0.0f) {
         const uint8_t item = m_unk60[0];
-        if (ButtonAt(this, item) != nullptr) SetItemState(item, m_unk6c[0] != item ? 0 : 2, 0);
+        if (ButtonAt(this, item) != nullptr) SetItemState(item, m_aui8FocusedItem[0] != item ? 0 : 2, 0);
     }
     return 1;
 }
@@ -1209,7 +1209,7 @@ uint8_t CKMenuBase114c::HandleValidateButton(uint8_t player, uint8_t dir, IKTime
         if (pressed <= dico->GetButtonState(0x18)) pressed = dico->GetButtonState(0x18);
         if (held <= DicoHeldTime(dico, 0x18)) held = DicoHeldTime(dico, 0x18);
     }
-    uint8_t& focus = m_unk6c[player];
+    uint8_t& focus = m_aui8FocusedItem[player];
     // left/right on a two-part item (CKInterfaceButtonDouble) count as validating it
     bool arrow = false;
     if (focus != 0xff) {
@@ -1274,7 +1274,7 @@ uint8_t CKMenuBase114c::TryBackButton(uint8_t item) {
 void CKMenuBase114c::StartTransitionToMenu(uint8_t menu) {
     m_ui32Flags = (m_ui32Flags & ~8u) | 8u;
     if (VfC0()[0] != nullptr) static_cast<CKFlashMessageOut*>(VfC0()[0])->PostFlashMessage();
-    m_unk90 = menu;
+    m_ui8NextTransitionMenu = menu;
     for (uint32_t i = m_apButtons.m_ui32NbUsedElt; i-- != 0;) {
         CKInterfaceButtonBase* button = ButtonAt(this, i);
         if (button != nullptr) button->StartFadeOut();  // vt+0x74
@@ -1287,8 +1287,8 @@ uint8_t CKMenuBase114c::FindItemUnderCursor(uint8_t player) {
     CKS08GameManager* manager = GameManagerOf(this);
     const uint8_t p = player != 0 ? 1 : 0;
     RefreshPointer(manager, p);
-    const float px = manager->m_afUnk298[p * 2];
-    const float py = manager->m_afUnk298[p * 2 + 1];
+    const float px = manager->m_afPointerPos[p * 2];
+    const float py = manager->m_afPointerPos[p * 2 + 1];
     for (uint32_t i = m_apButtons.m_ui32NbUsedElt; i-- != 0;) {
         IKSerializable* object = m_apButtons.m_pBlock[i];
         if (object == nullptr || (ButtonAt(this, i)->m_baFlags & CKInterfaceButtonBase::kFlagSkip) != 0) continue;
@@ -1320,9 +1320,9 @@ void CKMenuBase114c::MoveFocusByInput(uint8_t player, uint8_t /*dir*/, uint8_t i
         for (uint32_t other = 0; other < m_unk80[0]; ++other) {
             if (other == player) continue;
             if (GameManagerOf(this)->IsPlayerActive(static_cast<int32_t>(other)) == 0) continue;
-            if (m_unk6c[other] == m_unk6c[player] && m_unk80[3] == 0) shared = 1;
+            if (m_aui8FocusedItem[other] == m_aui8FocusedItem[player] && m_unk80[3] == 0) shared = 1;
         }
-        uint8_t& focus = m_unk6c[player];
+        uint8_t& focus = m_aui8FocusedItem[player];
         IKSerializable* object = m_apButtons.m_pBlock[item];
         if (object->IsKindOfClass(0x634c) != 0) {
             if (shared == 0 && focus != item) SetItemState(focus, 0, 0);
@@ -1330,8 +1330,8 @@ void CKMenuBase114c::MoveFocusByInput(uint8_t player, uint8_t /*dir*/, uint8_t i
             const uint8_t p = player > 0 ? 1 : player;
             CKS08GameManager* manager = GameManagerOf(this);
             RefreshPointer(manager, p);
-            const float px = manager->m_afUnk298[p * 2];
-            const float py = manager->m_afUnk298[p * 2 + 1];
+            const float px = manager->m_afPointerPos[p * 2];
+            const float py = manager->m_afPointerPos[p * 2 + 1];
             CKInterfaceButtonDouble* button = static_cast<CKInterfaceButtonDouble*>(object);
             const CKInterfaceButtonDouble::RecordB& arrows = button->m_aRecordsB[button->m_ui8State];
             const CVector2& left = NodePosition(button->m_apUnk50[0]);
@@ -1416,7 +1416,7 @@ void CKMenuBase114c::MoveFocusByInput(uint8_t player, uint8_t /*dir*/, uint8_t i
         }
     }
     if (m_unk80[3] != 0) {
-        for (uint32_t p = 0; GameManagerOf(this)->GetPlayerCount() > p; ++p) m_unk6c[p] = item;
+        for (uint32_t p = 0; GameManagerOf(this)->GetPlayerCount() > p; ++p) m_aui8FocusedItem[p] = item;
     }
 }
 
@@ -1426,14 +1426,14 @@ void CKMenuBase114c::MoveFocusByInput(uint8_t player, uint8_t /*dir*/, uint8_t i
 void CKMenuBase114c::UpdateFocus(uint8_t player, uint8_t dir) {
     uint8_t item = 0xff;
     if (m_unk80[1] != 0) {
-        item = (m_unk80[2] == 5 || m_unk80[2] == 0) ? FindItemUnderCursor(player) : m_unk6c[player];
+        item = (m_unk80[2] == 5 || m_unk80[2] == 0) ? FindItemUnderCursor(player) : m_aui8FocusedItem[player];
         if (item != 0xff) {
             MoveFocusByInput(player, dir, item);
             return;
         }
     }
     item = 0xff;
-    const uint8_t focus = m_unk6c[player];
+    const uint8_t focus = m_aui8FocusedItem[player];
     if (dir != 0xff && focus != 0xff && ButtonAt(this, focus) != nullptr) {
         uint8_t next = ButtonAt(this, focus)->GetNeighbor(dir);  // vt+0x7c
         for (uint32_t step = 1; next != 0xff; ++step) {
@@ -1731,11 +1731,11 @@ void CKMenuBase114c::SendFlashMessageByName(const char* name) {
 // 0x00514228 KBase730C_GetSelectionOfFirstActivePlayer_maybe
 uint8_t CKMenuBase114c::GetSelectionOfFirstActivePlayer() {
     const int32_t player = FirstActivePlayer(this);
-    return player < 0 ? 0xff : m_aUnk78[player];
+    return player < 0 ? 0xff : m_aui8NavDirection[player];
 }
 
 // 0x00514388 KBase730C_SetSelectionOfFirstActivePlayer_maybe
 void CKMenuBase114c::SetSelectionOfFirstActivePlayer(uint8_t selection) {
     const int32_t player = FirstActivePlayer(this);
-    if (player >= 0) m_aUnk78[player] = selection;
+    if (player >= 0) m_aui8NavDirection[player] = selection;
 }

@@ -27,7 +27,7 @@
 //   [ ] 0x9c0328  CKS08HeroDamage_GetClassType  [inline]
 //   [ ] 0x9c0330  CKS08HeroDamage_GetClassID  [inline]
 //   [ ] 0x9c0338  CKS08HeroDamage_SetKnockbackSpeed  [inline]
-//   [ ] 0x9c0340  CKS08HeroDamage_SetKnockbackLift_maybe  [inline]
+//   [ ] 0x9c0340  CKS08HeroDamage_SetKnockbackTime  [inline]
 //   [ ] 0x9c0348  CKS08HeroDamage_vf58  [inline]
 #include "Spyro2008/logic/CKS08HeroDamage.h"
 

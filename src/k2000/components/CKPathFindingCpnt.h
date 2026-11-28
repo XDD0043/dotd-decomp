@@ -84,16 +84,16 @@ public:
     CPFCharacter m_CharacterType;  // +0x08 (XXL2) read by PathFindingParams_Load (0x1e9b78)
     CPFCharacter m_InstantaneousCharacterType;  // +0x18 (XXL2) a copy of m_CharacterType after the Load _maybe
     CVector3 m_vCurrentTarget;     // +0x28 (XXL2) the waypoint to walk to
-    uint32_t m_unk34;              // +0x34 XXL2 m_ui32Action: the current portal's action (the Load sets 0x40)
-    uint32_t m_unk38;              // +0x38 the reachability class of the waypoint (0x40 not classified)
-    int32_t m_unk3c;               // +0x3c XXL2 m_eState: the result code (the Load stores its type argument, 0)
+    uint32_t m_ui32Action;              // +0x34 XXL2 m_ui32Action: the current portal's action (the Load sets 0x40)
+    uint32_t m_ui32ReachabilityClass;              // +0x38 the reachability class of the waypoint (0x40 not classified)
+    int32_t m_eState;               // +0x3c XXL2 m_eState: the result code (the Load stores its type argument, 0)
     CPFPoint m_Destination;        // +0x40 XXL2 m_ptCurrentPosition: the position (SetDestination, Update); its hint
                                    //       (+0x4c) is 0xffff (constructor, Load)
     CPFPoint m_ptOriginalTargetPosition;  // +0x50 (XXL2 name) the target last requested; hint 0xffff
     CPFPoint m_ptTargetPosition;   // +0x60 (XXL2) the target RequestPathTo sets; hint 0xffff
     uint32_t m_bits70;             // +0x70 XXL2 m_baFlags (see above); read (swapped), then bits 0..9 replaced by 0x90
-    uint16_t m_unk74;              // +0x74 XXL2 m_i16NextGrid: the next graph node of the query; the Load sets 0xffff
-    uint8_t m_unk76;               // +0x76 XXL2 m_i8PFSlot: the query slot, 0xff none (the Load)
+    uint16_t m_i16NextGrid;              // +0x74 XXL2 m_i16NextGrid: the next graph node of the query; the Load sets 0xffff
+    uint8_t m_i8PFSlot;               // +0x76 XXL2 m_i8PFSlot: the query slot, 0xff none (the Load)
     uint8_t m_pad77;
 };
 DOTD_ASSERT_SIZE(CKPathFindingCpnt, 0x78);
@@ -101,11 +101,11 @@ DOTD_ASSERT_OFFSET(CKPathFindingCpnt, m_fPointValidationDistanceSquared, 0x04);
 DOTD_ASSERT_OFFSET(CKPathFindingCpnt, m_CharacterType, 0x08);
 DOTD_ASSERT_OFFSET(CKPathFindingCpnt, m_InstantaneousCharacterType, 0x18);
 DOTD_ASSERT_OFFSET(CKPathFindingCpnt, m_vCurrentTarget, 0x28);
-DOTD_ASSERT_OFFSET(CKPathFindingCpnt, m_unk34, 0x34);
-DOTD_ASSERT_OFFSET(CKPathFindingCpnt, m_unk3c, 0x3c);
+DOTD_ASSERT_OFFSET(CKPathFindingCpnt, m_ui32Action, 0x34);
+DOTD_ASSERT_OFFSET(CKPathFindingCpnt, m_eState, 0x3c);
 DOTD_ASSERT_OFFSET(CKPathFindingCpnt, m_Destination, 0x40);
 DOTD_ASSERT_OFFSET(CKPathFindingCpnt, m_ptOriginalTargetPosition, 0x50);
 DOTD_ASSERT_OFFSET(CKPathFindingCpnt, m_ptTargetPosition, 0x60);
 DOTD_ASSERT_OFFSET(CKPathFindingCpnt, m_bits70, 0x70);
-DOTD_ASSERT_OFFSET(CKPathFindingCpnt, m_unk74, 0x74);
-DOTD_ASSERT_OFFSET(CKPathFindingCpnt, m_unk76, 0x76);
+DOTD_ASSERT_OFFSET(CKPathFindingCpnt, m_i16NextGrid, 0x74);
+DOTD_ASSERT_OFFSET(CKPathFindingCpnt, m_i8PFSlot, 0x76);

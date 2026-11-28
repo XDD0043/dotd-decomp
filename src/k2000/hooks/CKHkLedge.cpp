@@ -285,7 +285,7 @@ void CKHkLedge::Update(IKTime* frameClock) {
     } else {
         if (m_pShakeFx == nullptr) {
             CKParticlesEffectFxData* data = static_cast<CKParticlesEffectFxData*>(m_pShakeFxData);
-            data->m_unk08 = static_cast<uint8_t>((data->m_unk08 & 0xefu) | 0x10u);
+            data->m_ui8Flags = static_cast<uint8_t>((data->m_ui8Flags & 0xefu) | 0x10u);
             data->m_pAttachHotSpot = nullptr;
             data->m_pAttachOwner = static_cast<CSGLeaf*>(m_pNode);
             m_pShakeFx = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(data, this);  // inlined
@@ -329,10 +329,10 @@ void CKHkLedge::Update(IKTime* frameClock) {
             StopShakeFx();
             StopVibration();
             CKParticlesEffectFxData* data = static_cast<CKParticlesEffectFxData*>(m_pFallFxData);
-            data->m_unk08 = static_cast<uint8_t>((data->m_unk08 & 0xefu) | 0x10u);
+            data->m_ui8Flags = static_cast<uint8_t>((data->m_ui8Flags & 0xefu) | 0x10u);
             data->m_pAttachHotSpot = nullptr;
             data->m_pAttachOwner = static_cast<CSGLeaf*>(m_pKGLObject);
-            data->m_unk08 = static_cast<uint8_t>((data->m_unk08 & 0xf7u) | 0x8u);
+            data->m_ui8Flags = static_cast<uint8_t>((data->m_ui8Flags & 0xf7u) | 0x8u);
             static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->StartEffect(data, this);  // inlined
             sounds->GetSound(0)->Play(0.0f);
             for (uint32_t i = 0; i < 3; ++i) {

@@ -46,9 +46,9 @@ float FrozenStep(const CKS08EnemyCpnt* kind, float gauge, float dt) {
 // at 100 x slowdown: the health lowered, FX 0xb). A non-element pending damage plays the sound 0x22.
 void CKHkS08Enemy::UpdateFreezeStatus(IKTime* clock) {
     const float zero = 0.0f;  // TOC 0x1524
-    if (m_unk6c8 <= zero) return;
+    if (m_fIceGauge <= zero) return;
     const uint8_t state = m_mainState;
-    if (state != 0x27 && state != 0x15 && state != 0xff && (m_unk884->m_unk254 <= m_unk6c8 || m_unk6f8 <= zero)) {
+    if (state != 0x27 && state != 0x15 && state != 0xff && (m_pActiveEnemyCpnt->m_unk254 <= m_fIceGauge || m_unk6f8 <= zero)) {
         CKSrvCollision* collision = static_cast<CKSrvCollision*>(g_pEngine->m_srvCollision);
         collision->GroundProbePoints(&m_GrdContDatasIn, &m_GrdContDatasInOut, &m_v3Position.x, 1);  // 0x00196540
         if (m_GrdContDatasInOut.m_eContactStatus == 0 && m_GrdContDatasInOut.m_fdH >= 0.5f) {  // TOC 0x1510
@@ -58,12 +58,12 @@ void CKHkS08Enemy::UpdateFreezeStatus(IKTime* clock) {
     }
     if (!PendingElementDamageIs(1)) {
         const float dt = clock->m_afDeltaTime[0];
-        const float gauge = m_unk6c8;
-        m_unk6c8 = gauge - dt * HeroStatusDecayRate(0);  // 0x0032a3d0
+        const float gauge = m_fIceGauge;
+        m_fIceGauge = gauge - dt * HeroStatusDecayRate(0);  // 0x0032a3d0
     }
-    if (m_unk6c8 <= zero) {
+    if (m_fIceGauge <= zero) {
         SetFreezeFxActive(0, -1);  // 0x0028cb88
-        m_unk6c8 = zero;
+        m_fIceGauge = zero;
     } else {
         CVector3 unused;
         GetHotSpot(1)->GetWorldPosition(&unused);  // 0x002892e8, 0x000ce790 (not read)
@@ -85,64 +85,64 @@ void CKHkS08Enemy::UpdateFreezeStatus(IKTime* clock) {
         bool stopped = false;
         if (main == 1 || react == 4 || react == 5 || main == 6 || main == 0x17 || main == 0x18 || main == 0xd ||
             main == 0xe || main == 0xf) {
-            const float step = FrozenStep(m_unk188, m_unk6c8, dt);
+            const float step = FrozenStep(m_pEnemyCpnt, m_fIceGauge, dt);
             const float left = m_unk6f8;
             float scale;
             if (step >= left) {  // fcmpu + cror gt|eq
                 m_unk6f8 = step;
                 scale = step;
-                m_unk1fc = scale;
+                m_fScaledDt = scale;
                 stopped = scale <= zero;
             } else {
-                const float spent = left - m_unk188->m_unk2c4 * dt;
+                const float spent = left - m_pEnemyCpnt->m_unk2c4 * dt;
                 m_unk6f8 = spent;
                 scale = step <= spent ? step : spent;  // cror lt|eq
                 m_unk6f8 = scale;
                 if (!(scale < zero)) {  // bge
-                    m_unk1fc = scale;
+                    m_fScaledDt = scale;
                     stopped = scale <= zero;
                 } else {
-                    m_unk1fc = zero;
+                    m_fScaledDt = zero;
                     m_unk6f8 = zero;
                     stopped = true;
                 }
             }
             if (stopped) {
-                m_unk274 = 0.0f;
+                m_fKnockbackTime = 0.0f;
                 m_unk76c = 1;
             }
         }
         if (m_reactState == 2) {
-            const CKS08EnemyCpnt* kind = m_unk188;
+            const CKS08EnemyCpnt* kind = m_pEnemyCpnt;
             bool shattered = false;
-            if (m_unk6c8 >= kind->m_unk2bc && kind->m_unk2b4 == 100.0f && m_unk27c != nullptr &&  // TOC 0x1520
-                m_unk27c->IsKindOfClass(0x99cc) != 0 &&
-                static_cast<CKS08ElementDamage*>(m_unk27c)->m_afValues[1] == zero) {
+            if (m_fIceGauge >= kind->m_unk2bc && kind->m_unk2b4 == 100.0f && m_pPendingDamage != nullptr &&  // TOC 0x1520
+                m_pPendingDamage->IsKindOfClass(0x99cc) != 0 &&
+                static_cast<CKS08ElementDamage*>(m_pPendingDamage)->m_afValues[1] == zero) {
                 shattered = true;
             }
             if (shattered) {
-                m_unk258 = m_unk258 - m_unk188->m_unk2c0;
+                m_fHealth = m_fHealth - m_pEnemyCpnt->m_unk2c0;
                 SetFreezeFxActive(0, -1);
-                m_unk6c8 = zero;
+                m_fIceGauge = zero;
             } else {
-                const float step = FrozenStep(m_unk188, m_unk6c8, dt);
-                m_unk1fc = step;
+                const float step = FrozenStep(m_pEnemyCpnt, m_fIceGauge, dt);
+                m_fScaledDt = step;
                 if (step <= zero) {
-                    m_unk274 = zero;
+                    m_fKnockbackTime = zero;
                     m_unk76c = 1;
                 }
             }
         } else if (m_mainState == 7) {
-            const CKS08EnemyCpnt* kind = m_unk188;
-            if (m_unk6c8 >= kind->m_unk2bc && kind->m_unk2b4 == 100.0f) {
-                m_unk258 = m_unk258 - kind->m_unk2c0;
+            const CKS08EnemyCpnt* kind = m_pEnemyCpnt;
+            if (m_fIceGauge >= kind->m_unk2bc && kind->m_unk2b4 == 100.0f) {
+                m_fHealth = m_fHealth - kind->m_unk2c0;
                 PlayFxAtHotspot1(0xb);  // 0x0028d4a8
             }
             SetFreezeFxActive(0, -1);
-            m_unk6c8 = zero;
+            m_fIceGauge = zero;
         }
     }
-    if (m_unk239 != 0 && m_unk27c->IsKindOfClass(0x99cc) == 0) PlaySound(0x22, 0, m_pKGLObject);  // 0x002795c0
+    if (m_bPendingHit != 0 && m_pPendingDamage->IsKindOfClass(0x99cc) == 0) PlaySound(0x22, 0, m_pKGLObject);  // 0x002795c0
 }
 
 // 0x002afff0 CKHkS08Enemy_SpreadPoisonToNearby: every other active enemy of the enemy group (the count read once, the

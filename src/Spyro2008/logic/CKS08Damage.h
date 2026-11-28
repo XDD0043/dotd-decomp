@@ -21,17 +21,17 @@ public:
     ~CKS08Damage() override {}
     int32_t Load(IKFile* file, int32_t type) override;  // vt+0x2c 0x004ebdf8 CKS08Damage_Load
 
-    float m_unk10;      // +0x10 (live: floats)
-    float m_unk14;      // +0x14
+    float m_fKnockbackForce;      // _maybe: +0x10 (live: floats)
+    float m_fKnockbackTime;      // +0x14
     uint32_t m_unk18;   // +0x18 (live: always 0)
     float m_unk1c;      // +0x1c
-    uint32_t m_unk20;   // +0x20 (live: always 0)
+    uint32_t m_ui32DamageType;   // +0x20 (live: always 0)
     uint8_t m_unk24;    // +0x24
     uint8_t m_unk25;    // +0x25
     uint8_t m_unk26;    // +0x26 (+0x27 padding)
 };
 DOTD_ASSERT_SIZE(CKS08Damage, 0x28);
-DOTD_ASSERT_OFFSET(CKS08Damage, m_unk10, 0x10);
-DOTD_ASSERT_OFFSET(CKS08Damage, m_unk20, 0x20);
+DOTD_ASSERT_OFFSET(CKS08Damage, m_fKnockbackForce, 0x10);
+DOTD_ASSERT_OFFSET(CKS08Damage, m_ui32DamageType, 0x20);
 DOTD_ASSERT_OFFSET(CKS08Damage, m_unk24, 0x24);
 DOTD_ASSERT_OFFSET(CKS08Damage, m_unk26, 0x26);

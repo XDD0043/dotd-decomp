@@ -159,7 +159,7 @@ RtAnimAnimation* CKHkS08Enemy::CurrentLayer0Animation() {
 // cleared.
 void CKHkS08Enemy::AdvanceAnimation(IKTime* /*clock*/) {
     if ((m_bitArray & 0x200u) != 0) {
-        m_unk164[0][0].m_blendSlot.AdvanceInactiveTrack(static_cast<double>(m_unk1fc * m_unk774));
+        m_apAnimLayerSlots[0][0].m_blendSlot.AdvanceInactiveTrack(static_cast<double>(m_fScaledDt * m_unk774));
         return;
     }
     const uint8_t state = m_mainState;
@@ -191,21 +191,21 @@ void CKHkS08Enemy::MoveForwardByAnimMarks(float t0, float t1) {
     const float slope = m11 != nullptr ? AnimMark_CrossedValueF1(m11, t0, t1) : 0.0f;
     const float downSlope = m12 != nullptr ? AnimMark_CrossedValueF1(m12, t0, t1) : 0.0f;
     if (EvalRampHoldRampDown(m_unk34c, rampEnd, hold, down, base, slope, downSlope, &m_unk350) == 0) return;
-    m_unk34c = m_unk34c + m_unk1fc;
+    m_unk34c = m_unk34c + m_fScaledDt;
     const RwFrame* frame = static_cast<const CSGMovable*>(m_pKGLObject)->m_pRwFrame;
     const float ax = frame->modelling.at.x;
     const float ay = frame->modelling.at.y;
     const float az = frame->modelling.at.z;
-    m_unk158.x = ax;
-    m_unk158.z = az;
-    m_unk158.y = ay;
-    const float step = m_unk350 * m_unk1fc;
+    m_v3Speed.x = ax;
+    m_v3Speed.z = az;
+    m_v3Speed.y = ay;
+    const float step = m_unk350 * m_fScaledDt;
     const float dx = step * ax;
     const float dz = step * az;
     const float dy = step * ay;
-    m_unk158.x = dx;
-    m_unk158.z = dz;
-    m_unk158.y = dy;
+    m_v3Speed.x = dx;
+    m_v3Speed.z = dz;
+    m_v3Speed.y = dy;
     m_v3Position.x = m_v3Position.x + dx;
     m_v3Position.y = m_v3Position.y + dy;
     m_v3Position.z = m_v3Position.z + dz;
@@ -293,7 +293,7 @@ void CKHkS08Enemy::SnapToGround() {
         }
     }
     if (IsInDeathStates() != 0) {
-        if (m_unk73c == nullptr || m_unk73c->m_unk64 == 3) return;
+        if (m_pCurrentAttack == nullptr || m_pCurrentAttack->m_unk64 == 3) return;
     }
     m_v3Position.y = offset + m_v3Position.y;
 }
@@ -312,7 +312,7 @@ void CKHkS08Enemy::UpdateAttackHitWindow(float t0, float t1) {
     uint32_t value = 0;
     if (mark != nullptr) value = AnimMark_RangeValueR3(mark, t0, t1);  // vt+0x14
     const uint8_t kind = m_ui8EnemyClassType;
-    if (m_unk73c != nullptr && m_unk73c->m_unk08 != 2) {
+    if (m_pCurrentAttack != nullptr && m_pCurrentAttack->m_unk08 != 2) {
         if (value == 0) {
             DisableVolumeGroup(3);  // vt+0xfc
             const uint8_t react = m_reactState;
@@ -325,14 +325,14 @@ void CKHkS08Enemy::UpdateAttackHitWindow(float t0, float t1) {
         EnableAttackVolumes();  // 0x0027d708
         const uint8_t count = kEnemyDynSphereCount[kind];
         for (uint32_t i = 0; i < count; ++i) {
-            if (m_unk73c->m_array54.m_data[i] == 0) continue;
+            if (m_pCurrentAttack->m_array54.m_data[i] == 0) continue;
             EnableCollisionSphere(i);  // vt+0x108
-            if (m_unk73c != nullptr) static_cast<IKBoundingVolume*>(m_apBVProj[i])->m_unk1c = m_unk73c->m_pDamage;
+            if (m_pCurrentAttack != nullptr) static_cast<IKBoundingVolume*>(m_apBVProj[i])->m_unk1c = m_pCurrentAttack->m_pDamage;
         }
         if (m_unk709 != 0 && IsInDeathStates() != 0) {
             for (uint32_t i = 0; i < count; ++i) {
                 EnableCollisionSphere(i);
-                if (m_unk73c != nullptr) static_cast<IKBoundingVolume*>(m_apBVProj[i])->m_unk1c = m_unk73c->m_pDamage;
+                if (m_pCurrentAttack != nullptr) static_cast<IKBoundingVolume*>(m_apBVProj[i])->m_unk1c = m_pCurrentAttack->m_pDamage;
             }
         }
         return;
@@ -341,26 +341,26 @@ void CKHkS08Enemy::UpdateAttackHitWindow(float t0, float t1) {
     DisableVolumeGroup(3);
     const uint8_t count = kEnemyDynSphereCount[kind];
     for (uint32_t i = 0; i != count; ++i) ReleaseDynSphere(static_cast<uint8_t>(i));
-    if (m_unk73c == nullptr || value == 0) return;
+    if (m_pCurrentAttack == nullptr || value == 0) return;
     m_unk7cc = 1;
     // 0x2874ec: the attack's projectile (its accessor +0x40; a type of class 0x140c, CKProjectileTypeBallisticPFX) from
     // the kind's muzzle hot spot toward the target's hot spot (a hero's 4, an enemy's sector hot spot 1). LVL010: the
     // eight CKS08EnemyAttack accessors have no type (census objects-lvl010_ingame), so it ends here.
-    CKProjectileAccessor* accessor = m_unk73c->m_pProjectile;
+    CKProjectileAccessor* accessor = m_pCurrentAttack->m_pProjectile;
     if (accessor == nullptr) return;  // DOTD: CKS08EnemyAttack_Load keeps only an accessor (the original reads +0x04 of it)
     IKProjectileType* type = static_cast<IKProjectileType*>(accessor->m_pProjectileType);
     if (type == nullptr) return;
     CVector3 muzzle{};
-    static_cast<CSGHotSpot*>(m_unk18C[GetSectorIndex()]->GetHotSpot(kEnemyMuzzleHotSpot[m_ui8EnemyClassType]))
+    static_cast<CSGHotSpot*>(m_apEnemySectorCpnt[GetSectorIndex()]->GetHotSpot(kEnemyMuzzleHotSpot[m_ui8EnemyClassType]))
         ->GetWorldPosition(&muzzle);  // 0x002b31e0, 0x000ce790
     if (type->IsKindOfClass(0x140c) == 0) return;  // vt+0x08
     CVector3 target{0.0f, 0.0f, 0.0f};  // TOC +0xc94 0x00c50d64
-    if (m_unk330->IsKindOfClass(CKHkS08Hero::kClassKey) != 0) {
-        CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(static_cast<IKSerializable*>(m_unk330));
+    if (m_pTarget->IsKindOfClass(CKHkS08Hero::kClassKey) != 0) {
+        CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(static_cast<IKSerializable*>(m_pTarget));
         hero->GetDragonIndex();  // 0x00361960 (its result unused)
         static_cast<CSGHotSpot*>(hero->GetHotSpot(4))->GetWorldPosition(&target);  // 0x00361b70
-    } else if (m_unk330->IsKindOfClass(0x26c2) != 0) {
-        static_cast<CSGHotSpot*>(static_cast<CKHkS08Enemy*>(static_cast<IKSerializable*>(m_unk330))->GetSectorHotSpot(1))
+    } else if (m_pTarget->IsKindOfClass(0x26c2) != 0) {
+        static_cast<CSGHotSpot*>(static_cast<CKHkS08Enemy*>(static_cast<IKSerializable*>(m_pTarget))->GetSectorHotSpot(1))
             ->GetWorldPosition(&target);  // 0x0028a160
     }
     if (target.x != 0.0f || target.y != 0.0f || target.z != 0.0f) {
@@ -373,14 +373,14 @@ void CKHkS08Enemy::UpdateAttackHitWindow(float t0, float t1) {
             dir.x = dir.x * k;
             dir.y = dir.y * k;
         }
-        accessor->LaunchEx(&muzzle, &dir, m_unk73c->m_unk44, m_unk73c->m_pDamage, this, nullptr);  // 0x001f2988
+        accessor->LaunchEx(&muzzle, &dir, m_pCurrentAttack->m_unk44, m_pCurrentAttack->m_pDamage, this, nullptr);  // 0x001f2988
     }
     // 0x2876c8: the projectile at the active count (the type's list +0x04) carries the attack's damage on its volume.
     if (type->m_ui8NbOfActiveProjectiles >= type->m_ui8MaxProjectiles) return;
     auto* projectile =
         static_cast<CKProjectileTypeBallisticPFX::Projectile*>(type->m_apProjectileList[type->m_ui8NbOfActiveProjectiles]);
     if (projectile == nullptr || projectile->m_pVolume == nullptr) return;
-    static_cast<IKBoundingVolume*>(projectile->m_pVolume)->m_unk1c = m_unk73c->m_pDamage;
+    static_cast<IKBoundingVolume*>(projectile->m_pVolume)->m_unk1c = m_pCurrentAttack->m_pDamage;
 }
 
 // 0x002878f0 CKHkS08Enemy_HandleAnimMarkEvents_maybe (f1 = t0, f2 = t1): the animation's event marks. Grabbed (main or
@@ -393,7 +393,7 @@ void CKHkS08Enemy::HandleAnimMarkEvents(float t0, float t1) {
     CAnimationDictionary* dictionary = AnimDictionary(GetSectorIndex(), 0);
     RtAnimAnimation* animation;
     if (m_mainState == 7) {
-        animation = ActiveTrack(m_unk164[0][0])->m_unk5c;
+        animation = ActiveTrack(m_apAnimLayerSlots[0][0])->m_unk5c;
     } else {
         animation = CAnimationManager_GetAnimation(static_cast<uint32_t>(dictionary->m_apAnimations[GetCurrentAnim(0, 0)]));
     }
@@ -421,7 +421,7 @@ void CKHkS08Enemy::HandleAnimMarkEvents(float t0, float t1) {
             return;
         }
         // The last attacker (+0x694) when it is a hero (key 0x25c2): the game manager's hit counter at the position.
-        IKSerializable* attacker = static_cast<IKSerializable*>(m_unk694);
+        IKSerializable* attacker = static_cast<IKSerializable*>(m_pLastAttacker);
         if (attacker != nullptr && attacker->IsKindOfClass(0x25c2) != 0) {  // vt+0x08
             const CVector3 at = m_v3Position;
             OnNewHitW(static_cast<CKS08GameManager*>(g_pEngine->m_gameManager),
@@ -453,7 +453,7 @@ void CKHkS08Enemy::HandleAnimMarkEvents(float t0, float t1) {
             surfaceMode = 1;
         } else if ((bit & 0x60u) != 0 && (kind == 6 || m_mainState != 0xd)) {
             CVector3 point;
-            static_cast<CSGHotSpot*>(static_cast<CKEnemySectorCpnt*>(m_unk18C[GetSectorIndex()])->m_apUnk14[hotSpot])
+            static_cast<CSGHotSpot*>(static_cast<CKEnemySectorCpnt*>(m_apEnemySectorCpnt[GetSectorIndex()])->m_apUnk14[hotSpot])
                 ->GetWorldPosition(&point);
             static_cast<CKS08GameManager*>(g_pEngine->m_gameManager)->SpawnSurfaceFx(1.0f, this, GetGroundSurfaceType(), 2, &point.x);  // 0x004f9628; TOC 0xc88
             static_cast<CKSrvCollision*>(g_pEngine->m_srvCollision)
@@ -466,7 +466,7 @@ void CKHkS08Enemy::HandleAnimMarkEvents(float t0, float t1) {
         }
         if (step) {
             CVector3 point;
-            static_cast<CSGHotSpot*>(static_cast<CKEnemySectorCpnt*>(m_unk18C[GetSectorIndex()])->m_apUnk14[hotSpot])
+            static_cast<CSGHotSpot*>(static_cast<CKEnemySectorCpnt*>(m_apEnemySectorCpnt[GetSectorIndex()])->m_apUnk14[hotSpot])
                 ->GetWorldPosition(&point);
             static_cast<CKS08GameManager*>(g_pEngine->m_gameManager)->SpawnSurfaceFx(1.0f, this, GetGroundSurfaceType(), surfaceMode, &point.x);  // 0x004f9628
             const uint32_t r = static_cast<uint32_t>(Rand_Int());
@@ -476,23 +476,23 @@ void CKHkS08Enemy::HandleAnimMarkEvents(float t0, float t1) {
     if (c == 0) return;
     uint8_t now = m_ui8EnemyClassType;
     if (now == 5) {
-        if (m_unk520 == nullptr) return;
+        if (m_pHeldWeapon == nullptr) return;
         CVector3 point;
         // the weapon (+0x520)'s hot spot: the second entry of its +0xac array
-        static_cast<CSGHotSpot*>(m_unk520->m_apUnkAC[1])->GetWorldPosition(&point);
+        static_cast<CSGHotSpot*>(m_pHeldWeapon->m_apUnkAC[1])->GetWorldPosition(&point);
         static_cast<CKSrvCollision*>(g_pEngine->m_srvCollision)
             ->GroundProbePoints(&m_GrdContDatasIn, &m_GrdContDatasInOut, &point.x, 1);
         point.y = point.y - m_GrdContDatasInOut.m_fdH;
         SpawnHitFxAt(0x14, &point);
-        if (m_ui8EnemyClassType == 5 && m_unk73c != nullptr && m_unk73c->m_unk24 == 4) {
+        if (m_ui8EnemyClassType == 5 && m_pCurrentAttack != nullptr && m_pCurrentAttack->m_unk24 == 4) {
             SpawnHitFxAt(0x17, &point);
-            if (m_unk780 == nullptr && IsInDeathStates() != 0) {
+            if (m_pAbilityHost == nullptr && IsInDeathStates() != 0) {
                 // 0x288074: the kind 5 starts its ability (+0x784) through a new host.
-                m_unk780 = new CKS08EnemyAbilityHost(this);  // OperatorNew(8) + 0x002c6878
-                if (m_unk784 != nullptr) {
+                m_pAbilityHost = new CKS08EnemyAbilityHost(this);  // OperatorNew(8) + 0x002c6878
+                if (m_pSpecialAbility != nullptr) {
                     m_unk819 = 0;
                     m_unk818 = 0;
-                    static_cast<CKAbilityElement*>(m_unk784)->Start(m_unk780);  // vt+0x58
+                    static_cast<CKAbilityElement*>(m_pSpecialAbility)->Start(m_pAbilityHost);  // vt+0x58
                 }
             }
         }
@@ -521,7 +521,7 @@ void CKHkS08Enemy::HandleAnimMarkEvents(float t0, float t1) {
 // 0x00288420 CKHkS08Enemy_ProcessAnimMarks_maybe: layer 0 slot 0's active track: the marks crossed from its evaluated
 // time (+0x54, last frame's) to its time now (+0x50): events, attack window, forward push.
 void CKHkS08Enemy::ProcessAnimMarks() {
-    CKAnmKeyFrameController* track = ActiveTrack(m_unk164[0][0]);
+    CKAnmKeyFrameController* track = ActiveTrack(m_apAnimLayerSlots[0][0]);
     const float now = track->m_unk50;
     const float before = track->m_unk54;
     HandleAnimMarkEvents(before, now);
@@ -532,7 +532,7 @@ void CKHkS08Enemy::ProcessAnimMarks() {
 // 0x002885c8 CKHkS08Enemy_AwareSM01_PlayAlertAnim_maybe: entering requests the row 0x34 (crossfade 0.1 from 0); running:
 // the state 2 once its end is reached (dt x +0x774), else 1.
 uint8_t CKHkS08Enemy::AwareState01_PlayAlertAnim(IKTime* /*clock*/, int32_t phase, uint8_t /*other*/) {
-    if (phase == 0) return IsAnimEndReached(m_unk1fc * m_unk774, 0, 0) ? 2 : 1;
+    if (phase == 0) return IsAnimEndReached(m_fScaledDt * m_unk774, 0, 0) ? 2 : 1;
     if (phase == 1) RequestAnim(0x34, 0, 0, 0, 1.0e-1f, 0.0f);  // TOC 0xce8 / 0xcec
     return 1;
 }

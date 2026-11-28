@@ -271,28 +271,28 @@ void CKTransformElement::End(int32_t forced) {
 void CKTransformElement::ApplyHeroControl(uint8_t on) {
     CKS08AbilityHostBase* host = m_pHost;
     if (on != 0) {
-        host->SetHeroActionPermission(0, m_airPerm1Perm0TurnEnable[1], m_mode1Perm1Perm0TurnEnable[1],
-                                      m_groundPerm1Perm0TurnEnable[1]);  // vt+0x44
-        m_pHost->SetHeroActionPermission(1, m_airPerm1Perm0TurnEnable[0], m_mode1Perm1Perm0TurnEnable[0],
-                                         m_groundPerm1Perm0TurnEnable[0]);
+        host->SetHeroActionPermission(0, m_groundPerm1Perm0TurnEnable[1], m_mode1Perm1Perm0TurnEnable[1],
+                                      m_airPerm1Perm0TurnEnable[1]);  // vt+0x44
+        m_pHost->SetHeroActionPermission(1, m_groundPerm1Perm0TurnEnable[0], m_mode1Perm1Perm0TurnEnable[0],
+                                         m_airPerm1Perm0TurnEnable[0]);
         m_pHost->SetHeroActionPermission(3, 0, 1, 1);
         m_pHost->SetHeroActionPermission(4, 1, 1, 1);
         m_pHost->SetHeroActionPermission(5, 0, 0, 0);
         m_pHost->SetHeroActionPermission(6, 1, 1, 1);
         m_pHost->SetHeroActionPermission(8, 1, 1, 1);
-        m_pHost->SetAbilityTurnParams(m_airTurnAB[0], m_airTurnAB[1], m_mode1TurnAB[0], m_mode1TurnAB[1],
-                                      m_groundTurnAB[0], m_groundTurnAB[1], m_airPerm1Perm0TurnEnable[2],
-                                      m_mode1Perm1Perm0TurnEnable[2], m_groundPerm1Perm0TurnEnable[2]);  // vt+0x64
-        const uint8_t gateAir = m_airPerm1Perm0TurnEnable[1] == 0 ? static_cast<uint8_t>(m_airMode1P11f8Enable[0] != 0) : 0;
+        m_pHost->SetAbilityTurnParams(m_groundTurnAB[0], m_groundTurnAB[1], m_mode1TurnAB[0], m_mode1TurnAB[1],
+                                      m_airTurnAB[0], m_airTurnAB[1], m_groundPerm1Perm0TurnEnable[2],
+                                      m_mode1Perm1Perm0TurnEnable[2], m_airPerm1Perm0TurnEnable[2]);  // vt+0x64
+        const uint8_t gateAir = m_groundPerm1Perm0TurnEnable[1] == 0 ? static_cast<uint8_t>(m_groundMode1P11f8Enable[0] != 0) : 0;
         const uint8_t gateFly =
-            m_mode1Perm1Perm0TurnEnable[1] == 0 ? static_cast<uint8_t>(m_airMode1P11f8Enable[1] != 0) : 0;
+            m_mode1Perm1Perm0TurnEnable[1] == 0 ? static_cast<uint8_t>(m_groundMode1P11f8Enable[1] != 0) : 0;
         const uint8_t gateGround =
-            m_groundPerm1Perm0TurnEnable[1] == 0 ? static_cast<uint8_t>(m_groundP11f8Enable != 0) : 0;
-        m_pHost->SetAbilityParam11f8(m_airMode1P11f8[0], m_airMode1P11f8[1], m_groundP11f8, gateAir, gateFly,
+            m_airPerm1Perm0TurnEnable[1] == 0 ? static_cast<uint8_t>(m_airP11f8Enable != 0) : 0;
+        m_pHost->SetAbilityParam11f8(m_groundMode1P11f8[0], m_groundMode1P11f8[1], m_airP11f8, gateAir, gateFly,
                                      gateGround);                                        // vt+0x68
-        m_pHost->SetAbilityMoveSpeed(m_airMoveSpeed, m_mode1MoveSpeed, m_groundMoveSpeed);  // vt+0x50
+        m_pHost->SetAbilityMoveSpeed(m_groundMoveSpeed, m_mode1MoveSpeed, m_airMoveSpeed);  // vt+0x50
         m_pHost->SetAbilityMoveSpeedEnabled(1);                                            // vt+0x54
-        const uint8_t inAir = static_cast<uint8_t>(m_pHost->IsAirborne() ^ 1);            // vt+0x30
+        const uint8_t inAir = static_cast<uint8_t>(m_pHost->IsOnGround() ^ 1);            // vt+0x30
         m_bInAir = inAir;
         m_pHost->SetAbilityHeroMode(this, inAir);  // vt+0x70
         return;
@@ -306,9 +306,9 @@ void CKTransformElement::ApplyHeroControl(uint8_t on) {
     m_pHost->SetHeroActionPermission(6, 0, 0, 0);
     m_pHost->SetHeroActionPermission(8, 0, 0, 0);
     m_pHost->SetHeroActionPermission(9, 0, 0, 0);
-    m_pHost->SetAbilityTurnParams(m_airTurnAB[0], m_airTurnAB[1], m_mode1TurnAB[0], m_mode1TurnAB[1], m_groundTurnAB[0],
-                                  m_groundTurnAB[1], 0, 0, 0);
-    m_pHost->SetAbilityParam11f8(m_airMode1P11f8[0], m_airMode1P11f8[1], m_groundP11f8, 0, 0, 0);
+    m_pHost->SetAbilityTurnParams(m_groundTurnAB[0], m_groundTurnAB[1], m_mode1TurnAB[0], m_mode1TurnAB[1], m_airTurnAB[0],
+                                  m_airTurnAB[1], 0, 0, 0);
+    m_pHost->SetAbilityParam11f8(m_groundMode1P11f8[0], m_groundMode1P11f8[1], m_airP11f8, 0, 0, 0);
     m_pHost->SetAbilityMoveSpeedEnabled(0);
     m_pHost->SetAbilityHeroMode(this, 0);
 }
@@ -349,7 +349,7 @@ void CKTransformElement::ApplyDamageParams(uint8_t continuous) {
     CKS08ElementDamage* damage = static_cast<CKS08ElementDamage*>(m_elementDamage);
     damage->SetAmount(damageScale * static_cast<float>(static_cast<double>(m_damage[level])));  // vt+0x50 (fcfid, frsp)
     damage->SetStun(m_dmgParam28[level]);                         // vt+0x5c
-    damage->SetStunDuration(m_dmgParam2C[level]);                 // vt+0x60
+    damage->SetDisarmAmount(m_afDisarmAmount[level]);                 // vt+0x60
     damage->SetElementValue(effectScale * m_dmgEffect0[level], 0);  // vt+0x58
     damage->SetElementValue(effectScale * m_dmgEffect1[level], 1);
     damage->SetElementValue(effectScale * m_dmgEffect2[level], 2);
@@ -362,8 +362,8 @@ void CKTransformElement::ApplyDamageParams(uint8_t continuous) {
     damage->SetUnk35(m_dmgFlag35[level]);                                 // vt+0x70
     damage->SetDamageType(kAbilityDamageTypes[GetAbilityId() & 0xffu]);  // vt+0x64
     damage->SetAbilityId(GetAbilityId());                                 // vt+0x68
-    damage->m_unk10 = m_damageParam10[level] / 0.2f;                      // TOC +0x41e0
-    damage->m_unk14 = 0.2f;
+    damage->m_fKnockbackForce = m_damageParam10[level] / 0.2f;                      // TOC +0x41e0
+    damage->m_fKnockbackTime = 0.2f;
     RandomizeKnockAngle(this);
     damage->SetContinuous(continuous);  // vt+0x54
 }
@@ -446,8 +446,8 @@ uint8_t CKTransformElement::Update(float dt) {
     }
     // The loop animation follows the user's ground state (vt+0x30): landed, or left the ground.
     if (m_bInAir != 0) {
-        if (m_pHost->IsAirborne() != 0) SwitchLoopAnim(1);  // vt+0x80
-    } else if (m_pHost->IsAirborne() == 0) {
+        if (m_pHost->IsOnGround() != 0) SwitchLoopAnim(1);  // vt+0x80
+    } else if (m_pHost->IsOnGround() == 0) {
         SwitchLoopAnim(0);
     }
     if (IsGroundTrailActive() != 0) {  // vt+0x8c
@@ -469,7 +469,7 @@ uint8_t CKTransformElement::Update(float dt) {
                 dx = dx * inverse;
                 dy = inverse * 0.0f;
             }
-            const float scatter = RandUnit16() / kRandMax * m_unkE0;
+            const float scatter = RandUnit16() / kRandMax * m_fGroundFxScatterRadius;
             CVector3 at;
             at.z = ppc::fmadds(dz, scatter, spot.z);
             at.x = ppc::fmadds(dx, scatter, spot.x);
@@ -493,7 +493,7 @@ int32_t CKTransformElement::Load(IKFile* file, int32_t type) {
             ReadS32LE(file, &m_damage[i]);
             ReadF32LE(file, &m_cooldown[i]);
             ReadS32LE(file, &m_manaPerSecond[i]);
-            ReadF32LE(file, &m_dmgParam2C[i]);
+            ReadF32LE(file, &m_afDisarmAmount[i]);
             ReadF32LE(file, &m_dmgParam28[i]);
             ReadF32LE(file, &m_dmgEffect0[i]);
             ReadF32LE(file, &m_dmgEffect1[i]);
@@ -505,37 +505,37 @@ int32_t CKTransformElement::Load(IKFile* file, int32_t type) {
             ReadU8(file, &m_dmgFlag34[i]);
             ReadU8(file, &m_dmgFlag35[i]);
         }
-        ReadU8(file, &m_airPerm1Perm0TurnEnable[0]);
-        ReadU8(file, &m_airPerm1Perm0TurnEnable[1]);
-        ReadU8(file, &m_airPerm1Perm0TurnEnable[2]);
-        ReadF32LE(file, &m_airTurnAB[0]);
-        ReadF32LE(file, &m_airTurnAB[1]);
-        ReadF32LE(file, &m_airMoveSpeed);
-        ReadU8(file, &m_mode1Perm1Perm0TurnEnable[0]);
-        ReadU8(file, &m_mode1Perm1Perm0TurnEnable[1]);
-        ReadU8(file, &m_mode1Perm1Perm0TurnEnable[2]);
-        ReadF32LE(file, &m_mode1TurnAB[0]);
-        ReadF32LE(file, &m_mode1TurnAB[1]);
-        ReadF32LE(file, &m_mode1MoveSpeed);
-        ReadU8(file, &m_airMode1P11f8Enable[0]);
-        ReadU8(file, &m_airMode1P11f8Enable[1]);
-        ReadF32LE(file, &m_airMode1P11f8[0]);
-        ReadF32LE(file, &m_airMode1P11f8[1]);
-        ReadF32LE(file, &m_dmgEffect3[0]);
-        ReadF32LE(file, &m_dmgEffect3[1]);
-        ReadF32LE(file, &m_dmgEffect3[2]);
-        IKFile_ReadRef(file, &m_elementDamage);
         ReadU8(file, &m_groundPerm1Perm0TurnEnable[0]);
         ReadU8(file, &m_groundPerm1Perm0TurnEnable[1]);
         ReadU8(file, &m_groundPerm1Perm0TurnEnable[2]);
         ReadF32LE(file, &m_groundTurnAB[0]);
         ReadF32LE(file, &m_groundTurnAB[1]);
         ReadF32LE(file, &m_groundMoveSpeed);
-        ReadU8(file, &m_groundP11f8Enable);
-        ReadF32LE(file, &m_groundP11f8);
+        ReadU8(file, &m_mode1Perm1Perm0TurnEnable[0]);
+        ReadU8(file, &m_mode1Perm1Perm0TurnEnable[1]);
+        ReadU8(file, &m_mode1Perm1Perm0TurnEnable[2]);
+        ReadF32LE(file, &m_mode1TurnAB[0]);
+        ReadF32LE(file, &m_mode1TurnAB[1]);
+        ReadF32LE(file, &m_mode1MoveSpeed);
+        ReadU8(file, &m_groundMode1P11f8Enable[0]);
+        ReadU8(file, &m_groundMode1P11f8Enable[1]);
+        ReadF32LE(file, &m_groundMode1P11f8[0]);
+        ReadF32LE(file, &m_groundMode1P11f8[1]);
+        ReadF32LE(file, &m_dmgEffect3[0]);
+        ReadF32LE(file, &m_dmgEffect3[1]);
+        ReadF32LE(file, &m_dmgEffect3[2]);
+        IKFile_ReadRef(file, &m_elementDamage);
+        ReadU8(file, &m_airPerm1Perm0TurnEnable[0]);
+        ReadU8(file, &m_airPerm1Perm0TurnEnable[1]);
+        ReadU8(file, &m_airPerm1Perm0TurnEnable[2]);
+        ReadF32LE(file, &m_airTurnAB[0]);
+        ReadF32LE(file, &m_airTurnAB[1]);
+        ReadF32LE(file, &m_airMoveSpeed);
+        ReadU8(file, &m_airP11f8Enable);
+        ReadF32LE(file, &m_airP11f8);
         ReadF32LE(file, &m_groundFxIntervalBase);
         ReadF32LE(file, &m_groundFxIntervalRange);
-        ReadF32LE(file, &m_unkE0);
+        ReadF32LE(file, &m_fGroundFxScatterRadius);
         ReadF32LE(file, &m_cooldownForced[0]);
         ReadF32LE(file, &m_cooldownForced[1]);
         ReadF32LE(file, &m_cooldownForced[2]);

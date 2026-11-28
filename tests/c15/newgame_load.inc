@@ -124,13 +124,13 @@ int RunLoadReplay() {
     for (int i = 0; i < 90; ++i) Step();
     // Load game: the main menu's focus to item 1, Cross.
     CKMenuBase114c* mainMenu = static_cast<CKMenuBase114c*>(M()->Vf344()[9]);
-    for (int k = 0; k < 4 && mainMenu != nullptr && mainMenu->m_unk6c[0] != 1; ++k) {
+    for (int k = 0; k < 4 && mainMenu != nullptr && mainMenu->m_aui8FocusedItem[0] != 1; ++k) {
         g_d1 = CELL_PAD_CTRL_DOWN;
         for (int i = 0; i < 4; ++i) Step();
         g_d1 = 0;
         for (int i = 0; i < 30; ++i) Step();
     }
-    expect(mainMenu != nullptr && mainMenu->m_unk6c[0] == 1, "the main menu's focus on Load game (item 1)");
+    expect(mainMenu != nullptr && mainMenu->m_aui8FocusedItem[0] == 1, "the main menu's focus on Load game (item 1)");
     g_d2 = CELL_PAD_CTRL_CROSS;
     for (int i = 0; i < 4; ++i) Step();
     g_d2 = 0;

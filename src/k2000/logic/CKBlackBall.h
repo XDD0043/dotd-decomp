@@ -44,59 +44,59 @@ public:
     // (+0x28c) or charged (+0x298) accessor; above level index 0 the charge nodes hidden and the sounds stopped.
     uint8_t Fire() override;
     // vt+0x7c 0x00379910 CKBlackBall_IsChargeDisabled_maybe: at level index 0.
-    uint8_t IsChargeDisabled() override { return m_unk04 == 0 ? 1 : 0; }
+    uint8_t IsChargeDisabled() override { return m_ui32LevelIndex == 0 ? 1 : 0; }
 
     // Arrays of 3: per level, like the base class's (the Load's 3-iteration loop).
-    float m_unk214[3];             // +0x214
-    float m_unk220[3];             // +0x220
-    float m_unk22c[3];             // +0x22c
-    float m_unk238[3];             // +0x238
-    float m_unk244[3];             // +0x244
-    float m_unk250[3];             // +0x250
-    int32_t m_unk25c[3];           // +0x25c
-    int32_t m_unk268[3];           // +0x268
-    float m_unk274[3];             // +0x274
-    float m_unk280[3];             // +0x280
-    IKSerializable* m_unk28c[3];   // +0x28c CKProjectileAccessor (live; read interleaved with +0x298)
-    IKSerializable* m_unk298[3];   // +0x298 CKProjectileAccessor (live)
-    IKSerializable* m_unk2a4;      // +0x2a4 CKExplosionFxData (live)
-    IKSerializable* m_unk2a8;      // +0x2a8 CNode (live)
-    uint32_t m_unk2ac[3];          // +0x2ac one 12-byte read, three swapped words (always 0)
-    float m_unk2b8[2][3];          // +0x2b8 two 12-byte reads (vectors_maybe)
-    float m_unk2d0[2][3];          // +0x2d0 two 12-byte reads (vectors_maybe)
-    IKSerializable* m_unk2e8;      // +0x2e8 CNode (live)
-    float m_unk2ec;                // +0x2ec
-    float m_unk2f0;                // +0x2f0
+    float m_afLaunchSpeedNormal[3];             // +0x214
+    float m_afLaunchSpeedCharged[3];             // +0x220
+    float m_afAimNearNormal[3];             // +0x22c
+    float m_afAimNearCharged[3];             // +0x238
+    float m_afAimFarNormal[3];             // +0x244
+    float m_afAimFarCharged[3];             // +0x250
+    int32_t m_ai32ShotCountNormal[3];           // +0x25c
+    int32_t m_ai32ShotCountCharged[3];           // +0x268
+    float m_afFanSpreadDegNormal[3];             // +0x274
+    float m_afFanSpreadDegCharged[3];             // +0x280
+    IKSerializable* m_apNormalProjectiles[3];   // +0x28c CKProjectileAccessor (live; read interleaved with +0x298)
+    IKSerializable* m_apChargedProjectiles[3];   // +0x298 CKProjectileAccessor (live)
+    IKSerializable* m_pFullChargeBurst;      // +0x2a4 CKExplosionFxData (live)
+    IKSerializable* m_pChargeBallMesh;      // +0x2a8 CNode (live)
+    uint32_t m_vChargeBallOffset[3];          // +0x2ac one 12-byte read, three swapped words (always 0)
+    float m_avChargeScaleStart[2][3];          // +0x2b8 two 12-byte reads (vectors_maybe)
+    float m_avChargeScaleEnd[2][3];          // +0x2d0 two 12-byte reads (vectors_maybe)
+    IKSerializable* m_pChargedMesh;      // +0x2e8 CNode (live)
+    float m_fChargedMeshOffsetX;                // +0x2ec
+    float m_fChargedMeshOffsetY;                // +0x2f0
     uint32_t m_unk2f4;             // +0x2f4 (always 0)
-    IKSerializable* m_unk2f8;      // +0x2f8 CKSoundDictionaryID (live)
-    float m_unk2fc;                // +0x2fc
-    uint8_t m_unk300;              // +0x300 (not read) runtime: charged once (cleared by Start, ResetRuntime and Fire)
+    IKSerializable* m_pSoundDico;      // +0x2f8 CKSoundDictionaryID (live)
+    float m_fChargeSoundMaxPitch;                // +0x2fc
+    uint8_t m_bChargedBurstFired;              // +0x300 (not read) runtime: charged once (cleared by Start, ResetRuntime and Fire)
     uint8_t m_pad301[3];
-    float m_unk304;                // +0x304 (not read) runtime: the ball's fade-out time left once charged (0.3 s)
+    float m_fBallFadeOutLeft;                // +0x304 (not read) runtime: the ball's fade-out time left once charged (0.3 s)
     // +0x308 (not read) RwMatrixCreate in ResetRuntime (type 0). DOTD: null until then (the original leaves it).
     struct RwMatrix* m_pUnk308 = nullptr;
 };
 DOTD_ASSERT_SIZE(CKBlackBall, 0x30c);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk214, 0x214);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk220, 0x220);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk22c, 0x22c);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk238, 0x238);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk244, 0x244);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk250, 0x250);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk25c, 0x25c);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk268, 0x268);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk274, 0x274);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk280, 0x280);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk28c, 0x28c);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk298, 0x298);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk2a4, 0x2a4);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk2a8, 0x2a8);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk2ac, 0x2ac);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk2b8, 0x2b8);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk2d0, 0x2d0);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk2e8, 0x2e8);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk2ec, 0x2ec);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk2f0, 0x2f0);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_afLaunchSpeedNormal, 0x214);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_afLaunchSpeedCharged, 0x220);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_afAimNearNormal, 0x22c);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_afAimNearCharged, 0x238);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_afAimFarNormal, 0x244);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_afAimFarCharged, 0x250);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_ai32ShotCountNormal, 0x25c);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_ai32ShotCountCharged, 0x268);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_afFanSpreadDegNormal, 0x274);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_afFanSpreadDegCharged, 0x280);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_apNormalProjectiles, 0x28c);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_apChargedProjectiles, 0x298);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_pFullChargeBurst, 0x2a4);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_pChargeBallMesh, 0x2a8);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_vChargeBallOffset, 0x2ac);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_avChargeScaleStart, 0x2b8);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_avChargeScaleEnd, 0x2d0);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_pChargedMesh, 0x2e8);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_fChargedMeshOffsetX, 0x2ec);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_fChargedMeshOffsetY, 0x2f0);
 DOTD_ASSERT_OFFSET(CKBlackBall, m_unk2f4, 0x2f4);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk2f8, 0x2f8);
-DOTD_ASSERT_OFFSET(CKBlackBall, m_unk2fc, 0x2fc);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_pSoundDico, 0x2f8);
+DOTD_ASSERT_OFFSET(CKBlackBall, m_fChargeSoundMaxPitch, 0x2fc);

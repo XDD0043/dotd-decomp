@@ -495,8 +495,8 @@ void CKHkLinkedBeacon::SwitchOn(IKTime* clock) {
                     CKSrvPathFinding* pathFinding = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);
                     CPFPoint seeker;
                     CPFPoint target;
-                    seeker.m_unk0c = 0xffff;
-                    target.m_unk0c = 0xffff;
+                    seeker.m_i16GraphNodeIndex = 0xffff;
+                    target.m_i16GraphNodeIndex = 0xffff;
                     seeker.m_position = character->Vf5C();
                     target.m_position = m_unk20;
                     pathFinding->FindSectorForPoint(&seeker);  // 0x001e5ca0

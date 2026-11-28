@@ -49,17 +49,17 @@ const uint8_t kEnemyStatusHotSpotCount[9] = {7, 10, 14, 13, 14, 17, 25, 17, 12};
 // by dt x the first dragon's status decay rate unless an electric (element 3) damage is pending; empty: 0 and +0x7b6
 // cleared.
 void CKHkS08Enemy::UpdateStunStatus(IKTime* clock) {
-    if (m_unk6d4 <= 0.0f) return;  // TOC 0x13e0
+    if (m_fElectricGauge <= 0.0f) return;  // TOC 0x13e0
     const uint8_t state = m_mainState;
     if (state != 0x1f && state != 0x15 && state != 0xff && m_reactState != 0xf) SwitchMainState(0x1f, clock);
     if (!PendingElementDamageIs(3)) {
         const float dt = clock->m_afDeltaTime[0];
-        const float gauge = m_unk6d4;
+        const float gauge = m_fElectricGauge;
         const float drain = dt * HeroStatusDecayRate(0);
-        m_unk6d4 = gauge - drain;
+        m_fElectricGauge = gauge - drain;
     }
-    if (m_unk6d4 <= 0.0f) {
-        m_unk6d4 = 0.0f;
+    if (m_fElectricGauge <= 0.0f) {
+        m_fElectricGauge = 0.0f;
         m_unk7b6 = 0;
     }
 }
@@ -70,10 +70,10 @@ void CKHkS08Enemy::UpdateStunStatus(IKTime* clock) {
 // particles 8 at the kind's hot spots (the kind 1 skips 6..9). An empty gauge without +0x709 skips to the end: with the
 // fear gauge (+0x6cc) up in the main state 1, the main state 0x24.
 void CKHkS08Enemy::UpdateShadowStatus(IKTime* clock) {
-    const float gauge = m_unk6c4;
+    const float gauge = m_fShadowGauge;
     bool drain = true;
     if (gauge > 0.0f) {  // TOC 0x1434
-        if (m_unk709 == 0 && m_unk884->m_unk250 <= gauge) {
+        if (m_unk709 == 0 && m_pActiveEnemyCpnt->m_unk250 <= gauge) {
             PlayFxAtHotspot1(0x11);  // 0x0028d4a8
             m_unk709 = 1;
         }
@@ -83,11 +83,11 @@ void CKHkS08Enemy::UpdateShadowStatus(IKTime* clock) {
     if (drain) {
         if (!PendingElementDamageIs(5)) {
             const float dt = clock->m_afDeltaTime[0];
-            const float now = m_unk6c4;
-            m_unk6c4 = now - dt * HeroStatusDecayRate(1);
+            const float now = m_fShadowGauge;
+            m_fShadowGauge = now - dt * HeroStatusDecayRate(1);
         }
-        if (m_unk6c4 <= 0.0f) {
-            m_unk6c4 = 0.0f;
+        if (m_fShadowGauge <= 0.0f) {
+            m_fShadowGauge = 0.0f;
             m_unk709 = 0;
             return;
         }
@@ -102,7 +102,7 @@ void CKHkS08Enemy::UpdateShadowStatus(IKTime* clock) {
             }
         }
     }
-    if (m_unk6cc > 0.0f && m_mainState == 1) SwitchMainState(0x24, clock);
+    if (m_fFearGauge > 0.0f && m_mainState == 1) SwitchMainState(0x24, clock);
 }
 
 // 0x00288b18 CKHkS08Enemy_ApplyElementResistance: the pending element damage's amount less the kind's resistances in
@@ -110,16 +110,16 @@ void CKHkS08Enemy::UpdateShadowStatus(IKTime* clock) {
 // ability id 4 / 5 (+0x2d0), value 7 (+0x2e8), value 6 (+0x2f4) and the damage type 3 (+0x314). The value tests are
 // `ble` without cror (a NaN value counts as above 0).
 float CKHkS08Enemy::ApplyElementResistance(float amount) {
-    const CKS08ElementDamage* damage = static_cast<const CKS08ElementDamage*>(m_unk27c);
+    const CKS08ElementDamage* damage = static_cast<const CKS08ElementDamage*>(m_pPendingDamage);
     const float* v = damage->m_afValues;
     auto resist = [](float value, float percent) { return value * (percent / -100.0f + 1.0f); };
-    if (!(v[0] <= 0.0f)) amount = resist(amount, m_unk884->m_unk268);
-    if (!(v[4] <= 0.0f)) amount = resist(amount, m_unk884->m_unk294);
-    if (!(v[1] <= 0.0f)) amount = resist(amount, m_unk884->m_unk2b8);
-    if (damage->m_unk38 == 4 || damage->m_unk38 == 5) amount = resist(amount, m_unk884->m_unk2d0);
-    if (!(v[7] <= 0.0f)) amount = resist(amount, m_unk884->m_unk2e8);
-    if (!(v[6] <= 0.0f)) amount = resist(amount, m_unk884->m_unk2f4);
-    if (damage->m_unk20 == 3) amount = resist(amount, m_unk884->m_unk314);
+    if (!(v[0] <= 0.0f)) amount = resist(amount, m_pActiveEnemyCpnt->m_unk268);
+    if (!(v[4] <= 0.0f)) amount = resist(amount, m_pActiveEnemyCpnt->m_unk294);
+    if (!(v[1] <= 0.0f)) amount = resist(amount, m_pActiveEnemyCpnt->m_unk2b8);
+    if (damage->m_i32AbilityId == 4 || damage->m_i32AbilityId == 5) amount = resist(amount, m_pActiveEnemyCpnt->m_unk2d0);
+    if (!(v[7] <= 0.0f)) amount = resist(amount, m_pActiveEnemyCpnt->m_unk2e8);
+    if (!(v[6] <= 0.0f)) amount = resist(amount, m_pActiveEnemyCpnt->m_unk2f4);
+    if (damage->m_ui32DamageType == 3) amount = resist(amount, m_pActiveEnemyCpnt->m_unk314);
     return amount;
 }
 
@@ -143,7 +143,7 @@ void CKHkS08Enemy::PlayFxOnAllHotspots(uint32_t fx) {
 // 0x0028c590 CKHkS08Enemy_SpawnHitFx_maybe: one explosion of the kind's FX `fx` (+0x128) from the FX pool set off at
 // `at`.
 void CKHkS08Enemy::SpawnHitFxAt(uint32_t fx, const CVector3* at) {
-    IKFxData* data = static_cast<IKFxData*>(m_unk884->m_vUnk128.m_pBlock[fx]);
+    IKFxData* data = static_cast<IKFxData*>(m_pActiveEnemyCpnt->m_vUnk128.m_pBlock[fx]);
     IKFx* effect = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(data, this);
     if (effect == nullptr) return;
     CKExplosionNodeFx* explosion = static_cast<CKExplosionNodeFx*>(effect);
@@ -160,59 +160,59 @@ void CKHkS08Enemy::SpawnHitFxAt(uint32_t fx, const CVector3* at) {
 // x the kind's factor (x dt for a held damage) and clears the others (ice also its FX; the kinds 5 / 6 take the shadow
 // value as it is).
 void CKHkS08Enemy::ApplyElementGauges(IKTime* clock) {
-    CKS08ElementDamage* e = static_cast<CKS08ElementDamage*>(m_unk27c);
+    CKS08ElementDamage* e = static_cast<CKS08ElementDamage*>(m_pPendingDamage);
     const float* v = e->m_afValues;
-    if (m_unk6c0 == 0.0f && v[4] > 0.0f) {
+    if (m_fPoisonGauge == 0.0f && v[4] > 0.0f) {
         PlayFxAtHotspot1(5);  // 0x0028d4a8
         m_unk84c = 0.0f;
         PlaySound(0x20, 1, m_pKGLObject);  // 0x002795c0
     }
-    if (m_unk6b8 == 0.0f && v[0] > 0.0f) m_unk84c = 0.0f;
-    if (m_unk6c8 == 0.0f && v[1] > 0.0f) PlayFxAtHotspot1(7);
-    if (m_unk6d0 == 0.0f && v[7] > 0.0f) m_unk704 = 0.0f;
-    if (e->m_unk20 == 4) m_unk7b5 = e->m_unk34;
-    if (e->m_unk20 == 3) m_unk7b6 = e->m_unk34;
-    if (e->m_unk20 == 0) m_unk7b7 = e->m_unk34;
-    if (e->m_unk20 == 7) m_unk7b8 = e->m_unk34;
-    if (m_unk6c0 > 0.0f &&
+    if (m_fFireGauge == 0.0f && v[0] > 0.0f) m_unk84c = 0.0f;
+    if (m_fIceGauge == 0.0f && v[1] > 0.0f) PlayFxAtHotspot1(7);
+    if (m_fWindGauge == 0.0f && v[7] > 0.0f) m_unk704 = 0.0f;
+    if (e->m_ui32DamageType == 4) m_unk7b5 = e->m_unk34;
+    if (e->m_ui32DamageType == 3) m_unk7b6 = e->m_unk34;
+    if (e->m_ui32DamageType == 0) m_unk7b7 = e->m_unk34;
+    if (e->m_ui32DamageType == 7) m_unk7b8 = e->m_unk34;
+    if (m_fPoisonGauge > 0.0f &&
         (v[0] > 0.0f || v[1] > 0.0f || v[6] > 0.0f || v[7] > 0.0f || v[3] > 0.0f || v[5] > 0.0f)) {
         m_unk7b5 = 0;
         StopSound(0x20);  // 0x002794f0
     }
-    const float scale = e->m_unk0c != 0 ? clock->m_afDeltaTime[0] : 1.0f;  // TOC +0x1094
-    const CKS08EnemyCpnt* cfg = m_unk884;
+    const float scale = e->m_bContinuous != 0 ? clock->m_afDeltaTime[0] : 1.0f;  // TOC +0x1094
+    const CKS08EnemyCpnt* cfg = m_pActiveEnemyCpnt;
     if (v[0] > 0.0f) {
         const float add = v[0] * cfg->m_unk264;
-        m_unk6d4 = 0.0f;
-        m_unk6c0 = 0.0f;
-        m_unk6c4 = 0.0f;
-        m_unk6c8 = 0.0f;
-        m_unk6cc = 0.0f;
-        m_unk6d0 = 0.0f;
-        m_unk6b8 = ppc::fmadds(scale, add, m_unk6b8);
+        m_fElectricGauge = 0.0f;
+        m_fPoisonGauge = 0.0f;
+        m_fShadowGauge = 0.0f;
+        m_fIceGauge = 0.0f;
+        m_fFearGauge = 0.0f;
+        m_fWindGauge = 0.0f;
+        m_fFireGauge = ppc::fmadds(scale, add, m_fFireGauge);
     } else if (v[4] > 0.0f) {
-        m_unk6b8 = 0.0f;
+        m_fFireGauge = 0.0f;
         const float add = v[4] * cfg->m_unk290;
-        m_unk6d4 = 0.0f;
-        m_unk6c4 = 0.0f;
-        m_unk6c8 = 0.0f;
-        m_unk6cc = 0.0f;
-        m_unk6d0 = 0.0f;
-        m_unk6c0 = ppc::fmadds(scale, add, m_unk6c0);
+        m_fElectricGauge = 0.0f;
+        m_fShadowGauge = 0.0f;
+        m_fIceGauge = 0.0f;
+        m_fFearGauge = 0.0f;
+        m_fWindGauge = 0.0f;
+        m_fPoisonGauge = ppc::fmadds(scale, add, m_fPoisonGauge);
     } else if (v[1] > 0.0f) {
-        m_unk6b8 = 0.0f;
-        m_unk6c0 = 0.0f;
-        m_unk6c4 = 0.0f;
+        m_fFireGauge = 0.0f;
+        m_fPoisonGauge = 0.0f;
+        m_fShadowGauge = 0.0f;
         const float add = v[1] * cfg->m_unk2b0;
-        m_unk6d4 = 0.0f;
-        m_unk6cc = 0.0f;
-        m_unk6d0 = 0.0f;
-        m_unk6c8 = ppc::fmadds(scale, add, m_unk6c8);
+        m_fElectricGauge = 0.0f;
+        m_fFearGauge = 0.0f;
+        m_fWindGauge = 0.0f;
+        m_fIceGauge = ppc::fmadds(scale, add, m_fIceGauge);
         // 0x0029ba34: the freeze FX off, then (none held) on at the kind's hot spot nearest the hit point (+0x23c; hot
         // spot 3 skipped, the count from 0x00a70210 = TOC +0x10e4 +0x28; -1, i.e. hot spot 1, when none is nearer than
         // FLT_MAX).
         SetFreezeFxActive(0, -1);  // 0x0028cb88
-        if (m_unk878 == nullptr) {
+        if (m_pFreezeMeshPopFx == nullptr) {
             const uint32_t count = kKindFxHotSpots[m_ui8EnemyClassType];
             float best = 3.4028235e+38f;  // 0x00c4acb8 +0x28 (TOC +0x1108)
             int32_t nearest = -1;
@@ -221,9 +221,9 @@ void CKHkS08Enemy::ApplyElementGauges(IKTime* clock) {
                 if (i == 3 || hotSpot == nullptr) continue;
                 CVector3 at;
                 hotSpot->GetWorldPosition(&at);  // 0x000ce790
-                const float dx = at.x - m_unk23c[0];
-                const float dy = at.y - m_unk23c[1];
-                const float dz = at.z - m_unk23c[2];
+                const float dx = at.x - m_vLastHitPos[0];
+                const float dy = at.y - m_vLastHitPos[1];
+                const float dz = at.z - m_vLastHitPos[2];
                 const float distance = ppc::fmadds(dz, dz, ppc::fmadds(dx, dx, dy * dy));
                 if (!(best <= distance)) {  // ble
                     best = distance;
@@ -233,43 +233,43 @@ void CKHkS08Enemy::ApplyElementGauges(IKTime* clock) {
             SetFreezeFxActive(1, nearest);
         }
     } else if (v[6] > 0.0f) {
-        m_unk6b8 = 0.0f;
-        m_unk6c0 = 0.0f;
-        m_unk6c4 = 0.0f;
-        m_unk6c8 = 0.0f;
+        m_fFireGauge = 0.0f;
+        m_fPoisonGauge = 0.0f;
+        m_fShadowGauge = 0.0f;
+        m_fIceGauge = 0.0f;
         if (static_cast<uint8_t>(m_ui8EnemyClassType - 5) <= 1) {
-            m_unk6cc = ppc::fmadds(scale, v[6] * 0.0f, m_unk6cc);  // TOC +0x1098 (f11, 0)
+            m_fFearGauge = ppc::fmadds(scale, v[6] * 0.0f, m_fFearGauge);  // TOC +0x1098 (f11, 0)
         } else {
-            m_unk6cc = ppc::fmadds(scale, v[6] * cfg->m_unk2f0, m_unk6cc);
+            m_fFearGauge = ppc::fmadds(scale, v[6] * cfg->m_unk2f0, m_fFearGauge);
         }
-        m_unk6d4 = 0.0f;
-        m_unk6d0 = 0.0f;
+        m_fElectricGauge = 0.0f;
+        m_fWindGauge = 0.0f;
     } else if (v[7] > 0.0f) {
-        m_unk6b8 = 0.0f;
-        m_unk6c0 = 0.0f;
-        m_unk6c4 = 0.0f;
-        m_unk6c8 = 0.0f;
-        m_unk6cc = 0.0f;
+        m_fFireGauge = 0.0f;
+        m_fPoisonGauge = 0.0f;
+        m_fShadowGauge = 0.0f;
+        m_fIceGauge = 0.0f;
+        m_fFearGauge = 0.0f;
         const float add = v[7] * cfg->m_unk2e4;
-        m_unk6d4 = 0.0f;
-        m_unk6d0 = ppc::fmadds(scale, add, m_unk6d0);
+        m_fElectricGauge = 0.0f;
+        m_fWindGauge = ppc::fmadds(scale, add, m_fWindGauge);
     } else if (v[3] > 0.0f) {
-        m_unk6d0 = 0.0f;
-        m_unk6b8 = 0.0f;
-        m_unk6c0 = 0.0f;
-        m_unk6c4 = 0.0f;
-        m_unk6c8 = 0.0f;
-        m_unk6cc = 0.0f;
-        m_unk6d4 = ppc::fmadds(scale, v[3] * cfg->m_unk320, m_unk6d4);
+        m_fWindGauge = 0.0f;
+        m_fFireGauge = 0.0f;
+        m_fPoisonGauge = 0.0f;
+        m_fShadowGauge = 0.0f;
+        m_fIceGauge = 0.0f;
+        m_fFearGauge = 0.0f;
+        m_fElectricGauge = ppc::fmadds(scale, v[3] * cfg->m_unk320, m_fElectricGauge);
     } else if (v[5] > 0.0f) {
-        m_unk6b8 = 0.0f;
-        m_unk6c0 = 0.0f;
+        m_fFireGauge = 0.0f;
+        m_fPoisonGauge = 0.0f;
         const float add = v[5] * cfg->m_unk2f0;
-        m_unk6d4 = 0.0f;
-        m_unk6c8 = 0.0f;
-        m_unk6cc = 0.0f;
-        m_unk6d0 = 0.0f;
-        m_unk6c4 = ppc::fmadds(scale, add, m_unk6c4);
+        m_fElectricGauge = 0.0f;
+        m_fIceGauge = 0.0f;
+        m_fFearGauge = 0.0f;
+        m_fWindGauge = 0.0f;
+        m_fShadowGauge = ppc::fmadds(scale, add, m_fShadowGauge);
     }
 }
 
@@ -285,7 +285,7 @@ bool RandomBelow(float p) {
 // voice (7 + a random 0..3). An element damage by its type: 1 the sound 0x15 and the same voice chance, 0 a voice at
 // 1%, 3 at 20%, the others none. Then the element's impact by its +0x38: 10 the sound 0x29, 14 0x28, 0 0x1d.
 void CKHkS08Enemy::PlayHitSounds() {
-    CKS08Damage* damage = m_unk27c;
+    CKS08Damage* damage = m_pPendingDamage;
     if (damage->IsKindOfClass(0x99cc) == 0) {
         const int32_t r = Rand_Int();
         PlaySound(static_cast<uint8_t>(2 + ((static_cast<uint32_t>(r) >> 14) & 3u)), 0, m_pKGLObject);  // 0x002795c0
@@ -294,7 +294,7 @@ void CKHkS08Enemy::PlayHitSounds() {
             PlaySound(static_cast<uint8_t>(7 + ((static_cast<uint32_t>(v) >> 14) & 3u)), 0, m_pKGLObject);
         }
     } else {
-        const int32_t type = damage->m_unk20;
+        const int32_t type = damage->m_ui32DamageType;
         if (type == 1) {
             PlaySound(0x15, 0, m_pKGLObject);
             if (RandomBelow(0.2f)) {
@@ -308,9 +308,9 @@ void CKHkS08Enemy::PlayHitSounds() {
             }
         }
     }
-    damage = m_unk27c;
+    damage = m_pPendingDamage;
     if (damage->IsKindOfClass(0x99cc) != 0) {
-        const int32_t impact = static_cast<CKS08ElementDamage*>(damage)->m_unk38;
+        const int32_t impact = static_cast<CKS08ElementDamage*>(damage)->m_i32AbilityId;
         if (impact == 10) {
             PlaySound(0x29, 0, m_pKGLObject);
         } else if (impact == 14) {
@@ -330,9 +330,9 @@ void CKHkS08Enemy::PlayHitSounds() {
 // combo (OnNewHitW) and the hit FX plays; past the sound interval (+0x8b4) the ability's sound (1 0x26, 9 0x25, 13
 // 0x27, 16 0x24).
 void CKHkS08Enemy::CountHeldElementHit(CKS08GameManager* manager, const CVector3* point) {
-    const CKS08ElementDamage* damage = static_cast<const CKS08ElementDamage*>(m_unk27c);
-    const uint32_t id = static_cast<uint32_t>(damage->m_unk38);
-    const CKS08EnemyCpnt* cfg = m_unk884;
+    const CKS08ElementDamage* damage = static_cast<const CKS08ElementDamage*>(m_pPendingDamage);
+    const uint32_t id = static_cast<uint32_t>(damage->m_i32AbilityId);
+    const CKS08EnemyCpnt* cfg = m_pActiveEnemyCpnt;
     float soundInterval = 0.100000001f;  // TOC +0x109c
     float fxInterval = 0.5f;             // TOC +0x1118
     // The levelled cases: the kind's interval over the group's value (vt+0x184..+0x190) of the element level of the
@@ -359,7 +359,7 @@ void CKHkS08Enemy::CountHeldElementHit(CKS08GameManager* manager, const CVector3
     default: break;
     }
     if (m_unk7e0 > fxInterval) {  // bgt
-        OnNewHitW(manager, static_cast<CKHkS08Hero*>(static_cast<IKSerializable*>(m_unk694))->GetDragonIndex(),
+        OnNewHitW(manager, static_cast<CKHkS08Hero*>(static_cast<IKSerializable*>(m_pLastAttacker))->GetDragonIndex(),
                   point);  // 0x00361960, 0x004fe568
         m_unk7e0 = 0.0f;
         SpawnHitFx();  // 0x0028c0a0
@@ -383,16 +383,16 @@ void CKHkS08Enemy::CountHeldElementHit(CKS08GameManager* manager, const CVector3
 // enemy's hit: one held by a hero (+0x8f4) counts for that hero, else one with the shadow (+0x709) for dragon 1.
 void CKHkS08Enemy::CountHitStats() {
     CKS08GameManager* manager = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager);  // TOC +0x10a0 -> +0x8c
-    IKSerializable* attacker = static_cast<IKSerializable*>(m_unk694);
-    const CVector3 point{m_unk23c[0], m_unk23c[1], m_unk23c[2]};
-    if (attacker != nullptr && attacker->IsKindOfClass(0x25c2) != 0 && m_unk27c->m_unk24 == 0) {
-        if (m_unk27c->m_unk0c != 0 && m_unk27c->IsKindOfClass(0x99cc) != 0) {
+    IKSerializable* attacker = static_cast<IKSerializable*>(m_pLastAttacker);
+    const CVector3 point{m_vLastHitPos[0], m_vLastHitPos[1], m_vLastHitPos[2]};
+    if (attacker != nullptr && attacker->IsKindOfClass(0x25c2) != 0 && m_pPendingDamage->m_unk24 == 0) {
+        if (m_pPendingDamage->m_bContinuous != 0 && m_pPendingDamage->IsKindOfClass(0x99cc) != 0) {
             CountHeldElementHit(manager, &point);
         } else {
             OnNewHitW(manager, static_cast<CKHkS08Hero*>(attacker)->GetDragonIndex(), &point);  // 0x004fe568
         }
     }
-    attacker = static_cast<IKSerializable*>(m_unk694);
+    attacker = static_cast<IKSerializable*>(m_pLastAttacker);
     if (attacker == nullptr || attacker->IsKindOfClass(0x26c2) == 0) return;
     CKHkS08Enemy* enemy = static_cast<CKHkS08Enemy*>(attacker);
     if (enemy->IsGrabbedState() != 0 && enemy->GetGrabbingHero() != nullptr) {  // 0x002896b8, 0x00288fd0
@@ -410,13 +410,13 @@ void CKHkS08Enemy::CountHitStats() {
 // group's +0x288 / +0x28c in a hero's grab combo kinds 1 / 5, else 1) over the kind's +0xcc, the bonuses spawn at hot
 // spot 1 and +0x800 restarts.
 void CKHkS08Enemy::AccumulateBonusDamage() {
-    if (m_unk27c->IsKindOfClass(0x998c) == 0 || m_unk27c->IsKindOfClass(0x99cc) != 0) return;
-    const float total = m_unk800 + m_unk27c->m_unk04;
+    if (m_pPendingDamage->IsKindOfClass(0x998c) == 0 || m_pPendingDamage->IsKindOfClass(0x99cc) != 0) return;
+    const float total = m_unk800 + m_pPendingDamage->m_fAmount;
     m_unk800 = total;
     if (!(m_unk804 <= total)) return;
     float factor = 1.0f;  // TOC +0x1094
-    if (m_mainState == 7 && m_unk294 != nullptr && m_unk294->IsKindOfClass(0x25c2) != 0) {
-        CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(m_unk294);
+    if (m_mainState == 7 && m_pGrabbingHero != nullptr && m_pGrabbingHero->IsKindOfClass(0x25c2) != 0) {
+        CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(m_pGrabbingHero);
         if (hero->GetGrabTarget() == this && hero->IsUsingWindBeam() == 0) {
             CKGrpS08Enemy* group = static_cast<CKGrpS08Enemy*>(enemy::EnemyGroup());
             if (hero->m_unk1abd != 0) {
@@ -426,14 +426,14 @@ void CKHkS08Enemy::AccumulateBonusDamage() {
             }
         }
     }
-    CKBonusData* bonus = static_cast<CKBonusData*>(m_unk884->m_pUnk4b4);
+    CKBonusData* bonus = static_cast<CKBonusData*>(m_pActiveEnemyCpnt->m_pUnk4b4);
     for (uint32_t i = 0; i < bonus->m_count; ++i) {
         CKBonusData::Entry& entry = bonus->m_pEntries[i];
         if (entry.m_unk18 == 0) {
-            const float count = factor * (static_cast<float>(entry.m_unk14) * m_unk800) / m_unk884->m_unkcc;
+            const float count = factor * (static_cast<float>(entry.m_unk14) * m_unk800) / m_pActiveEnemyCpnt->m_unkcc;
             entry.m_unk18 = static_cast<uint32_t>(static_cast<int32_t>(count));  // fctiwz
         }
-        const float value = factor * m_unk800 / m_unk884->m_unkcc;
+        const float value = factor * m_unk800 / m_pActiveEnemyCpnt->m_unkcc;
         std::memcpy(&entry.m_unk1c, &value, sizeof value);
     }
     // The damage's share of the bonuses (count mode 1) at hot spot 1, along the shared y axis (TOC +0x10b4).
@@ -451,32 +451,32 @@ void CKHkS08Enemy::AccumulateBonusDamage() {
 // 16); else a hero damage's +0x25 entry 33, type 1 entry 1, the rest entry 2. One explosion of it from the FX pool is
 // set off at the hit point (+0x23c) along the knockback (+0x248; Y when null).
 void CKHkS08Enemy::SpawnHitFx() {
-    CKS08Damage* damage = m_unk27c;
+    CKS08Damage* damage = m_pPendingDamage;
     uint32_t index;
-    if (damage->IsKindOfClass(0x99cc) != 0 && static_cast<CKS08ElementDamage*>(damage)->m_unk38 == 0) {
+    if (damage->IsKindOfClass(0x99cc) != 0 && static_cast<CKS08ElementDamage*>(damage)->m_i32AbilityId == 0) {
         index = 26;
-    } else if (m_unk6b8 > 0.0f) {
+    } else if (m_fFireGauge > 0.0f) {
         index = 9;
-    } else if (m_unk6c8 > 0.0f) {
+    } else if (m_fIceGauge > 0.0f) {
         index = 10;
-    } else if (m_unk6c0 > 0.0f) {
+    } else if (m_fPoisonGauge > 0.0f) {
         index = 15;
-    } else if (m_unk6d4 > 0.0f) {
+    } else if (m_fElectricGauge > 0.0f) {
         index = 14;
-    } else if (m_unk6cc > 0.0f) {
+    } else if (m_fFearGauge > 0.0f) {
         index = 12;
-    } else if (m_unk6c4 > 0.0f) {
+    } else if (m_fShadowGauge > 0.0f) {
         index = 13;
-    } else if (m_unk6d0 > 0.0f) {
+    } else if (m_fWindGauge > 0.0f) {
         index = 16;
     } else if (damage->IsKindOfClass(0x998c) != 0 && static_cast<CKS08HeroDamage*>(damage)->m_unk25 != 0) {
         index = 33;
-    } else if (m_unk27c->IsKindOfClass(0x998c) != 0 && m_unk27c->m_unk20 == 1) {
+    } else if (m_pPendingDamage->IsKindOfClass(0x998c) != 0 && m_pPendingDamage->m_ui32DamageType == 1) {
         index = 1;
     } else {
         index = 2;
     }
-    IKFxData* data = static_cast<IKFxData*>(m_unk884->m_vUnk128.m_pBlock[index]);
+    IKFxData* data = static_cast<IKFxData*>(m_pActiveEnemyCpnt->m_vUnk128.m_pBlock[index]);
     if (data == nullptr) return;
     IKFx* effect = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(data, this);  // TOC +0xed4 -> +0x60
     if (effect == nullptr) return;
@@ -488,7 +488,7 @@ void CKHkS08Enemy::SpawnHitFx() {
     } else {
         explosion->SetDirection(&direction, this);
     }
-    const CVector3 at{m_unk23c[0], m_unk23c[1], m_unk23c[2]};
+    const CVector3 at{m_vLastHitPos[0], m_vLastHitPos[1], m_vLastHitPos[2]};
     explosion->SetTranslation(&at, this);  // 0x001b66e8
     explosion->Trigger(this, 0);           // 0x001b82a8
     explosion->ReleaseReservation(this);   // vt+0x54
@@ -515,7 +515,7 @@ constexpr float kQ7 = 5.49778748f;   // TOC +0x10c8 7pi/4
 // +0x47c..+0x480 and the play rate +0x774 by +0x468..+0x46c along the damage's place in +0x484..+0x488 (not below
 // +0x470).
 void CKHkS08Enemy::PlayDirectionalHurtAnim() {
-    (void)m_unk27c->IsKindOfClass(0xad4c);  // vt+0x08 (the answer is not used)
+    (void)m_pPendingDamage->IsKindOfClass(0xad4c);  // vt+0x08 (the answer is not used)
     const RwFrame* frame = static_cast<CSGMovable*>(m_pKGLObject)->m_pRwFrame;
     CVector3 facing{frame->ltm.at.x, 0.0f, frame->ltm.at.z};
     CVector3 axisY{0.0f, 1.0f, 0.0f};  // 0x00c50d40 (TOC +0x10b4)
@@ -534,7 +534,7 @@ void CKHkS08Enemy::PlayDirectionalHurtAnim() {
     const uint32_t* rows = reinterpret_cast<const uint32_t*>(dictionary->m_apAnimations);
     m_unk768 = 0;
     const bool hurt = m_reactState == 2;
-    const CKS08EnemyCpnt* cfg = m_unk884;
+    const CKS08EnemyCpnt* cfg = m_pActiveEnemyCpnt;
     // The side: 0 vertical front, 1 vertical back, 2 left (pi/4..3pi/4), 3 right (5pi/4..7pi/4), 4 behind
     // (3pi/4..5pi/4), 5 front.
     uint32_t direction;
@@ -576,7 +576,7 @@ void CKHkS08Enemy::PlayDirectionalHurtAnim() {
         RequestAnim(0x11, 1, 0, 0, 0.1f, 0.0f);
     }
     if (m_unk768 == 0) {
-        AnimBlendSlot copy = m_unk164[0][0].m_blendSlot;  // the slot copied (TOC +0x1070..+0x1078 vtables)
+        AnimBlendSlot copy = m_apAnimLayerSlots[0][0].m_blendSlot;  // the slot copied (TOC +0x1070..+0x1078 vtables)
         copy.CrossfadeToAnim(0.0, 0.0, rows[17], 1);      // 0x00079ea0
         m_unk758 = hurt ? rows[17] : rows[30];
         if (m_unk754 == 0) m_unk754 = rows[0];
@@ -584,8 +584,8 @@ void CKHkS08Enemy::PlayDirectionalHurtAnim() {
         if (m_unk75c == 0) m_unk75c = rows[0];
         m_unk764 = 0.0f;
         m_unk750 = 1;
-        const float amount = m_unk27c->m_unk04;
-        const CKS08EnemyCpnt* k = m_unk884;
+        const float amount = m_pPendingDamage->m_fAmount;
+        const CKS08EnemyCpnt* k = m_pActiveEnemyCpnt;
         if (amount <= k->m_unk458) {
             m_unk760 = k->m_unk460;
         } else if (amount >= k->m_unk45c) {
@@ -600,10 +600,10 @@ void CKHkS08Enemy::PlayDirectionalHurtAnim() {
         return;
     }
     if (m_unk768 != 1) return;
-    const CKS08EnemyCpnt* k = m_unk884;
+    const CKS08EnemyCpnt* k = m_pActiveEnemyCpnt;
     m_unk774 = 1.0f;  // TOC +0x1094
     m_unk750 = 0;
-    const float amount = m_unk27c->m_unk04;
+    const float amount = m_pPendingDamage->m_fAmount;
     float t = 0.0f;  // TOC +0x1098
     if (!(amount <= k->m_unk484)) {
         t = 1.0f;
@@ -627,7 +627,7 @@ void CKHkS08Enemy::PlayDirectionalHurtAnim() {
 // counts a repeat down (the last but one keeps the rate in +0x778).
 void CKHkS08Enemy::UpdateHurtAnimPlayback(IKTime* clock) {
     if (m_unk768 == 0) {
-        const float t = ppc::fmadds(m_unk1fc, m_unk774, m_unk764);
+        const float t = ppc::fmadds(m_fScaledDt, m_unk774, m_unk764);
         m_unk764 = t;
         if (CKAnmKeyFrameController::GetDurationOf(m_unk75c) > t) {
             SetSignedBlendAnimPair(t, m_unk760, m_unk754, m_unk758, m_unk75c);  // 0x00285c10
@@ -635,7 +635,7 @@ void CKHkS08Enemy::UpdateHurtAnimPlayback(IKTime* clock) {
         return;
     }
     if (m_unk768 != 1) return;
-    const CKS08EnemyCpnt* cfg = m_unk884;
+    const CKS08EnemyCpnt* cfg = m_pActiveEnemyCpnt;
     if (cfg->m_unk474 == 0) {
         (void)GetLayerSlotAnimDuration(0, 0);  // 0x002854f8 (twice; the answers are not used)
         (void)GetLayerSlotAnimDuration(0, 0);
@@ -643,21 +643,21 @@ void CKHkS08Enemy::UpdateHurtAnimPlayback(IKTime* clock) {
         m_unk774 = rate;
         if (rate < cfg->m_unk470) m_unk774 = cfg->m_unk470;
     } else if (m_unk76c == 1) {
-        CKAnmKeyFrameController* track = ActiveTrack(m_unk164[0][0]);
+        CKAnmKeyFrameController* track = ActiveTrack(m_apAnimLayerSlots[0][0]);
         const float time = track->m_unk54;
         const float duration = track->GetDuration();  // 0x0007ab60
         if (time > duration) {
-            m_unk774 = m_unk884->m_unk470;
+            m_unk774 = m_pActiveEnemyCpnt->m_unk470;
         } else {
-            const float from = m_unk778 - m_unk884->m_unk470;
-            CKAnmKeyFrameController* again = ActiveTrack(m_unk164[0][0]);
+            const float from = m_unk778 - m_pActiveEnemyCpnt->m_unk470;
+            CKAnmKeyFrameController* again = ActiveTrack(m_apAnimLayerSlots[0][0]);
             const float fraction = again->m_unk54 / again->GetDuration();
-            m_unk774 = ppc::fmadds(from, 1.0f - fraction, m_unk884->m_unk470);
+            m_unk774 = ppc::fmadds(from, 1.0f - fraction, m_pActiveEnemyCpnt->m_unk470);
         }
     }
-    if (!IsAnimEndReached(m_unk1fc * m_unk774, 0, 0)) return;  // 0x00285558
+    if (!IsAnimEndReached(m_fScaledDt * m_unk774, 0, 0)) return;  // 0x00285558
     m_unk76c = m_unk76c - 1;
-    if (m_unk884->m_unk474 != 0 && m_unk76c == 1) m_unk778 = m_unk774;
+    if (m_pActiveEnemyCpnt->m_unk474 != 0 && m_unk76c == 1) m_unk778 = m_unk774;
 }
 
 // 0x002987c8 CKHkS08Enemy_IntegrateKnockbackMotion_maybe: the knockback's step (dt = +0x1fc x the slow-down +0x204,
@@ -668,14 +668,14 @@ void CKHkS08Enemy::UpdateHurtAnimPlayback(IKTime* clock) {
 // speed (+0x158) takes the acceleration and stops on a sign change of x (or z going positive). Knockdown (7): with the
 // extra push +0x698 the same. Then the position moves by the speed.
 void CKHkS08Enemy::IntegrateKnockbackMotion(IKTime* clock) {
-    float dt = m_unk1fc;
-    const CKS08EnemyCpnt* cfg = m_unk884;
+    float dt = m_fScaledDt;
+    const CKS08EnemyCpnt* cfg = m_pActiveEnemyCpnt;
     const float clockDt = clock->m_afDeltaTime[0];
     if ((m_bitArray & 0x400u) == 0) {
         const float height = m_v3Position.y - m_unk728;
         float scale;
         if (cfg->m_unk1e8 <= height && cfg->m_unk1ec >= height) {
-            if (m_unk158.y > 0.0f) {
+            if (m_v3Speed.y > 0.0f) {
                 scale = m_unk204 - cfg->m_unk1e0 * clockDt;
                 m_unk204 = scale;
                 if (scale < cfg->m_unk1d8) {
@@ -698,7 +698,7 @@ void CKHkS08Enemy::IntegrateKnockbackMotion(IKTime* clock) {
                 }
             }
         } else {
-            scale = ppc::fmadds(m_unk158.y > 0.0f ? cfg->m_unk1e0 : cfg->m_unk1e4, clockDt, m_unk204);
+            scale = ppc::fmadds(m_v3Speed.y > 0.0f ? cfg->m_unk1e0 : cfg->m_unk1e4, clockDt, m_unk204);
             m_unk204 = scale;
             if (scale > 1.0f) {
                 scale = 1.0f;
@@ -707,20 +707,20 @@ void CKHkS08Enemy::IntegrateKnockbackMotion(IKTime* clock) {
         }
         dt = dt * scale;
     }
-    const float lift = m_unk274;
+    const float lift = m_fKnockbackTime;
     float ay = -cfg->m_unk1d4;
     float ax = 0.0f, az = 0.0f;
     if (lift >= 0.0f) {
         const float used = dt <= lift ? dt : lift;
-        m_unk274 = lift - dt;
+        m_fKnockbackTime = lift - dt;
         if (dt > 0.0f) {
-            const float k = (used * m_unk270) / (dt * cfg->m_unk1d0);
+            const float k = (used * m_fKnockbackForce) / (dt * cfg->m_unk1d0);
             az = ppc::fmadds(m_unk250, k, 0.0f);
             ay = ppc::fmadds(m_unk24c, k, ay);
             ax = ppc::fmadds(m_unk248, k, 0.0f);
         }
     }
-    CVector3& v = m_unk158;
+    CVector3& v = m_v3Speed;
     if (m_reactState == 2) {
         CKSrvCollision* collision = static_cast<CKSrvCollision*>(g_pEngine->m_srvCollision);
         collision->GroundProbePoints(&m_GrdContDatasIn, &m_GrdContDatasInOut, &m_v3Position.x, 1);  // 0x00196540
@@ -734,11 +734,11 @@ void CKHkS08Enemy::IntegrateKnockbackMotion(IKTime* clock) {
                 fy = inverse * 0.0f;
             }
             float k;
-            if (m_unk884->m_unk4bc != 0) {
-                k = -m_unk884->m_unk4b8;
+            if (m_pActiveEnemyCpnt->m_unk4bc != 0) {
+                k = -m_pActiveEnemyCpnt->m_unk4b8;
             } else {
                 const float speed = std::sqrt(ppc::fmadds(v.z, v.z, ppc::fmadds(v.x, v.x, v.y * v.y)));
-                k = -m_unk884->m_unk4b8 * speed;
+                k = -m_pActiveEnemyCpnt->m_unk4b8 * speed;
             }
             const float rz = k * fz, rx = k * fx, ry = k * fy;
             const bool opposes = (rx > 0.0f && v.x < 0.0f) || (rx < 0.0f && v.x > 0.0f) || (rz > 0.0f && v.z < 0.0f) ||

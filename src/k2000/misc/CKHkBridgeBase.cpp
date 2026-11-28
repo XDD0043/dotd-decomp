@@ -116,7 +116,7 @@ void ReleaseHeroSlot(CKHkS08Hero** slot) {
 // without a node (0xffff).
 void ArrivalPoint(const CKHkBridgeBase* b, CPFPoint* point) {
     const CBBox& box = b->m_apTransitions[1]->m_aPortals[0].m_ArrivalBox;
-    point->m_unk0c = 0xffff;
+    point->m_i16GraphNodeIndex = 0xffff;
     point->m_position.x = (box.m_sup.x + box.m_inf.x) * kHalf;
     point->m_position.y = (box.m_sup.y + box.m_inf.y) * kHalf;
     point->m_position.z = (box.m_sup.z + box.m_inf.z) * kHalf;

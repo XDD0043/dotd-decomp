@@ -27,27 +27,27 @@ uint32_t OwnerWord(const IKSerializable* owner) {
 }  // namespace
 
 // 0x002d4c30 CKGrpS08Hero_IsExternalLockFree_maybe
-uint8_t CKGrpS08Hero::IsExternalLockFree() const { return static_cast<uint8_t>(~m_unk2c8 & 1u); }
+uint8_t CKGrpS08Hero::IsExternalLockFree() const { return static_cast<uint8_t>(~m_ui32PairStateFlags & 1u); }
 
 // 0x002d4d10 CKGrpS08Hero_AcquireExternalLock_maybe: taken when free.
 void CKGrpS08Hero::AcquireExternalLock(const IKSerializable* owner) {
-    if ((m_unk2c8 & 1u) != 0) return;
-    m_unk2c8 = (m_unk2c8 & 0xfffffffeu) | 1u;
+    if ((m_ui32PairStateFlags & 1u) != 0) return;
+    m_ui32PairStateFlags = (m_ui32PairStateFlags & 0xfffffffeu) | 1u;
     m_unk2d4[6] = OwnerWord(owner);  // +0x2ec
     s_lockOwner = owner;
 }
 
 // 0x002d4c40 CKGrpS08Hero_ReleaseExternalLock_maybe: by its owner only.
 void CKGrpS08Hero::ReleaseExternalLock(const IKSerializable* owner) {
-    if ((m_unk2c8 & 1u) == 0 || s_lockOwner != owner) return;
-    m_unk2c8 &= 0xfffffffeu;
+    if ((m_ui32PairStateFlags & 1u) == 0 || s_lockOwner != owner) return;
+    m_ui32PairStateFlags &= 0xfffffffeu;
     m_unk2d4[6] = 0;
     s_lockOwner = nullptr;
 }
 
 // 0x002d4c78 CKGrpS08Hero_SetExternalLockPosition_maybe: the tether's middle (+0x2f0), by the owner only.
 void CKGrpS08Hero::SetExternalLockPosition(const CVector3* position, const IKSerializable* owner) {
-    if ((m_unk2c8 & 1u) == 0 || s_lockOwner != owner) return;
+    if ((m_ui32PairStateFlags & 1u) == 0 || s_lockOwner != owner) return;
     std::memcpy(&m_unk2d4[7], &position->x, 4);
     std::memcpy(&m_unk2d4[9], &position->z, 4);
     std::memcpy(&m_unk2d4[8], &position->y, 4);

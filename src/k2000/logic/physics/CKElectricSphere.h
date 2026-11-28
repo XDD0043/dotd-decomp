@@ -56,118 +56,118 @@ public:
 
     // The per-level arrays are indexed by the level index (m_levelIndex, 0..2); the level data stores one level's
     // record after the other (Load).
-    float m_unk154[3];                  // +0x154 the attack sphere's radius (UpdateEffect: the pulse, host vt+0xfc)
-    float m_unk160[3];                  // +0x160 the pulse period (Start: +0x294 = half of it)
-    int32_t m_unk16c[3];                // +0x16c the sphere node's top alpha
-    float m_unk178;                     // +0x178 the sphere node's random scale spread
-    float m_unk17c;                     // +0x17c the arcs' start radius, times the sphere node's scale
-    float m_unk180[3];                  // +0x180 the sphere node's scale
-    IKSerializable* m_unk18c;           // +0x18c (reference; Ghidra: CKImpulsionCpnt *) the dash
-    float m_unk190[3];                  // +0x190 a new arc's turn speed: base
-    float m_unk19c[3];                  // +0x19c a new arc's turn speed: spread
-    float m_unk1a8[3];                  // +0x1a8 a new arc's start direction height: base
-    float m_unk1b4[3];                  // +0x1b4 a new arc's start direction height: spread
-    float m_unk1c0[3];                  // +0x1c0 a new arc's end reach: base
-    float m_unk1cc[3];                  // +0x1cc a new arc's end reach: spread
-    float m_unk1d8;                     // +0x1d8 the arcs run while the dash value (+0x29c) is above it
-    IKSerializable* m_unk1dc;           // +0x1dc (reference)
-    IKSerializable* m_unk1e0;           // +0x1e0 (reference)
-    IKSerializable* m_unk1e4;           // +0x1e4 runtime: the first spark effect (ResetRuntime null)
-    IKSerializable* m_unk1e8;           // +0x1e8 runtime: the second spark effect (ResetRuntime null)
-    IKSerializable* m_unk1ec;           // +0x1ec (reference; Ghidra: CKExplosionFxData *)
-    IKSerializable* m_unk1f0;           // +0x1f0 (reference; Ghidra: CKExplosionFxData *)
-    IKSerializable* m_unk1f4;           // +0x1f4 (reference; Ghidra: CKExplosionFxData *) level 2's dash explosion
-    float m_unk1f8;                     // +0x1f8 the time near the top dash value before level 2's dash explosion
-    IKSerializable* m_unk1fc;           // +0x1fc (reference; Ghidra: CKS08ElementDamage *) that explosion's damage
-    IKSerializable* m_unk200[3];        // +0x200 (references; Ghidra: CKExplosionFxData *) the timed explosion, per level
-    float m_unk20c[3];                  // +0x20c the explosion interval's base, per level
-    float m_unk218[3];                  // +0x218 the explosion interval's spread, per level
-    IKSerializable* m_unk224;           // +0x224 (reference; Ghidra: CNode *) the sphere node
-    IKSerializable* m_unk228;           // +0x228 (reference; Ghidra: CNode *) the burst node
-    float m_unk22c;                     // +0x22c the burst's duration
-    float m_unk230;                     // +0x230 the burst's start scale: base
-    float m_unk234;                     // +0x234 the burst's start scale: spread
-    float m_unk238;                     // +0x238 the burst's end scale: base
-    float m_unk23c;                     // +0x23c the burst's end scale: spread
-    float m_unk240[3];                  // +0x240 the burst's scale factor, per level
-    IKSerializable* m_unk24c[3];        // +0x24c (references; Ghidra: CKElectricArcFxData *) the arcs' data ([0], [1] used)
-    IKSerializable* m_unk258[4];        // +0x258 runtime: the four arc effects (ResetRuntime null)
-    IKSerializable* m_unk268;           // +0x268 (reference)
-    IKSerializable* m_unk26c;           // +0x26c runtime: the loop particles effect (ResetRuntime null)
-    IKSerializable* m_unk270[3];        // +0x270 (references; Ghidra: CKPointLightFxData *) per level
-    IKSerializable* m_unk27c;           // +0x27c runtime: the light effect (ResetRuntime null)
-    IKSerializable* m_unk280;           // +0x280 (reference)
-    IKSerializable* m_unk284;           // +0x284 (reference)
-    IKSerializable* m_unk288;           // +0x288 runtime: the collection that plays (ResetRuntime null)
-    IKSerializable* m_unk28c;           // +0x28c (reference; Ghidra: CKSoundDictionaryID *)
-    float m_unk290;                     // +0x290 the dash sound's top pitch
-    float m_unk294;                     // +0x294 runtime: the pulse clock (ResetRuntime 0; Start: +0x160[level] x 0.5)
-    float m_unk298;                     // +0x298 runtime (ResetRuntime 0)
-    float m_unk29c;                     // +0x29c runtime: the dash value, the time scale (ResetRuntime / Start 1.0f)
-    uint8_t m_unk2a0;                   // +0x2a0 runtime: the attack sphere is on (ResetRuntime / Start 0)
+    float m_afHitSphereRadius[3];                  // +0x154 the attack sphere's radius (UpdateEffect: the pulse, host vt+0xfc)
+    float m_afPulsePeriod[3];                  // +0x160 the pulse period (Start: +0x294 = half of it)
+    int32_t m_ai32SphereTopAlpha[3];                // +0x16c the sphere node's top alpha
+    float m_fSphereScaleSpread;                     // +0x178 the sphere node's random scale spread
+    float m_fArcStartRadiusFactor;                     // +0x17c the arcs' start radius, times the sphere node's scale
+    float m_afSphereScale[3];                  // +0x180 the sphere node's scale
+    IKSerializable* m_pDashImpulsion;           // +0x18c (reference; Ghidra: CKImpulsionCpnt *) the dash
+    float m_afArcTurnSpeedBase[3];                  // +0x190 a new arc's turn speed: base
+    float m_afArcTurnSpeedSpread[3];                  // +0x19c a new arc's turn speed: spread
+    float m_afArcStartHeightBase[3];                  // +0x1a8 a new arc's start direction height: base
+    float m_afArcStartHeightSpread[3];                  // +0x1b4 a new arc's start direction height: spread
+    float m_afArcEndReachBase[3];                  // +0x1c0 a new arc's end reach: base
+    float m_afArcEndReachSpread[3];                  // +0x1cc a new arc's end reach: spread
+    float m_fArcMinDashThreshold;                     // +0x1d8 the arcs run while the dash value (+0x29c) is above it
+    IKSerializable* m_pSparkFxDataA;           // +0x1dc (reference)
+    IKSerializable* m_pSparkFxDataB;           // +0x1e0 (reference)
+    IKSerializable* m_pActiveSparkA;           // +0x1e4 runtime: the first spark effect (ResetRuntime null)
+    IKSerializable* m_pActiveSparkB;           // +0x1e8 runtime: the second spark effect (ResetRuntime null)
+    IKSerializable* m_pStartExplosion;           // +0x1ec (reference; Ghidra: CKExplosionFxData *)
+    IKSerializable* m_pStopExplosion;           // +0x1f0 (reference; Ghidra: CKExplosionFxData *)
+    IKSerializable* m_pLevel2DashExplosion;           // +0x1f4 (reference; Ghidra: CKExplosionFxData *) level 2's dash explosion
+    float m_fLevel2DashExplosionDelay;                     // +0x1f8 the time near the top dash value before level 2's dash explosion
+    IKSerializable* m_pLevel2DashExplosionDamage;           // +0x1fc (reference; Ghidra: CKS08ElementDamage *) that explosion's damage
+    IKSerializable* m_apTimedExplosions[3];        // +0x200 (references; Ghidra: CKExplosionFxData *) the timed explosion, per level
+    float m_afTimedExplosionRateBase[3];                  // +0x20c the explosion interval's base, per level
+    float m_afTimedExplosionRateSpread[3];                  // +0x218 the explosion interval's spread, per level
+    IKSerializable* m_pSphereNode;           // +0x224 (reference; Ghidra: CNode *) the sphere node
+    IKSerializable* m_pBurstNode;           // +0x228 (reference; Ghidra: CNode *) the burst node
+    float m_fBurstDuration;                     // +0x22c the burst's duration
+    float m_fBurstStartScaleBase;                     // +0x230 the burst's start scale: base
+    float m_fBurstStartScaleSpread;                     // +0x234 the burst's start scale: spread
+    float m_fBurstEndScaleBase;                     // +0x238 the burst's end scale: base
+    float m_fBurstEndScaleSpread;                     // +0x23c the burst's end scale: spread
+    float m_afBurstScaleFactor[3];                  // +0x240 the burst's scale factor, per level
+    IKSerializable* m_apArcFxData[3];        // +0x24c (references; Ghidra: CKElectricArcFxData *) the arcs' data ([0], [1] used)
+    IKSerializable* m_apActiveArcs[4];        // +0x258 runtime: the four arc effects (ResetRuntime null)
+    IKSerializable* m_pLoopParticlesData;           // +0x268 (reference)
+    IKSerializable* m_pActiveLoopParticles;           // +0x26c runtime: the loop particles effect (ResetRuntime null)
+    IKSerializable* m_apPointLightFxData[3];        // +0x270 (references; Ghidra: CKPointLightFxData *) per level
+    IKSerializable* m_pActivePointLight;           // +0x27c runtime: the light effect (ResetRuntime null)
+    IKSerializable* m_pAnimFxLevel1;           // +0x280 (reference)
+    IKSerializable* m_pAnimFxLevel2;           // +0x284 (reference)
+    IKSerializable* m_pActiveAnimFx;           // +0x288 runtime: the collection that plays (ResetRuntime null)
+    IKSerializable* m_pSoundDico;           // +0x28c (reference; Ghidra: CKSoundDictionaryID *)
+    float m_fDashSoundTopPitch;                     // +0x290 the dash sound's top pitch
+    float m_fPulseClock;                     // +0x294 runtime: the pulse clock (ResetRuntime 0; Start: +0x160[level] x 0.5)
+    float m_fPulseClockAtStop;                     // +0x298 runtime (ResetRuntime 0)
+    float m_fDashTimeScale;                     // +0x29c runtime: the dash value, the time scale (ResetRuntime / Start 1.0f)
+    uint8_t m_bAttackSphereOn;                   // +0x2a0 runtime: the attack sphere is on (ResetRuntime / Start 0)
     uint8_t m_pad2a1[3];
     // +0x2a4..+0x313 runtime, written by UpdateEffect only (arc slot k = 2 x pass + data index); read only once the
     // slot's arc was made (its writer runs first).
-    CVector3 m_unk2a4[4];               // +0x2a4 the arcs' start points
-    float m_unk2d4[4];                  // +0x2d4 the arcs' turn speeds
-    CVector3 m_unk2e4[4];               // +0x2e4 the arcs' end points
-    float m_unk314;                     // +0x314 runtime: the burst's time left (ResetRuntime 0)
-    float m_unk318;                     // +0x318 runtime: the burst's start scale (ResetRuntime 0)
-    float m_unk31c;                     // +0x31c runtime: the burst's end scale (ResetRuntime 0)
+    CVector3 m_avArcStarts[4];               // +0x2a4 the arcs' start points
+    float m_afArcTurnSpeeds[4];                  // +0x2d4 the arcs' turn speeds
+    CVector3 m_avArcEnds[4];               // +0x2e4 the arcs' end points
+    float m_fBurstTimeLeft;                     // +0x314 runtime: the burst's time left (ResetRuntime 0)
+    float m_fBurstStartScale;                     // +0x318 runtime: the burst's start scale (ResetRuntime 0)
+    float m_fBurstEndScale;                     // +0x31c runtime: the burst's end scale (ResetRuntime 0)
     uint8_t m_unk320;                   // +0x320 runtime (ResetRuntime 1)
     uint8_t m_pad321[3];
-    float m_unk324;                     // +0x324 runtime: the time near the top dash value (ResetRuntime 0)
-    IKSerializable* m_unk328;           // +0x328 runtime: a sound (ResetRuntime null)
-    IKSerializable* m_unk32c;           // +0x32c runtime: a sound (ResetRuntime null)
-    float m_unk330;                     // +0x330 runtime: the time to the next timed explosion (ResetRuntime 0)
+    float m_fTopDashHoldTime;                     // +0x324 runtime: the time near the top dash value (ResetRuntime 0)
+    IKSerializable* m_pLoopSound;           // +0x328 runtime: a sound (ResetRuntime null)
+    IKSerializable* m_pDashSound;           // +0x32c runtime: a sound (ResetRuntime null)
+    float m_fNextTimedExplosion;                     // +0x330 runtime: the time to the next timed explosion (ResetRuntime 0)
 };
 DOTD_ASSERT_SIZE(CKElectricSphere, 0x334);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk154, 0x154);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk160, 0x160);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk16c, 0x16c);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk178, 0x178);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk17c, 0x17c);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk180, 0x180);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk18c, 0x18c);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk190, 0x190);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk19c, 0x19c);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk1a8, 0x1a8);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk1b4, 0x1b4);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk1c0, 0x1c0);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk1cc, 0x1cc);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk1d8, 0x1d8);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk1dc, 0x1dc);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk1e0, 0x1e0);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk1ec, 0x1ec);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk1f0, 0x1f0);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk1f4, 0x1f4);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk1f8, 0x1f8);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk1fc, 0x1fc);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk200, 0x200);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk20c, 0x20c);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk218, 0x218);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk224, 0x224);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk228, 0x228);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk22c, 0x22c);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk230, 0x230);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk234, 0x234);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk238, 0x238);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk23c, 0x23c);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk240, 0x240);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk24c, 0x24c);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk258, 0x258);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk268, 0x268);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk270, 0x270);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk280, 0x280);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk284, 0x284);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk28c, 0x28c);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk290, 0x290);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk294, 0x294);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk29c, 0x29c);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk2a0, 0x2a0);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk2a4, 0x2a4);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk2d4, 0x2d4);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk2e4, 0x2e4);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk314, 0x314);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk324, 0x324);
-DOTD_ASSERT_OFFSET(CKElectricSphere, m_unk330, 0x330);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_afHitSphereRadius, 0x154);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_afPulsePeriod, 0x160);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_ai32SphereTopAlpha, 0x16c);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_fSphereScaleSpread, 0x178);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_fArcStartRadiusFactor, 0x17c);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_afSphereScale, 0x180);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_pDashImpulsion, 0x18c);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_afArcTurnSpeedBase, 0x190);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_afArcTurnSpeedSpread, 0x19c);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_afArcStartHeightBase, 0x1a8);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_afArcStartHeightSpread, 0x1b4);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_afArcEndReachBase, 0x1c0);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_afArcEndReachSpread, 0x1cc);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_fArcMinDashThreshold, 0x1d8);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_pSparkFxDataA, 0x1dc);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_pSparkFxDataB, 0x1e0);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_pStartExplosion, 0x1ec);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_pStopExplosion, 0x1f0);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_pLevel2DashExplosion, 0x1f4);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_fLevel2DashExplosionDelay, 0x1f8);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_pLevel2DashExplosionDamage, 0x1fc);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_apTimedExplosions, 0x200);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_afTimedExplosionRateBase, 0x20c);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_afTimedExplosionRateSpread, 0x218);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_pSphereNode, 0x224);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_pBurstNode, 0x228);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_fBurstDuration, 0x22c);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_fBurstStartScaleBase, 0x230);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_fBurstStartScaleSpread, 0x234);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_fBurstEndScaleBase, 0x238);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_fBurstEndScaleSpread, 0x23c);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_afBurstScaleFactor, 0x240);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_apArcFxData, 0x24c);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_apActiveArcs, 0x258);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_pLoopParticlesData, 0x268);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_apPointLightFxData, 0x270);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_pAnimFxLevel1, 0x280);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_pAnimFxLevel2, 0x284);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_pSoundDico, 0x28c);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_fDashSoundTopPitch, 0x290);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_fPulseClock, 0x294);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_fDashTimeScale, 0x29c);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_bAttackSphereOn, 0x2a0);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_avArcStarts, 0x2a4);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_afArcTurnSpeeds, 0x2d4);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_avArcEnds, 0x2e4);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_fBurstTimeLeft, 0x314);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_fTopDashHoldTime, 0x324);
+DOTD_ASSERT_OFFSET(CKElectricSphere, m_fNextTimedExplosion, 0x330);

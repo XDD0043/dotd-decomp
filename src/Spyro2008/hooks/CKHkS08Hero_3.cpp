@@ -125,8 +125,8 @@ void CKHkS08Hero::ResetCombatState(int32_t flag) {
         m_unk1ac6 = 0;
         m_unk1ab5 = 0;
         m_unk1ad1 = 0;
-        m_unk124 = 0;
-        m_unk1d28 = 0;
+        m_pTargetedEnemy = 0;
+        m_pFlightAimEnemy = 0;
         // the zero vector 0x00c50d64 (TOC1 +0x1ff4)
         m_unk1d2c = 0.0f;
         m_unk1d30 = 0.0f;
@@ -155,12 +155,12 @@ void CKHkS08Hero::ResetCombatState(int32_t flag) {
         m_unk1ad3 = 0;
         m_unk1ad8 = 0xffffffffu;
         m_unk1adc = 0xffffffffu;
-        m_unk1d24 = 0;
+        m_fAbilityFuryTimer = 0;
         m_unk1cc4 = 0;
         m_unk1cc8 = 0;
         m_unk1ab2 = 0;
-        m_unk1d20 = 1.0f;
-        m_unk1cc0 = 0;
+        m_fAbilityAnimSpeedScale = 1.0f;
+        m_pActiveAbility = 0;
         m_unk1d40 = 0;
         m_unk1d3c = 1.0f;
         m_unk1d48 = 0.0f;
@@ -199,7 +199,7 @@ void CKHkS08Hero::ResetCombatState(int32_t flag) {
         m_unk1d04 = 4.0f;  // TOC1 +0x200c
         m_unk1d1c = 1.0f;
         m_unk1d08 = 1.0f;
-        m_unk1bac = 0;
+        m_ui32ActiveHitSphereCount = 0;
         m_unkeec = -1.0f;  // TOC1 +0x1ffc
         m_unk1d10 = 0;
         m_unk1d14 = 1.0f;
@@ -354,10 +354,10 @@ constexpr CVector3 kNoAimPoint{3.40282347e+38f, 3.40282347e+38f, 3.40282347e+38f
 // (+0x124: its aim point from the hero's hot spot 5) or the hook (+0x12c: its aim point from the position), else (no
 // target, no hook, neither +0x1ac5 nor +0x1ac6) +0x1b0c..+0x1b14 cleared.
 void CKHkS08Hero::ComputeLungeOffset() {
-    if (m_unk124 != nullptr) {
+    if (m_pTargetedEnemy != nullptr) {
         CVector3 from;
         static_cast<CSGHotSpot*>(m_apHotSpots[5])->GetWorldPosition(&from);  // 0x000ce790
-        const CVector3 aim = GetAimPointOnEnemy(m_unk124, &from, 0, 0);       // 0x002fdec8
+        const CVector3 aim = GetAimPointOnEnemy(m_pTargetedEnemy, &from, 0, 0);       // 0x002fdec8
         if (aim.x == kNoAimPoint.x && aim.y == kNoAimPoint.y && aim.z == kNoAimPoint.z) {  // TOC +0x2020
             m_unk11cc = m_unk12a0;
             m_unk11d4 = m_unk12a8;
@@ -369,13 +369,13 @@ void CKHkS08Hero::ComputeLungeOffset() {
         }
         return;
     }
-    if (m_unk12c != nullptr) {
+    if (m_pTargetedMecaHook != nullptr) {
         // The position is read before the call; the hook's aim point (no height clamp) less it, or +0x12a0 when the
         // hook gives the "no point".
         const float px = m_unk54c;
         const float pz = m_unk554;
         const float py = m_unk550;
-        const CVector3 aim = GetAimPointOnHook(m_unk12c, 0);  // 0x002fd7c0
+        const CVector3 aim = GetAimPointOnHook(m_pTargetedMecaHook, 0);  // 0x002fd7c0
         if (aim.x == kNoAimPoint.x && aim.y == kNoAimPoint.y && aim.z == kNoAimPoint.z) {  // TOC +0x2020
             m_unk11cc = m_unk12a0;
             m_unk11d4 = m_unk12a8;
@@ -400,8 +400,8 @@ void CKHkS08Hero::ComputeLungeOffset() {
 CVector3 CKHkS08Hero::StartLungeFromMark(float dt) {
     CVector3 out = kHeroZeroVector;  // TOC1 +0x1ff4
     if (m_unk1abc != 0 || m_unk1abd != 0 || m_unk1ac3 != 0 || m_unk1ac0 != 0 || m_unk1ac1 != 0 || m_unk1ac2 != 0) {
-        if (m_unk160 == 0xb9) return out;
-        CKS08HeroBlow* blow = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow();  // vt+0x54
+        if (m_i16CurAnimIndex == 0xb9) return out;
+        CKS08HeroBlow* blow = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow();  // vt+0x54
         if (m_unk1ac7 == 0 && (m_unkedc & 0x80u) != 0 && blow != nullptr) StartLunge(blow);
     }
     if (m_unk1d64 != 0) {
@@ -454,9 +454,9 @@ void CKHkS08Hero::StartLunge(CKS08HeroBlow* blow) {
     m_unk1d74 = 0;
     if (m_unk1ac9 == 0) {
         ValidateOrAcquireTarget();  // 0x002ff978
-        if (m_unk124 != nullptr && m_unk1ac8 != 0) {
+        if (m_pTargetedEnemy != nullptr && m_unk1ac8 != 0) {
             // A grab lunge: an enemy that can be grabbed and held there has its volume group 1 off.
-            CKHkS08Enemy* target = static_cast<CKHkS08Enemy*>(m_unk124);
+            CKHkS08Enemy* target = static_cast<CKHkS08Enemy*>(m_pTargetedEnemy);
             if (target->CanBeGrabbed(0) != 0 && target->CanBeHeldAtPosition() != 0) {  // 0x002898b0, 0x00289b38
                 target->DisableVolumeGroup(1);  // vt+0xfc
             }
@@ -464,7 +464,7 @@ void CKHkS08Hero::StartLunge(CKS08HeroBlow* blow) {
     }
     const CVector3* position = reinterpret_cast<const CVector3*>(&m_unk54c);
     CVector3 direction{m_unk12a0, m_unk12a4, m_unk12a8};
-    const CVector3 aim = GetAimPointOnEnemy(m_unk124, position, 1, 1);  // 0x002fdec8
+    const CVector3 aim = GetAimPointOnEnemy(m_pTargetedEnemy, position, 1, 1);  // 0x002fdec8
     const bool none = aim.x == kNoAimPoint.x && aim.y == kNoAimPoint.y && aim.z == kNoAimPoint.z;  // TOC +0x2020
     float length = 0.0f;
     bool normalise = false;
@@ -476,7 +476,7 @@ void CKHkS08Hero::StartLunge(CKS08HeroBlow* blow) {
                                        ppc::fmadds(direction.x, direction.x, direction.y * direction.y)));  // 0x00010690
         normalise = length != 0.0f;
     } else {
-        const CVector3 hook = GetAimPointOnHook(m_unk12c, 1);  // 0x002fd7c0
+        const CVector3 hook = GetAimPointOnHook(m_pTargetedMecaHook, 1);  // 0x002fd7c0
         if (hook.x == kNoAimPoint.x && hook.y == kNoAimPoint.y && hook.z == kNoAimPoint.z) {
             direction = CVector3{m_unk12a0, m_unk12a4, m_unk12a8};
         } else {
@@ -584,10 +584,10 @@ uint8_t CKHkS08Hero::AcquireAbilityTarget(float enemyWeight, float mecaWeight, I
     float mecaScore = 0.0f;
     if (FindAbilityMecaTarget(aim, &mecaDirection, &mecaScore, mask) != 0) {
         if (mecaWeight * mecaScore > enemyWeight * enemyScore) {
-            m_unk124 = nullptr;
+            m_pTargetedEnemy = nullptr;
             return 1;
         }
-        m_unk12c = nullptr;
+        m_pTargetedMecaHook = nullptr;
     }
     return 1;
 }
@@ -602,7 +602,7 @@ uint8_t CKHkS08Hero::FindAbilityMecaTarget(IKSerializable* aimObject, const CVec
                                            uint32_t mask) {
     CKGrpMeca* group = static_cast<CKGrpMeca*>(g_pEngine->m_gameManager->m_unk04[2]);  // TOC +0x2010 -> +0x8c -> +0xc
     if (group == nullptr) return 0;
-    m_unk12c = nullptr;
+    m_pTargetedMecaHook = nullptr;
     m_unkec8 &= ~0x80u;
     const uint32_t count = group->m_unk30;
     IKHook** actors = group->m_pUnk2c;
@@ -642,13 +642,13 @@ uint8_t CKHkS08Hero::FindAbilityMecaTarget(IKSerializable* aimObject, const CVec
         if (!found) {
             found = true;
             best = value;
-            m_unk12c = actor;
+            m_pTargetedMecaHook = actor;
         } else if (!(value <= best)) {
             best = value;
-            m_unk12c = actor;
+            m_pTargetedMecaHook = actor;
         }
     }
-    if (m_unk12c != nullptr) {
+    if (m_pTargetedMecaHook != nullptr) {
         *score = best;
         return 1;
     }
@@ -676,9 +676,9 @@ uint8_t CKHkS08Hero::ValidateOrAcquireTarget() {
         keep = false;
         m_unkec8 &= ~0x80u;
     }
-    if (keep && (m_unk124 != nullptr || m_unk12c != nullptr)) return 1;
-    m_unk12c = nullptr;
-    m_unk124 = nullptr;
+    if (keep && (m_pTargetedEnemy != nullptr || m_pTargetedMecaHook != nullptr)) return 1;
+    m_pTargetedMecaHook = nullptr;
+    m_pTargetedEnemy = nullptr;
     IKSerializable* aim =
         (static_cast<int8_t>(GetMovementMode()) == 1 || m_unk1ac3 != 0) ? m_unk1a7c : m_unk1a78;  // 0x003401b8
     float enemyScore = 0.0f;
@@ -688,9 +688,9 @@ uint8_t CKHkS08Hero::ValidateOrAcquireTarget() {
         CVector3 second = along;
         if (FindAbilityMecaTarget(aim, &second, &mecaScore, 0x43) != 0) {  // 0x002fefb8
             if (enemyScore + enemyScore >= mecaScore) {
-                m_unk12c = nullptr;
+                m_pTargetedMecaHook = nullptr;
             } else {
-                m_unk124 = nullptr;
+                m_pTargetedEnemy = nullptr;
             }
         }
     } else {
@@ -712,11 +712,11 @@ uint8_t CKHkS08Hero::ValidateOrAcquireTarget() {
 // angle between the direction to the target's aim point from hot spot 5 (or +0x12a0) and its flattened copy, negative
 // when the point is below the hot spot.
 float CKHkS08Hero::ComputeLungeScale() {
-    if (m_unk124 == nullptr) return 0.0f;
+    if (m_pTargetedEnemy == nullptr) return 0.0f;
     if (static_cast<int8_t>(GetMovementMode()) != 1 && m_unk1ac3 == 0) return 0.0f;  // 0x003401b8
     CVector3 from;
     static_cast<CSGHotSpot*>(m_apHotSpots[5])->GetWorldPosition(&from);  // 0x000ce790
-    const CVector3 aim = GetAimPointOnEnemy(m_unk124, &from, 0, 0);    // 0x002fdec8
+    const CVector3 aim = GetAimPointOnEnemy(m_pTargetedEnemy, &from, 0, 0);    // 0x002fdec8
     CVector3 toward{m_unk12a0, m_unk12a4, m_unk12a8};
     if (!(aim.x == kNoAimPoint.x && aim.y == kNoAimPoint.y && aim.z == kNoAimPoint.z)) {
         toward.x = aim.x - from.x;
@@ -851,7 +851,7 @@ IKSerializable* CKHkS08Hero::FindBestEnemyInAimCone(IKSerializable* aimObject, c
 uint8_t CKHkS08Hero::AcquireTargetInAimCone(IKSerializable* aimObject, const CVector3* direction, float* score) {
     IKGrpEnemy* group = static_cast<IKGrpEnemy*>(g_pEngine->m_gameManager->m_unk04[0]);  // TOC +0x2010 -> +0x8c -> +4
     if (group == nullptr) return 0;
-    m_unk124 = nullptr;
+    m_pTargetedEnemy = nullptr;
     m_unkec8 &= ~0x80u;
     const uint32_t count = group->m_ui32NbActiveEnemies;
     CVector3 origin;
@@ -871,13 +871,13 @@ uint8_t CKHkS08Hero::AcquireTargetInAimCone(IKSerializable* aimObject, const CVe
         if (!found) {
             found = true;
             bestScore = candidate;
-            m_unk124 = enemy;
+            m_pTargetedEnemy = enemy;
         } else if (candidate > bestScore) {
             bestScore = candidate;
-            m_unk124 = enemy;
+            m_pTargetedEnemy = enemy;
         }
     }
-    if (m_unk124 != nullptr) {
+    if (m_pTargetedEnemy != nullptr) {
         *score = bestScore;
         return 1;
     }
@@ -897,8 +897,8 @@ uint8_t CKHkS08Hero::TryAcquireTarget(IKSerializable* aim, const CVector3* direc
 
 // 0x003013c8 CKHkS08Hero_IsAnimFinished: the playing animation (+0x160) is `anim` and its end flag (+0x354 bit 15) is set.
 uint8_t CKHkS08Hero::IsAnimFinished(int32_t anim) const {
-    if (static_cast<int16_t>(m_unk160) != anim) return 0;
-    return static_cast<uint8_t>((m_unk354 >> 15) & 1u);
+    if (static_cast<int16_t>(m_i16CurAnimIndex) != anim) return 0;
+    return static_cast<uint8_t>((m_ui32HeroFlags354 >> 15) & 1u);
 }
 
 // 0x002fead8 ComputeHeroDamageAfterReduction: the damage less the hero's reduction. The reduction share: none without
@@ -908,7 +908,7 @@ float CKHkS08Hero::ComputeHeroDamageAfterReduction(float damage, uint8_t once) {
     float share = 0.0f;  // TOC +0x1fe0
     if ((m_unkec8 & 4u) != 0) {
         const bool plain = m_unk1ae8 == 0 || m_unk1ae8 == 2;
-        if ((m_unked0 & 0x4000u) != 0) {
+        if ((m_ui32StatusFlagsED0 & 0x4000u) != 0) {
             share = plain ? m_unke94 : m_unke98;
         } else if (plain) {
             share = m_unkdb8;
@@ -936,10 +936,10 @@ void LetGoOfEnemy(CKHkS08Hero* hero, CKHkS08Enemy* enemy) {
 
 // 0x002fc600 CKHkS08Hero_DropGrabbedEnemy: a held grab target (+0x1acc, +0x124) let go, no target, +0x1b0c cleared.
 void CKHkS08Hero::DropGrabbedEnemy() {
-    if (m_unk1acc == 0 || m_unk124 == nullptr) return;
-    LetGoOfEnemy(this, static_cast<CKHkS08Enemy*>(m_unk124));
+    if (m_unk1acc == 0 || m_pTargetedEnemy == nullptr) return;
+    LetGoOfEnemy(this, static_cast<CKHkS08Enemy*>(m_pTargetedEnemy));
     const CVector3& zero = kHeroZeroVector;  // TOC +0x1ff4 -> 0x00c50d64
-    m_unk124 = nullptr;
+    m_pTargetedEnemy = nullptr;
     m_unk1b0c = zero.x;
     m_unk1b14 = zero.z;
     m_unk1b10 = zero.y;
@@ -950,7 +950,7 @@ void CKHkS08Hero::DropGrabbedEnemy() {
 // back of its facing (+0x1d7c 40, +0x1d80 0.1 over the knock data), facing +0x12a0, the hit origin the enemy's position,
 // +0x1ac4 set, no target.
 void CKHkS08Hero::BreakGrabAndRecoil() {
-    CKHkS08Enemy* enemy = static_cast<CKHkS08Enemy*>(m_unk124);
+    CKHkS08Enemy* enemy = static_cast<CKHkS08Enemy*>(m_pTargetedEnemy);
     if (enemy == nullptr) return;
     LetGoOfEnemy(this, enemy);
     const CVector3& zero = kHeroZeroVector;
@@ -975,7 +975,7 @@ void CKHkS08Hero::BreakGrabAndRecoil() {
     m_unkfc = enemy->m_v3Position.y;
     m_unk100 = enemy->m_v3Position.z;
     m_unk1ac4 = 1;
-    m_unk124 = nullptr;
+    m_pTargetedEnemy = nullptr;
     m_unk1b0c = zero.x;
     m_unk1b14 = zero.z;
     m_unk1b10 = zero.y;
@@ -985,12 +985,12 @@ void CKHkS08Hero::BreakGrabAndRecoil() {
 // 0x002fd5b0 CKHkS08Hero_IsGrabTargetInRange: with a target and a blow, the target within the grab range (+0xd88, a
 // kind 5 grab +0xd90) of hot spot 18 on x / z and within the grab half angle (+0xd8c / +0xd94) of the facing (+0x12a0).
 uint8_t CKHkS08Hero::IsGrabTargetInRange() {
-    if (m_unk124 == nullptr) return 0;
-    if (static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow() == nullptr) return 0;  // vt+0x54
+    if (m_pTargetedEnemy == nullptr) return 0;
+    if (static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow() == nullptr) return 0;  // vt+0x54
     const float angle = m_unk1ac3 != 0 ? m_unkd94 : m_unkd8c;
     const float range = m_unk1ac3 != 0 ? m_unkd90 : m_unkd88;
     const RwV3d& hero = static_cast<CSGMovable*>(m_pKGLObject)->m_pRwFrame->ltm.pos;
-    const RwV3d& target = static_cast<CSGMovable*>(static_cast<IKHook*>(m_unk124)->m_pKGLObject)->m_pRwFrame->ltm.pos;
+    const RwV3d& target = static_cast<CSGMovable*>(static_cast<IKHook*>(m_pTargetedEnemy)->m_pKGLObject)->m_pRwFrame->ltm.pos;
     const float hx = hero.x, hz = hero.z, tx = target.x, tz = target.z;
     CVector3 hand;
     static_cast<CSGHotSpot*>(m_apHotSpots[18])->GetWorldPosition(&hand);  // 0x000ce790
@@ -1015,8 +1015,8 @@ uint8_t CKHkS08Hero::IsGrabTargetInRange() {
 // grab camera started (+0x1b28 with the data +0x1ae0) unless +0xecc bit 5 (started: +0xecc bit 5, +0xed0 bit 6); the
 // grab timer +0x1b30 from +0xdc4, +0x1ab4 set, +0x1ab0 -1, holding (+0x1acc).
 void CKHkS08Hero::StartGrab() {
-    if (m_unk1acc != 0 || m_unk124 == nullptr) return;
-    CKHkS08Enemy* enemy = static_cast<CKHkS08Enemy*>(m_unk124);
+    if (m_unk1acc != 0 || m_pTargetedEnemy == nullptr) return;
+    CKHkS08Enemy* enemy = static_cast<CKHkS08Enemy*>(m_pTargetedEnemy);
     if (enemy->GetGrabbingHero() == GetPartnerHero()) {  // 0x00288fd0, 0x002f85f8
         CKHkS08Hero* partner = GetPartnerHero();
         partner->SetComboActive(0, 0xff);  // 0x0032d9b0
@@ -1028,9 +1028,9 @@ void CKHkS08Hero::StartGrab() {
     enemy->SetGrabbedBy(this);  // 0x00288c58
     if (enemy->GetGrabbingHero() != this) return;
     enemy->SetHeldFlag(1);
-    CSGLeaf* node = static_cast<CSGLeaf*>(static_cast<CKHkS08Enemy*>(m_unk124)->m_pKGLObject);
+    CSGLeaf* node = static_cast<CSGLeaf*>(static_cast<CKHkS08Enemy*>(m_pTargetedEnemy)->m_pKGLObject);
     if (node->m_pParent != nullptr) node->m_pParent->RemoveChild(node);  // vt+0x78
-    const uint8_t hotspot = static_cast<uint8_t>(static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->GetHotspotIndex());
+    const uint8_t hotspot = static_cast<uint8_t>(static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->GetHotspotIndex());
     static_cast<CSGHotSpot*>(m_apHotSpots[hotspot])->AttachVolume(node);  // 0x000ce2b8
     m_unk1ac9 = 1;
     m_unkec4 = (m_unkec4 & ~0x1000u) | 0x1000u;
@@ -1039,7 +1039,7 @@ void CKHkS08Hero::StartGrab() {
         static_cast<CKAnimatedCamera*>(m_unk1b28)->Start(0.0f, static_cast<CKAnimatedCameraData*>(m_unk1ae0),
                                                          static_cast<CSGBranch*>(m_pKGLObject)) != 0) {  // vt+0x50
         m_unkecc = (m_unkecc & ~0x20u) | 0x20u;
-        m_unked0 = (m_unked0 & ~0x40u) | 0x40u;
+        m_ui32StatusFlagsED0 = (m_ui32StatusFlagsED0 & ~0x40u) | 0x40u;
     }
     m_unk1b30 = m_unkdc4;
     m_unk1ab4 = 1;
@@ -1050,11 +1050,11 @@ void CKHkS08Hero::StartGrab() {
 // 0x002fff48 CKHkS08Hero_TryGrabTarget: without a target one is looked for (and must be in range); a target that can be
 // grabbed (by the grab's kind) and held where it is gets grabbed.
 void CKHkS08Hero::TryGrabTarget() {
-    if (m_unk124 == nullptr) {
+    if (m_pTargetedEnemy == nullptr) {
         ValidateOrAcquireTarget();  // 0x002ff978
         if (IsGrabTargetInRange() == 0) return;
     }
-    CKHkS08Enemy* enemy = static_cast<CKHkS08Enemy*>(m_unk124);
+    CKHkS08Enemy* enemy = static_cast<CKHkS08Enemy*>(m_pTargetedEnemy);
     if (enemy->CanBeGrabbed(m_unk1ac3) == 0) return;  // 0x002898b0
     if (enemy->CanBeHeldAtPosition() == 0) return;    // 0x00289b38
     StartGrab();
@@ -1063,14 +1063,14 @@ void CKHkS08Hero::TryGrabTarget() {
 // 0x00300010 CKHkS08Hero_ThrowGrabbedEnemy: the target let go of and hit by the blow's throw damage (vt+0xb0) along the
 // facing (+0x12a0); no target, not holding, +0x1b0c cleared.
 void CKHkS08Hero::ThrowGrabbedEnemy(IKSerializable* blow) {
-    CKHkS08Enemy* enemy = static_cast<CKHkS08Enemy*>(m_unk124);
+    CKHkS08Enemy* enemy = static_cast<CKHkS08Enemy*>(m_pTargetedEnemy);
     if (enemy == nullptr) return;
     enemy->SetHeldFlag(0);
     enemy->ClearGrabber(this);
     const CVector3 along{m_unk12a0, m_unk12a4, m_unk12a8};
     enemy->ApplyThrowImpactDamage(static_cast<CKS08HeroBlow*>(blow)->GetDamage(), &along);  // vt+0xb0, 0x0028ac90
     const CVector3& zero = kHeroZeroVector;
-    m_unk124 = nullptr;
+    m_pTargetedEnemy = nullptr;
     m_unk1acc = 0;
     m_unk1b0c = zero.x;
     m_unk1b14 = zero.z;

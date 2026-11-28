@@ -52,7 +52,7 @@
 
 // 0x0032bb30 CKHkS08Hero_IsComboActive (the animation machine's ComboAnim condition): the current combo node
 // (+0x1a88) is not the combo tree's root (+0x1a8c).
-uint8_t CKHkS08Hero::IsComboActive(IKTime*, uint8_t) { return m_unk1a88 != m_unk1a8c ? 1 : 0; }
+uint8_t CKHkS08Hero::IsComboActive(IKTime*, uint8_t) { return m_pCurrentComboNode != m_unk1a8c ? 1 : 0; }
 
 // 0x0032bb58 CKHkS08Hero_AnimState4_Hurt_Condition: a hurt reaction is pending (+0x1ac4).
 uint8_t CKHkS08Hero::AnimHurtCondition(IKTime*, uint8_t) { return m_unk1ac4; }
@@ -60,14 +60,14 @@ uint8_t CKHkS08Hero::AnimHurtCondition(IKTime*, uint8_t) { return m_unk1ac4; }
 // 0x0032bb60 CKHkS08Hero_AnimState2_HurtType1_Condition: a pending hurt of type 1 (+0x1ae8), unless guarded (+0xec8
 // bit 2 with +0xed0 bit 15).
 uint8_t CKHkS08Hero::AnimHurtType1Condition(IKTime*, uint8_t) {
-    if ((m_unkec8 & 4u) != 0 && (m_unked0 & 0x8000u) != 0) return 0;
+    if ((m_unkec8 & 4u) != 0 && (m_ui32StatusFlagsED0 & 0x8000u) != 0) return 0;
     if (m_unk1ac4 == 0) return 0;
     return m_unk1ae8 == 1u ? 1 : 0;
 }
 
 // 0x0032bbc0 CKHkS08Hero_AnimState1_Fury_Condition: the fury flag (+0xed4 bit 6) or a running fury timer (+0x1b00).
 uint8_t CKHkS08Hero::AnimFuryCondition(IKTime*, uint8_t) {
-    if ((m_unked4 & 0x40u) != 0) return 1;
+    if ((m_ui32StatusFlagsED4 & 0x40u) != 0) return 1;
     return !(m_unk1b00 <= 0.0f) ? 1 : 0;  // ble: a NaN timer counts as running
 }
 
@@ -88,7 +88,7 @@ uint8_t CKHkS08Hero::AnimAbilityCondition(IKTime*, uint8_t) {
 uint8_t CKHkS08Hero::AnimGuardedHurtCondition(IKTime*, uint8_t) {
     if (m_unk1ac4 == 0) return 0;
     if ((m_unkec8 & 4u) != 0) return 1;
-    return m_unk160 == 0xcf ? 1 : 0;
+    return m_i16CurAnimIndex == 0xcf ? 1 : 0;
 }
 
 // 0x0032d4b0 CKHkS08Hero_vf100 (vt+0x100): empty.
@@ -109,9 +109,9 @@ uint8_t CKHkS08Hero::VfEC() { return 0; }
 // 0x0032bee8 CKHkS08Hero_GetComboAnimSpeed: the current blow's animation speed (vt+0x90); outside a grab combo scaled by
 // +0xe80 (+0xed0 bit 0x800) and +0xeb4 (bit 0x10), 0 when not positive, at most +0xe74.
 float CKHkS08Hero::GetComboAnimSpeed() {
-    float speed = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->GetAnimSpeed();
+    float speed = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->GetAnimSpeed();
     if (IsGrabComboKind() != 0) return speed;  // 0x002fc208
-    const uint32_t bits = m_unked0;
+    const uint32_t bits = m_ui32StatusFlagsED0;
     if ((bits & 0x800u) != 0) speed = speed * m_unke80;
     if ((bits & 0x10u) != 0) speed = speed * m_unkeb4;
     if (speed <= 0.0f) return 0.0f;
@@ -135,7 +135,7 @@ CKAnmKeyFrameController* ComboActiveController(CKHkS08Hero* hero) {
 // place); else, while the hero owns the time scale (+0x1ace), the scale from the blow's curve (vt+0xc0) at the
 // animation's wrapped time over its length (1 without an animation).
 void CKHkS08Hero::UpdateComboTimeScale() {
-    const int32_t anim = static_cast<int16_t>(m_unk160);
+    const int32_t anim = static_cast<int16_t>(m_i16CurAnimIndex);
     CTimeManager* time = g_pEngine->m_timeManager;  // TOC +0x26f4 -> +0x48
     if ((anim == 0xb3 || anim == 0xbb) && m_unk1a84 != 0) {
         if (time->m_fTimeScale != 1.0f) time->m_fTimeScale = 1.0f;
@@ -169,7 +169,7 @@ void CKHkS08Hero::UpdateComboTimeScale() {
         }
         while (length <= t) t = t - length;
     }
-    const float scale = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->EvalTimeScale(t / length);  // vt+0xc0
+    const float scale = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->EvalTimeScale(t / length);  // vt+0xc0
     if (time->m_fTimeScale != scale) time->m_fTimeScale = scale;
 }
 
@@ -180,10 +180,10 @@ void CKHkS08Hero::UpdateComboTimeScale() {
 // grabbed enemy's animation kept in step.
 uint8_t CKHkS08Hero::AnimComboAnim(IKTime* clock, int32_t phase, uint8_t other) {
     if (phase == 1) {
-        if (static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow() == nullptr) SetComboActive(0, 0xff);
-        const int32_t anim = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->GetAnimId();
+        if (static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow() == nullptr) SetComboActive(0, 0xff);
+        const int32_t anim = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->GetAnimId();
         PlayAnimation(0.0f, 0.12f, static_cast<uint16_t>(anim));  // vt+0x184, TOC +0x26fc / +0x2710
-        if (m_unk1acc != 0 && m_unk124 != nullptr) PairGrabbedEnemyAnim(anim, 0.12f, 0.0f);
+        if (m_unk1acc != 0 && m_pTargetedEnemy != nullptr) PairGrabbedEnemyAnim(anim, 0.12f, 0.0f);
         m_unkec8 |= 0x18u;
         m_unk1a14 = 1;
         return other;
@@ -193,22 +193,22 @@ uint8_t CKHkS08Hero::AnimComboAnim(IKTime* clock, int32_t phase, uint8_t other) 
         m_unkec8 &= ~0x18u;
         return other;
     }
-    if (static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow() == nullptr) {
+    if (static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow() == nullptr) {
         SetComboActive(0, 0xff);
         return other;
     }
     UpdateComboTimeScale();  // 0x0032bc10
-    int32_t anim = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->GetAnimId();
+    int32_t anim = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->GetAnimId();
     if (m_unk1abf != 0 || m_unk1ad1 != 0) anim = static_cast<int16_t>(m_unk1ab2);
-    if (static_cast<int16_t>(m_unk160) != anim) {
+    if (static_cast<int16_t>(m_i16CurAnimIndex) != anim) {
         PlayAnimation(0.0f, 0.12f, static_cast<uint16_t>(anim));  // vt+0x184
-        if (m_unk1acc != 0 && m_unk124 != nullptr) PairGrabbedEnemyAnim(anim, 0.12f, 0.0f);
+        if (m_unk1acc != 0 && m_pTargetedEnemy != nullptr) PairGrabbedEnemyAnim(anim, 0.12f, 0.0f);
         SetUnk890(1.0f);  // vt+0x19c
         return other;
     }
-    float speed = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->GetAnimSpeed();  // vt+0x90
+    float speed = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->GetAnimSpeed();  // vt+0x90
     if (IsGrabComboKind() == 0) {  // 0x002fc208 (GetComboAnimSpeed's scaling, inlined)
-        const uint32_t bits = m_unked0;
+        const uint32_t bits = m_ui32StatusFlagsED0;
         if ((bits & 0x800u) != 0) speed = speed * m_unke80;
         if ((bits & 0x10u) != 0) speed = speed * m_unkeb4;
         if (speed <= 0.0f) {
@@ -221,7 +221,7 @@ uint8_t CKHkS08Hero::AnimComboAnim(IKTime* clock, int32_t phase, uint8_t other) 
         m_unk1a14 = 0;
     } else {
         // (the original also reads the active animation's duration here and drops it)
-        const uint32_t toEnd = IsAnimFinished(static_cast<int16_t>(m_unk160)) != 0 ? 0u : 1u;  // 0x003013c8
+        const uint32_t toEnd = IsAnimFinished(static_cast<int16_t>(m_i16CurAnimIndex)) != 0 ? 0u : 1u;  // 0x003013c8
         AdvanceAnimScaled(clock->m_afDeltaTime[0], 1.0f, speed, toEnd);  // 0x00301e70
     }
     SetUnk890(speed);  // vt+0x19c
@@ -234,9 +234,9 @@ uint8_t CKHkS08Hero::AnimComboAnim(IKTime* clock, int32_t phase, uint8_t other) 
                 static_cast<CKBlenderController*>(slot->m_pController)->m_apControllers[slot->m_unk10]);
         };
         if (m_unk1ab5 != 0) {
-            const int32_t anim = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow()->GetAnimId();  // vt+0x54, vt+0x8c
+            const int32_t anim = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow()->GetAnimId();  // vt+0x54, vt+0x8c
             const float evaluated = heroTrack()->m_unk54;
-            if (m_unk124 != nullptr) PairGrabbedEnemyAnim(anim, 0.2f, evaluated);  // TOC +0x2720
+            if (m_pTargetedEnemy != nullptr) PairGrabbedEnemyAnim(anim, 0.2f, evaluated);  // TOC +0x2720
             m_unk1ab5 = 0;
         } else if (m_unk1ab4 != 0) {
             m_unk1ab4 = 0;
@@ -250,7 +250,7 @@ uint8_t CKHkS08Hero::AnimComboAnim(IKTime* clock, int32_t phase, uint8_t other) 
                 t = t - length * turns;
             }
             const float evaluated = heroTrack()->m_unk54;
-            if (m_unk124 != nullptr) static_cast<CKHkS08Enemy*>(m_unk124)->AdvanceGrabbedAnimTime(t - evaluated, 0, 0);  // 0x00289df8
+            if (m_pTargetedEnemy != nullptr) static_cast<CKHkS08Enemy*>(m_pTargetedEnemy)->AdvanceGrabbedAnimTime(t - evaluated, 0, 0);  // 0x00289df8
         }
     }
     return other;
@@ -259,7 +259,7 @@ uint8_t CKHkS08Hero::AnimComboAnim(IKTime* clock, int32_t phase, uint8_t other) 
 // DOTD: AnimState7_ComboAnim's inlined pairing: GetPairedGrabAnim 0x288dc8 (anim - 0xb2), the crossfade
 // (CrossfadeAnimFromDictionary 0x28a2e0, mode 1, layer 0, slot 0) when another pair plays, the pair in +0x1ab0.
 void CKHkS08Hero::PairGrabbedEnemyAnim(int32_t anim, float blend, float start) {
-    CKHkS08Enemy* held = static_cast<CKHkS08Enemy*>(m_unk124);
+    CKHkS08Enemy* held = static_cast<CKHkS08Enemy*>(m_pTargetedEnemy);
     const int32_t paired = held->GetPairedGrabAnim(static_cast<uint32_t>(anim - 0xb2));
     if (paired == -1) return;
     if (m_unk1ab0 != paired) held->CrossfadeAnimFromDictionary(static_cast<uint32_t>(paired), 1, blend, start, 0, 0);
@@ -286,7 +286,7 @@ uint8_t CKHkS08Hero::AnimGuardedHurt(IKTime* clock, int32_t phase, uint8_t other
         m_unkec4 = (m_unkec4 & ~0x400u) | 0x400u;
         m_unkec4 = (m_unkec4 & ~0x2000u) | 0x2000u;
         m_unked8 = (m_unked8 & ~0x4000000u) | 0x4000000u;
-        if ((m_unked0 & 0x8000u) != 0) {
+        if ((m_ui32StatusFlagsED0 & 0x8000u) != 0) {
             m_unkec8 = (m_unkec8 & ~0x10u) | 0x10u;
             m_unkec8 = (m_unkec8 & ~8u) | 8u;
         }
@@ -305,7 +305,7 @@ uint8_t CKHkS08Hero::AnimRecovery(IKTime* clock, int32_t phase, uint8_t other) {
         return other;
     }
     if (phase != 1) return other;
-    const int16_t shown = static_cast<int16_t>(m_unk160);
+    const int16_t shown = static_cast<int16_t>(m_i16CurAnimIndex);
     uint32_t anim = shown == 0xba ? 0xcbu : 0u;
     if (shown == 0xb2) anim = 0xca;
     PlayAnimation(0.0f, 0.12f, static_cast<uint16_t>(anim));  // vt+0x184, TOC +0x26fc / +0x2710
@@ -328,12 +328,12 @@ uint8_t CKHkS08Hero::AnimFury(IKTime* clock, int32_t phase, uint8_t other) {
 // clears the two bits.
 uint8_t CKHkS08Hero::AnimAbility(IKTime* clock, int32_t phase, uint8_t other) {
     if (phase == 0) {
-        AdvanceAnimTimeUnlessMarkOverride(m_unk1d20 * clock->m_afDeltaTime[0]);  // 0x00301408
+        AdvanceAnimTimeUnlessMarkOverride(m_fAbilityAnimSpeedScale * clock->m_afDeltaTime[0]);  // 0x00301408
     } else if (phase == 1) {
         m_unkec8 = (m_unkec8 & ~0x10u) | 0x10u;
         m_unkec8 = (m_unkec8 & ~0x8u) | 0x8u;
     } else {
-        m_unk1d20 = 1.0f;  // TOC +0x26f8
+        m_fAbilityAnimSpeedScale = 1.0f;  // TOC +0x26f8
         m_unkec8 &= ~0x18u;
     }
     return other;
@@ -344,7 +344,7 @@ uint8_t CKHkS08Hero::AnimAbility(IKTime* clock, int32_t phase, uint8_t other) {
 // the animation unless 0xcc or 0xce is over.
 uint8_t CKHkS08Hero::AnimDead(IKTime* clock, int32_t phase, uint8_t other) {
     if (phase == 0) {
-        if (m_unk160 == 0xcd && (m_unk354 & 1u) == 0 && (m_unkec4 & 0x40000u) == 0) {
+        if (m_i16CurAnimIndex == 0xcd && (m_ui32HeroFlags354 & 1u) == 0 && (m_unkec4 & 0x40000u) == 0) {
             PlayAnimation(0.0f, 0.2f, 0xce);  // vt+0x184, TOC +0x26fc / +0x2720
         }
         if (IsAnimFinished(0xcc) != 0) return other;  // 0x003013c8
@@ -353,7 +353,7 @@ uint8_t CKHkS08Hero::AnimDead(IKTime* clock, int32_t phase, uint8_t other) {
         return other;
     }
     if (phase != 1) return other;
-    PlayAnimation(0.0f, 0.2f, (m_unk354 & 1u) != 0 ? 0xcd : 0xcc);  // vt+0x184
+    PlayAnimation(0.0f, 0.2f, (m_ui32HeroFlags354 & 1u) != 0 ? 0xcd : 0xcc);  // vt+0x184
     return other;
 }
 
@@ -364,9 +364,9 @@ uint8_t CKHkS08Hero::AnimHurtType1(IKTime* clock, int32_t phase, uint8_t other) 
     if (phase == 0) {
         const float dt = clock->m_afDeltaTime[0];
         SetF32(m_unk1af8, AsF32(m_unk1af8) + dt);
-        const uint16_t wanted = (m_unk354 & 1u) != 0 ? 0xc9 : 0xc8;
-        if (m_unk160 != wanted) PlayAnimation(0.0f, 0.12f, wanted);  // vt+0x184, TOC +0x26fc / +0x2710
-        const int16_t shown = static_cast<int16_t>(m_unk160);
+        const uint16_t wanted = (m_ui32HeroFlags354 & 1u) != 0 ? 0xc9 : 0xc8;
+        if (m_i16CurAnimIndex != wanted) PlayAnimation(0.0f, 0.12f, wanted);  // vt+0x184, TOC +0x26fc / +0x2710
+        const int16_t shown = static_cast<int16_t>(m_i16CurAnimIndex);
         float reference = 0.0f;
         if (shown == 0xc8) reference = m_unkdb0;
         else if (shown == 0xc9) reference = m_unkdb4;
@@ -375,8 +375,8 @@ uint8_t CKHkS08Hero::AnimHurtType1(IKTime* clock, int32_t phase, uint8_t other) 
     }
     if (phase == 1) {
         SetF32(m_unk1af8, 0.0f);
-        const uint16_t wanted = (m_unk354 & 1u) != 0 ? 0xc9 : 0xc8;
-        if (m_unk160 != wanted) PlayAnimation(0.0f, 0.12f, wanted);  // vt+0x184
+        const uint16_t wanted = (m_ui32HeroFlags354 & 1u) != 0 ? 0xc9 : 0xc8;
+        if (m_i16CurAnimIndex != wanted) PlayAnimation(0.0f, 0.12f, wanted);  // vt+0x184
         m_unkec4 |= 0x200000u;
         m_unkec4 |= 0x800u;
         m_unkec4 |= 0x400u;
@@ -396,7 +396,7 @@ uint8_t CKHkS08Hero::AnimHurt(IKTime* clock, int32_t phase, uint8_t other) {
         return other;
     }
     if (phase != 1) {
-        m_unk354 &= ~0x10u;
+        m_ui32HeroFlags354 &= ~0x10u;
         return other;
     }
     const int8_t mode = static_cast<int8_t>(GetMovementMode());  // 0x003401b8
@@ -409,7 +409,7 @@ uint8_t CKHkS08Hero::AnimHurt(IKTime* clock, int32_t phase, uint8_t other) {
         anim = 0xc5;
     }
     PlayAnimation(0.0f, 0.12f, static_cast<uint16_t>(anim & 0xc7u));  // vt+0x184, TOC +0x26fc / +0x2710
-    m_unk354 = (m_unk354 & ~0x10u) | 0x10u;
+    m_ui32HeroFlags354 = (m_ui32HeroFlags354 & ~0x10u) | 0x10u;
     return other;
 }
 

@@ -46,8 +46,8 @@ void ApplyCurves(CSGPointLight* light, const CKPointLightFxData* data, float t) 
     uint8_t color[4];
     data->EvaluateColorLooped(t, color);  // 0x001cf430
     std::memcpy(static_cast<CLightComponent*>(light->m_pLight)->m_cLightColor, color, 4);
-    light->m_unk1c = data->EvaluateRadiusLooped(t);  // 0x001cf810
-    static_cast<CLightComponent*>(light->m_pLight)->m_fRadius = data->EvaluateIntensityLooped(t);  // 0x001cf898
+    light->m_unk1c = data->EvaluateIntensityLooped(t);  // 0x001cf810
+    static_cast<CLightComponent*>(light->m_pLight)->m_fRadius = data->EvaluateRadiusLooped(t);  // 0x001cf898
 }
 void SetFramePosition(CSGPointLight* light, float x, float y, float z) {
     RwFrame* frame = light->m_pRwFrame;

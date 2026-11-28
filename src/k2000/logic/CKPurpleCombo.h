@@ -64,49 +64,49 @@ public:
     // degrees of the aim cone +0x21c (host vt+0x58) and the action 1 locked (vt+0x44); then the base's along it.
     void SteerTowardsTarget(const CVector3* direction) override;
 
-    float m_unk1a8[3];               // +0x1a8
-    int32_t m_unk1b4[3];             // +0x1b4 (file: 100 150 254)
-    int32_t m_unk1c0[3];             // +0x1c0 (file: 0; int assumed, as +0x1b4)
-    int32_t m_unk1cc[3];             // +0x1cc (file: 0)
-    float m_unk1d8[3];               // +0x1d8
-    CKAttackMoveVec3 m_unk1e4[3];    // +0x1e4
-    float m_unk208;                  // +0x208
-    float m_unk20c;                  // +0x20c
-    float m_unk210[3];               // +0x210
-    IKSerializable* m_unk21c;        // +0x21c (live: CKAimCamembert)
-    IKSerializable* m_unk220;        // +0x220 (live: CKExplosionFxData)
-    IKSerializable* m_unk224;        // +0x224 (live: CKExplosionFxData)
-    IKSerializable* m_unk228;        // +0x228 (live: CKExplosionFxData)
-    IKSerializable* m_unk22c;        // +0x22c (live: CKExplosionFxData)
+    float m_afHitSphereRadius[3];               // +0x1a8
+    int32_t m_ai32MeshHoldAlpha[3];             // +0x1b4 (file: 100 150 254)
+    int32_t m_ai32MeshStartAlpha[3];             // +0x1c0 (file: 0; int assumed, as +0x1b4)
+    int32_t m_ai32MeshEndAlpha[3];             // +0x1cc (file: 0)
+    float m_afMeshSpinDegPerSec[3];               // +0x1d8
+    CKAttackMoveVec3 m_avMeshScale[3];    // +0x1e4
+    float m_fFadeInTime;                  // +0x208
+    float m_fFadeOutTime;                  // +0x20c
+    float m_afSteerConeDeg[3];               // +0x210
+    IKSerializable* m_pAimCamembert;        // +0x21c (live: CKAimCamembert)
+    IKSerializable* m_pStartExplosionLow;        // +0x220 (live: CKExplosionFxData)
+    IKSerializable* m_pStartExplosionMax;        // +0x224 (live: CKExplosionFxData)
+    IKSerializable* m_pHitExplosionLevel3;        // +0x228 (live: CKExplosionFxData)
+    IKSerializable* m_pHitExplosion;        // +0x22c (live: CKExplosionFxData)
     IKSerializable* m_unk230;        // +0x230
     IKSerializable* m_unk234;        // +0x234
     IKSerializable* m_unk238;        // +0x238
-    IKSerializable* m_unk23c;        // +0x23c (not loaded) the pooled particles of SetFxActive
-    IKSerializable* m_unk240;        // +0x240 (live: CKAnimatedFxCollection)
-    IKSerializable* m_unk244;        // +0x244 (live: CNode)
-    IKSerializable* m_unk248;        // +0x248 (live: CTrailNodeFx)
+    IKSerializable* m_pActiveParticles;        // +0x23c (not loaded) the pooled particles of SetFxActive
+    IKSerializable* m_pAnimFxCollection;        // +0x240 (live: CKAnimatedFxCollection)
+    IKSerializable* m_pDashMesh;        // +0x244 (live: CNode)
+    IKSerializable* m_pTrailNode;        // +0x248 (live: CTrailNodeFx)
     // Runtime (not loaded).
-    uint32_t m_unk24c;               // +0x24c the mesh alpha the fade-out starts from (a word)
-    uint8_t m_unk250;                // +0x250 the fade-in done
+    uint32_t m_ui32LastFadeOutAlpha;               // +0x24c the mesh alpha the fade-out starts from (a word)
+    uint8_t m_bMeshFadedIn;                // +0x250 the fade-in done
     uint8_t m_pad251[3];
-    float m_unk254;                  // +0x254 the level 3 re-aim delay (a time scaling's +0x0c)
-    uint8_t m_unk258;                // +0x258 the level 3 re-aim pending
+    float m_fLevel3ReaimDelay;                  // +0x254 the level 3 re-aim delay (a time scaling's +0x0c)
+    uint8_t m_bLevel3ReaimPending;                // +0x258 the level 3 re-aim pending
     uint8_t m_pad259[3];
 };
 DOTD_ASSERT_SIZE(CKPurpleCombo, 0x25c);
-DOTD_ASSERT_OFFSET(CKPurpleCombo, m_unk1a8, 0x1a8);
-DOTD_ASSERT_OFFSET(CKPurpleCombo, m_unk1b4, 0x1b4);
-DOTD_ASSERT_OFFSET(CKPurpleCombo, m_unk1c0, 0x1c0);
-DOTD_ASSERT_OFFSET(CKPurpleCombo, m_unk1cc, 0x1cc);
-DOTD_ASSERT_OFFSET(CKPurpleCombo, m_unk1d8, 0x1d8);
-DOTD_ASSERT_OFFSET(CKPurpleCombo, m_unk1e4, 0x1e4);
-DOTD_ASSERT_OFFSET(CKPurpleCombo, m_unk208, 0x208);
-DOTD_ASSERT_OFFSET(CKPurpleCombo, m_unk20c, 0x20c);
-DOTD_ASSERT_OFFSET(CKPurpleCombo, m_unk210, 0x210);
-DOTD_ASSERT_OFFSET(CKPurpleCombo, m_unk21c, 0x21c);
+DOTD_ASSERT_OFFSET(CKPurpleCombo, m_afHitSphereRadius, 0x1a8);
+DOTD_ASSERT_OFFSET(CKPurpleCombo, m_ai32MeshHoldAlpha, 0x1b4);
+DOTD_ASSERT_OFFSET(CKPurpleCombo, m_ai32MeshStartAlpha, 0x1c0);
+DOTD_ASSERT_OFFSET(CKPurpleCombo, m_ai32MeshEndAlpha, 0x1cc);
+DOTD_ASSERT_OFFSET(CKPurpleCombo, m_afMeshSpinDegPerSec, 0x1d8);
+DOTD_ASSERT_OFFSET(CKPurpleCombo, m_avMeshScale, 0x1e4);
+DOTD_ASSERT_OFFSET(CKPurpleCombo, m_fFadeInTime, 0x208);
+DOTD_ASSERT_OFFSET(CKPurpleCombo, m_fFadeOutTime, 0x20c);
+DOTD_ASSERT_OFFSET(CKPurpleCombo, m_afSteerConeDeg, 0x210);
+DOTD_ASSERT_OFFSET(CKPurpleCombo, m_pAimCamembert, 0x21c);
 DOTD_ASSERT_OFFSET(CKPurpleCombo, m_unk238, 0x238);
-DOTD_ASSERT_OFFSET(CKPurpleCombo, m_unk240, 0x240);
-DOTD_ASSERT_OFFSET(CKPurpleCombo, m_unk248, 0x248);
-DOTD_ASSERT_OFFSET(CKPurpleCombo, m_unk250, 0x250);
-DOTD_ASSERT_OFFSET(CKPurpleCombo, m_unk254, 0x254);
-DOTD_ASSERT_OFFSET(CKPurpleCombo, m_unk258, 0x258);
+DOTD_ASSERT_OFFSET(CKPurpleCombo, m_pAnimFxCollection, 0x240);
+DOTD_ASSERT_OFFSET(CKPurpleCombo, m_pTrailNode, 0x248);
+DOTD_ASSERT_OFFSET(CKPurpleCombo, m_bMeshFadedIn, 0x250);
+DOTD_ASSERT_OFFSET(CKPurpleCombo, m_fLevel3ReaimDelay, 0x254);
+DOTD_ASSERT_OFFSET(CKPurpleCombo, m_bLevel3ReaimPending, 0x258);

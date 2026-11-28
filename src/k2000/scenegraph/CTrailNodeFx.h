@@ -37,14 +37,14 @@ struct STrailNodeData {
     uint8_t m_pad29[3];
     CSGHotSpot* m_pHotSpot1;      // +0x2c
     CSGHotSpot* m_pHotSpot2;      // +0x30
-    uint32_t m_unk34;             // +0x34 read last (DotD): the strips across the ribbon (_maybe)
-    uint32_t m_unk38;             // +0x38 read fourth (DotD): the vertices of a strip (the Bezier samples, _maybe)
+    uint32_t m_ui32NbStrips;             // +0x34 read last (DotD): the strips across the ribbon (_maybe)
+    uint32_t m_ui32NbVerticesPerStrip;             // +0x38 read fourth (DotD): the vertices of a strip (the Bezier samples, _maybe)
     uint32_t m_ui32NbLineVertex;  // +0x3c read second: the vertices of the ribbon (its colours; _maybe XXL2's name)
     uint32_t m_ui32NbCtrPoints;   // +0x40 read first: the control points of a strip (_maybe)
-    float m_unk44;                // +0x44 read third (DotD): the time between two control points (_maybe)
-    float m_unk48;                // +0x48 PostLoad 0: the time since the points last moved
-    CVector3 m_unk4c;             // +0x4c PostLoad null: the first strip's last point when the points last moved
-    CVector3 m_unk58;             // +0x58 PostLoad null: the last strip's last point then
+    float m_fSamplePeriod;                // +0x44 read third (DotD): the time between two control points (_maybe)
+    float m_fElapsedSinceShift;                // +0x48 PostLoad 0: the time since the points last moved
+    CVector3 m_vLastPointFirstStrip;             // +0x4c PostLoad null: the first strip's last point when the points last moved
+    CVector3 m_vLastPointLastStrip;             // +0x58 PostLoad null: the last strip's last point then
 };
 DOTD_ASSERT_SIZE(STrailNodeData, 0x64);
 DOTD_ASSERT_OFFSET(STrailNodeData, m_ui8Extrem1, 0x04);
@@ -54,12 +54,12 @@ DOTD_ASSERT_OFFSET(STrailNodeData, m_ba8Properties, 0x20);
 DOTD_ASSERT_OFFSET(STrailNodeData, m_cColor, 0x24);
 DOTD_ASSERT_OFFSET(STrailNodeData, m_ui8Visible, 0x28);
 DOTD_ASSERT_OFFSET(STrailNodeData, m_pHotSpot1, 0x2c);
-DOTD_ASSERT_OFFSET(STrailNodeData, m_unk34, 0x34);
+DOTD_ASSERT_OFFSET(STrailNodeData, m_ui32NbStrips, 0x34);
 DOTD_ASSERT_OFFSET(STrailNodeData, m_ui32NbCtrPoints, 0x40);
-DOTD_ASSERT_OFFSET(STrailNodeData, m_unk44, 0x44);
-DOTD_ASSERT_OFFSET(STrailNodeData, m_unk48, 0x48);
-DOTD_ASSERT_OFFSET(STrailNodeData, m_unk4c, 0x4c);
-DOTD_ASSERT_OFFSET(STrailNodeData, m_unk58, 0x58);
+DOTD_ASSERT_OFFSET(STrailNodeData, m_fSamplePeriod, 0x44);
+DOTD_ASSERT_OFFSET(STrailNodeData, m_fElapsedSinceShift, 0x48);
+DOTD_ASSERT_OFFSET(STrailNodeData, m_vLastPointFirstStrip, 0x4c);
+DOTD_ASSERT_OFFSET(STrailNodeData, m_vLastPointLastStrip, 0x58);
 
 class CTrailNodeFx : public INodeFx {
 public:

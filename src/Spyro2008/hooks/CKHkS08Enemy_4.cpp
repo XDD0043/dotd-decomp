@@ -31,7 +31,7 @@ CKGrpS08Enemy* EnemyGroup() { return static_cast<CKGrpS08Enemy*>(g_pEngine->m_ga
 float CKHkS08Enemy::HeroStatusDecayRate(uint32_t dragon) {
     IKGrpHero* group = static_cast<IKGrpHero*>(g_pEngine->m_gameManager->m_unk04[1]);
     const CKHkS08Hero* hero = static_cast<const CKHkS08Hero*>(group->m_apHeros[dragon]);
-    if ((hero->m_unked0 & 0x80u) != 0) return hero->m_unke7c;
+    if ((hero->m_ui32StatusFlagsED0 & 0x80u) != 0) return hero->m_unke7c;
     return 1.0f;
 }
 
@@ -44,8 +44,8 @@ uint8_t CKHkS08Enemy::AwareState00_WatchForTarget(IKTime* /*clock*/, int32_t pha
     if (phase != 0) return 0;
     CKGrpSquad* squad = static_cast<CKGrpSquad*>(m_pGroupSquad);
     if (squad != nullptr && (static_cast<IKLife*>(squad->m_pParent)->m_bitArray & 0x200u) != 0 &&  // CKGrpSquad_GetFightZone 0x25ab50
-        EnemyGroup()->m_unk1bc == 0 && m_unk330 != nullptr) {
-        const RwFrame* target = static_cast<const CSGMovable*>(m_unk330->m_pKGLObject)->m_pRwFrame;
+        EnemyGroup()->m_bAlerted == 0 && m_pTarget != nullptr) {
+        const RwFrame* target = static_cast<const CSGMovable*>(m_pTarget->m_pKGLObject)->m_pRwFrame;
         const float x = m_v3Position.x;
         const float z = m_v3Position.z;
         const float tx = FrameLtm(target)->pos.x;
@@ -53,21 +53,21 @@ uint8_t CKHkS08Enemy::AwareState00_WatchForTarget(IKTime* /*clock*/, int32_t pha
         const float dz = z - tz;
         const float dx = x - tx;
         const float d2 = ppc::fmadds(dx, dx, dz * dz);
-        if (d2 <= m_unk884->m_unk190) {
+        if (d2 <= m_pActiveEnemyCpnt->m_unk190) {
             const float toX = tx - x;
             const float toZ = tz - z;
             const float toY = FrameLtm(target)->pos.y - m_v3Position.y;
             const RwFrame* own = static_cast<const CSGMovable*>(m_pKGLObject)->m_pRwFrame;
             CVector3 facing{FrameLtm(own)->at.x, FrameLtm(own)->at.y, FrameLtm(own)->at.z};
             CVector3 to{toX, toY, toZ};
-            if (m_unk884->m_unk194 >= AngleBetween(&facing, &to)) {  // 0x0027eb88
+            if (m_pActiveEnemyCpnt->m_unk194 >= AngleBetween(&facing, &to)) {  // 0x0027eb88
                 CVector3 facing2{FrameLtm(own)->at.x, FrameLtm(own)->at.y, FrameLtm(own)->at.z};
                 CVector3 to2{toX, toY, toZ};
-                if (-m_unk884->m_unk194 <= AngleBetween(&facing2, &to2)) {
-                    EnemyGroup()->m_unk1bc = 1;
+                if (-m_pActiveEnemyCpnt->m_unk194 <= AngleBetween(&facing2, &to2)) {
+                    EnemyGroup()->m_bAlerted = 1;
                     SignalEnemyGroupAlert();  // 0x00268178
                     // stb 1 at +0x1e8: the high byte of the PS3 word.
-                    EnemyGroup()->m_unk1e8 = (EnemyGroup()->m_unk1e8 & 0x00ffffffu) | 0x01000000u;
+                    EnemyGroup()->m_bAlertedThisFrame = (EnemyGroup()->m_bAlertedThisFrame & 0x00ffffffu) | 0x01000000u;
                     ApplySquadPendingChoreography();  // 0x0025ca10
                     SwitchMainState(0x20, nullptr);
                     return 2;
@@ -75,7 +75,7 @@ uint8_t CKHkS08Enemy::AwareState00_WatchForTarget(IKTime* /*clock*/, int32_t pha
             }
         }
     }
-    return EnemyGroup()->m_unk1bc != 0 ? 2 : 0;
+    return EnemyGroup()->m_bAlerted != 0 ? 2 : 0;
 }
 
 // 0x00288a38 CKHkS08Enemy_UpdateStatusEffects: burning, poison, freeze, wind, shadow, stun (in that order).

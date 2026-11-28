@@ -79,12 +79,12 @@ public:
     uint32_t m_ui32NbLocalModules;       // +0x64
     uint32_t m_ui32NbGlobalSpawnPoints;  // +0x68
     uint32_t m_ui32NbLocalSpawnPoints;   // +0x6c
-    uint32_t m_ui32NbGlobalUnk48;        // +0x70
-    uint32_t m_ui32NbLocalUnk48;         // +0x74
-    uint32_t m_ui32NbGlobalUnk54;        // +0x78
-    uint32_t m_ui32NbLocalUnk54;         // +0x7c
+    uint32_t m_ui32NbGlobalVideos;        // +0x70
+    uint32_t m_ui32NbLocalVideos;         // +0x74
+    uint32_t m_ui32NbGlobalSekens;        // +0x78
+    uint32_t m_ui32NbLocalSekens;         // +0x7c
     IKSerializable* m_pCinematicScene;   // +0x80 read last by the level part, as XXL2's (null in LVL000)
-    IKSerializable* m_pUnk84;            // +0x84 DotD: read last by the type-8 block (GAME.KP3: a PS3_CKVideo)
+    IKSerializable* m_pLoadingVideo;            // +0x84 DotD: read last by the type-8 block (GAME.KP3: a PS3_CKVideo)
 };
 DOTD_ASSERT_SIZE(CKGameLevel, 0x88);
 DOTD_ASSERT_OFFSET(CKGameLevel, m_pGameStructure, 0x18);
@@ -95,6 +95,6 @@ DOTD_ASSERT_OFFSET(CKGameLevel, m_vpSpawnPoints, 0x3c);
 DOTD_ASSERT_OFFSET(CKGameLevel, m_vpUnk48, 0x48);
 DOTD_ASSERT_OFFSET(CKGameLevel, m_vpUnk54, 0x54);
 DOTD_ASSERT_OFFSET(CKGameLevel, m_ui32NbGlobalModules, 0x60);
-DOTD_ASSERT_OFFSET(CKGameLevel, m_ui32NbLocalUnk54, 0x7c);
+DOTD_ASSERT_OFFSET(CKGameLevel, m_ui32NbLocalSekens, 0x7c);
 DOTD_ASSERT_OFFSET(CKGameLevel, m_pCinematicScene, 0x80);
-DOTD_ASSERT_OFFSET(CKGameLevel, m_pUnk84, 0x84);
+DOTD_ASSERT_OFFSET(CKGameLevel, m_pLoadingVideo, 0x84);

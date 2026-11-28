@@ -95,7 +95,7 @@ void CKTimeScalingNodeFx::Update(IKTime* frameClock) {
     if ((data->m_unk08 & 2) == 0) {
         const float t = m_fElapsed + frameClock->m_afDeltaTime[1];
         m_fElapsed = t;
-        if (data->m_unk0c > t) {
+        if (data->m_fDuration > t) {
             m_fScale = data->EvaluateScaleCurve(t);
         } else if ((data->m_unk08 & 1) != 0) {
             Stop();  // vt+0x6c

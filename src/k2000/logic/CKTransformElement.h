@@ -80,7 +80,7 @@ public:
     int32_t m_manaRequired[3];         // +0x044
     float m_dmgRandBase;               // +0x050 _maybe
     float m_dmgRandRange;              // +0x054 _maybe
-    float m_dmgParam2C[3];             // +0x058
+    float m_afDisarmAmount[3];             // +0x058
     float m_dmgParam28[3];             // +0x064
     float m_dmgEffect0[3];             // +0x070
     float m_dmgEffect1[3];             // +0x07c
@@ -95,25 +95,25 @@ public:
     uint8_t m_padD6[2];                // +0x0d6
     float m_groundFxIntervalBase;      // +0x0d8 _maybe
     float m_groundFxIntervalRange;     // +0x0dc _maybe
-    float m_unkE0;                     // +0x0e0 (file: 0.5) the ground FX scatter radius (Update)
-    uint8_t m_airPerm1Perm0TurnEnable[3];    // +0x0e4
+    float m_fGroundFxScatterRadius;                     // +0x0e0 (file: 0.5) the ground FX scatter radius (Update)
+    uint8_t m_groundPerm1Perm0TurnEnable[3];    // +0x0e4
     uint8_t m_padE7;                         // +0x0e7
-    float m_airTurnAB[2];                    // +0x0e8
+    float m_groundTurnAB[2];                    // +0x0e8
     uint8_t m_mode1Perm1Perm0TurnEnable[3];  // +0x0f0
     uint8_t m_padF3;                         // +0x0f3
     float m_mode1TurnAB[2];                  // +0x0f4
-    float m_airMoveSpeed;                    // +0x0fc
+    float m_groundMoveSpeed;                    // +0x0fc
     float m_mode1MoveSpeed;                  // +0x100
-    uint8_t m_airMode1P11f8Enable[2];        // +0x104
+    uint8_t m_groundMode1P11f8Enable[2];        // +0x104
     uint8_t m_pad106[2];                     // +0x106
-    float m_airMode1P11f8[2];                // +0x108
-    uint8_t m_groundPerm1Perm0TurnEnable[3]; // +0x110
+    float m_groundMode1P11f8[2];                // +0x108
+    uint8_t m_airPerm1Perm0TurnEnable[3]; // +0x110
     uint8_t m_pad113;                        // +0x113
-    float m_groundTurnAB[2];                 // +0x114
-    float m_groundMoveSpeed;                 // +0x11c
-    uint8_t m_groundP11f8Enable;             // +0x120
+    float m_airTurnAB[2];                 // +0x114
+    float m_airMoveSpeed;                 // +0x11c
+    uint8_t m_airP11f8Enable;             // +0x120
     uint8_t m_pad121[3];                     // +0x121
-    float m_groundP11f8;                     // +0x124
+    float m_airP11f8;                     // +0x124
     IKSerializable* m_emitterFxData;   // +0x128 (reference; live: CKExplosionFxData): StartEmitterFx's effect
     // +0x12c..+0x153 the run-time state, not loaded (ResetRuntime / Start).
     CKS08AbilityHostBase* m_pHost;     // +0x12c the host while running
@@ -121,9 +121,9 @@ public:
     uint8_t m_bLoop;                   // +0x131 in the loop phase (phase 1)
     uint8_t m_bStartAnim;              // +0x132 in the start animation (phase 0)
     uint8_t m_bEndAnim;                // +0x133 in the end animation (phase 4)
-    // +0x134 the user is in the air: the host's vt+0x30 inverted (ApplyHeroControl, SwitchLoopAnim). The hero host calls
-    // vt+0x30 IsAirborne_maybe, but the elements read it as "on the ground" (the earth boulder's landing explosion when
-    // it turns 1 while falling, its jump sound when it turns 0; the enemy host's is CKHkS08Enemy_IsOnGround).
+    // +0x134 the user is in the air: the host's vt+0x30 inverted (ApplyHeroControl, SwitchLoopAnim). vt+0x30 is
+    // IsOnGround (0x3f0fa0; the earth boulder's landing explosion when it turns 1 while falling, its jump sound when
+    // it turns 0; the enemy host's is CKHkS08Enemy_IsOnGround).
     // ResetRuntime does not write it; its writers run before every read (Start applies the control).
     uint8_t m_bInAir;
     uint8_t m_pad135[3];
@@ -192,7 +192,7 @@ DOTD_ASSERT_OFFSET(CKTransformElement, m_manaPerSecond, 0x38);
 DOTD_ASSERT_OFFSET(CKTransformElement, m_manaRequired, 0x44);
 DOTD_ASSERT_OFFSET(CKTransformElement, m_dmgRandBase, 0x50);
 DOTD_ASSERT_OFFSET(CKTransformElement, m_dmgRandRange, 0x54);
-DOTD_ASSERT_OFFSET(CKTransformElement, m_dmgParam2C, 0x58);
+DOTD_ASSERT_OFFSET(CKTransformElement, m_afDisarmAmount, 0x58);
 DOTD_ASSERT_OFFSET(CKTransformElement, m_dmgParam28, 0x64);
 DOTD_ASSERT_OFFSET(CKTransformElement, m_dmgEffect0, 0x70);
 DOTD_ASSERT_OFFSET(CKTransformElement, m_dmgEffect1, 0x7c);
@@ -206,20 +206,20 @@ DOTD_ASSERT_OFFSET(CKTransformElement, m_dmgFlag34, 0xd0);
 DOTD_ASSERT_OFFSET(CKTransformElement, m_dmgFlag35, 0xd3);
 DOTD_ASSERT_OFFSET(CKTransformElement, m_groundFxIntervalBase, 0xd8);
 DOTD_ASSERT_OFFSET(CKTransformElement, m_groundFxIntervalRange, 0xdc);
-DOTD_ASSERT_OFFSET(CKTransformElement, m_unkE0, 0xe0);
-DOTD_ASSERT_OFFSET(CKTransformElement, m_airPerm1Perm0TurnEnable, 0xe4);
-DOTD_ASSERT_OFFSET(CKTransformElement, m_airTurnAB, 0xe8);
+DOTD_ASSERT_OFFSET(CKTransformElement, m_fGroundFxScatterRadius, 0xe0);
+DOTD_ASSERT_OFFSET(CKTransformElement, m_groundPerm1Perm0TurnEnable, 0xe4);
+DOTD_ASSERT_OFFSET(CKTransformElement, m_groundTurnAB, 0xe8);
 DOTD_ASSERT_OFFSET(CKTransformElement, m_mode1Perm1Perm0TurnEnable, 0xf0);
 DOTD_ASSERT_OFFSET(CKTransformElement, m_mode1TurnAB, 0xf4);
-DOTD_ASSERT_OFFSET(CKTransformElement, m_airMoveSpeed, 0xfc);
+DOTD_ASSERT_OFFSET(CKTransformElement, m_groundMoveSpeed, 0xfc);
 DOTD_ASSERT_OFFSET(CKTransformElement, m_mode1MoveSpeed, 0x100);
-DOTD_ASSERT_OFFSET(CKTransformElement, m_airMode1P11f8Enable, 0x104);
-DOTD_ASSERT_OFFSET(CKTransformElement, m_airMode1P11f8, 0x108);
-DOTD_ASSERT_OFFSET(CKTransformElement, m_groundPerm1Perm0TurnEnable, 0x110);
-DOTD_ASSERT_OFFSET(CKTransformElement, m_groundTurnAB, 0x114);
-DOTD_ASSERT_OFFSET(CKTransformElement, m_groundMoveSpeed, 0x11c);
-DOTD_ASSERT_OFFSET(CKTransformElement, m_groundP11f8Enable, 0x120);
-DOTD_ASSERT_OFFSET(CKTransformElement, m_groundP11f8, 0x124);
+DOTD_ASSERT_OFFSET(CKTransformElement, m_groundMode1P11f8Enable, 0x104);
+DOTD_ASSERT_OFFSET(CKTransformElement, m_groundMode1P11f8, 0x108);
+DOTD_ASSERT_OFFSET(CKTransformElement, m_airPerm1Perm0TurnEnable, 0x110);
+DOTD_ASSERT_OFFSET(CKTransformElement, m_airTurnAB, 0x114);
+DOTD_ASSERT_OFFSET(CKTransformElement, m_airMoveSpeed, 0x11c);
+DOTD_ASSERT_OFFSET(CKTransformElement, m_airP11f8Enable, 0x120);
+DOTD_ASSERT_OFFSET(CKTransformElement, m_airP11f8, 0x124);
 DOTD_ASSERT_OFFSET(CKTransformElement, m_emitterFxData, 0x128);
 DOTD_ASSERT_OFFSET(CKTransformElement, m_pHost, 0x12c);
 DOTD_ASSERT_OFFSET(CKTransformElement, m_bRunning, 0x130);

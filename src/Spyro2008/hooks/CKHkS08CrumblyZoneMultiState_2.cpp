@@ -91,20 +91,20 @@ void Reserve1(TVector<T, 1>& v) {
 int32_t CKHkS08CrumblyZoneMultiState::Load(IKFile* file, int32_t type) {
     CKHkCrumblyZoneMultiState::Load(file, type);
     if (type != K_LEVEL_PLATEFORMS) return 1;
-    IKFile_ReadRef(file, &m_pUnk8C);
-    ReadU8(file, &m_unk9C);
-    ReadF32LE(file, &m_fUnkA0);
-    ReadF32LE(file, &m_fUnkA4);
+    IKFile_ReadRef(file, &m_pDamage);
+    ReadU8(file, &m_bManaFeedEnabled);
+    ReadF32LE(file, &m_fManaFeedRadius);
+    ReadF32LE(file, &m_fManaFeedInterval);
     IKFile_ReadRef(file, &m_pUnkAC);
     // One count for the three vectors.
     uint32_t count = 0;
     ReadU32LE(file, &count);
-    Reserve1(m_vUnkB0);
-    for (uint32_t i = 0; i < count; ++i) ReadU8(file, PushBack(m_vUnkB0));
-    IKFile_ReadRef(file, &m_pUnkBC);
-    Reserve1(m_vUnk90);
+    Reserve1(m_vManaFeedStateFlags);
+    for (uint32_t i = 0; i < count; ++i) ReadU8(file, PushBack(m_vManaFeedStateFlags));
+    IKFile_ReadRef(file, &m_pSoundDico);
+    Reserve1(m_vDamageFilters);
     for (uint32_t i = 0; i < count; ++i) {
-        StateEntry* entry = PushBack(m_vUnk90);
+        StateEntry* entry = PushBack(m_vDamageFilters);
         ReadU32LE(file, &entry->m_unk0);
         for (uint8_t& b : entry->m_unk4) ReadU8(file, &b);
     }
@@ -112,7 +112,7 @@ int32_t CKHkS08CrumblyZoneMultiState::Load(IKFile* file, int32_t type) {
     for (uint32_t i = 0; i < count; ++i) ReadU8(file, PushBack(m_vUnkC0));
     ReadU8(file, &m_unkCC);
     ReadU8(file, &m_unkCD);
-    ReadU32LE(file, &m_unkD0);
+    ReadU32LE(file, &m_ui32GemReward);
     return 1;
 }
 
@@ -123,7 +123,7 @@ void CKHkS08CrumblyZoneMultiState::Start() {
     // CKHkActorBase_d82_maybe_ResetRuntime 0x3f6e48: empty.
     for (uint32_t i = m_vUnk38.m_ui32NbUsedElt; i != 0; --i) {
         CKCrumblyZoneState* state = static_cast<CKCrumblyZoneState*>(m_vUnk38.m_pBlock[i - 1]);
-        if (m_unk28 > i - 1) {
+        if (m_ui32CurrentState > i - 1) {
             state->m_unk08 = 0.0f;
         } else {
             state->m_unk08 = state->m_unk0c;
@@ -132,7 +132,7 @@ void CKHkS08CrumblyZoneMultiState::Start() {
     // Every state's volumes get the damage object of +0x8c (0x4038f0 -> 0x1903c0, last to first).
     for (uint32_t i = m_vUnk38.m_ui32NbUsedElt; i != 0; --i) {
         CKCrumblyZoneState* state = static_cast<CKCrumblyZoneState*>(m_vUnk38.m_pBlock[i - 1]);
-        c22spyro::VolumeArraySetDamage(static_cast<CKBoundingCpnt*>(state->m_pBoundingCpnt), m_pUnk8C);
+        c22spyro::VolumeArraySetDamage(static_cast<CKBoundingCpnt*>(state->m_pBoundingCpnt), m_pDamage);
     }
     // A boss zone joins the game manager's boss gauge lists (only for m_unkCC / m_unkCD; no LVL010 zone has them).
     CKS08GameManager* manager = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager);
@@ -143,7 +143,7 @@ void CKHkS08CrumblyZoneMultiState::Start() {
 // 0x00415190 CKHkS08CrumblyZoneMultiState_OnActivate
 void CKHkS08CrumblyZoneMultiState::VfA0() {
     CKHkCrumblyZoneMultiState::VfA0();  // 0x00412a78
-    m_unkA8 = 0;
+    m_fManaFeedTimer = 0;
 }
 
 // 0x00415690 CKHkS08CrumblyZoneMultiState_vfF0
@@ -155,7 +155,7 @@ void CKHkS08CrumblyZoneMultiState::SetState(uint32_t state, uint8_t force, uint8
     static const CVector3 kAxisY = {0.0f, 1.0f, 0.0f};
     const RwFrame* frame = static_cast<CSGMovable*>(m_pKGLObject)->m_pRwFrame;
     static_cast<CKS08GameManager*>(g_pEngine->m_gameManager)
-        ->SpawnGemReward(m_unkD0, reinterpret_cast<const CVector3*>(&frame->ltm.pos), &kAxisY);  // 0x004f8618
+        ->SpawnGemReward(m_ui32GemReward, reinterpret_cast<const CVector3*>(&frame->ltm.pos), &kAxisY);  // 0x004f8618
 }
 
 // 0x00415270 CKHkS08CrumblyZoneMultiState_GetInfo: CKHkCrumblyZoneMultiState's answer (2 kept, else 0 or 1).
@@ -169,39 +169,39 @@ int32_t CKHkS08CrumblyZoneMultiState::GetInfo(IKInfo* info, int32_t request) {
 float CKHkS08CrumblyZoneMultiState::GetHitDamage(IKBoundingVolume* volume, uint8_t touched) {
     CKS08Damage* damage = static_cast<CKS08Damage*>(volume->m_unk1c);
     if (damage == nullptr) return 0.0f;
-    const StateEntry& entry = m_vUnk90.m_pBlock[m_unk28];
+    const StateEntry& entry = m_vDamageFilters.m_pBlock[m_ui32CurrentState];
     bool hit = false;
     if (damage->IsKindOfClass(0x998c) != 0) {  // vt+0x08 CKS08HeroDamage
         if (touched == 0) return 0.0f;
-        if (entry.m_unk4[4] != 0 && (damage->m_unk20 == 5 || volume->m_ui8OwnerType == 2)) {  // +0x08
+        if (entry.m_unk4[4] != 0 && (damage->m_ui32DamageType == 5 || volume->m_ui8OwnerType == 2)) {  // +0x08
             hit = true;
         } else {
             if (entry.m_unk4[0] == 0) return 0.0f;  // +0x04
             hit = true;
         }
     } else if (damage->IsKindOfClass(0x99cc) != 0) {  // CKS08ElementDamage
-        if (damage->m_unk0c == 0 && touched == 0) return 0.0f;
+        if (damage->m_bContinuous == 0 && touched == 0) return 0.0f;
         CKS08ElementDamage* element = static_cast<CKS08ElementDamage*>(damage);
         CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(volume->m_pOwner);  // +0x24
-        if (element->m_unk38 == 5) {
+        if (element->m_i32AbilityId == 5) {
             if (entry.m_unk4[2] != 0 && hero->GetEarthBoulderFlag2CC() != 0) hit = true;                // +0x06, 0x0032a840
             else if (entry.m_unk4[1] != 0 && hero->ShouldJoinPartnerFlightThunk() != 0) hit = true;  // +0x05, 0x0032a520
             else if (entry.m_unk4[3] != 0) hit = true;                                                // +0x07
         }
         if (!hit) {
-            if ((ppc::slw(1u, damage->m_unk20) & entry.m_unk0) == 0) return 0.0f;
+            if ((ppc::slw(1u, damage->m_ui32DamageType) & entry.m_unk0) == 0) return 0.0f;
             hit = true;
         }
     } else if (damage->IsKindOfClass(0x970c) != 0) {  // CKS08SpyroDamage_maybe
-        if (damage->m_unk0c != 0) return g_pEngine->m_timeManager->m_pTime->m_afDeltaTime[0] * damage->m_unk04;
+        if (damage->m_bContinuous != 0) return g_pEngine->m_timeManager->m_pTime->m_afDeltaTime[0] * damage->m_fAmount;
         if (touched == 0) return 0.0f;
-        return damage->m_unk04;
+        return damage->m_fAmount;
     } else {
         return 0.0f;
     }
     (void)hit;
-    if (damage->m_unk0c != 0) return g_pEngine->m_timeManager->m_pTime->m_afDeltaTime[0] * damage->m_unk04;  // +0x48 -> +0x04 -> +0x1c
-    return damage->m_unk04;
+    if (damage->m_bContinuous != 0) return g_pEngine->m_timeManager->m_pTime->m_afDeltaTime[0] * damage->m_fAmount;  // +0x48 -> +0x04 -> +0x1c
+    return damage->m_fAmount;
 }
 
 // 0x00415740 CKHkS08CrumblyZoneMultiState_SpawnExplosionFx (vt+0x104): with a game manager, its explosion 0 for the zone
@@ -218,7 +218,7 @@ void CKHkS08CrumblyZoneMultiState::Vf104() {
 // 0x004157b8 CKHkS08CrumblyZoneMultiState_Update (vt+0x7c)
 void CKHkS08CrumblyZoneMultiState::Update(IKTime* frameClock) {
     CKHkCrumblyZoneMultiState::Update(frameClock);  // 0x00411e78
-    if (m_unk9C == 0 || m_vUnkB0.m_pBlock[m_unk28] == 0) return;
+    if (m_bManaFeedEnabled == 0 || m_vManaFeedStateFlags.m_pBlock[m_ui32CurrentState] == 0) return;
     CKS08GameManager* manager = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager);
     IKGrpHero* heroes = static_cast<IKGrpHero*>(manager->m_unk04[1]);
     const RwFrame* frame = static_cast<CSGMovable*>(m_pKGLObject)->m_pRwFrame;
@@ -233,7 +233,7 @@ void CKHkS08CrumblyZoneMultiState::Update(IKTime* frameClock) {
         const float dz = p[2] - frame->ltm.pos.z;
         dy = dy * dy;
         const float d = ppc::fmadds(dz, dz, ppc::fmadds(dx, dx, dy));
-        if (m_fUnkA0 * m_fUnkA0 > d) {  // bgt
+        if (m_fManaFeedRadius * m_fManaFeedRadius > d) {  // bgt
             hero->m_unk1dd1 = 1;  // 0x0032a410 CKHkS08Hero_SetNearCrumblyZoneFlags_maybe
             hero->m_unk1dd0 = 1;
         }
@@ -244,13 +244,13 @@ void CKHkS08CrumblyZoneMultiState::Update(IKTime* frameClock) {
         }
     }
     if (feeder == nullptr) return;
-    if (!(m_fUnkA0 * m_fUnkA0 > best)) return;  // ble
-    float timer = m_unkA8 + frameClock->m_afDeltaTime[0];
-    m_unkA8 = timer;
-    float period = m_fUnkA4;
+    if (!(m_fManaFeedRadius * m_fManaFeedRadius > best)) return;  // ble
+    float timer = m_fManaFeedTimer + frameClock->m_afDeltaTime[0];
+    m_fManaFeedTimer = timer;
+    float period = m_fManaFeedInterval;
     while (timer > period) {
         timer = timer - period;
-        m_unkA8 = timer;
+        m_fManaFeedTimer = timer;
         CKGrpBonus* group = static_cast<CKGrpBonus*>(manager->m_unk04[3]);  // the game manager's +0x10
         if (group == nullptr) continue;
         feeder->GetDragonIndex();  // 0x00361960 (its answer only picks the same call)
@@ -258,36 +258,36 @@ void CKHkS08CrumblyZoneMultiState::Update(IKTime* frameClock) {
         static_cast<CSGHotSpot*>(feeder->GetHotSpot(5))->GetWorldPosition(&at);  // 0x00361b70, 0x000ce790
         const uint8_t dragon = feeder->GetDragonIndex();
         manager->ConsumeDragonMana(dragon, manager->GetBonusValue(2));  // 0x004fd808, 0x004f6b10
-        if (CKSoundDictionaryID_GetSound(static_cast<CKSoundDictionaryID*>(m_pUnkBC), 0) != nullptr) {  // 0x00112bc0
-            CKSound_Play(0.0f, CKSoundDictionaryID_GetSound(static_cast<CKSoundDictionaryID*>(m_pUnkBC), 0));  // 0x00111230
+        if (CKSoundDictionaryID_GetSound(static_cast<CKSoundDictionaryID*>(m_pSoundDico), 0) != nullptr) {  // 0x00112bc0
+            CKSound_Play(0.0f, CKSoundDictionaryID_GetSound(static_cast<CKSoundDictionaryID*>(m_pSoundDico), 0));  // 0x00111230
         }
         IKSerializable* bonus = group->SpawnBonusObject(2, &at, 0);  // 0x005b0df8 (TocBridge)
         if (bonus != nullptr) {
             // 0x005b7038 CKHkS08Bonus_InitSpawnedBonus_maybe: +0x35 = 0, then vt+0xe4 (it flies to the zone).
             static const CVector3 kAxisY = {0.0f, 1.0f, 0.0f};  // 0x00c50d40
-            static_cast<CKHkS08Bonus*>(bonus)->m_unk35 = 0;
+            static_cast<CKHkS08Bonus*>(bonus)->m_bPlayCollectSound = 0;
             static_cast<CKHkS08Bonus*>(bonus)->VfE4(&kAxisY, this);
         }
-        timer = m_unkA8;
-        period = m_fUnkA4;
+        timer = m_fManaFeedTimer;
+        period = m_fManaFeedInterval;
     }
 }
 
 // 0x00415e70 CKHkS08CrumblyZoneMultiState_Destroy
 void CKHkS08CrumblyZoneMultiState::Destroy() {
     CKHkCrumblyZoneMultiState::Destroy();
-    if (m_vUnkB0.m_pBlock != nullptr) {
-        Mem_FreeAligned16(m_vUnkB0.m_pBlock);
-        m_vUnkB0.m_pBlock = nullptr;
+    if (m_vManaFeedStateFlags.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_vManaFeedStateFlags.m_pBlock);
+        m_vManaFeedStateFlags.m_pBlock = nullptr;
     }
-    m_vUnkB0.m_ui32NbUsedElt = 0;
-    m_vUnkB0.m_pBlock = nullptr;
-    if (m_vUnk90.m_pBlock != nullptr) {
-        Mem_FreeAligned16(m_vUnk90.m_pBlock);
-        m_vUnk90.m_pBlock = nullptr;
+    m_vManaFeedStateFlags.m_ui32NbUsedElt = 0;
+    m_vManaFeedStateFlags.m_pBlock = nullptr;
+    if (m_vDamageFilters.m_pBlock != nullptr) {
+        Mem_FreeAligned16(m_vDamageFilters.m_pBlock);
+        m_vDamageFilters.m_pBlock = nullptr;
     }
-    m_vUnk90.m_ui32NbUsedElt = 0;
-    m_vUnk90.m_pBlock = nullptr;
+    m_vDamageFilters.m_ui32NbUsedElt = 0;
+    m_vDamageFilters.m_pBlock = nullptr;
     if (m_vUnkC0.m_pBlock != nullptr) {
         Mem_FreeAligned16(m_vUnkC0.m_pBlock);
         m_vUnkC0.m_pBlock = nullptr;

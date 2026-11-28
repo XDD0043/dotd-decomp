@@ -75,36 +75,36 @@ float WordF32(uint32_t word) {
 // original stores the flags and draws unconditionally after the host test.
 void CKIceGatling::Start(CKS08AbilityHostBase* host) {
     CKProjectileElement::Start(host);
-    if (m_pHost != nullptr) m_pHost->SetHero1d20(m_unk214[m_unk04]);  // vt+0x84
-    m_unk262 = 0;
-    m_unk261 = 1;
-    m_unk260 = 0;
+    if (m_pHost != nullptr) m_pHost->SetHero1d20(m_afHeroAnimSpeedScale[m_ui32LevelIndex]);  // vt+0x84
+    m_bFirstShotSkipped = 0;
+    m_bHoldBackFirstShot = 1;
+    m_bReleasedPastTap = 0;
     // fdivs by 65535 (TOC +0x3924), then fcmpu with 0.5 (TOC +0x3928), bgt: an ordered greater-than.
-    m_unk263 = static_cast<uint8_t>(IG_RAND_U16() / 65535.0f > 0.5f ? 1 : 0);
+    m_bNextSide = static_cast<uint8_t>(IG_RAND_U16() / 65535.0f > 0.5f ? 1 : 0);
 }
 
 // 0x003aa1c0 CKIceGatling_Update. +0x260: neither the button down (host vt+0x8c) nor held (vt+0x94) and the press
 // time past the tap window (+0x1fc > +0x74; ble: a NaN keeps 0).
 uint8_t CKIceGatling::Update(float dt) {
     float held;
-    if (m_pHost->IsAbilityButtonDown(m_unk209) != 0 || m_pHost->GetAbilityButtonHoldTime(m_unk209, &held) != 0 ||
-        !(m_unk1fc > m_unk74)) {
-        m_unk260 = 0;
+    if (m_pHost->IsAbilityButtonDown(m_ui8ButtonIndex) != 0 || m_pHost->GetAbilityButtonHoldTime(m_ui8ButtonIndex, &held) != 0 ||
+        !(m_fTimeSinceRelease > m_fTapWindow)) {
+        m_bReleasedPastTap = 0;
     } else {
-        m_unk260 = 1;
+        m_bReleasedPastTap = 1;
     }
-    CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_unk250);
+    CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_pAnimFxCollection);
     if (collection->m_bPlaying != 0) collection->Update(dt);  // TocBridge 0x0098f4b0 -> 0x005cccb0
     if (CKProjectileElement::Update(dt) == 0) return 0;
-    if (m_unk262 != 0) m_unk1fc = 0.0f;  // stw 0
-    if (m_pHost->IsAbilityButtonDown(m_unk209) != 0) m_pHost->PlayAbilityAnim(this, 1);  // vt+0x8c, vt+0x7c
+    if (m_bFirstShotSkipped != 0) m_fTimeSinceRelease = 0.0f;  // stw 0
+    if (m_pHost->IsAbilityButtonDown(m_ui8ButtonIndex) != 0) m_pHost->PlayAbilityAnim(this, 1);  // vt+0x8c, vt+0x7c
     return 1;
 }
 
 // 0x003aa770 CKIceGatling_End
 void CKIceGatling::End(int32_t forced) {
     m_pHost->SetHero1d20(1.0f);  // vt+0x84; TOC +0x3954
-    CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_unk250);
+    CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_pAnimFxCollection);
     if (collection->m_bPlaying != 0) collection->Stop();  // TocBridge 0x0098f4c0 -> 0x005cc990
     CKProjectileElement::End(static_cast<uint8_t>(forced));
 }
@@ -112,32 +112,32 @@ void CKIceGatling::End(int32_t forced) {
 // 0x003aa170 CKIceGatling_ResetRuntime
 void CKIceGatling::ResetRuntime(int32_t type) {
     CKProjectileElement::ResetRuntime(type);
-    m_unk262 = 0;
-    m_unk208 = 2;
-    m_unk209 = 1;
-    m_unk260 = 0;
-    m_unk261 = 0;
+    m_bFirstShotSkipped = 0;
+    m_ui8HotSpotIndex = 2;
+    m_ui8ButtonIndex = 1;
+    m_bReleasedPastTap = 0;
+    m_bHoldBackFirstShot = 0;
 }
 
 // 0x003a9cb0 CKIceGatling_ApplyDamageParams: the level's normal values (the base's first set), in the base's order.
 void CKIceGatling::ApplyDamageParams(uint8_t continuous) {
     const float damageScale = m_pHost->GetDamageScale();  // vt+0xc0
     const float effectScale = m_pHost->GetEffectScale();  // vt+0xc4
-    const uint32_t level = m_unk04;
-    CKS08ElementDamage* damage = static_cast<CKS08ElementDamage*>(m_unk20c);
-    damage->SetAmount(damageScale * static_cast<float>(static_cast<double>(m_unk08[level])));  // vt+0x50 (fcfid, frsp)
-    damage->SetStun(m_unka0[m_unk04]);                                     // vt+0x5c
-    damage->SetStunDuration(m_unk88[m_unk04]);                             // vt+0x60
-    damage->SetElementValue(effectScale * WordF32(m_unkb8[m_unk04]), 0);  // vt+0x58
-    damage->SetElementValue(effectScale * m_unkd0[m_unk04], 1);
-    damage->SetElementValue(effectScale * WordF32(m_unke8[m_unk04]), 2);
-    damage->SetElementValue(effectScale * m_unk118[m_unk04], 6);
-    damage->SetElementValue(effectScale * WordF32(m_unk100[m_unk04]), 4);
-    damage->SetElementValue(effectScale * WordF32(m_unk148[m_unk04]), 7);
+    const uint32_t level = m_ui32LevelIndex;
+    CKS08ElementDamage* damage = static_cast<CKS08ElementDamage*>(m_pElementDamage);
+    damage->SetAmount(damageScale * static_cast<float>(static_cast<double>(m_ai32DamageNormal[level])));  // vt+0x50 (fcfid, frsp)
+    damage->SetStun(m_afStunAmountNormal[m_ui32LevelIndex]);                                     // vt+0x5c
+    damage->SetDisarmAmount(m_afDisarmAmountNormal[m_ui32LevelIndex]);                             // vt+0x60
+    damage->SetElementValue(effectScale * WordF32(m_afElem0Normal[m_ui32LevelIndex]), 0);  // vt+0x58
+    damage->SetElementValue(effectScale * m_afElem1Normal[m_ui32LevelIndex], 1);
+    damage->SetElementValue(effectScale * WordF32(m_afElem2Normal[m_ui32LevelIndex]), 2);
+    damage->SetElementValue(effectScale * m_afElem6Normal[m_ui32LevelIndex], 6);
+    damage->SetElementValue(effectScale * WordF32(m_afElem4Normal[m_ui32LevelIndex]), 4);
+    damage->SetElementValue(effectScale * WordF32(m_afElem7Normal[m_ui32LevelIndex]), 7);
     const uint32_t value3[3] = {m_unk160, m_unk164, m_unk168};
-    damage->SetElementValue(effectScale * WordF32(value3[m_unk04]), 3);
-    damage->SetUnk34(m_unk178[m_unk04]);  // vt+0x6c
-    damage->SetUnk35(m_unk17e[m_unk04]);  // vt+0x70
+    damage->SetElementValue(effectScale * WordF32(value3[m_ui32LevelIndex]), 3);
+    damage->SetUnk34(m_abDmgFlag34Normal[m_ui32LevelIndex]);  // vt+0x6c
+    damage->SetUnk35(m_abDmgFlag35Normal[m_ui32LevelIndex]);  // vt+0x70
     damage->SetDamageType(kAbilityDamageTypes[GetAbilityId() & 0xffu]);  // vt+0x64
     damage->SetAbilityId(GetAbilityId());                                 // vt+0x68
     damage->SetContinuous(continuous);                                    // vt+0x54
@@ -154,20 +154,20 @@ void CKIceGatling::ApplyDamageParams(uint8_t continuous) {
 // owner's node (its rigs vt+0x104, the hot spot 4). Then the level's muzzle explosion (the inlined CKSrvFx::AcquireFx,
 // owned by the user) at the hot spot +0x208, turned along the shot, triggered and released. Returns 1.
 uint8_t CKIceGatling::Fire() {
-    if (m_unk261 != 0) {
-        m_unk262 = 1;
-        m_unk261 = 0;
+    if (m_bHoldBackFirstShot != 0) {
+        m_bFirstShotSkipped = 1;
+        m_bHoldBackFirstShot = 0;
         return 1;
     }
-    if (m_unk260 != 0) return 0;
-    m_unk262 = 0;
+    if (m_bReleasedPastTap != 0) return 0;
+    m_bFirstShotSkipped = 0;
     IKSerializable* owner = m_pHost->GetOwner();  // vt+0x08
-    const uint8_t side = m_unk263;
+    const uint8_t side = m_bNextSide;
     CVector3 offset;
-    offset.x = side != 0 ? m_unk22c[m_unk04] : -m_unk22c[m_unk04];
+    offset.x = side != 0 ? m_afSideOffset[m_ui32LevelIndex] : -m_afSideOffset[m_ui32LevelIndex];
     offset.y = 0.0f;  // TOC +0x396c
     offset.z = 0.0f;
-    m_unk263 = static_cast<uint8_t>(side ^ 1);
+    m_bNextSide = static_cast<uint8_t>(side ^ 1);
     CVector3 pos = GetLaunchPosDir(&offset);
     // The jitter: three draws first, then x, y, z (each fmadds(r, -1/32767.5, 1), TOC +0x3960 / +0x3954).
     constexpr float kJitterStep = -0x1.0001p-15f;  // 0xb8000080
@@ -176,12 +176,12 @@ uint8_t CKIceGatling::Fire() {
     const float ry = IG_RAND_U16();
     const float jy = ppc::fmadds(ry, kJitterStep, 1.0f);
     const float rz = IG_RAND_U16();
-    const float jitter = m_unk220[m_unk04];
+    const float jitter = m_afLaunchJitter[m_ui32LevelIndex];
     pos.x = ppc::fmadds(jx, jitter, pos.x);
     pos.y = ppc::fmadds(jy, jitter, pos.y);
     const float jz = ppc::fmadds(rz, kJitterStep, 1.0f);
     pos.z = ppc::fmadds(jz, jitter, pos.z);
-    m_pHost->ComputeAimDirection(0x1.921fb6p+1f, this, m_unk184);  // vt+0x58; pi (TOC +0x3964); the result unused
+    m_pHost->ComputeAimDirection(0x1.921fb6p+1f, this, m_pAimCone);  // vt+0x58; pi (TOC +0x3964); the result unused
     CVector3 dir;
     if (m_pHost->GetLockedTarget() != nullptr) {  // vt+0xd4
         const CVector3 target = m_pHost->GetTargetAimPoint(1, 0);  // vt+0xdc
@@ -198,26 +198,26 @@ uint8_t CKIceGatling::Fire() {
         dir.x = dir.x * inv;
         dir.y = dir.y * inv;
     }
-    if (static_cast<CKProjectileAccessor*>(m_unk244[m_unk04])->m_pProjectileType != nullptr) {
+    if (static_cast<CKProjectileAccessor*>(m_apProjectiles[m_ui32LevelIndex])->m_pProjectileType != nullptr) {
         ApplyDamageParams(0);  // vt+0x74
-        const float speed = m_unk238[m_unk04];
-        CKProjectileAccessor* accessor = static_cast<CKProjectileAccessor*>(m_unk244[m_unk04]);
+        const float speed = m_afLaunchSpeed[m_ui32LevelIndex];
+        CKProjectileAccessor* accessor = static_cast<CKProjectileAccessor*>(m_apProjectiles[m_ui32LevelIndex]);
         const float heroSpeed = m_pHost->GetHeroSpeedForAbility();  // vt+0x48
-        accessor->LaunchEx(&pos, &dir, speed + heroSpeed, m_unk20c, owner, nullptr);  // 0x001f2988
-        if (m_unk04 != 0) {
+        accessor->LaunchEx(&pos, &dir, speed + heroSpeed, m_pElementDamage, owner, nullptr);  // 0x001f2988
+        if (m_ui32LevelIndex != 0) {
             // vt+0x104 (the hero host's GetHeroAttachmentSets 0x3ee6a0: the hero's +0x1070; the slot is hero-only).
             CSGLeaf* node = static_cast<CSGLeaf*>(static_cast<IKHook*>(owner)->m_pKGLObject);  // the owner's +0x1c
             CKHkS08Hero* hero = static_cast<CKS08HeroAbilityHost*>(m_pHost)->GetHero();
             SAnimatedFxRig* rigs = reinterpret_cast<SAnimatedFxRig*>(&hero->m_apUnk1070[0][0]);
             CSGHotSpot* spot = static_cast<CSGHotSpot*>(m_pHost->GetHotspot(4));  // vt+0xcc
-            static_cast<CKAnimatedFxCollection*>(m_unk250)->Play(node, rigs, spot);  // TocBridge 0x0098f4d0
+            static_cast<CKAnimatedFxCollection*>(m_pAnimFxCollection)->Play(node, rigs, spot);  // TocBridge 0x0098f4d0
         }
     }
     CKSrvFx* fxService = static_cast<CKSrvFx*>(g_pEngine->m_srvFx);  // TOC +0x3968 -> +0x60
     CKExplosionNodeFx* fx =
-        static_cast<CKExplosionNodeFx*>(fxService->AcquireFx(reinterpret_cast<IKFxData*>(m_unk254[m_unk04]), owner));
+        static_cast<CKExplosionNodeFx*>(fxService->AcquireFx(reinterpret_cast<IKFxData*>(m_apMuzzleExplosions[m_ui32LevelIndex]), owner));
     if (fx == nullptr) return 1;
-    const CVector3 position = m_pHost->GetHotspotPosition(m_unk208);  // vt+0xd0
+    const CVector3 position = m_pHost->GetHotspotPosition(m_ui8HotSpotIndex);  // vt+0xd0
     fx->SetTranslation(&position, owner);  // 0x001b66e8
     fx->SetDirection(&dir, owner);         // 0x001b5e20
     fx->Trigger(owner, 0);                 // 0x001b82a8
@@ -231,21 +231,21 @@ int32_t CKIceGatling::Load(IKFile* file, int32_t type) {
     CKProjectileElement::Load(file, type);
     if (type != 0) return 1;
     for (int32_t i = 0; i < 3; ++i) {
-        ReadF32LE(file, &m_unk214[i]);
-        ReadF32LE(file, &m_unk220[i]);
+        ReadF32LE(file, &m_afHeroAnimSpeedScale[i]);
+        ReadF32LE(file, &m_afLaunchJitter[i]);
     }
-    IKFile_ReadRef(file, &m_unk244[0]);
-    IKFile_ReadRef(file, &m_unk244[1]);
-    IKFile_ReadRef(file, &m_unk244[2]);
-    IKFile_ReadRef(file, &m_unk250);
-    ReadF32LE(file, &m_unk238[0]);
-    ReadF32LE(file, &m_unk238[1]);
-    ReadF32LE(file, &m_unk238[2]);
-    IKFile_ReadRef(file, &m_unk254[0]);
-    IKFile_ReadRef(file, &m_unk254[1]);
-    IKFile_ReadRef(file, &m_unk254[2]);
-    ReadF32LE(file, &m_unk22c[0]);
-    ReadF32LE(file, &m_unk22c[1]);
-    ReadF32LE(file, &m_unk22c[2]);
+    IKFile_ReadRef(file, &m_apProjectiles[0]);
+    IKFile_ReadRef(file, &m_apProjectiles[1]);
+    IKFile_ReadRef(file, &m_apProjectiles[2]);
+    IKFile_ReadRef(file, &m_pAnimFxCollection);
+    ReadF32LE(file, &m_afLaunchSpeed[0]);
+    ReadF32LE(file, &m_afLaunchSpeed[1]);
+    ReadF32LE(file, &m_afLaunchSpeed[2]);
+    IKFile_ReadRef(file, &m_apMuzzleExplosions[0]);
+    IKFile_ReadRef(file, &m_apMuzzleExplosions[1]);
+    IKFile_ReadRef(file, &m_apMuzzleExplosions[2]);
+    ReadF32LE(file, &m_afSideOffset[0]);
+    ReadF32LE(file, &m_afSideOffset[1]);
+    ReadF32LE(file, &m_afSideOffset[2]);
     return 1;
 }

@@ -301,7 +301,7 @@ void CKCrumblyZoneState::UpdateNavBlocking(uint8_t on) {
         high.x = ppc::fmadds(dx * -0.5f, sx, sup.x);
         high.y = sup.y;
         high.z = ppc::fmadds(dz * -0.5f, sz, sup.z);
-        pathFinding->SetBoxBlocked(zone->m_unk78, &low, &high, blocked);  // 0x001e5f60
+        pathFinding->SetBoxBlocked(zone->m_i16PathFindingNodeIndex, &low, &high, blocked);  // 0x001e5f60
     };
     const CKGroundCpnt* grounds = static_cast<const CKGroundCpnt*>(m_pGroundCpnt);
     const uint8_t count = static_cast<uint8_t>(grounds->m_vGrounds.m_ui32NbUsedElt);  // 0x00191148 (a byte)

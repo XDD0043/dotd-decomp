@@ -59,7 +59,7 @@ uint32_t ConstraintFlags(const CKCameraConstraint* constraint) {  // the word at
 // (+0x1629); otherwise it goes back to the ground mode (SetMovementMode inlined: +0x180a and the game manager told).
 // Any other mode is 0.
 uint8_t CKHkS08Hero::ShouldStayClimbing() {
-    if (m_unk1808 != 2) return 0;
+    if (m_ui8MovementMode != 2) return 0;
     if ((m_unk1677 != 0 || m_unk1676 != 0 || m_unk1679 != 0 || m_unk1678 != 0 || (m_unkec8 & 1u) != 0) && m_unk1629 == 0) {
         return 1;
     }
@@ -88,13 +88,13 @@ void CKHkS08Hero::UpdateModeFlagsAndTetherTimers() {
     CKSrvCamera* camera = static_cast<CKSrvCamera*>(g_pEngine->m_srvCamera);
     uint32_t& cameraFlags = camera->m_baTemporaryFlags;
 
-    CKS08CarrierHero* carrier = static_cast<CKS08CarrierHero*>(m_unkfb8);
+    CKS08CarrierHero* carrier = static_cast<CKS08CarrierHero*>(m_pCarrierHero);
     if (carrier != nullptr && carrier->GetCarriedObject() != nullptr) {  // vt+0x80
         // The tether timers (+0x1780 / +0x1784) while the hero carries a weight (class 0x3142) heavier than 0.1: the
         // partner (not the player's hero) farther than the group's maximum partner distance less 3 starts the
         // 3-second timer, unless the partner is held (+0xec4 bit 22) or keeps climbing; else they are cleared.
         const float toMiddle0 = LoadFloat(&group->m_unk2d4[16]);  // +0x314
-        const float toMiddle1 = LoadFloat(&group->m_unk318);      // +0x318
+        const float toMiddle1 = LoadFloat(&group->m_fHero1ToMidDist);      // +0x318
         const float maxDistance = group->m_unk108;                 // 0x002ce518 GetMaxPartnerDistance
         IKSerializable* carried = carrier->GetCarriedObject();
         if (carried->IsKindOfClass(0x3142) != 0 && carrier->GetCarriedObject() != nullptr &&
@@ -119,7 +119,7 @@ void CKHkS08Hero::UpdateModeFlagsAndTetherTimers() {
     if (m_unk1784 != 0) m_unk1788 = 3.0f;
 
     // The movement mode picks the camera profile whose flag byte (CKS08GameManager vt+0x29c) is stored in the entry.
-    const uint8_t mode = m_unk1808;
+    const uint8_t mode = m_ui8MovementMode;
     uint32_t profile = 0;
     if (mode == 1) {
         profile = manager->GetPlayerCount() != 2 ? 2u : 5u;
@@ -131,8 +131,8 @@ void CKHkS08Hero::UpdateModeFlagsAndTetherTimers() {
     int64_t entryIndex;  // the hero's entry in the stack, -1 when it has none
     bool sameHero;       // iVar21: this hero is the one the player controls
     if (manager->GetPlayerCount() == 2) {
-        if (m_ui8Hero == static_cast<int8_t>(group->m_unk66)) {  // the focused hero
-            IKSerializable* leaf = m_unk1818;
+        if (m_ui8Hero == static_cast<int8_t>(group->m_ui8FocusedDragon)) {  // the focused hero
+            IKSerializable* leaf = m_pCameraTargetNode;
             entryIndex = 0;
             if (leaf != nullptr) {
                 if (camera->m_ui32NbStacked != 0) {
@@ -148,7 +148,7 @@ void CKHkS08Hero::UpdateModeFlagsAndTetherTimers() {
                 camera->m_aStack[0].m_unk05 = 1;
             }
         } else if (camera->m_pActiveConstraint == nullptr || (ConstraintFlags(camera->m_pActiveConstraint) & 0x400000u) == 0) {
-            IKSerializable* leaf = m_unk1818;
+            IKSerializable* leaf = m_pCameraTargetNode;
             entryIndex = 0;
             if (leaf != nullptr) {
                 const uint32_t found = camera->FindStackTarget(leaf);
@@ -167,7 +167,7 @@ void CKHkS08Hero::UpdateModeFlagsAndTetherTimers() {
                 }
             }
         } else {  // a zone that takes the camera away from the non-focused hero: its entry goes
-            const uint32_t found = camera->FindStackTarget(m_unk1818);
+            const uint32_t found = camera->FindStackTarget(m_pCameraTargetNode);
             if (found < camera->m_ui32NbStacked) camera->RemoveStackEntry(found);
             entryIndex = -1;
         }
@@ -179,7 +179,7 @@ void CKHkS08Hero::UpdateModeFlagsAndTetherTimers() {
         if ((m_unkec4 & 0x10000u) != 0 ||
             (camera->m_pActiveConstraint != nullptr && (ConstraintFlags(camera->m_pActiveConstraint) & 0x80u) != 0) ||
             0.0f < m_unk1788) {
-            IKSerializable* leaf = m_unk1818;
+            IKSerializable* leaf = m_pCameraTargetNode;
             entryIndex = 0;
             if (leaf != nullptr) {
                 const uint32_t found = camera->FindStackTarget(leaf);
@@ -198,13 +198,13 @@ void CKHkS08Hero::UpdateModeFlagsAndTetherTimers() {
                 }
             }
         } else {  // not needed by the camera: its entry goes
-            const uint32_t found = camera->FindStackTarget(m_unk1818);
+            const uint32_t found = camera->FindStackTarget(m_pCameraTargetNode);
             if (found < camera->m_ui32NbStacked) camera->RemoveStackEntry(found);
             entryIndex = -1;
         }
         sameHero = false;
     } else {  // the controlled hero
-        IKSerializable* leaf = m_unk1818;
+        IKSerializable* leaf = m_pCameraTargetNode;
         entryIndex = 0;
         if (leaf != nullptr) {
             if (camera->m_ui32NbStacked == 0) {
@@ -223,7 +223,7 @@ void CKHkS08Hero::UpdateModeFlagsAndTetherTimers() {
     }
 
     // The entry's camera parameters from the hero group.
-    const bool upperProfile = ((group->m_unkf8 >> 10) & 1u) != 0;
+    const bool upperProfile = ((group->m_baWorkFlags >> 10) & 1u) != 0;
     float paramA = upperProfile ? group->m_unk1a8 : group->m_unk1ac;  // dVar42
     float paramD;                                                    // dVar43
     if (!sameHero) {
@@ -237,15 +237,15 @@ void CKHkS08Hero::UpdateModeFlagsAndTetherTimers() {
         const float scale = upperProfile ? 0.4f : group->m_unk1b8;
         paramD = paramD * scale;
         if (camera->m_pActiveConstraint != nullptr) {
-            const float sum = BitsToFloat(group->m_unk318) + BitsToFloat(group->m_unk2d4[16]);
+            const float sum = BitsToFloat(group->m_fHero1ToMidDist) + BitsToFloat(group->m_unk2d4[16]);
             if (8.0f <= sum) {
                 const float factor = RemapClamped(8.0f, 16.0f, sum, 1.0f, 0.2f);
                 paramD = paramD * factor;
             }
         }
     }
-    const bool groupFlag = manager->GetPlayerCount() <= 1 && 0.0f <= group->m_unk36c;  // 0x2d4d48
-    if (groupFlag || (m_unked4 & 0x40u) != 0) paramD = paramD * 0.05f;
+    const bool groupFlag = manager->GetPlayerCount() <= 1 && 0.0f <= group->m_fFinisherCooldown;  // 0x2d4d48
+    if (groupFlag || (m_ui32StatusFlagsED4 & 0x40u) != 0) paramD = paramD * 0.05f;
 
     if (entryIndex != -1) {
         CKSrvCamera::StackEntry& entry = camera->m_aStack[entryIndex];
@@ -294,7 +294,7 @@ void CKHkS08Hero::UpdateModeFlagsAndTetherTimers() {
     }
 
     // The movement-mode history (+0x1813..+0x1815, newest first) and the time spent flying.
-    if (m_unk1808 == 1) {
+    if (m_ui8MovementMode == 1) {
         if (m_unk13d1 == 0) {
             m_unk1815 = m_unk1814;
             m_unk13d4 = 0.0f;
@@ -319,8 +319,8 @@ void CKHkS08Hero::UpdateModeFlagsAndTetherTimers() {
         m_unk1814 = m_unk1813;
         m_unk1813 = 0;
     }
-    if (m_unk1378 != 0.0f && static_cast<int8_t>(group->m_unk66) == m_ui8Hero) cameraFlags |= 0x2000000u;
-    const bool onGround = m_unk1808 == 0;
+    if (m_unk1378 != 0.0f && static_cast<int8_t>(group->m_ui8FocusedDragon) == m_ui8Hero) cameraFlags |= 0x2000000u;
+    const bool onGround = m_ui8MovementMode == 0;
     bool joinPartnerFlight = false;
     if (onGround) joinPartnerFlight = ShouldJoinPartnerFlight() != 0;  // 0x00341fa0
     if (!onGround || joinPartnerFlight || m_unk1539 == 0 || (m_unkec8 & 0x400u) != 0) {
@@ -328,11 +328,11 @@ void CKHkS08Hero::UpdateModeFlagsAndTetherTimers() {
     } else {
         cameraFlags = (cameraFlags & 0xfbffffffu) | 0x4000000u;
     }
-    if ((m_unkecc & 0x20u) != 0 && (m_unked0 & 0x40u) == 0) {
+    if ((m_unkecc & 0x20u) != 0 && (m_ui32StatusFlagsED0 & 0x40u) == 0) {
         // The animated camera (+0x1b28) vt+0x54 0x5bfad8 with the unscaled frame time (the frame clock's +0x20).
         static_cast<CKAnimatedCamera*>(m_unk1b28)->Update(g_pEngine->m_timeManager->m_pTime->m_afDeltaTime[1]);
     }
-    if (static_cast<int8_t>(group->m_unk66) == m_ui8Hero) {
+    if (static_cast<int8_t>(group->m_ui8FocusedDragon) == m_ui8Hero) {
         uint32_t cameraIndex = 1;
         if (!ShouldStayClimbing()) cameraIndex = joinPartnerFlight ? 2u : 0u;
         manager->SetActiveCameraIndex(cameraIndex);  // vt+0x294

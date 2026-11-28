@@ -107,7 +107,7 @@ void ClearVector(TVector<T, 8>* vector) {
 // 0x0050b458 CKS08GameState_Construct: CKGameState's part (inlined), then +0xd8 and the twelve byte lists.
 CKS08GameState::CKS08GameState() {
     ClearVector(&m_vObjectStates);
-    for (TVector<uint8_t, 8>& list : m_avbUnk134) ClearVector(&list);
+    for (TVector<uint8_t, 8>& list : m_avObjectiveStates) ClearVector(&list);
 }
 
 // 0x00509ac0 CKS08GameState_vf58 (InitializeGameData). The old blocks are not freed; the lengths are not
@@ -119,31 +119,31 @@ void CKS08GameState::InitializeGameData() {
     m_aUnk90[1] = 300;
     m_aUnk90[2] = 300;
     for (int i = 4; i < 8; ++i) m_aUnk90[i] = 0;
-    for (int i = 4; i >= 0; --i) m_aUnkB0[i] = 0;
-    for (int i = 4; i >= 0; --i) m_aUnkC4[i] = 0;
+    for (int i = 4; i >= 0; --i) m_adwSpyroElementXp[i] = 0;
+    for (int i = 4; i >= 0; --i) m_adwCynderElementXp[i] = 0;
     m_vObjectStates.m_ui32NbElt = 8;
     m_vObjectStates.m_pBlock = static_cast<ObjectState*>(Mem_AllocAligned16(8 * static_cast<uint32_t>(sizeof(ObjectState))));
     m_afUnk124[2] = 0.0f;
     m_afUnk124[1] = 0.0f;
     m_afUnk124[0] = 0.0f;
-    m_unk130 = 0;
-    m_aUnk110[0] = 0;
-    m_aUnkEC[1] = 0;
-    m_aUnkF4[1] = 0;
-    m_aUnkEC[0] = 0;
-    m_aUnkF4[0] = 0;
-    for (int i = 4; i >= 0; --i) m_aUnkFC[i] = 0;
-    for (int i = 4; i >= 1; --i) m_aUnk110[i] = 0;
-    for (TVector<uint8_t, 8>& list : m_avbUnk134) GameVector_Reserve(&list);
+    m_fPlayer1PlayTime = 0;
+    m_adwCynderElementManaSpent[0] = 0;
+    m_adwEnemyKills[1] = 0;
+    m_adwBestCombo[1] = 0;
+    m_adwEnemyKills[0] = 0;
+    m_adwBestCombo[0] = 0;
+    for (int i = 4; i >= 0; --i) m_adwSpyroElementManaSpent[i] = 0;
+    for (int i = 4; i >= 1; --i) m_adwCynderElementManaSpent[i] = 0;
+    for (TVector<uint8_t, 8>& list : m_avObjectiveStates) GameVector_Reserve(&list);
     for (int i = 1; i >= 0; --i) {
-        m_aUnkE4[i][2] = 3;
-        m_aUnkE4[i][1] = 3;
-        m_aUnkE4[i][0] = 3;
+        m_abEquippedArmor[i][2] = 3;
+        m_abEquippedArmor[i][1] = 3;
+        m_abEquippedArmor[i][0] = 3;
     }
     m_aUnk1CA[18] = 0;  // +0x1dc
     m_aUnk1CA[0] = 1;   // +0x1ca
-    m_unkEA = 0;
-    m_unkEB = 0;
+    m_bCynderArmorMeshHidden = 0;
+    m_bSpyroArmorMeshHidden = 0;
     for (int i = 1; i < 18; ++i) m_aUnk1CA[i] = 0;  // +0x1cb..+0x1db
 }
 
@@ -152,38 +152,38 @@ int32_t CKS08GameState::Load(IKFile* file, int32_t type) {
     CKGameState::Load(file, type);
     if (type == K_GAME_MEMCARD) {
         for (uint32_t& value : m_aUnk90) ReadU32LE(file, &value);
-        ReadWordsLE(file, m_aUnkB0, 5);
-        ReadWordsLE(file, m_aUnkC4, 5);
+        ReadWordsLE(file, m_adwSpyroElementXp, 5);
+        ReadWordsLE(file, m_adwCynderElementXp, 5);
         for (uint32_t i = 0; i < m_vObjectStates.m_ui32NbUsedElt; ++i) {
             ReadU8(file, &m_vObjectStates.m_pBlock[i].m_ui8State);
         }
-        ReadWordsLE(file, m_aUnkEC, 2);
-        ReadWordsLE(file, m_aUnkF4, 2);
-        ReadWordsLE(file, m_aUnkFC, 5);
-        ReadWordsLE(file, m_aUnk110, 5);
+        ReadWordsLE(file, m_adwEnemyKills, 2);
+        ReadWordsLE(file, m_adwBestCombo, 2);
+        ReadWordsLE(file, m_adwSpyroElementManaSpent, 5);
+        ReadWordsLE(file, m_adwCynderElementManaSpent, 5);
         ReadWordsLE(file, &m_afUnk124[0], 2);  // +0x124, +0x128
         uint32_t words[2];
         ReadWordsLE(file, words, 2);  // +0x12c, +0x130: one 8-byte read
         std::memcpy(&m_afUnk124[2], &words[0], 4);
-        m_unk130 = words[1];
-        for (TVector<uint8_t, 8>& list : m_avbUnk134) {
+        m_fPlayer1PlayTime = words[1];
+        for (TVector<uint8_t, 8>& list : m_avObjectiveStates) {
             for (uint32_t j = 0; j < list.m_ui32NbUsedElt; ++j) ReadU8(file, &list.m_pBlock[j]);
         }
-        for (uint8_t& value : m_aUnk1C4) ReadU8(file, &value);
+        for (uint8_t& value : m_abScriptCounters) ReadU8(file, &value);
         for (int i = 1; i >= 0; --i) {
-            ReadU8(file, &m_aUnkE4[i][2]);
-            ReadU8(file, &m_aUnkE4[i][1]);
-            ReadU8(file, &m_aUnkE4[i][0]);
+            ReadU8(file, &m_abEquippedArmor[i][2]);
+            ReadU8(file, &m_abEquippedArmor[i][1]);
+            ReadU8(file, &m_abEquippedArmor[i][0]);
         }
-        ReadU8(file, &m_unkEA);
-        ReadU8(file, &m_unkEB);
+        ReadU8(file, &m_bCynderArmorMeshHidden);
+        ReadU8(file, &m_bSpyroArmorMeshHidden);
         for (uint8_t& value : m_aUnk1CA) ReadU8(file, &value);
         return 1;
     }
     if (type == kGameStructureBlock) {
         for (uint32_t& value : m_aUnk90) ReadU32LE(file, &value);
-        ReadWordsLE(file, m_aUnkB0, 5);
-        ReadWordsLE(file, m_aUnkC4, 5);
+        ReadWordsLE(file, m_adwSpyroElementXp, 5);
+        ReadWordsLE(file, m_adwCynderElementXp, 5);
         uint32_t count = 0;
         ReadU32LE(file, &count);
         for (uint32_t i = 0; i < count; ++i) {
@@ -193,13 +193,13 @@ int32_t CKS08GameState::Load(IKFile* file, int32_t type) {
             entry.m_ui8State = 0;
             GameVector_Add(&m_vObjectStates, entry);
         }
-        for (TVector<uint8_t, 8>& list : m_avbUnk134) {
+        for (TVector<uint8_t, 8>& list : m_avObjectiveStates) {
             uint32_t length = 0;
             ReadU32LE(file, &length);
             GameVector_Resize(&list, length);
             for (uint32_t j = 0; j < length; ++j) ReadU8(file, &list.m_pBlock[j]);
         }
-        for (uint8_t& value : m_aUnk1C4) ReadU8(file, &value);
+        for (uint8_t& value : m_abScriptCounters) ReadU8(file, &value);
         return 1;
     }
     if (type != K_LEVEL_PLATEFORMS) return 1;
@@ -253,60 +253,60 @@ void CKS08GameState::ApplyToStructure() {
     CKGameState::ApplyToStructure();
     CKS08GameStructure* s = static_cast<CKS08GameStructure*>(m_pGameStructure);
     if (g_pEngine->m_gameManager->VfC4() == 0) {
-        s->m_unk4c = m_aUnk90[0];
-        s->m_unk54 = m_aUnk90[1];
-        s->m_unk64 = m_aUnk90[2];
-        s->m_unk6c = m_aUnk90[3];
-        s->m_unk74 = m_aUnk90[4];
-        s->m_unk78 = m_aUnk90[5];
+        s->m_dwSpyroHealth = m_aUnk90[0];
+        s->m_dwCynderHealth = m_aUnk90[1];
+        s->m_dwSpyroMana = m_aUnk90[2];
+        s->m_dwCynderMana = m_aUnk90[3];
+        s->m_dwSpyroFury = m_aUnk90[4];
+        s->m_dwCynderFury = m_aUnk90[5];
         s->SetRtWord(0x84, m_aUnk90[6]);
         s->SetRtWord(0x88, m_aUnk90[7]);
-        s->SetRtWord(0x9c, m_aUnkB0[4]);
-        s->SetRtWord(0x98, m_aUnkB0[3]);
-        s->SetRtWord(0x94, m_aUnkB0[2]);
-        s->SetRtWord(0x90, m_aUnkB0[1]);
-        s->SetRtWord(0x8c, m_aUnkB0[0]);
-        s->SetRtWord(0xb0, m_aUnkC4[4]);
-        s->SetRtWord(0xac, m_aUnkC4[3]);
-        s->SetRtWord(0xa8, m_aUnkC4[2]);
-        s->SetRtWord(0xa4, m_aUnkC4[1]);
-        s->SetRtWord(0xa0, m_aUnkC4[0]);
+        s->SetRtWord(0x9c, m_adwSpyroElementXp[4]);
+        s->SetRtWord(0x98, m_adwSpyroElementXp[3]);
+        s->SetRtWord(0x94, m_adwSpyroElementXp[2]);
+        s->SetRtWord(0x90, m_adwSpyroElementXp[1]);
+        s->SetRtWord(0x8c, m_adwSpyroElementXp[0]);
+        s->SetRtWord(0xb0, m_adwCynderElementXp[4]);
+        s->SetRtWord(0xac, m_adwCynderElementXp[3]);
+        s->SetRtWord(0xa8, m_adwCynderElementXp[2]);
+        s->SetRtWord(0xa4, m_adwCynderElementXp[1]);
+        s->SetRtWord(0xa0, m_adwCynderElementXp[0]);
         for (uint32_t i = m_vObjectStates.m_ui32NbUsedElt; i != 0; --i) {
             const ObjectState& entry = m_vObjectStates.m_pBlock[i - 1];
-            static_cast<CKS08GameLevelCollectible*>(entry.m_pObject)->m_unk1c = entry.m_ui8State;
+            static_cast<CKS08GameLevelCollectible*>(entry.m_pObject)->m_bCollected = entry.m_ui8State;
         }
-        s->SetRtWord(0x110, m_aUnkEC[1]);
-        s->SetRtWord(0x118, m_aUnkF4[1]);
+        s->SetRtWord(0x110, m_adwEnemyKills[1]);
+        s->SetRtWord(0x118, m_adwBestCombo[1]);
         s->SetRtWord(0x148, FloatBits(m_afUnk124[1]));
-        s->SetRtWord(0x10c, m_aUnkEC[0]);
-        s->SetRtWord(0x114, m_aUnkF4[0]);
+        s->SetRtWord(0x10c, m_adwEnemyKills[0]);
+        s->SetRtWord(0x114, m_adwBestCombo[0]);
         s->SetRtWord(0x144, FloatBits(m_afUnk124[0]));
-        s->SetRtWord(0x150, m_unk130);
+        s->SetRtWord(0x150, m_fPlayer1PlayTime);
         s->SetRtWord(0x14c, FloatBits(m_afUnk124[2]));
-        s->SetRtWord(0x12c, m_aUnkFC[4]);
-        s->SetRtWord(0x128, m_aUnkFC[3]);
-        s->SetRtWord(0x124, m_aUnkFC[2]);
-        s->SetRtWord(0x120, m_aUnkFC[1]);
-        s->SetRtWord(0x11c, m_aUnkFC[0]);
-        s->SetRtWord(0x140, m_aUnk110[4]);
-        s->SetRtWord(0x13c, m_aUnk110[3]);
-        s->SetRtWord(0x138, m_aUnk110[2]);
-        s->SetRtWord(0x134, m_aUnk110[1]);
-        s->SetRtWord(0x130, m_aUnk110[0]);
+        s->SetRtWord(0x12c, m_adwSpyroElementManaSpent[4]);
+        s->SetRtWord(0x128, m_adwSpyroElementManaSpent[3]);
+        s->SetRtWord(0x124, m_adwSpyroElementManaSpent[2]);
+        s->SetRtWord(0x120, m_adwSpyroElementManaSpent[1]);
+        s->SetRtWord(0x11c, m_adwSpyroElementManaSpent[0]);
+        s->SetRtWord(0x140, m_adwCynderElementManaSpent[4]);
+        s->SetRtWord(0x13c, m_adwCynderElementManaSpent[3]);
+        s->SetRtWord(0x138, m_adwCynderElementManaSpent[2]);
+        s->SetRtWord(0x134, m_adwCynderElementManaSpent[1]);
+        s->SetRtWord(0x130, m_adwCynderElementManaSpent[0]);
         for (int32_t i = 1; i >= 0; --i) {
-            s->RtByte(0xb6 + i * 3) = m_aUnkE4[i][2];
-            s->RtByte(0xb5 + i * 3) = m_aUnkE4[i][1];
-            s->RtByte(0xb4 + i * 3) = m_aUnkE4[i][0];
+            s->RtByte(0xb6 + i * 3) = m_abEquippedArmor[i][2];
+            s->RtByte(0xb5 + i * 3) = m_abEquippedArmor[i][1];
+            s->RtByte(0xb4 + i * 3) = m_abEquippedArmor[i][0];
         }
-        s->RtByte(0xba) = m_unkEA;
-        s->RtByte(0xbb) = m_unkEB;
+        s->RtByte(0xba) = m_bCynderArmorMeshHidden;
+        s->RtByte(0xbb) = m_bSpyroArmorMeshHidden;
         // +0x23e..+0x250 (the story and bonus unlock bytes) from +0x1ca..+0x1dc.
         for (uint32_t i = 0; i <= 0x12; ++i) s->RtByte(0x23e + i) = m_aUnk1CA[i];
     }
-    for (uint32_t i = 0; i < 6; ++i) s->RtByte(0x1e4 + i) = m_aUnk1C4[i];
+    for (uint32_t i = 0; i < 6; ++i) s->RtByte(0x1e4 + i) = m_abScriptCounters[i];
     for (uint32_t k = 0; k < 12; ++k) {
-        const TVector<uint8_t, 8>& list = m_avbUnk134[k];
-        for (uint32_t i = list.m_ui32NbUsedElt; i != 0; --i) s->m_avbUnk154[k].m_pBlock[i - 1] = list.m_pBlock[i - 1];
+        const TVector<uint8_t, 8>& list = m_avObjectiveStates[k];
+        for (uint32_t i = list.m_ui32NbUsedElt; i != 0; --i) s->m_avObjectiveStates[k].m_pBlock[i - 1] = list.m_pBlock[i - 1];
     }
     for (uint32_t o : {0xfcu, 0xecu, 0xdcu, 0xccu, 0xbcu}) {  // two {byte, word} pairs each
         s->RtByte(o) = 0;
@@ -324,65 +324,65 @@ void CKS08GameState::ApplyToStructure() {
 void CKS08GameState::CopyFromStructure() {
     CKGameState::CopyFromStructure();
     CKS08GameStructure* s = static_cast<CKS08GameStructure*>(m_pGameStructure);
-    m_aUnk90[0] = s->m_unk4c;
-    m_aUnk90[1] = s->m_unk54;
-    m_aUnk90[2] = s->m_unk64;
-    m_aUnk90[3] = s->m_unk6c;
-    m_aUnk90[4] = s->m_unk74;
-    m_aUnk90[5] = s->m_unk78;
+    m_aUnk90[0] = s->m_dwSpyroHealth;
+    m_aUnk90[1] = s->m_dwCynderHealth;
+    m_aUnk90[2] = s->m_dwSpyroMana;
+    m_aUnk90[3] = s->m_dwCynderMana;
+    m_aUnk90[4] = s->m_dwSpyroFury;
+    m_aUnk90[5] = s->m_dwCynderFury;
     m_aUnk90[6] = s->RtWord(0x84);
     m_aUnk90[7] = s->RtWord(0x88);
-    m_aUnkB0[4] = s->RtWord(0x9c);
-    m_aUnkB0[3] = s->RtWord(0x98);
-    m_aUnkB0[2] = s->RtWord(0x94);
-    m_aUnkB0[1] = s->RtWord(0x90);
-    m_aUnkB0[0] = s->RtWord(0x8c);
-    m_aUnkC4[4] = s->RtWord(0xb0);
-    m_aUnkC4[3] = s->RtWord(0xac);
-    m_aUnkC4[2] = s->RtWord(0xa8);
-    m_aUnkC4[1] = s->RtWord(0xa4);
-    m_aUnkC4[0] = s->RtWord(0xa0);
+    m_adwSpyroElementXp[4] = s->RtWord(0x9c);
+    m_adwSpyroElementXp[3] = s->RtWord(0x98);
+    m_adwSpyroElementXp[2] = s->RtWord(0x94);
+    m_adwSpyroElementXp[1] = s->RtWord(0x90);
+    m_adwSpyroElementXp[0] = s->RtWord(0x8c);
+    m_adwCynderElementXp[4] = s->RtWord(0xb0);
+    m_adwCynderElementXp[3] = s->RtWord(0xac);
+    m_adwCynderElementXp[2] = s->RtWord(0xa8);
+    m_adwCynderElementXp[1] = s->RtWord(0xa4);
+    m_adwCynderElementXp[0] = s->RtWord(0xa0);
     for (uint32_t i = m_vObjectStates.m_ui32NbUsedElt; i != 0; --i) {
         ObjectState& entry = m_vObjectStates.m_pBlock[i - 1];
-        entry.m_ui8State = static_cast<CKS08GameLevelCollectible*>(entry.m_pObject)->m_unk1c;
+        entry.m_ui8State = static_cast<CKS08GameLevelCollectible*>(entry.m_pObject)->m_bCollected;
     }
-    m_aUnkEC[1] = s->RtWord(0x110);
-    m_aUnkF4[1] = s->RtWord(0x118);
+    m_adwEnemyKills[1] = s->RtWord(0x110);
+    m_adwBestCombo[1] = s->RtWord(0x118);
     m_afUnk124[1] = BitsFloat(s->RtWord(0x148));
-    m_aUnkEC[0] = s->RtWord(0x10c);
-    m_aUnkF4[0] = s->RtWord(0x114);
+    m_adwEnemyKills[0] = s->RtWord(0x10c);
+    m_adwBestCombo[0] = s->RtWord(0x114);
     m_afUnk124[0] = BitsFloat(s->RtWord(0x144));
-    m_unk130 = s->RtWord(0x150);
+    m_fPlayer1PlayTime = s->RtWord(0x150);
     m_afUnk124[2] = BitsFloat(s->RtWord(0x14c));
-    m_aUnkFC[4] = s->RtWord(0x12c);
-    m_aUnkFC[3] = s->RtWord(0x128);
-    m_aUnkFC[2] = s->RtWord(0x124);
-    m_aUnkFC[1] = s->RtWord(0x120);
-    m_aUnkFC[0] = s->RtWord(0x11c);
-    m_aUnk110[4] = s->RtWord(0x140);
-    m_aUnk110[3] = s->RtWord(0x13c);
-    m_aUnk110[2] = s->RtWord(0x138);
-    m_aUnk110[1] = s->RtWord(0x134);
-    m_aUnk110[0] = s->RtWord(0x130);
+    m_adwSpyroElementManaSpent[4] = s->RtWord(0x12c);
+    m_adwSpyroElementManaSpent[3] = s->RtWord(0x128);
+    m_adwSpyroElementManaSpent[2] = s->RtWord(0x124);
+    m_adwSpyroElementManaSpent[1] = s->RtWord(0x120);
+    m_adwSpyroElementManaSpent[0] = s->RtWord(0x11c);
+    m_adwCynderElementManaSpent[4] = s->RtWord(0x140);
+    m_adwCynderElementManaSpent[3] = s->RtWord(0x13c);
+    m_adwCynderElementManaSpent[2] = s->RtWord(0x138);
+    m_adwCynderElementManaSpent[1] = s->RtWord(0x134);
+    m_adwCynderElementManaSpent[0] = s->RtWord(0x130);
     uint8_t* unlock = &s->RtByte(0x23e);  // +0x23e..+0x250
     for (uint32_t i = 13; i <= 0x12; ++i) m_aUnk1CA[i] = unlock[i];  // +0x1d7..+0x1dc from +0x24b..+0x250
     for (int32_t i = 1; i >= 0; --i) {
         for (int32_t j = 2; j >= 0; --j) {
             if ((g_pEngine->m_gameManager->m_flags64 & 0x2000000u) == 0) {
-                m_aUnkE4[i][j] = s->RtByte(0xb4 + i * 3 + j);
+                m_abEquippedArmor[i][j] = s->RtByte(0xb4 + i * 3 + j);
             } else {
-                m_aUnkE4[i][j] = 3;
+                m_abEquippedArmor[i][j] = 3;
             }
         }
     }
-    m_unkEA = s->RtByte(0xba);
-    m_unkEB = s->RtByte(0xbb);
+    m_bCynderArmorMeshHidden = s->RtByte(0xba);
+    m_bSpyroArmorMeshHidden = s->RtByte(0xbb);
     m_aUnk1CA[0] = unlock[0];  // +0x1ca from +0x23e
     if (g_pEngine->m_gameManager->VfC4() != 0) return;
-    for (uint32_t i = 0; i < 6; ++i) m_aUnk1C4[i] = s->RtByte(0x1e4 + i);
+    for (uint32_t i = 0; i < 6; ++i) m_abScriptCounters[i] = s->RtByte(0x1e4 + i);
     for (uint32_t k = 0; k < 12; ++k) {
-        TVector<uint8_t, 8>& list = m_avbUnk134[k];
-        for (uint32_t i = list.m_ui32NbUsedElt; i != 0; --i) list.m_pBlock[i - 1] = s->m_avbUnk154[k].m_pBlock[i - 1];
+        TVector<uint8_t, 8>& list = m_avObjectiveStates[k];
+        for (uint32_t i = list.m_ui32NbUsedElt; i != 0; --i) list.m_pBlock[i - 1] = s->m_avObjectiveStates[k].m_pBlock[i - 1];
     }
     for (uint32_t i = 1; i <= 12; ++i) m_aUnk1CA[i] = unlock[i];  // +0x1cb..+0x1d6 from +0x23f..+0x24a
 }
@@ -393,28 +393,28 @@ void CKS08GameState::CopyFromState(const CKGameState* otherState) {
     CKGameState::CopyFromState(otherState);
     const CKS08GameState* other = static_cast<const CKS08GameState*>(otherState);
     for (uint32_t i = 0; i < 8; ++i) m_aUnk90[i] = other->m_aUnk90[i];
-    for (uint32_t i = 0; i < 5; ++i) m_aUnkB0[i] = other->m_aUnkB0[i];
-    for (uint32_t i = 0; i < 5; ++i) m_aUnkC4[i] = other->m_aUnkC4[i];
+    for (uint32_t i = 0; i < 5; ++i) m_adwSpyroElementXp[i] = other->m_adwSpyroElementXp[i];
+    for (uint32_t i = 0; i < 5; ++i) m_adwCynderElementXp[i] = other->m_adwCynderElementXp[i];
     for (uint32_t i = m_vObjectStates.m_ui32NbUsedElt; i != 0; --i)
         m_vObjectStates.m_pBlock[i - 1].m_ui8State = other->m_vObjectStates.m_pBlock[i - 1].m_ui8State;
-    for (uint32_t i = 0; i < 2; ++i) m_aUnkEC[i] = other->m_aUnkEC[i];
-    for (uint32_t i = 0; i < 2; ++i) m_aUnkF4[i] = other->m_aUnkF4[i];
-    for (uint32_t i = 0; i < 5; ++i) m_aUnkFC[i] = other->m_aUnkFC[i];
-    for (uint32_t i = 0; i < 5; ++i) m_aUnk110[i] = other->m_aUnk110[i];
+    for (uint32_t i = 0; i < 2; ++i) m_adwEnemyKills[i] = other->m_adwEnemyKills[i];
+    for (uint32_t i = 0; i < 2; ++i) m_adwBestCombo[i] = other->m_adwBestCombo[i];
+    for (uint32_t i = 0; i < 5; ++i) m_adwSpyroElementManaSpent[i] = other->m_adwSpyroElementManaSpent[i];
+    for (uint32_t i = 0; i < 5; ++i) m_adwCynderElementManaSpent[i] = other->m_adwCynderElementManaSpent[i];
     for (uint32_t i = 0; i < 3; ++i) m_afUnk124[i] = other->m_afUnk124[i];  // lfs / stfs
-    m_unk130 = other->m_unk130;
+    m_fPlayer1PlayTime = other->m_fPlayer1PlayTime;
     for (int32_t i = 1; i >= 0; --i) {
-        m_aUnkE4[i][2] = other->m_aUnkE4[i][2];
-        m_aUnkE4[i][1] = other->m_aUnkE4[i][1];
-        m_aUnkE4[i][0] = other->m_aUnkE4[i][0];
+        m_abEquippedArmor[i][2] = other->m_abEquippedArmor[i][2];
+        m_abEquippedArmor[i][1] = other->m_abEquippedArmor[i][1];
+        m_abEquippedArmor[i][0] = other->m_abEquippedArmor[i][0];
     }
-    m_unkEA = other->m_unkEA;
-    m_unkEB = other->m_unkEB;
+    m_bCynderArmorMeshHidden = other->m_bCynderArmorMeshHidden;
+    m_bSpyroArmorMeshHidden = other->m_bSpyroArmorMeshHidden;
     m_aUnk1CA[0] = other->m_aUnk1CA[0];
-    for (uint32_t i = 0; i < 6; ++i) m_aUnk1C4[i] = other->m_aUnk1C4[i];
+    for (uint32_t i = 0; i < 6; ++i) m_abScriptCounters[i] = other->m_abScriptCounters[i];
     for (uint32_t k = 0; k < 12; ++k) {
-        TVector<uint8_t, 8>& list = m_avbUnk134[k];
-        for (uint32_t i = list.m_ui32NbUsedElt; i != 0; --i) list.m_pBlock[i - 1] = other->m_avbUnk134[k].m_pBlock[i - 1];
+        TVector<uint8_t, 8>& list = m_avObjectiveStates[k];
+        for (uint32_t i = list.m_ui32NbUsedElt; i != 0; --i) list.m_pBlock[i - 1] = other->m_avObjectiveStates[k].m_pBlock[i - 1];
     }
     for (uint32_t i = 1; i <= 0x12; ++i) m_aUnk1CA[i] = other->m_aUnk1CA[i];
 }
@@ -444,7 +444,7 @@ void FreeStateList(TVector<T, 8>* list) {
 void CKS08GameState::DestroyGameData() {
     CKGameState::DestroyGameData();  // 0x3f458
     FreeStateList(&m_vObjectStates);
-    for (TVector<uint8_t, 8>& list : m_avbUnk134) FreeStateList(&list);
+    for (TVector<uint8_t, 8>& list : m_avObjectiveStates) FreeStateList(&list);
 }
 
 // 0x0050a710 CKS08GameState_ResetStateFlags_maybe
@@ -456,33 +456,33 @@ void CKS08GameState::Vf6C() {
     m_aUnk90[1] = 300;
     m_aUnk90[2] = 300;
     for (int i = 4; i < 8; ++i) m_aUnk90[i] = 0;
-    for (int i = 4; i >= 0; --i) m_aUnkB0[i] = 0;
-    for (int i = 4; i >= 0; --i) m_aUnkC4[i] = 0;
-    m_aUnkEC[1] = 0;
-    m_aUnkF4[1] = 0;
+    for (int i = 4; i >= 0; --i) m_adwSpyroElementXp[i] = 0;
+    for (int i = 4; i >= 0; --i) m_adwCynderElementXp[i] = 0;
+    m_adwEnemyKills[1] = 0;
+    m_adwBestCombo[1] = 0;
     m_afUnk124[1] = 0.0f;
-    m_aUnkEC[0] = 0;
-    m_aUnkF4[0] = 0;
+    m_adwEnemyKills[0] = 0;
+    m_adwBestCombo[0] = 0;
     m_afUnk124[0] = 0.0f;
-    m_unk130 = 0;
-    for (int i = 4; i >= 0; --i) m_aUnkFC[i] = 0;
-    m_aUnk110[4] = 0;
-    m_aUnk110[3] = 0;
-    m_aUnk110[2] = 0;
-    m_aUnk110[0] = 0;
-    m_aUnk110[1] = 0;
-    for (TVector<uint8_t, 8>& list : m_avbUnk134) {
+    m_fPlayer1PlayTime = 0;
+    for (int i = 4; i >= 0; --i) m_adwSpyroElementManaSpent[i] = 0;
+    m_adwCynderElementManaSpent[4] = 0;
+    m_adwCynderElementManaSpent[3] = 0;
+    m_adwCynderElementManaSpent[2] = 0;
+    m_adwCynderElementManaSpent[0] = 0;
+    m_adwCynderElementManaSpent[1] = 0;
+    for (TVector<uint8_t, 8>& list : m_avObjectiveStates) {
         for (uint32_t i = 0; i < list.m_ui32NbUsedElt; ++i) list.m_pBlock[i] = 0;
     }
     for (int i = 1; i >= 0; --i) {
-        m_aUnkE4[i][2] = 3;
-        m_aUnkE4[i][1] = 3;
-        m_aUnkE4[i][0] = 3;
+        m_abEquippedArmor[i][2] = 3;
+        m_abEquippedArmor[i][1] = 3;
+        m_abEquippedArmor[i][0] = 3;
     }
     m_aUnk1CA[18] = 0;  // +0x1dc
     m_aUnk1CA[0] = 1;   // +0x1ca
-    m_unkEA = 0;
-    m_unkEB = 0;
+    m_bCynderArmorMeshHidden = 0;
+    m_bSpyroArmorMeshHidden = 0;
     for (int i = 1; i < 18; ++i) m_aUnk1CA[i] = 0;  // +0x1cb..+0x1db
 }
 
@@ -513,24 +513,24 @@ void CKS08GameState::WriteModuleData(IKFile* file, int32_t type, uint32_t index)
 void CKS08GameState::ApplyCollectibleStates() {
     for (uint32_t i = m_vObjectStates.m_ui32NbUsedElt; i != 0; --i) {
         ObjectState& entry = m_vObjectStates.m_pBlock[i - 1];
-        static_cast<CKS08GameLevelCollectible*>(entry.m_pObject)->m_unk1c = entry.m_ui8State;
+        static_cast<CKS08GameLevelCollectible*>(entry.m_pObject)->m_bCollected = entry.m_ui8State;
     }
 }
 
 // 0x0050a930 CKS08GameState_vfCC
 void CKS08GameState::ClearCollectibleStates() {
     for (uint32_t i = m_vObjectStates.m_ui32NbUsedElt; i != 0; --i)
-        static_cast<CKS08GameLevelCollectible*>(m_vObjectStates.m_pBlock[i - 1].m_pObject)->m_unk1c = 0;
+        static_cast<CKS08GameLevelCollectible*>(m_vObjectStates.m_pBlock[i - 1].m_pObject)->m_bCollected = 0;
 }
 
 // 0x0050ed60 CKS08GameStructure_SaveCheckpointSnapshot_maybe
 void CKS08GameStructure::SaveCheckpointSnapshot() {
-    SetRtWord(0x1f0, m_unk4c);
-    SetRtWord(0x1f4, m_unk54);
-    SetRtWord(0x1f8, m_unk64);
-    SetRtWord(0x1fc, m_unk6c);
-    SetRtWord(0x200, m_unk74);
-    SetRtWord(0x204, m_unk78);
+    SetRtWord(0x1f0, m_dwSpyroHealth);
+    SetRtWord(0x1f4, m_dwCynderHealth);
+    SetRtWord(0x1f8, m_dwSpyroMana);
+    SetRtWord(0x1fc, m_dwCynderMana);
+    SetRtWord(0x200, m_dwSpyroFury);
+    SetRtWord(0x204, m_dwCynderFury);
     SetRtWord(0x208, RtWord(0x84));
     SetRtWord(0x20c, RtWord(0x88));
     SetRtWord(0x220, RtWord(0x9c));
@@ -553,14 +553,14 @@ void CKS08GameStructure::SaveCheckpointSnapshot() {
 // 0x0050eec0 CKS08GameStructure_RestoreCheckpointSnapshot_maybe (CKS08GameManager_Restart): SaveCheckpointSnapshot's
 // copies put back; the two healths come back at least at +0x1ec (cmplw / bge: the larger of the two).
 void CKS08GameStructure::RestoreCheckpointSnapshot() {
-    const uint32_t minimum = m_unk1ec;
-    m_unk4c = minimum < RtWord(0x1f0) ? RtWord(0x1f0) : minimum;
-    m_unk54 = minimum < RtWord(0x1f4) ? RtWord(0x1f4) : minimum;
+    const uint32_t minimum = m_dwCheckpointMinHealth;
+    m_dwSpyroHealth = minimum < RtWord(0x1f0) ? RtWord(0x1f0) : minimum;
+    m_dwCynderHealth = minimum < RtWord(0x1f4) ? RtWord(0x1f4) : minimum;
     SetRtWord(0xa0, RtWord(0x224));
-    m_unk64 = RtWord(0x1f8);
-    m_unk6c = RtWord(0x1fc);
-    m_unk74 = RtWord(0x200);
-    m_unk78 = RtWord(0x204);
+    m_dwSpyroMana = RtWord(0x1f8);
+    m_dwCynderMana = RtWord(0x1fc);
+    m_dwSpyroFury = RtWord(0x200);
+    m_dwCynderFury = RtWord(0x204);
     SetRtWord(0x84, RtWord(0x208));
     SetRtWord(0x88, RtWord(0x20c));
     SetRtWord(0x9c, RtWord(0x220));
@@ -625,28 +625,28 @@ int32_t CKS08GameState::Save(IKFile* file, int32_t type) {
     CKGameState::Save(file, type);
     if (type != K_GAME_MEMCARD) return 1;
     for (const uint32_t value : m_aUnk90) WriteU32LE(file, value);
-    for (const uint32_t value : m_aUnkB0) WriteU32LE(file, value);
-    for (const uint32_t value : m_aUnkC4) WriteU32LE(file, value);
+    for (const uint32_t value : m_adwSpyroElementXp) WriteU32LE(file, value);
+    for (const uint32_t value : m_adwCynderElementXp) WriteU32LE(file, value);
     for (uint32_t i = 0; i < m_vObjectStates.m_ui32NbUsedElt; ++i) file->Write(&m_vObjectStates.m_pBlock[i].m_ui8State, 1);
-    for (const uint32_t value : m_aUnkEC) WriteU32LE(file, value);
-    for (const uint32_t value : m_aUnkF4) WriteU32LE(file, value);
-    for (const uint32_t value : m_aUnkFC) WriteU32LE(file, value);
-    for (const uint32_t value : m_aUnk110) WriteU32LE(file, value);
+    for (const uint32_t value : m_adwEnemyKills) WriteU32LE(file, value);
+    for (const uint32_t value : m_adwBestCombo) WriteU32LE(file, value);
+    for (const uint32_t value : m_adwSpyroElementManaSpent) WriteU32LE(file, value);
+    for (const uint32_t value : m_adwCynderElementManaSpent) WriteU32LE(file, value);
     uint32_t bits[3];
     std::memcpy(bits, m_afUnk124, sizeof(bits));  // lfs / stfs: the words' bits
     for (const uint32_t value : bits) WriteU32LE(file, value);
-    WriteU32LE(file, m_unk130);
-    for (const TVector<uint8_t, 8>& list : m_avbUnk134) {
+    WriteU32LE(file, m_fPlayer1PlayTime);
+    for (const TVector<uint8_t, 8>& list : m_avObjectiveStates) {
         for (uint32_t j = 0; j < list.m_ui32NbUsedElt; ++j) file->Write(&list.m_pBlock[j], 1);
     }
-    for (const uint8_t& value : m_aUnk1C4) file->Write(&value, 1);
+    for (const uint8_t& value : m_abScriptCounters) file->Write(&value, 1);
     for (int i = 1; i >= 0; --i) {
-        file->Write(&m_aUnkE4[i][2], 1);
-        file->Write(&m_aUnkE4[i][1], 1);
-        file->Write(&m_aUnkE4[i][0], 1);
+        file->Write(&m_abEquippedArmor[i][2], 1);
+        file->Write(&m_abEquippedArmor[i][1], 1);
+        file->Write(&m_abEquippedArmor[i][0], 1);
     }
-    file->Write(&m_unkEA, 1);
-    file->Write(&m_unkEB, 1);
+    file->Write(&m_bCynderArmorMeshHidden, 1);
+    file->Write(&m_bSpyroArmorMeshHidden, 1);
     for (const uint8_t& value : m_aUnk1CA) file->Write(&value, 1);
     return 1;
 }
@@ -681,7 +681,7 @@ uint32_t CKS08GameState::AddObjectEntry(IKSerializable* object) {
 // destructor (inlined there) follows.
 CKS08GameState::~CKS08GameState() {
     for (uint32_t i = 12; i != 0; --i) {
-        TVector<uint8_t, 8>& list = m_avbUnk134[i - 1];
+        TVector<uint8_t, 8>& list = m_avObjectiveStates[i - 1];
         if (list.m_pBlock != nullptr) Mem_FreeAligned16(list.m_pBlock);
         list.m_pBlock = nullptr;
         list.m_ui32NbUsedElt = 0;

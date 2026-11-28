@@ -458,11 +458,11 @@ int32_t CKHkTransportableObjectSpawner::GetInfo(IKInfo* info, int32_t request) {
 void CKHkTransportableObjectSpawner::VfA0() {
     CKHkActorBase::VfA0();  // 0x003f7338
     CKParticlesEffectFxData* data = static_cast<CKParticlesEffectFxData*>(m_unk6c);
-    data->m_unk08 = static_cast<uint8_t>((data->m_unk08 & 0xe0u) | (data->m_unk08 & 0x0fu));
+    data->m_ui8Flags = static_cast<uint8_t>((data->m_ui8Flags & 0xe0u) | (data->m_ui8Flags & 0x0fu));
     if (m_pKGLObject == nullptr) {
-        *reinterpret_cast<CMatrix34*>(data->m_unk24) = *m_pMatrix;
+        *reinterpret_cast<CMatrix34*>(data->m_pLocalMatrix) = *m_pMatrix;
     } else {
-        *data->m_unk24 = static_cast<CSGLeaf*>(m_pKGLObject)->m_pRwFrame->modelling;
+        *data->m_pLocalMatrix = static_cast<CSGLeaf*>(m_pKGLObject)->m_pRwFrame->modelling;
     }
     m_unk70 = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(data, this);  // inlined
 }

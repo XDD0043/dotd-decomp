@@ -138,7 +138,7 @@ public:
     void Vf174();                                                    // vt+0x174 0x002f8678 (CKHkS08Hero_2.cpp)
     void Vf178(IKTime* clock, uint8_t flag);                         // vt+0x178 0x002f8708 (CKHkS08Hero_2.cpp)
     // vt+0x168 0x009bd6e8 CKHkS08Hero_RequestCatchUpPoint_maybe [inline]: +0xed0 bit 2, the catch-up point request (CtlState1's condition).
-    void Vf168() { m_unked0 = (m_unked0 & 0xfffffffbu) | 4u; }
+    void Vf168() { m_ui32StatusFlagsED0 = (m_ui32StatusFlagsED0 & 0xfffffffbu) | 4u; }
     uint8_t VfF0();                                                  // vt+0xf0 0x0032d4c0 (CKHkS08Hero_13.cpp)
     void ReadHeroPlayerInput();                                      // 0x00369670 (CKHkS08Hero_19.cpp)
     void AIUpdateFollowDestination(IKTime* clock);                   // 0x0036df50 (CKHkS08Hero_19.cpp)
@@ -242,15 +242,15 @@ public:
     // leaving the ground clears bit 2, landing bit 9, +0x364 bit 10, +0x354 bit 1 and sets +0x590 = 0xff.
     void SetDirectionLock(uint8_t airborne) {
         SetCameraDirectionLock(airborne);
-        const uint32_t flags = (m_unk354 & 0xfffffffeu) | airborne;
-        m_unk354 = flags;
+        const uint32_t flags = (m_ui32HeroFlags354 & 0xfffffffeu) | airborne;
+        m_ui32HeroFlags354 = flags;
         if (airborne != 0) {
-            m_unk354 = flags & ~4u;
+            m_ui32HeroFlags354 = flags & ~4u;
             return;
         }
-        m_unk354 = flags & ~0x200u;
-        m_unk364 &= ~0x400u;
-        m_unk354 &= ~2u;
+        m_ui32HeroFlags354 = flags & ~0x200u;
+        m_ui32HeroFlags364 &= ~0x400u;
+        m_ui32HeroFlags354 &= ~2u;
         m_unk590 = 0xff;
     }
     // 0x00354cf0 CKHkS08Hero_SetCameraDirectionLock_maybe (IKHkHero_2.cpp): the player's hero leaving the ground locks the
@@ -342,8 +342,8 @@ public:
     // the blender's weight word 1.0 / 0.0, then the active controller plays the animation word from `start`).
     IKSerializable* GetSubNodeB(uint32_t index);
     // CKHkS08Hero_12.cpp, the accessors the unported callers (CKS08HeroElement*, CKHkS08CristalEmitter) need:
-    float GetCurrentSpeed() const { return m_unk12c4; }                      // 0x00329d90 CKHkS08Hero_GetCurrentSpeed_maybe
-    IKSerializable* GetCarrier() const { return m_unkfb8; }                  // 0x0032a000 CKHkS08Hero_GetCarrier
+    float GetCurrentSpeed() const { return m_fCurrentHorizSpeed; }                      // 0x00329d90 CKHkS08Hero_GetCurrentSpeed_maybe
+    IKSerializable* GetCarrier() const { return m_pCarrierHero; }                  // 0x0032a000 CKHkS08Hero_GetCarrier
     void EnableSubNode(uint32_t index);                                       // 0x00329e00 CKHkS08Hero_EnableSubNode_maybe
     IKSerializable* GetSubNode(uint32_t index);                               // 0x00329e80 CKHkS08Hero_GetSubNode_maybe
     uint8_t IsCarryingPowerBucket();                                          // 0x0032a200 CKHkS08Hero_IsCarryingPowerBucket_maybe
@@ -399,39 +399,39 @@ public:
     // 0x00363e58 IKHkHero_SetFlag364Bit12_IfAttached_maybe / 0x00363e88 IKHkHero_SetFlag35CBit0_IfAttached_maybe: while
     // attached (+0x358 bit 0), +0x364 bit 12 / +0x35c bit 0 = `value`.
     void SetFlag364Bit12IfAttached(uint8_t value) {
-        if ((m_unk358 & 1u) == 0) return;
-        m_unk364 = (m_unk364 & 0xffffefffu) | (static_cast<uint32_t>(value) << 12);
+        if ((m_ui32HeroFlags358 & 1u) == 0) return;
+        m_ui32HeroFlags364 = (m_ui32HeroFlags364 & 0xffffefffu) | (static_cast<uint32_t>(value) << 12);
     }
     void SetFlag35CBit0IfAttached(uint8_t value) {
-        if ((m_unk358 & 1u) == 0) return;
-        m_unk35c = (m_unk35c & 0xfffffffeu) | value;
+        if ((m_ui32HeroFlags358 & 1u) == 0) return;
+        m_ui32HeroFlags35C = (m_ui32HeroFlags35C & 0xfffffffeu) | value;
     }
     // 0x00362670 IKHkHero_SetAttachedMoveSpeed_maybe: with the attached movement on (+0x358 bit 3), +0x3dc = `speed`.
     void SetAttachedMoveSpeed(float speed) {
-        if ((m_unk358 & 8u) == 0) return;
+        if ((m_ui32HeroFlags358 & 8u) == 0) return;
         m_unk3dc = speed;
     }
     // 0x00361de8 IKHkHero_GetFlag354Bit30_maybe: +0x354 bit 30 (rldicl 34, 63).
-    uint8_t GetFlag354Bit30() const { return static_cast<uint8_t>((m_unk354 >> 30) & 1u); }
+    uint8_t GetFlag354Bit30() const { return static_cast<uint8_t>((m_ui32HeroFlags354 >> 30) & 1u); }
     // 0x003626e8 IKHkHero_IsAttachedMovementEnabled_maybe: +0x358 bit 3 (rldicl 61, 63).
-    uint8_t IsAttachedMovementEnabled() const { return static_cast<uint8_t>((m_unk358 >> 3) & 1u); }
+    uint8_t IsAttachedMovementEnabled() const { return static_cast<uint8_t>((m_ui32HeroFlags358 >> 3) & 1u); }
     // 0x00363ff8 IKHkHero_IsFlag35CBit6_AndFlag3B0Bit6Clear_maybe: +0x35c bit 6 set and +0x3b0 bit 6 clear.
     uint8_t IsFlag35CBit6AndFlag3B0Bit6Clear() const {
-        if ((m_unk35c & 0x40u) == 0) return 0;
+        if ((m_ui32HeroFlags35C & 0x40u) == 0) return 0;
         return static_cast<uint8_t>(((m_unk3b0 ^ 0x40u) >> 6) & 1u);
     }
     // 0x00364268 IKHkHero_PassesTrackerAssignFlagChecks_maybe: a companion (+0x24 != +0x25) that is not +0x35c bit 5 /
     // bit 29, nor +0x360 bit 30, nor +0x35c bit 6 without +0x3b0 bit 6: +0x360 bit 12 clear.
     uint8_t PassesTrackerAssignFlagChecks() const {
-        if (m_ui8Hero == m_ui8TrackedLeader || (m_unk35c & 0x20u) != 0) return 0;
-        if ((m_unk360 & 0x40000000u) != 0 || (m_unk35c & 0x20000000u) != 0) return 0;
-        const uint8_t clear = static_cast<uint8_t>(((m_unk360 >> 12) & 1u) ^ 1u);
-        if ((m_unk35c & 0x40u) == 0) return clear;
+        if (m_ui8Hero == m_ui8TrackedLeader || (m_ui32HeroFlags35C & 0x20u) != 0) return 0;
+        if ((m_ui32HeroFlags360 & 0x40000000u) != 0 || (m_ui32HeroFlags35C & 0x20000000u) != 0) return 0;
+        const uint8_t clear = static_cast<uint8_t>(((m_ui32HeroFlags360 >> 12) & 1u) ^ 1u);
+        if ((m_ui32HeroFlags35C & 0x40u) == 0) return clear;
         return (m_unk3b0 & 0x40u) != 0 ? clear : 0;
     }
     // 0x0032a438 CKHkS08Hero_SetCarryingObject_maybe (CKHkS08Hero_12.cpp): +0xed4 bit 3 = `carrying` (slwi 3, or: a value
     // above 1 sets higher bits too).
-    void SetCarryingObject(uint32_t carrying) { m_unked4 = (m_unked4 & 0xfffffff7u) | (carrying << 3); }
+    void SetCarryingObject(uint32_t carrying) { m_ui32StatusFlagsED4 = (m_ui32StatusFlagsED4 & 0xfffffff7u) | (carrying << 3); }
     // 0x00350c48 CKHkS08Hero_AdvanceInnerBlenderAnimTime_maybe (CKHkS08Hero_18.cpp): the active controller of blend slot
     // `slot` (+0x138, 24-byte slots) advanced by `dt` (its time +0x50).
     void AdvanceInnerBlenderAnimTime(float dt, uint32_t slot);
@@ -468,7 +468,7 @@ public:
     uint8_t IsInCombo() const { return IsComboKindFlagSet(); }     // 0x0032a698 CKHkS08Hero_IsInCombo
     // 0x00329f00 CKHkS08Hero_SetHitConfirmed: bit 1 of +0xecc (an enemy took the hero's hit).
     void SetHitConfirmed(uint8_t confirmed) { m_unkecc = (m_unkecc & ~2u) | (static_cast<uint32_t>(confirmed) << 1); }
-    IKSerializable* GetGrabTarget() const { return m_unk124; }     // 0x00329df8 CKHkS08Hero_GetGrabTarget
+    IKSerializable* GetGrabTarget() const { return m_pTargetedEnemy; }     // 0x00329df8 CKHkS08Hero_GetGrabTarget
     // 0x0032a7a8 CKHkS08Hero_IsUsingWindBeam: hero 1 (+0x24) with an object at +0x1cc0 of class 0xa50c.
     uint8_t IsUsingWindBeam();
     // 0x0032a8d0 CKHkS08Hero_GetAbilityElementLevel: the element level of ability `id` for this hero's dragon (0: none).
@@ -552,7 +552,7 @@ public:
     void TryStartFinisherCamera();                                           // 0x0032d6b0 (CKHkS08Hero_14.cpp)
     // 0x00364ab0 CKHkS08Hero_GetAITarget_maybe: with `attack` +0x124 else +0x12c, without +0x120 else +0x128.
     IKSerializable* GetAITarget(uint8_t attack) const {
-        if (attack != 0) return m_unk124 != nullptr ? m_unk124 : m_unk12c;
+        if (attack != 0) return m_pTargetedEnemy != nullptr ? m_pTargetedEnemy : m_pTargetedMecaHook;
         return m_unk120 != nullptr ? m_unk120 : m_unk128;
     }
     CVector3 GetAimDirection() const { return CVector3{m_unk135c, m_unk1360, m_unk1364}; }  // 0x0032a708 CopyAimDirection
@@ -868,7 +868,7 @@ public:
     // 0x00363c40 CKHkS08Hero_GetGroundObject_maybe (IKHkHero_2.cpp): the current ground of a hero not in the air
     // (+0x354 bit 0) nor attached (+0x35c bit 8), else null.
     IKSerializable* GetGroundObject() const {
-        if ((m_unk354 & 1u) != 0 || (m_unk35c & 0x100u) != 0) return nullptr;
+        if ((m_ui32HeroFlags354 & 1u) != 0 || (m_ui32HeroFlags35C & 0x100u) != 0) return nullptr;
         return m_gcCurDatasInOut.m_pGround;
     }
     CKHkS08Hero* GetPartnerHero();                                   // 0x002f85f8 (CKHkS08Hero_2.cpp)
@@ -1341,8 +1341,8 @@ public:
     uint32_t m_unkec4;  // +0xec4  (C2.2 spyro)
     uint32_t m_unkec8;  // +0xec8  (C2.2 spyro)
     uint32_t m_unkecc;  // +0xecc  (C2.2 spyro)
-    uint32_t m_unked0;  // +0xed0  (C2.2 spyro)
-    uint32_t m_unked4;  // +0xed4  (C2.2 spyro)
+    uint32_t m_ui32StatusFlagsED0;  // +0xed0  (C2.2 spyro)
+    uint32_t m_ui32StatusFlagsED4;  // +0xed4  (C2.2 spyro)
     uint32_t m_unked8;  // +0xed8  (C2.2 spyro)
     uint32_t m_unkedc;  // +0xedc flags (bit 7: the lunge mark seen _maybe, StartLungeFromMark)
     uint32_t m_unkee0;  // +0xee0 cleared by DynamicStageTail 0x3046a8
@@ -1352,7 +1352,7 @@ public:
     // +0xef0..+0xfb7: ten button records of 0x14 bytes (CKHkS08Hero_UpdateButtonRecords 0x3411d8): the game manager
     // action (low byte of the word), the state (0 up, 1 pressed, 3 held, 2 released), the held time and the previous
     // one (floats), a consumed byte.
-    uint32_t m_unkef0;  // +0xef0  (C2.2 spyro)
+    uint32_t m_aButtonRecords;  // +0xef0  (C2.2 spyro)
     uint32_t m_unkef4;  // +0xef4  (C2.2 spyro)
     float m_unkef8;  // +0xef8  (C2.2 spyro)
     float m_unkefc;  // +0xefc  (C2.2 spyro)
@@ -1412,7 +1412,7 @@ public:
     float m_unkfb0;  // +0xfb0  (C2.2 spyro)
     uint8_t m_unkfb4;  // +0xfb4  (C2.2 spyro)
     uint8_t m_padfb5[3];
-    IKSerializable* m_unkfb8;                    // +0xfb8 CKS08CarrierHero*
+    IKSerializable* m_pCarrierHero;                    // +0xfb8 CKS08CarrierHero*
     IKSerializable* m_apUnkfbc[5];               // +0xfbc one array read of 5 references (CKShadowCpnt first, struct draft)
     float m_unkfd0;  // +0xfd0  (C2.2 spyro)
     float m_unkfd4;  // +0xfd4  (C2.2 spyro)
@@ -1485,8 +1485,8 @@ public:
     uint8_t m_unk1144;  // +0x1144  (C2.2 spyro)
     uint8_t m_pad1145[3];
     float m_unk1148;  // +0x1148  (C2.2 spyro; a float: the catch-up warp's curve parameter)
-    CTriggerStarter m_unk114c;                   // +0x114c
-    CTriggerStarter m_unk1154;                   // +0x1154
+    CTriggerStarter m_tsStartCarrying;                   // +0x114c
+    CTriggerStarter m_tsHit;                   // +0x1154
     float m_unk115c;  // +0x115c  (C2.2 strict3)
     float m_unk1160;  // +0x1160  (C2.2 strict3)
     IKSerializable* m_unk1164;                   // +0x1164 CKVibrationData*
@@ -1507,7 +1507,7 @@ public:
     uint8_t m_unk118d;  // +0x118d  (C2.2 strict3)
     uint8_t m_unk118e;  // +0x118e  (C2.2 strict3)
     uint8_t m_pad118f[1];
-    IKSerializable* m_unk1190;                   // +0x1190 CKImpulsionCpnt*
+    IKSerializable* m_pFlightImpulsionCpnt;                   // +0x1190 CKImpulsionCpnt*
     uint8_t m_unk1194;  // +0x1194  (C2.2 strict3)
     uint8_t m_unk1195;  // +0x1195  (C2.2 strict3)
     uint8_t m_pad1196[2];
@@ -1537,7 +1537,7 @@ public:
     float m_unk11f0;  // +0x11f0  (C2.2 strict3)
     float m_unk11f4;  // +0x11f4  (C2.2 strict3)
     float m_unk11f8;  // +0x11f8  (C2.2 strict3)
-    CGroundContactDatasInOut m_unk11fc;          // +0x11fc constructor defaults only
+    CGroundContactDatasInOut m_gcContact11FC;          // +0x11fc constructor defaults only
     uint8_t m_unk1228;  // +0x1228  (C2.2 strict3)
     uint8_t m_pad1229[3];
     float m_unk122c;  // +0x122c (UpdateLocomotionByMode adds the dt with +0xec8 bit 1)
@@ -1578,8 +1578,8 @@ public:
     float m_unk12b8;  // +0x12b8 the run direction (ComputeGroundRunForce)
     float m_unk12bc;  // +0x12bc
     float m_unk12c0;  // +0x12c0
-    float m_unk12c4;  // +0x12c4 the horizontal speed (ComputeCameraRelativeMove)
-    float m_unk12c8;  // +0x12c8 the vertical speed, absolute
+    float m_fCurrentHorizSpeed;  // +0x12c4 the horizontal speed (ComputeCameraRelativeMove)
+    float m_fCurrentAbsVertSpeed;  // +0x12c8 the vertical speed, absolute
     float m_unk12cc;  // +0x12cc the push clamp's speed factor (ProcessHeroContactList: at least 1)
     float m_unk12d0;  // +0x12d0 (UpdateGroundMovement: the speed range's start for the turn rate)
     float m_unk12d4;  // +0x12d4 +0x12ac along the facing (ComputeCameraRelativeMove)
@@ -1693,7 +1693,7 @@ public:
     uint32_t m_unk1444;  // +0x1444  (C2.2 strict3)
     float m_unk1448;  // +0x1448 (C2.2 strict3; a float: the landing approach's time, FlyAnimState03)
     CVector3 m_unk144c;                          // +0x144c constructor 0.0
-    float m_unk1458;  // +0x1458  (C2.2 strict3; a float: the flight height)
+    float m_fFlightHeight;  // +0x1458  (C2.2 strict3; a float: the flight height)
     float m_unk145c;  // +0x145c  (C2.2 strict3)
     uint32_t m_unk1460;  // +0x1460  (C2.2 strict3)
     uint8_t m_unk1464;  // +0x1464  (C2.2 strict3)
@@ -1864,7 +1864,7 @@ public:
     float m_unk1668;  // +0x1668  (C2.2 strict3)
     float m_unk166c;  // +0x166c  (C2.2 strict3)
     float m_unk1670;  // +0x1670  (C2.2 strict3)
-    uint8_t m_unk1674;  // +0x1674  (C2.2 strict3)
+    uint8_t m_bExternalDisplacementActive;  // +0x1674  (C2.2 strict3)
     uint8_t m_unk1675;  // +0x1675  (C2.2 strict3)
     uint8_t m_unk1676;  // +0x1676  (C2.2 strict3)
     uint8_t m_unk1677;  // +0x1677  (C2.2 strict3)
@@ -1884,8 +1884,8 @@ public:
     uint8_t m_unk168d;  // +0x168d  (C2.2 strict3)
     uint8_t m_unk168e;  // +0x168e  (C2.2 strict3)
     uint8_t m_pad168f[1];
-    CKHkClimbZone* m_unk1690;  // +0x1690 the climb zone of this frame while held (step 6 CLIMB)
-    CKHkClimbZone* m_unk1694;  // +0x1694 the climb zone the hero is in (HandleClimbZoneContact; cleared each frame)
+    CKHkClimbZone* m_pHeldClimbZone;  // _maybe: +0x1690 the climb zone of this frame while held (step 6 CLIMB)
+    CKHkClimbZone* m_pCurrentClimbZone;  // +0x1694 the climb zone the hero is in (HandleClimbZoneContact; cleared each frame)
     CKHkClimbZone* m_unk1698;  // +0x1698 the zone before the last one
     CKHkClimbZone* m_unk169c;  // +0x169c the last zone
     IKSerializable* m_unk16a0;  // +0x16a0 the zone's +0x4c
@@ -1959,9 +1959,9 @@ public:
     float m_unk17fc;  // +0x17fc  (C2.2 strict3)
     float m_unk1800;  // +0x1800  (C2.2 strict3)
     float m_unk1804;  // +0x1804  (C2.2 strict3)
-    uint8_t m_unk1808;  // +0x1808  (C2.2 strict3)
-    uint8_t m_unk1809;  // +0x1809  (C2.2 strict3)
-    uint8_t m_unk180a;                           // +0x180a (the movement mode changed this frame, SetMovementMode)
+    uint8_t m_ui8MovementMode;  // +0x1808  (C2.2 strict3)
+    uint8_t m_bTakeOffPending;  // +0x1809  (C2.2 strict3)
+    uint8_t m_bMovementModeChanged;                           // +0x180a (the movement mode changed this frame, SetMovementMode)
     uint8_t m_pad180b[1];
     float m_unk180c;  // +0x180c  (C2.2 strict3)
     uint8_t m_unk1810;  // +0x1810  (C2.2 strict3)
@@ -1971,7 +1971,7 @@ public:
     uint8_t m_unk1814;  // +0x1814  (C2.2 strict3)
     uint8_t m_unk1815;  // +0x1815  (C2.2 strict3)
     uint8_t m_pad1816[2];
-    IKSerializable* m_unk1818;                   // +0x1818 CSGLeaf*
+    IKSerializable* m_pCameraTargetNode;                   // +0x1818 CSGLeaf*
     float m_unk181c;  // +0x181c  (C2.2 strict3)
     float m_unk1820;  // +0x1820  (C2.2 strict3)
     float m_unk1824;  // +0x1824  (C2.2 strict3)
@@ -2019,7 +2019,7 @@ public:
     uint32_t m_unk18c4;  // +0x18c4  (C2.2 spyro)
     uint32_t m_unk18c8;  // +0x18c8  (C2.2 spyro)
     void* m_unk18cc;  // +0x18cc  (C2.2 spyro)
-    uint8_t m_unk18d0;                           // +0x18d0 constructor 0xff
+    uint8_t m_ui8FlyAnimState;                           // +0x18d0 constructor 0xff
     uint8_t m_unk18d1;                           // +0x18d1 constructor 0xff
     uint8_t m_pad18d2[2];
     uint32_t m_unk18d4;  // +0x18d4  (C2.2 spyro)
@@ -2057,7 +2057,7 @@ public:
     uint32_t m_unk1954;  // +0x1954  (C2.2 spyro)
     uint32_t m_unk1958;  // +0x1958  (C2.2 spyro)
     void* m_unk195c;  // +0x195c  (C2.2 spyro)
-    uint8_t m_unk1960;                           // +0x1960 constructor 0xff
+    uint8_t m_ui8GroundAnimState;                           // +0x1960 constructor 0xff
     uint8_t m_unk1961;                           // +0x1961 constructor 0xff
     uint8_t m_pad1962[2];
     uint32_t m_unk1964;  // +0x1964  (C2.2 spyro)
@@ -2077,7 +2077,7 @@ public:
     uint32_t m_unk199c;  // +0x199c  (C2.2 spyro)
     uint32_t m_unk19a0;  // +0x19a0  (C2.2 spyro)
     void* m_unk19a4;  // +0x19a4  (C2.2 spyro)
-    uint8_t m_unk19a8;                           // +0x19a8 constructor 0xff
+    uint8_t m_ui8ClimbAnimState;                           // +0x19a8 constructor 0xff
     uint8_t m_unk19a9;                           // +0x19a9 constructor 0xff
     uint8_t m_pad19aa[2];
     float m_unk19ac;  // +0x19ac  (C2.2 strict3; a float: the idle variation timer)
@@ -2137,7 +2137,7 @@ public:
     IKSerializable* m_unk1a7c;                   // +0x1a7c CKAimCamembert*
     uint32_t m_pad1a80;
     uint32_t m_unk1a84;  // +0x1a84  (C2.2 strict3)
-    IKSerializable* m_unk1a88;  // +0x1a88  (C2.2 spyro)
+    IKSerializable* m_pCurrentComboNode;  // +0x1a88  (C2.2 spyro)
     IKSerializable* m_unk1a8c;                   // +0x1a8c CKS08HeroCombo*
     IKSerializable* m_unk1a90;                   // +0x1a90 CKS08HeroCombo*
     IKSerializable* m_unk1a94;                   // +0x1a94 CKS08HeroCombo*
@@ -2200,7 +2200,7 @@ public:
     IKSerializable* m_unk1b20;                   // +0x1b20 CKExplosionFxData*
     IKSerializable* m_unk1b24;                   // +0x1b24 CKExplosionFxData*
     IKSerializable* m_unk1b28;                   // +0x1b28 CKAnimatedCamera*
-    float m_unk1b2c;  // +0x1b2c the extra mass with +0xed4 bit 0 (GetMass 0x2f8818; the armour _maybe)
+    float m_fExtraMass;  // +0x1b2c the extra mass with +0xed4 bit 0 (GetMass 0x2f8818; the armour _maybe)
     float m_unk1b30;  // +0x1b30 a timer counted down by the frame dt (ApplyGrabbedEnemyMarkDamage)
     float m_unk1b34;  // +0x1b34  (C2.2 strict2/3)
     float m_unk1b38;  // +0x1b38  (C2.2 strict3)
@@ -2229,7 +2229,7 @@ public:
     IKSerializable* m_unk1b94;  // +0x1b94  (C2.2 strict3)
     IKSerializable* m_unk1b98;  // +0x1b98  (C2.2 strict3)
     IKSerializable* m_apActiveHitSpheres[4];  // +0x1b9c the active hit spheres (CKHkS08Hero_GetActiveHitSpheres 0x329de0; count +0x1bac)
-    uint32_t m_unk1bac;  // +0x1bac  (C2.2 strict3)
+    uint32_t m_ui32ActiveHitSphereCount;  // +0x1bac  (C2.2 strict3)
     uint8_t m_unk1bb0;  // +0x1bb0  (C2.2 strict3)
     uint8_t m_pad1bb1[3];
     uint32_t m_unk1bb4;  // +0x1bb4  (C2.2 strict3)
@@ -2239,7 +2239,7 @@ public:
     uint32_t m_unk1bc4;  // +0x1bc4  (C2.2 strict3)
     uint32_t m_unk1bc8;  // +0x1bc8  (C2.2 strict3)
     uint32_t m_unk1bcc;  // +0x1bcc  (C2.2 strict3)
-    IKSerializable* m_apUnk1bd0[10];             // +0x1bd0 10 references, one read each (CKPoisonSpin first, struct draft)
+    IKSerializable* m_apAbilities[10];             // +0x1bd0 10 references, one read each (CKPoisonSpin first, struct draft)
     float m_afAbilityCooldown[10];  // +0x1bf8 per ability (ActState4_Ability_Condition counts them down)
     uint32_t m_unk1c20;                          // +0x1c20 read raw (4 colour bytes, RGBA_maybe)
     uint32_t m_unk1c24;                          // +0x1c24 read raw (4 colour bytes, RGBA_maybe)
@@ -2281,7 +2281,7 @@ public:
     int32_t m_unk1cb4;                           // +0x1cb4
     uint32_t m_unk1cb8;                          // +0x1cb8
     int32_t m_unk1cbc;                           // +0x1cbc
-    IKSerializable* m_unk1cc0;  // +0x1cc0 an object of class 0xa50c while hero 1 uses the wind beam (IsUsingWindBeam)
+    IKSerializable* m_pActiveAbility;  // +0x1cc0 an object of class 0xa50c while hero 1 uses the wind beam (IsUsingWindBeam)
     uint32_t m_unk1cc4;  // +0x1cc4  (C2.2 strict3)
     uint32_t m_unk1cc8;  // +0x1cc8  (C2.2 strict3)
     IKSerializable* m_unk1ccc;                   // +0x1ccc CKFilterFxData*
@@ -2308,13 +2308,13 @@ public:
     uint8_t m_unk1d18;  // +0x1d18  (C2.2 strict3)
     uint8_t m_pad1d19[3];
     float m_unk1d1c;  // +0x1d1c  (C2.2 strict3)
-    float m_unk1d20;  // +0x1d20  (C2.2 strict3)
-    float m_unk1d24;  // +0x1d24 the ability fury timer (ActAbility, 0.3 s)
-    IKSerializable* m_unk1d28;  // +0x1d28 the enemy aimed at in flight (UpdateFlyingLocomotion: FindBestEnemyInAimCone)
+    float m_fAbilityAnimSpeedScale;  // +0x1d20  (C2.2 strict3)
+    float m_fAbilityFuryTimer;  // +0x1d24 the ability fury timer (ActAbility, 0.3 s)
+    IKSerializable* m_pFlightAimEnemy;  // +0x1d28 the enemy aimed at in flight (UpdateFlyingLocomotion: FindBestEnemyInAimCone)
     float m_unk1d2c;  // +0x1d2c  (C2.2 strict3)
     float m_unk1d30;  // +0x1d30  (C2.2 strict3)
     float m_unk1d34;  // +0x1d34  (C2.2 strict3)
-    IKSerializable* m_unk1d38;                   // +0x1d38 CKAimCamembert*
+    IKSerializable* m_pFlightAimCone;                   // +0x1d38 CKAimCamembert*
     float m_unk1d3c;  // +0x1d3c  (C2.2 strict3)
     uint32_t m_unk1d40;  // +0x1d40  (C2.2 strict3)
     uint8_t m_unk1d44;  // +0x1d44  (C2.2 strict3)
@@ -2369,7 +2369,7 @@ public:
     IKSerializable* m_unk1dec;                   // +0x1dec CKCurve2DCpnt*
     IKSerializable* m_unk1df0;                   // +0x1df0 CKMeshPopFxData*
     IKSerializable* m_unk1df4;  // +0x1df4 the fury charge's mesh pop (a CKMeshPopNodeFx; SpawnFuryChargeFx)
-    class CKS08HeroAbilityHost* m_unk1df8;  // +0x1df8 the ability host (ActAbility builds it)
+    class CKS08HeroAbilityHost* m_pAbilityHost;  // +0x1df8 the ability host (ActAbility builds it)
     uint8_t m_unk1dfc;                           // +0x1dfc (the side blend flag while climbing, UpdateAnimation)
     uint8_t m_pad1dfd[3];
 };
@@ -2769,7 +2769,7 @@ DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unkeb8, 0xeb8);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unkebc, 0xebc);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unkec0, 0xec0);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unkee8, 0xee8);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unkfb8, 0xfb8);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_pCarrierHero, 0xfb8);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_apUnkfbc, 0xfbc);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unkFec, 0xfec);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk100c, 0x100c);
@@ -2778,14 +2778,14 @@ DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk104c, 0x104c);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk106c, 0x106c);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_apUnk1070, 0x1070);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_animBlendSlot10f0, 0x10f0);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk114c, 0x114c);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1154, 0x1154);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_tsStartCarrying, 0x114c);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_tsHit, 0x1154);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1164, 0x1164);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1168, 0x1168);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk116c, 0x116c);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1170, 0x1170);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1190, 0x1190);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk11fc, 0x11fc);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_pFlightImpulsionCpnt, 0x1190);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_gcContact11FC, 0x11fc);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk130c, 0x130c);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1310, 0x1310);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1314, 0x1314);
@@ -2828,12 +2828,12 @@ DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk14d8, 0x14d8);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk14dc, 0x14dc);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk16b8, 0x16b8);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk16c4, 0x16c4);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1818, 0x1818);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk18d0, 0x18d0);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_pCameraTargetNode, 0x1818);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_ui8FlyAnimState, 0x18d0);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk18d1, 0x18d1);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1960, 0x1960);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_ui8GroundAnimState, 0x1960);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1961, 0x1961);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk19a8, 0x19a8);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_ui8ClimbAnimState, 0x19a8);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk19a9, 0x19a9);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk19b4, 0x19b4);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk19bc, 0x19bc);
@@ -2892,7 +2892,7 @@ DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1b64, 0x1b64);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1b6c, 0x1b6c);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1b70, 0x1b70);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1b74, 0x1b74);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_apUnk1bd0, 0x1bd0);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_apAbilities, 0x1bd0);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1c20, 0x1c20);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1c24, 0x1c24);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1c28, 0x1c28);
@@ -2945,7 +2945,7 @@ DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1cec, 0x1cec);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1cf0, 0x1cf0);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1cf8, 0x1cf8);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1d00, 0x1d00);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1d38, 0x1d38);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_pFlightAimCone, 0x1d38);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1dbc, 0x1dbc);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1dc4, 0x1dc4);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1dc8, 0x1dc8);
@@ -3136,9 +3136,9 @@ DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk19a4, 0x19a4);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unked8, 0xed8);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unkec4, 0xec4);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unkecc, 0xecc);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unked0, 0xed0);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unked4, 0xed4);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1a88, 0x1a88);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_ui32StatusFlagsED0, 0xed0);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_ui32StatusFlagsED4, 0xed4);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_pCurrentComboNode, 0x1a88);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk894, 0x894);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk890, 0x890);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1a20, 0x1a20);
@@ -3150,7 +3150,7 @@ DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unkf2c, 0xf2c);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unkf40, 0xf40);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unkf54, 0xf54);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unkf68, 0xf68);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unkef0, 0xef0);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_aButtonRecords, 0xef0);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unkfa4, 0xfa4);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unkf7c, 0xf7c);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unkf90, 0xf90);
@@ -3274,7 +3274,7 @@ DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk143c, 0x143c);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1440, 0x1440);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1444, 0x1444);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1448, 0x1448);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1458, 0x1458);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_fFlightHeight, 0x1458);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk145c, 0x145c);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1460, 0x1460);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1464, 0x1464);
@@ -3366,7 +3366,7 @@ DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1665, 0x1665);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1668, 0x1668);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk166c, 0x166c);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1670, 0x1670);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1674, 0x1674);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_bExternalDisplacementActive, 0x1674);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1675, 0x1675);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1676, 0x1676);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1677, 0x1677);
@@ -3379,8 +3379,8 @@ DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk167d, 0x167d);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk168c, 0x168c);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk168d, 0x168d);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk168e, 0x168e);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1690, 0x1690);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1694, 0x1694);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_pHeldClimbZone, 0x1690);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_pCurrentClimbZone, 0x1694);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1698, 0x1698);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk169c, 0x169c);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk16a0, 0x16a0);
@@ -3439,8 +3439,8 @@ DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk178c, 0x178c);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk17fc, 0x17fc);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1800, 0x1800);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1804, 0x1804);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1808, 0x1808);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1809, 0x1809);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_ui8MovementMode, 0x1808);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_bTakeOffPending, 0x1809);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk180c, 0x180c);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1810, 0x1810);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1811, 0x1811);
@@ -3527,7 +3527,7 @@ DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1b8c, 0x1b8c);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1b90, 0x1b90);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1b94, 0x1b94);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1b98, 0x1b98);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1bac, 0x1bac);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_ui32ActiveHitSphereCount, 0x1bac);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1bb0, 0x1bb0);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1bb4, 0x1bb4);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1bb8, 0x1bb8);
@@ -3537,7 +3537,7 @@ DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1bc4, 0x1bc4);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1bc8, 0x1bc8);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1bcc, 0x1bcc);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_afAbilityCooldown, 0x1bf8);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1cc0, 0x1cc0);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_pActiveAbility, 0x1cc0);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1cc4, 0x1cc4);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1cc8, 0x1cc8);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1cf4, 0x1cf4);
@@ -3549,9 +3549,9 @@ DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1d11, 0x1d11);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1d14, 0x1d14);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1d18, 0x1d18);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1d1c, 0x1d1c);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1d20, 0x1d20);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1d24, 0x1d24);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1d28, 0x1d28);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_fAbilityAnimSpeedScale, 0x1d20);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_fAbilityFuryTimer, 0x1d24);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_pFlightAimEnemy, 0x1d28);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1d2c, 0x1d2c);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1d30, 0x1d30);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1d34, 0x1d34);
@@ -3592,7 +3592,7 @@ DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1dcc, 0x1dcc);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1dd0, 0x1dd0);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1dd1, 0x1dd1);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1df4, 0x1df4);
-DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk1df8, 0x1df8);
+DOTD_ASSERT_OFFSET(CKHkS08Hero, m_pAbilityHost, 0x1df8);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unkfed, 0xfed);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk100d, 0x100d);
 DOTD_ASSERT_OFFSET(CKHkS08Hero, m_unk102d, 0x102d);

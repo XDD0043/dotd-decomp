@@ -362,7 +362,7 @@ IKGrpEnemy* SquadEnemyGroup() { return static_cast<IKGrpEnemy*>(g_pEngine->m_gam
 // 0x002ca268 CKGrpS08Hero_SetInputBlocked_maybe (the hero group's +0xf8 bit 3; IKGrpHero.cpp, local copy).
 void SetHeroInputBlocked(uint32_t blocked) {
     CKGrpS08Hero* heroes = static_cast<CKGrpS08Hero*>(g_pEngine->m_gameManager->m_unk04[1]);
-    heroes->m_unkf8 = (heroes->m_unkf8 & ~8u) | (blocked << 3);
+    heroes->m_baWorkFlags = (heroes->m_baWorkFlags & ~8u) | (blocked << 3);
 }
 
 // 0x00363c78 IKHkHero_GetTargetingPositionPtr_maybe (IKHkHero_2.cpp, local copy): the hero's +0x570 unless its bit 1 is
@@ -379,7 +379,7 @@ float MathSqrtfSquad(float x) { return static_cast<float>(std::sqrt(static_cast<
 // 0x00361968 CKHkS08Hero_GetPositionPtr (local copy, as CKHkDetectorGroup.cpp's): the hero's +0x54c unless its bit 1 is
 // set and its +0xed4 bit 4 clear, then its scene node's frame's LTM position.
 const float* HeroPositionOfSquad(CKHkS08Hero* hero) {
-    if ((hero->m_bitArray & 2u) == 0 || ((hero->m_unked4 >> 4) & 1u) != 0) return &hero->m_unk54c;
+    if ((hero->m_bitArray & 2u) == 0 || ((hero->m_ui32StatusFlagsED4 >> 4) & 1u) != 0) return &hero->m_unk54c;
     return &FrameLtm(static_cast<CSGMovable*>(hero->m_pKGLObject)->m_pRwFrame)->pos.x;
 }
 
@@ -629,7 +629,7 @@ void CKGrpSquad::ReleaseMember(IKSerializable* member) {
     if (slot >= 0) CurrentKey()->m_asPos.m_pBlock[slot].m_bUsed = 0;
     ReturnEnemyToFightZonePool(type, member);
     enemy->m_pGroupSquad = nullptr;
-    enemy->m_unk188 = nullptr;
+    enemy->m_pEnemyCpnt = nullptr;
     enemy->m_bitArray |= 0x10u;
     static_cast<CSGLeaf*>(enemy->m_pKGLObject)->m_sgProperties |= 4u;
     enemy->VfD4();  // vt+0xd4
@@ -726,7 +726,7 @@ IKSerializable* CKGrpSquad::SpawnMember(uint8_t type) {
     IKHkEnemy* enemy = static_cast<IKHkEnemy*>(spawned);
     CKGrpFightZone::SEntry4c& kind = GetFightZone()->m_vUnk4c.m_pBlock[type];
     CKGrpPoolSquad* pool = static_cast<CKGrpPoolSquad*>(GetFightZone()->m_vUnk4c.m_pBlock[type].m_pRef);
-    enemy->m_unk188 = static_cast<CKS08EnemyCpnt*>(pool->m_vUnk30.m_pBlock[kind.m_unk04]);  // the pool's +0x30 list (LVL010: CKS08EnemyCpnt)
+    enemy->m_pEnemyCpnt = static_cast<CKS08EnemyCpnt*>(pool->m_vUnk30.m_pBlock[kind.m_unk04]);  // the pool's +0x30 list (LVL010: CKS08EnemyCpnt)
     SEnemyFormation* formation = FormationOf(spawned);
     formation->m_type = type;
     formation->m_slot = -1;

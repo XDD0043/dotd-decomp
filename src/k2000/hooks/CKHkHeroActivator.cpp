@@ -252,8 +252,8 @@ CKHkS08Hero* HeroAt(CKGrpS08Hero* group, uint32_t index) {  // 0x002ca080 GetHer
     return static_cast<CKHkS08Hero*>(group->m_apHeros[index]);
 }
 CKHkS08Hero* FocusedHero(CKGrpS08Hero* group) {  // 0x002ca0f8 CKGrpS08Hero_GetFocusedHero
-    if (group->m_unk66 == 0xff) return nullptr;
-    return HeroAt(group, static_cast<uint32_t>(static_cast<int32_t>(static_cast<int8_t>(group->m_unk66))));
+    if (group->m_ui8FocusedDragon == 0xff) return nullptr;
+    return HeroAt(group, static_cast<uint32_t>(static_cast<int32_t>(static_cast<int8_t>(group->m_ui8FocusedDragon))));
 }
 // The game's cosine of a float angle: the inlined polynomial for a clear sign bit, the library's cosf of the negation
 // otherwise (the original tests the stored word's sign).
@@ -376,7 +376,7 @@ void CKHkHeroActivator::UpdateProximityFx() {
                 flags &= 0xfffdffffu;
                 std::memcpy(reinterpret_cast<uint8_t*>(&matrix) + 0xc, &flags, 4);
                 CKParticlesEffectFxData* data = static_cast<CKParticlesEffectFxData*>(m_unk64);
-                std::memcpy(data->m_unk24, &matrix, sizeof(matrix));
+                std::memcpy(data->m_pLocalMatrix, &matrix, sizeof(matrix));
                 m_pProximityFx = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(data, this);
                 return;
             }

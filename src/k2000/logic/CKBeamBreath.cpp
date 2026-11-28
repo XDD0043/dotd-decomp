@@ -121,27 +121,27 @@ int32_t CKBeamBreath::Load(IKFile* file, int32_t type) {
     CKBreathElement::Load(file, type);
     if (type == 0) {
         for (int32_t i = 0; i < 3; ++i) {
-            IKFile_ReadRef(file, &m_unk1c8[i]);
-            IKFile_ReadRef(file, &m_unk1d4[i]);
-            IKFile_ReadRef(file, &m_unk1e8[i]);
+            IKFile_ReadRef(file, &m_apBeamParticles[i]);
+            IKFile_ReadRef(file, &m_apImpactParticles[i]);
+            IKFile_ReadRef(file, &m_apBeamMeshes[i]);
         }
-        IKFile_ReadRef(file, &m_unk204);
+        IKFile_ReadRef(file, &m_pAimCamembert);
         for (int32_t i = 0; i < 3; ++i) {
-            ReadS32LE(file, &m_unk178[i]);
-            ReadS32LE(file, &m_unk184[i]);
-            ReadS32LE(file, &m_unk190[i]);
-            ReadF32LE(file, &m_unk19c[i]);
-            ReadF32LE(file, &m_unk1a8[i]);
+            ReadS32LE(file, &m_ai32BeamHoldAlpha[i]);
+            ReadS32LE(file, &m_ai32BeamStartAlpha[i]);
+            ReadS32LE(file, &m_ai32BeamEndAlpha[i]);
+            ReadF32LE(file, &m_afBeamCrossScale[i]);
+            ReadF32LE(file, &m_afBeamMeshLength[i]);
         }
-        ReadF32LE(file, &m_unk1b4);
-        ReadF32LE(file, &m_unk1b8);
-        ReadF32LE(file, &m_unk1bc[0]);
-        ReadF32LE(file, &m_unk1bc[1]);
-        ReadF32LE(file, &m_unk1bc[2]);
-        IKFile_ReadRef(file, &m_unk208);
-        IKFile_ReadRef(file, &m_unk1f4[0]);
-        IKFile_ReadRef(file, &m_unk1f4[1]);
-        IKFile_ReadRef(file, &m_unk1f4[2]);
+        ReadF32LE(file, &m_fFadeInTime);
+        ReadF32LE(file, &m_fFadeOutTime);
+        ReadF32LE(file, &m_afBeamLength[0]);
+        ReadF32LE(file, &m_afBeamLength[1]);
+        ReadF32LE(file, &m_afBeamLength[2]);
+        IKFile_ReadRef(file, &m_pSoundDico);
+        IKFile_ReadRef(file, &m_apPointLightFxData[0]);
+        IKFile_ReadRef(file, &m_apPointLightFxData[1]);
+        IKFile_ReadRef(file, &m_apPointLightFxData[2]);
     }
     return 1;
 }
@@ -149,57 +149,57 @@ int32_t CKBeamBreath::Load(IKFile* file, int32_t type) {
 // 0x0039d3a0 CKFearEyes_PostLoad / 0x003c5f08 CKPurpleRay_PostLoad (the last two through TocBridge 0x98f340).
 int32_t CKBeamBreath::PostLoad(int32_t type) {
     CKBreathElement::PostLoad(type);  // 0x00382d98
-    SceneNode_SetVisibleInLayer(m_unk1e8[0], 1, 0, 0);  // 0x005832a8
-    SceneNode_SetVisibleInLayer(m_unk1e8[1], 1, 0, 0);
-    SceneNode_SetVisibleInLayer(m_unk1e8[2], 1, 0, 0);
+    SceneNode_SetVisibleInLayer(m_apBeamMeshes[0], 1, 0, 0);  // 0x005832a8
+    SceneNode_SetVisibleInLayer(m_apBeamMeshes[1], 1, 0, 0);
+    SceneNode_SetVisibleInLayer(m_apBeamMeshes[2], 1, 0, 0);
     return 1;
 }
 
 // 0x0039cfe0 CKFearEyes_ResetRuntime / 0x003c5b48 CKPurpleRay_ResetRuntime
 void CKBeamBreath::ResetBeamRuntime(int32_t type, uint8_t hotSpot) {
     CKBreathElement::ResetRuntime(type);  // 0x00381ed8
-    m_unk214 = 0;
-    m_unk15c = hotSpot;
-    m_unk1e0 = nullptr;
-    m_unk1e4 = nullptr;
-    m_unk200 = nullptr;
-    m_unk20c = nullptr;
-    m_unk218 = 0.0f;
-    if (type == 0) m_unk21c = RwMatrixCreate();  // RwMatrixCreate_Thunk 0x0023fa68
-    m_unk224 = 0.0f;
-    m_unk15d = 2;
+    m_bFadedIn = 0;
+    m_ui8HotspotIndex = hotSpot;
+    m_pActiveBeamParticles = nullptr;
+    m_pActiveImpactParticles = nullptr;
+    m_pPointLightNodeFx = nullptr;
+    m_pActiveBeamMesh = nullptr;
+    m_fFadeClock = 0.0f;
+    if (type == 0) m_pLocalMatrix = RwMatrixCreate();  // RwMatrixCreate_Thunk 0x0023fa68
+    m_fBeamPitchRad = 0.0f;
+    m_ui8ButtonIndex = 2;
 }
 
 // 0x0039d350 CKFearEyes_Start / 0x003c5eb8 CKPurpleRay_Start
 void CKBeamBreath::Start(CKS08AbilityHostBase* host) {
-    m_unk220 = nullptr;
+    m_pLoopSound = nullptr;
     CKBreathElement::Start(host);  // 0x00380f50
-    m_unk214 = 0;
-    m_unk224 = 0.0f;
-    m_unk218 = 0.0f;
+    m_bFadedIn = 0;
+    m_fBeamPitchRad = 0.0f;
+    m_fFadeClock = 0.0f;
 }
 
 // 0x0039d290 CKFearEyes_End / 0x003c5df8 CKPurpleRay_End
 void CKBeamBreath::End(int32_t forced) {
-    if (m_unk220 != nullptr) {
-        Sound_Stop(m_unk220, 0);  // 0x001111b0
-        m_unk220 = nullptr;
+    if (m_pLoopSound != nullptr) {
+        Sound_Stop(m_pLoopSound, 0);  // 0x001111b0
+        m_pLoopSound = nullptr;
     }
     CKBreathElement::End(forced);  // 0x00381220
-    SceneNode_SetVisibleInLayer(m_unk20c, 1, 0, 0);  // TocBridge 0x98f340 -> 0x005832a8 (a null mesh does nothing)
-    m_unk20c = nullptr;
+    SceneNode_SetVisibleInLayer(m_pActiveBeamMesh, 1, 0, 0);  // TocBridge 0x98f340 -> 0x005832a8 (a null mesh does nothing)
+    m_pActiveBeamMesh = nullptr;
 }
 
 // 0x0039d7f0 CKFearEyes_StopBreathing / 0x003c6358 CKPurpleRay_StopBreathing
 void CKBeamBreath::StopBreathing() {
     CKBreathElement::StopBreathing();  // 0x00381928
-    m_unk218 = 0.0f;
-    CNode* node = m_unk20c;
+    m_fFadeClock = 0.0f;
+    CNode* node = m_pActiveBeamMesh;
     if (node == nullptr) return;
     const CGeometry* geometry = static_cast<const CGeometry*>(node->m_lGeometryList);
-    m_unk210 = geometry != nullptr ? geometry->m_cGeometryColor[3] : static_cast<uint32_t>(m_unk178[m_unk04]);
-    if (m_unk1b8 != 0.0f) {  // TOC +0x36bc
-        m_unk214 = 1;
+    m_ui32FadeOutStartAlpha = geometry != nullptr ? geometry->m_cGeometryColor[3] : static_cast<uint32_t>(m_ai32BeamHoldAlpha[m_dwLevelIndex]);
+    if (m_fFadeOutTime != 0.0f) {  // TOC +0x36bc
+        m_bFadedIn = 1;
         return;
     }
     node->m_sgProperties = (node->m_sgProperties & 0xfffffffbu) | 4u;
@@ -208,8 +208,8 @@ void CKBeamBreath::StopBreathing() {
 // 0x0039d6e8 CKFearEyes_GetEmitterPosition / 0x003c6250 CKPurpleRay_GetEmitterPosition. The LTM is read as stored.
 CVector3 CKBeamBreath::GetEmitterPosition(uint8_t raw) {
     CVector3 out = kNullVector;
-    if (m_unk20c != nullptr) {
-        const RwFrame* frame = m_unk20c->m_pRwFrame;
+    if (m_pActiveBeamMesh != nullptr) {
+        const RwFrame* frame = m_pActiveBeamMesh->m_pRwFrame;
         const RwV3d& at = raw == 0 ? frame->ltm.at : frame->modelling.at;  // +0x70 / +0x30
         out = CVector3{at.x, at.y, at.z};
     }
@@ -221,23 +221,23 @@ CVector3 CKBeamBreath::GetEmitterPosition(uint8_t raw) {
 
 // 0x0039d070 CKFearEyes_GetFxSound_maybe / 0x003c5bd8 CKPurpleRay_GetFxSound_maybe
 CKSound* CKBeamBreath::GetFxSound(uint32_t which) {
-    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_unk208);
+    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_pSoundDico);
     auto playable = [sounds](uint32_t index) {
         return sounds->GetSound(index) != nullptr && sounds->GetSound(index)->GetSample() != nullptr;  // 0x00112bc0, 0x00111000
     };
     if (which == 1) {
-        if (m_unk04 == 1 || m_unk04 == 2) {
-            if (m_unk04 == 2 && playable(6)) return sounds->GetSound(6);
+        if (m_dwLevelIndex == 1 || m_dwLevelIndex == 2) {
+            if (m_dwLevelIndex == 2 && playable(6)) return sounds->GetSound(6);
             if (playable(5)) return sounds->GetSound(5);
         }
         return sounds->GetSound(4);
     }
     if (which == 0) {
-        if (m_unk04 == 2 && playable(1)) return sounds->GetSound(1);
+        if (m_dwLevelIndex == 2 && playable(1)) return sounds->GetSound(1);
         return sounds->GetSound(0);
     }
     if (which != 4) return nullptr;
-    if (m_unk04 == 2 && playable(3)) return sounds->GetSound(3);
+    if (m_dwLevelIndex == 2 && playable(3)) return sounds->GetSound(3);
     return sounds->GetSound(2);
 }
 
@@ -246,93 +246,93 @@ CKSound* CKBeamBreath::GetFxSound(uint32_t which) {
 void CKBeamBreath::SetBeamFxActive(uint8_t on, float impactPullBack) {
     CKSrvFx* fx = FxService();
     if (on == 0) {
-        if (m_unk1e0 != nullptr) {
-            StopOwnedParticleEffect(static_cast<IKFx*>(m_unk1e0), this);  // 0x001cdde8
-            static_cast<IKFx*>(m_unk1e0)->ReleaseReservation(this);       // vt+0x54
-            m_unk1e0 = nullptr;
+        if (m_pActiveBeamParticles != nullptr) {
+            StopOwnedParticleEffect(static_cast<IKFx*>(m_pActiveBeamParticles), this);  // 0x001cdde8
+            static_cast<IKFx*>(m_pActiveBeamParticles)->ReleaseReservation(this);       // vt+0x54
+            m_pActiveBeamParticles = nullptr;
         }
-        if (m_unk1e4 != nullptr) {
-            StopOwnedParticleEffect(static_cast<IKFx*>(m_unk1e4), this);
-            static_cast<IKFx*>(m_unk1e4)->ReleaseReservation(this);
-            m_unk1e4 = nullptr;
+        if (m_pActiveImpactParticles != nullptr) {
+            StopOwnedParticleEffect(static_cast<IKFx*>(m_pActiveImpactParticles), this);
+            static_cast<IKFx*>(m_pActiveImpactParticles)->ReleaseReservation(this);
+            m_pActiveImpactParticles = nullptr;
         }
-        if (m_unk200 != nullptr) {
-            static_cast<IKFx*>(m_unk200)->StopAndRelease(this);  // vt+0x58
-            m_unk200 = nullptr;
+        if (m_pPointLightNodeFx != nullptr) {
+            static_cast<IKFx*>(m_pPointLightNodeFx)->StopAndRelease(this);  // vt+0x58
+            m_pPointLightNodeFx = nullptr;
         }
-        if (m_unk220 == nullptr) return;
+        if (m_pLoopSound == nullptr) return;
         CKSound* end = GetFxSound(4);
         if (end != nullptr) PlayOnHero(end, m_pHost);
-        Sound_Stop(m_unk220, 0);  // 0x001111b0
-        m_unk220 = nullptr;
+        Sound_Stop(m_pLoopSound, 0);  // 0x001111b0
+        m_pLoopSound = nullptr;
         return;
     }
     // The beam particles on the hot spot (data flag 0x10 set).
-    CKParticlesEffectFxData* particles = static_cast<CKParticlesEffectFxData*>(m_unk1c8[m_unk04]);
-    particles->m_pAttachHotSpot = m_pHost->GetHotspot(m_unk15c);  // vt+0xcc
+    CKParticlesEffectFxData* particles = static_cast<CKParticlesEffectFxData*>(m_apBeamParticles[m_dwLevelIndex]);
+    particles->m_pAttachHotSpot = m_pHost->GetHotspot(m_ui8HotspotIndex);  // vt+0xcc
     particles->m_pAttachOwner = nullptr;
-    particles = static_cast<CKParticlesEffectFxData*>(m_unk1c8[m_unk04]);
-    particles->m_unk08 = static_cast<uint8_t>((particles->m_unk08 & 0xefu) | 0x10u);
-    m_unk1e0 = fx->AcquireFx(static_cast<CKParticlesEffectFxData*>(m_unk1c8[m_unk04]), this);
+    particles = static_cast<CKParticlesEffectFxData*>(m_apBeamParticles[m_dwLevelIndex]);
+    particles->m_ui8Flags = static_cast<uint8_t>((particles->m_ui8Flags & 0xefu) | 0x10u);
+    m_pActiveBeamParticles = fx->AcquireFx(static_cast<CKParticlesEffectFxData*>(m_apBeamParticles[m_dwLevelIndex]), this);
     // The level's mesh: shown at its start alpha (the low byte of +0x184[level]), hung under the hot spot.
-    m_unk20c = m_unk1e8[m_unk04];
-    if (m_unk20c != nullptr) {
-        m_unk20c->m_sgProperties &= 0xfffffffbu;
-        SetMeshAlpha(m_unk20c, static_cast<uint8_t>(m_unk184[m_unk04]));
-        CSGBranch* parent = m_unk20c->m_pParent;
-        if (parent != nullptr) parent->RemoveChild(m_unk20c);  // vt+0x78
-        static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_unk15c))->AttachVolume(m_unk20c);  // vt+0xcc, 0x000ce2b8
-        *m_unk21c = m_unk20c->m_pRwFrame->modelling;  // the 0x40 bytes, flags and pads included
+    m_pActiveBeamMesh = m_apBeamMeshes[m_dwLevelIndex];
+    if (m_pActiveBeamMesh != nullptr) {
+        m_pActiveBeamMesh->m_sgProperties &= 0xfffffffbu;
+        SetMeshAlpha(m_pActiveBeamMesh, static_cast<uint8_t>(m_ai32BeamStartAlpha[m_dwLevelIndex]));
+        CSGBranch* parent = m_pActiveBeamMesh->m_pParent;
+        if (parent != nullptr) parent->RemoveChild(m_pActiveBeamMesh);  // vt+0x78
+        static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_ui8HotspotIndex))->AttachVolume(m_pActiveBeamMesh);  // vt+0xcc, 0x000ce2b8
+        *m_pLocalMatrix = m_pActiveBeamMesh->m_pRwFrame->modelling;  // the 0x40 bytes, flags and pads included
         UpdateBeamAndImpact(impactPullBack);  // 0x0039f228 (the result unused)
     }
     // The level's point light on the hot spot.
-    CKPointLightFxData* light = static_cast<CKPointLightFxData*>(m_unk1f4[m_unk04]);
-    light->m_pAttachHotSpot = m_pHost->GetHotspot(m_unk15c);
+    CKPointLightFxData* light = static_cast<CKPointLightFxData*>(m_apPointLightFxData[m_dwLevelIndex]);
+    light->m_pAttachHotSpot = m_pHost->GetHotspot(m_ui8HotspotIndex);
     light->m_pAttachNode = nullptr;
-    m_unk200 = fx->AcquireFx(static_cast<CKPointLightFxData*>(m_unk1f4[m_unk04]), this);
+    m_pPointLightNodeFx = fx->AcquireFx(static_cast<CKPointLightFxData*>(m_apPointLightFxData[m_dwLevelIndex]), this);
     // The start sound and the level's loop sound, both on the hero's node.
     CKSound* start = GetFxSound(0);
     if (start != nullptr) PlayOnHero(start, m_pHost);
-    m_unk220 = GetFxSound(1);
-    if (m_unk220 != nullptr) PlayOnHero(m_unk220, m_pHost);
+    m_pLoopSound = GetFxSound(1);
+    if (m_pLoopSound != nullptr) PlayOnHero(m_pLoopSound, m_pHost);
 }
 
 // 0x0039ff48 CKFearEyes_UpdateFx / 0x003c8ab0 CKPurpleRay_UpdateFx. The float tests are the original's (blt / cror bge:
 // a NaN clock skips the fade-in and holds the fade-out).
 void CKBeamBreath::UpdateBeamFx(float dt, float impactPullBack) {
-    m_unk218 = dt + m_unk218;
-    CNode* node = m_unk20c;
+    m_fFadeClock = dt + m_fFadeClock;
+    CNode* node = m_pActiveBeamMesh;
     if (node == nullptr || node->m_pParent == nullptr || (node->m_sgProperties & 4u) != 0) return;
-    const int32_t level = static_cast<int32_t>(m_unk04);
+    const int32_t level = static_cast<int32_t>(m_dwLevelIndex);
     bool held = true;  // the hold below runs (not taken during a fade-in)
-    if (m_unk218 < m_unk1b4 && m_unk155 != 0) {
+    if (m_fFadeClock < m_fFadeInTime && m_bBreathing != 0) {
         // The fade-in: from +0x184 to +0x178 over +0x1b4.
         held = false;
         if (node->m_lGeometryList == nullptr) goto beam;
-        SetMeshAlpha(node, FadeAlpha(IntToFloat(m_unk184[level]), IntToFloat(m_unk178[level]), m_unk218, m_unk1b4));
+        SetMeshAlpha(node, FadeAlpha(IntToFloat(m_ai32BeamStartAlpha[level]), IntToFloat(m_ai32BeamHoldAlpha[level]), m_fFadeClock, m_fFadeInTime));
     }
-    if (held && m_unk214 == 0) {
+    if (held && m_bFadedIn == 0) {
         // Held: the alpha +0x178 once, then faded in.
-        if (m_unk155 == 0) goto beam;
+        if (m_bBreathing == 0) goto beam;
         if (node->m_lGeometryList != nullptr) {
-            SetMeshAlpha(node, static_cast<uint8_t>(ppc::fctiwz(IntToFloat(m_unk178[level]))));
+            SetMeshAlpha(node, static_cast<uint8_t>(ppc::fctiwz(IntToFloat(m_ai32BeamHoldAlpha[level]))));
         }
-        m_unk214 = 1;
+        m_bFadedIn = 1;
     }
-    if (m_unk155 == 0 && m_unk214 != 0) {
+    if (m_bBreathing == 0 && m_bFadedIn != 0) {
         // The fade-out: from the alpha at the stop to +0x190 over +0x1b8, then hidden.
-        if (m_unk218 >= m_unk1b8) {
-            m_unk214 = 0;
-            m_unk20c->m_sgProperties = (m_unk20c->m_sgProperties & 0xfffffffbu) | 4u;
-        } else if (m_unk20c->m_lGeometryList != nullptr) {
-            const float from = static_cast<float>(static_cast<double>(m_unk210));  // the word as unsigned
-            SetMeshAlpha(m_unk20c, FadeAlpha(from, IntToFloat(m_unk190[level]), m_unk218, m_unk1b8));
+        if (m_fFadeClock >= m_fFadeOutTime) {
+            m_bFadedIn = 0;
+            m_pActiveBeamMesh->m_sgProperties = (m_pActiveBeamMesh->m_sgProperties & 0xfffffffbu) | 4u;
+        } else if (m_pActiveBeamMesh->m_lGeometryList != nullptr) {
+            const float from = static_cast<float>(static_cast<double>(m_ui32FadeOutStartAlpha));  // the word as unsigned
+            SetMeshAlpha(m_pActiveBeamMesh, FadeAlpha(from, IntToFloat(m_ai32BeamEndAlpha[level]), m_fFadeClock, m_fFadeOutTime));
         }
     }
 beam:
     const CVector3 end = UpdateBeamAndImpact(impactPullBack);  // 0x0039f228
-    if (m_unk1e4 != nullptr) {
-        SetOwnedParticleEffectPosition(static_cast<CKParticlesEffectNodeFx*>(m_unk1e4), &end, this);  // 0x001cdce0
+    if (m_pActiveImpactParticles != nullptr) {
+        SetOwnedParticleEffectPosition(static_cast<CKParticlesEffectNodeFx*>(m_pActiveImpactParticles), &end, this);  // 0x001cdce0
     }
 }
 
@@ -341,30 +341,30 @@ beam:
 CVector3 CKBeamBreath::UpdateBeamAndImpact(float impactPullBack) {
     CVector3 out = kNullVector;
     float lift = 0.0f;                            // f23
-    const float length = m_unk1bc[m_unk04];       // f22
-    CNode* node = m_unk20c;
+    const float length = m_afBeamLength[m_dwLevelIndex];       // f22
+    CNode* node = m_pActiveBeamMesh;
     if (node != nullptr) {
-        node->SetLocalMatrix(m_unk21c);  // 0x000d0be8
+        node->SetLocalMatrix(m_pLocalMatrix);  // 0x000d0be8
         // BUG(original): without the hot spot's node the matrix is the stack's (GetWorldMatrix leaves it); zeros here.
         CMatrix34 spot{};
-        static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_unk15c))->GetWorldMatrix(&spot);  // vt+0xcc, 0x000ce970
+        static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_ui8HotspotIndex))->GetWorldMatrix(&spot);  // vt+0xcc, 0x000ce970
         const float px = spot.m_pos.x;  // f21
         const float py = spot.m_pos.y;  // f24
         const float pz = spot.m_pos.z;  // f20
-        m_pHost->ComputeAimDirection(kPi, this, m_unk204);  // vt+0x58 (the result unused)
+        m_pHost->ComputeAimDirection(kPi, this, m_pAimCamembert);  // vt+0x58 (the result unused)
         RwFrame* frame = node->m_pRwFrame;
         bool reaches = false;  // r27: the beam reaches the target (or hits a mesh)
         float scale = 1.0f;    // f27
         if (m_pHost->GetLockedTarget() == nullptr) {  // vt+0xd4
             // No target: the pitch goes back to 0 at 2 pi rad/s.
             const float step = FrameTime() + FrameTime();
-            float pitch = ppc::fmadds(step, -kPi, m_unk224);
+            float pitch = ppc::fmadds(step, -kPi, m_fBeamPitchRad);
             if (!(pitch >= 0.0f)) {
-                pitch = ppc::fmadds(step, kPi, m_unk224);
+                pitch = ppc::fmadds(step, kPi, m_fBeamPitchRad);
                 if (!(pitch <= 0.0f)) pitch = 0.0f;
             }
             const float degrees = pitch * kRadToDeg;
-            m_unk224 = pitch;
+            m_fBeamPitchRad = pitch;
             Mat4_RotateLocalXDeg(degrees, &spot);                 // 0x00241118
             node->RotateInPlace(&frame->modelling.right.x, degrees);  // 0x000d11b0
         } else {
@@ -389,13 +389,13 @@ CVector3 CKBeamBreath::UpdateBeamAndImpact(float impactPullBack) {
                 wanted = kMaxPitch;
             }
             const float step = FrameTime() + FrameTime();
-            float pitch = ppc::fmadds(step, -kPi, m_unk224);
+            float pitch = ppc::fmadds(step, -kPi, m_fBeamPitchRad);
             if (!(wanted <= pitch)) {
-                pitch = ppc::fmadds(step, kPi, m_unk224);
+                pitch = ppc::fmadds(step, kPi, m_fBeamPitchRad);
                 if (!(wanted >= pitch)) pitch = wanted;
             }
             const float degrees = pitch * kRadToDeg;
-            m_unk224 = pitch;
+            m_fBeamPitchRad = pitch;
             const float down = -pitch;  // f29
             Mat4_RotateLocalXDeg(degrees, &spot);
             node->RotateInPlace(&frame->modelling.right.x, degrees);
@@ -428,7 +428,7 @@ CVector3 CKBeamBreath::UpdateBeamAndImpact(float impactPullBack) {
             lift = impactPullBack;  // TOC +0x373c
         }
         CGroundEdgeDatasOut wall;
-        const bool hitWall = Collision()->RaycastWalls(&line, m_unk50[m_unk04], &wall, 0, nullptr, 1) != 0;  // 0x00198438
+        const bool hitWall = Collision()->RaycastWalls(&line, m_unk50[m_dwLevelIndex], &wall, 0, nullptr, 1) != 0;  // 0x00198438
         if (hitWall && t >= wall.m_ftLine) {
             t = wall.m_ftLine;
             lift = 0.0f;
@@ -467,24 +467,24 @@ CVector3 CKBeamBreath::UpdateBeamAndImpact(float impactPullBack) {
                 out = CVector3{ppc::fmadds(reach, turned.x, px), ppc::fmadds(turned.y, reach, py),
                                ppc::fmadds(turned.z, reach, pz)};
             }
-            if (m_unk1e4 == nullptr) {
+            if (m_pActiveImpactParticles == nullptr) {
                 // The impact particles (data flag 0x10 cleared).
-                CKParticlesEffectFxData* impact = static_cast<CKParticlesEffectFxData*>(m_unk1d4[m_unk04]);
-                impact->m_unk08 = static_cast<uint8_t>(impact->m_unk08 & 0xefu);
-                m_unk1e4 = FxService()->AcquireFx(static_cast<CKParticlesEffectFxData*>(m_unk1d4[m_unk04]), this);
+                CKParticlesEffectFxData* impact = static_cast<CKParticlesEffectFxData*>(m_apImpactParticles[m_dwLevelIndex]);
+                impact->m_ui8Flags = static_cast<uint8_t>(impact->m_ui8Flags & 0xefu);
+                m_pActiveImpactParticles = FxService()->AcquireFx(static_cast<CKParticlesEffectFxData*>(m_apImpactParticles[m_dwLevelIndex]), this);
             }
         } else {
             // Nothing in the way: the beam's full end, no impact.
             out = CVector3{endX, endY, endZ};
-            if (m_unk1e4 != nullptr) {
-                StopOwnedParticleEffect(static_cast<IKFx*>(m_unk1e4), this);  // 0x001cdde8
-                static_cast<IKFx*>(m_unk1e4)->ReleaseReservation(this);       // vt+0x54
-                m_unk1e4 = nullptr;
+            if (m_pActiveImpactParticles != nullptr) {
+                StopOwnedParticleEffect(static_cast<IKFx*>(m_pActiveImpactParticles), this);  // 0x001cdde8
+                static_cast<IKFx*>(m_pActiveImpactParticles)->ReleaseReservation(this);       // vt+0x54
+                m_pActiveImpactParticles = nullptr;
             }
         }
         // The mesh scaled across and to the length it covers.
         if (!(scale < t)) scale = t;
-        node->ScaleXYZ(m_unk19c[m_unk04], m_unk19c[m_unk04], (scale * length) / m_unk1a8[m_unk04]);  // 0x000d0d28
+        node->ScaleXYZ(m_afBeamCrossScale[m_dwLevelIndex], m_afBeamCrossScale[m_dwLevelIndex], (scale * length) / m_afBeamMeshLength[m_dwLevelIndex]);  // 0x000d0d28
     }
     out = CVector3{ppc::fmadds(lift, kAxisY.x, out.x), ppc::fmadds(lift, kAxisY.y, out.y), ppc::fmadds(lift, kAxisY.z, out.z)};
     return out;

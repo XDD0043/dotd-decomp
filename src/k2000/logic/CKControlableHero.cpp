@@ -94,7 +94,7 @@ CKHkS08Hero* CKHkS08Hero::GetControllingHero() {
 // 0x00344e88 CKHkS08Hero_LeaveAttachedObject_maybe (step 4 AI: TeleportTo's): a hero attached to an object
 // (+0x358 bit 0) tells it (+0x90, MessageProc vt+0x1c) message 0x940 with itself.
 void CKHkS08Hero::LeaveAttachedObject() {
-    if ((m_unk358 & 1u) == 0) return;
+    if ((m_ui32HeroFlags358 & 1u) == 0) return;
     m_unk90->MessageProc(0x940, this);
 }
 
@@ -108,5 +108,5 @@ IKSerializable* CKHkS08Hero::GetComponent(uint32_t key) {
 void IKHkHero::GetBlendSlot(AnimBlendSlot** slots, int32_t* count) {
     const uint32_t n = static_cast<IKGrpHero*>(m_pGrpHero)->GetNbAnimBlendSlots(m_ui8Hero);  // vt+0x134 (a byte)
     *count = static_cast<int32_t>(n);
-    for (uint32_t i = n; i != 0; --i) slots[i - 1] = m_unk138 + (i - 1);
+    for (uint32_t i = n; i != 0; --i) slots[i - 1] = m_pAnimBlendSlots + (i - 1);
 }

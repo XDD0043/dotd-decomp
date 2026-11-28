@@ -329,7 +329,7 @@ uint8_t CKS08CarrierEnemy::State2PickUp(IKTime* /*clock*/, int32_t phase, uint8_
         return other;
     }
     CKHkS08TransportableBase* claimed = static_cast<CKHkS08TransportableBase*>(m_unk0c);
-    if (claimed->VfF4(this) != 0 && static_cast<CKHkS08Enemy*>(m_pEnemy)->m_unk239 == 0) {
+    if (claimed->VfF4(this) != 0 && static_cast<CKHkS08Enemy*>(m_pEnemy)->m_bPendingHit == 0) {
         static_cast<CKHkS08TransportableBase*>(m_unk0c)->VfF0(this);
         m_unk10 = m_unk0c;
         return 0;

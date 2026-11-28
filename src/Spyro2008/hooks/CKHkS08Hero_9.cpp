@@ -76,7 +76,7 @@ CVector3 CKHkS08Hero::ComputeGroundBrakeForce(float speed) {
     bool brake;
     if ((m_unkec4 & 0x1000000u) != 0 || m_unk1378 != 0.0f) {
         brake = true;
-    } else if (IsAnyComboKindActive() != 0 || (m_unked4 & 0x40u) != 0) {  // 0x002fd030
+    } else if (IsAnyComboKindActive() != 0 || (m_ui32StatusFlagsED4 & 0x40u) != 0) {  // 0x002fd030
         brake = (m_unkec4 & 0x200000u) == 0;
     } else {
         brake = false;
@@ -138,7 +138,7 @@ CVector3 CKHkS08Hero::ComputeGroundInputForce(float dt, const CVector3* force) {
         if (moving) scale = m_unka88;
         if ((m_unkec4 & 0x20000u) != 0) scale = m_unk12d0 < m_unkb88 ? m_unkb80 : m_unkb84;
         if (IsAnyComboKindActive() != 0) {  // 0x002fd030
-            scale = (m_unked4 & 1u) != 0 ? m_unk89c / m_unk1b2c : m_unk89c;
+            scale = (m_ui32StatusFlagsED4 & 1u) != 0 ? m_unk89c / m_fExtraMass : m_unk89c;
         }
         const float drive = scale * alongNormal;
         const float speed = m_unk12d0;
@@ -262,7 +262,7 @@ uint8_t CKHkS08Hero::LocoGround(IKTime*, int32_t phase, uint8_t other) {
         m_unk1290 = frame->modelling.at.z;
         m_unk128c = frame->modelling.at.y;
         ComputeCameraRelativeMove();  // 0x00311df0
-        if ((m_unkec4 & 0x20000u) == 0) m_unk35c = (m_unk35c & 0x7fffffffu) | 0x80000000u;
+        if ((m_unkec4 & 0x20000u) == 0) m_ui32HeroFlags35C = (m_ui32HeroFlags35C & 0x7fffffffu) | 0x80000000u;
         static_cast<CKSrvDynamic*>(g_pEngine->m_srvDynamic)->SetEntryFlag(this, 1);  // 0x0023aff8
         m_unk1505 = 0;
         m_unk1507 = 0;
@@ -270,7 +270,7 @@ uint8_t CKHkS08Hero::LocoGround(IKTime*, int32_t phase, uint8_t other) {
         m_unk14fc = zero.y;
         m_unk1500 = zero.z;
         m_unk1506 = 0;
-        if (((m_unk354 & 1u) != 0 && m_unk510 > 0.001f) || m_unk160 == 0x55) {  // 0x00361c00 GetFloat510; TOC +0x2430
+        if (((m_ui32HeroFlags354 & 1u) != 0 && m_unk510 > 0.001f) || m_i16CurAnimIndex == 0x55) {  // 0x00361c00 GetFloat510; TOC +0x2430
             m_unk1511 = 1;
         } else {
             m_unk1511 = 0;
@@ -280,7 +280,7 @@ uint8_t CKHkS08Hero::LocoGround(IKTime*, int32_t phase, uint8_t other) {
         m_unk17fc = zero.x;
         m_unk1800 = zero.y;
         m_unk1804 = zero.z;
-        m_unk35c &= 0xffffff7fu;
+        m_ui32HeroFlags35C &= 0xffffff7fu;
         return other;
     }
     if (phase == 2) {
@@ -290,7 +290,7 @@ uint8_t CKHkS08Hero::LocoGround(IKTime*, int32_t phase, uint8_t other) {
         m_unk1507 = 0;
         m_unkec4 = (m_unkec4 & 0xfffffffeu) | 1u;
         m_unk368 = (m_unk368 & 0xffffffdfu) | 0x20u;
-        m_unk35c &= 0x7fffffffu;
+        m_ui32HeroFlags35C &= 0x7fffffffu;
         m_unkec8 &= 0xffffff7fu;
         m_unk368 &= 0xfffffeffu;
         return other;
@@ -311,7 +311,7 @@ uint8_t CKHkS08Hero::LocoGround(IKTime*, int32_t phase, uint8_t other) {
     // The speed (Math_Sqrtf 0x00010690 of the velocity's square length) is computed and not used.
     (void)c22spyro::MathSqrtf(ppc::fmadds(m_unk1284, m_unk1284, ppc::fmadds(m_unk127c, m_unk127c, m_unk1280 * m_unk1280)));
     ApplyPartnerTetherToVelocity();  // 0x003105d8
-    if ((m_unk354 & 0x40000u) != 0) {
+    if ((m_ui32HeroFlags354 & 0x40000u) != 0) {
         float x = m_wallSlide.m_v3Normal.x;  // +0x61c
         float y = m_wallSlide.m_v3Normal.y;
         float z = m_wallSlide.m_v3Normal.z;
@@ -358,7 +358,7 @@ uint8_t CKHkS08Hero::LocoGround(IKTime*, int32_t phase, uint8_t other) {
         m_unk1804 = push.z;
         m_unk1800 = push.y;
     }
-    if ((m_unked0 & 2u) != 0) {
+    if ((m_ui32StatusFlagsED0 & 2u) != 0) {
         float vx = m_unk127c;
         float vz = m_unk1284;
         const float dot = ppc::fmadds(vz, m_unk1364, ppc::fmadds(vx, m_unk135c, m_unk1360 * 0.0f));
@@ -394,7 +394,7 @@ void CKHkS08Hero::UpdateGroundMovement(float dt) {
         bool checkSlot = false;
         bool push = false;
         if ((flags & 0x40000u) != 0) {
-            if (m_unk160 == 0x27) {
+            if (m_i16CurAnimIndex == 0x27) {
                 checkSlot = true;
             } else if ((flags & 0x2000000u) == 0) {
                 push = true;
@@ -409,7 +409,7 @@ void CKHkS08Hero::UpdateGroundMovement(float dt) {
             m_unkec8 = value;
         } else if (checkSlot) {
             AnimBlendSlot* slot = GetAnimBlendSlot();  // vt+0x194
-            if (slot->m_unk14 == 0 && m_unk160 == 0x28 && (m_unkec8 & 0x2000000u) == 0) {
+            if (slot->m_unk14 == 0 && m_i16CurAnimIndex == 0x28 && (m_unkec8 & 0x2000000u) == 0) {
                 m_unkec8 = (m_unkec8 & ~0x4000u) | 0x4000u;
                 *position = ComputeBlendedVelocityFromFlagsEC8(position, 1.39999997615814209f, 1.0f);
                 m_unkec8 = (m_unkec8 & ~0x2000000u) | 0x2000000u;
@@ -596,9 +596,9 @@ CVector3 CKHkS08Hero::ComputeJumpImpulseForce(float dt) {
     } else {
         impulse = 0.0f;  // TOC +0x238c
     }
-    if ((m_unked4 & 1u) != 0) {
+    if ((m_ui32StatusFlagsED4 & 1u) != 0) {
         const float mass = GetMass();  // 0x002f8818
-        const float extra = (m_unked4 & 1u) != 0 ? m_unk1b2c : 0.0f;
+        const float extra = (m_ui32StatusFlagsED4 & 1u) != 0 ? m_fExtraMass : 0.0f;
         impulse = impulse * (mass / (mass - extra));
     }
     if (m_unk1512 != 0) {
@@ -670,11 +670,11 @@ CVector3 CKHkS08Hero::ComputeGroundRunForce() {
     if (m_ui8Hero != m_ui8TrackedLeader) {
         const CKGrpS08Hero* group = static_cast<const CKGrpS08Hero*>(m_pGrpHero);
         const float distance0 = AsF32(group->m_unk2d4[16]);  // +0x314
-        const float distance1 = AsF32(group->m_unk318);      // +0x318
+        const float distance1 = AsF32(group->m_fHero1ToMidDist);      // +0x318
         bool boost;
         if (m_unk11c4 <= 40.0f) {  // TOC +0x2424
             // 0x002ce518 CKGrpS08Hero_GetMaxPartnerDistance_maybe (+0x108)
-            boost = !(distance1 + distance0 <= group->m_unk108) && (m_unk354 & 1u) == 0;
+            boost = !(distance1 + distance0 <= group->m_unk108) && (m_ui32HeroFlags354 & 1u) == 0;
         } else {
             boost = true;
         }
@@ -766,9 +766,9 @@ void CKHkS08Hero::DynamicStage1Ground(float dt) {
     }
     {
         const CKGrpS08Hero* group = static_cast<const CKGrpS08Hero*>(m_pGrpHero);
-        const float dampingRadius = group->m_unk114;
-        const float dampingCoeff = group->m_unk11c;
-        const CVector3 spring = ComputePartnerTetherSpringForce(group->m_unk110, group->m_unk118);  // 0x003103f0
+        const float dampingRadius = group->m_fTetherDampingRadius;
+        const float dampingCoeff = group->m_fTetherDampingCoeff;
+        const CVector3 spring = ComputePartnerTetherSpringForce(group->m_fTetherSpringRadius, group->m_fTetherSpringStiffness);  // 0x003103f0
         const CVector3 damping = ComputePartnerTetherDampingForce(dampingRadius, dampingCoeff);    // 0x0030fe70
         const float sx = spring.x + m_unk17f0;
         const float sy = spring.y + m_unk17f4;
@@ -827,9 +827,9 @@ void CKHkS08Hero::DynamicStage1Ground(float dt) {
 void CKHkS08Hero::UpdateGroundLocomotionState() {
     // The in-air flag +0x1511.
     bool inAir = false;
-    if ((m_unk354 & 1u) != 0 && m_gcCurDatasInOut.m_fdH > 0.001f) {  // TOC +0x2430
+    if ((m_ui32HeroFlags354 & 1u) != 0 && m_gcCurDatasInOut.m_fdH > 0.001f) {  // TOC +0x2430
         inAir = true;
-        if (m_unk1538 == 0 && (m_unk358 & 0x100000u) != 0 && IsAnyComboKindActive() == 0) inAir = false;  // 0x002fd030
+        if (m_unk1538 == 0 && (m_ui32HeroFlags358 & 0x100000u) != 0 && IsAnyComboKindActive() == 0) inAir = false;  // 0x002fd030
     }
     if (inAir) {
         m_unk1506 = 0;
@@ -904,7 +904,7 @@ void CKHkS08Hero::UpdateGroundLocomotionState() {
     m_unk150a = 0;
     m_unk1508 = 0;
     if (turn <= 0.0f && (m_unk150d != 0 || m_unk150c != 0 || m_unk150b != 0) && !(m_unk12d0 <= 0.1f) &&
-        (m_unk358 & 0x100000u) == 0 && m_unk1518 == 0) {  // TOC +0x238c, +0x23ac
+        (m_ui32HeroFlags358 & 0x100000u) == 0 && m_unk1518 == 0) {  // TOC +0x238c, +0x23ac
         m_unk150a = 1;
         bool turnMove = true;
         if (m_unk150d != 0) {
@@ -936,7 +936,7 @@ void CKHkS08Hero::UpdateGroundLocomotionState() {
         bool set;
         if ((m_unkec8 & 2u) != 0 && (m_unkec8 & 0x100000u) == 0) {
             set = true;
-        } else if ((m_unked4 & 2u) != 0) {
+        } else if ((m_ui32StatusFlagsED4 & 2u) != 0) {
             set = true;
         } else if (m_unk1378 != 0.0f || onMovingGround) {
             if (m_unk150d != 0 && (m_unkec4 & 0x20000u) == 0) {
@@ -948,9 +948,9 @@ void CKHkS08Hero::UpdateGroundLocomotionState() {
             set = false;
         }
         if (set) {
-            m_unk35c = (m_unk35c & 0x7fffffffu) | 0x80000000u;
+            m_ui32HeroFlags35C = (m_ui32HeroFlags35C & 0x7fffffffu) | 0x80000000u;
         } else {
-            m_unk35c &= 0x7fffffffu;
+            m_ui32HeroFlags35C &= 0x7fffffffu;
         }
     }
     if (m_unk1509 != 0 && m_unk1506 == 0 && m_unk1505 == 0 && !(m_unk1378 <= m_unkb18) && (m_unkec4 & 0x200u) == 0) {
@@ -973,11 +973,11 @@ void CKHkS08Hero::UpdateGroundLocomotionState() {
         bool done = false;  // a path that goes on to 0x0031a340 / 0x0031a344 / 0x0031a350 without a jump
         bool jump = false;
         uint8_t jumps = 0;
-        uint32_t dropping = m_unk358 & 0x100000u;
+        uint32_t dropping = m_ui32HeroFlags358 & 0x100000u;
         if (dropping != 0 && m_unk1538 == 2) {
             if (m_unkab0 != 0xff && m_unk150e == 0 && (m_unkec8 & 2u) == 0) {
                 SetMovementModeUnlessLocked(1);  // 0x00342ef8
-                dropping = m_unk358 & 0x100000u;
+                dropping = m_ui32HeroFlags358 & 0x100000u;
             }
         }
         if (!(m_unk1260 - m_unk550 <= m_unkb7c) && dropping != 0 && m_unk150e == 0 && (m_unkec8 & 2u) == 0) {
@@ -1020,7 +1020,7 @@ void CKHkS08Hero::UpdateGroundLocomotionState() {
                 if (tryJump) {
                     const int32_t maximum = static_cast<int8_t>(m_unkab0);
                     if (static_cast<int32_t>(jumps) < maximum || maximum == -1) {
-                        if ((m_unk354 & 0x800u) == 0 && (m_unk35c & 2u) == 0 &&
+                        if ((m_ui32HeroFlags354 & 0x800u) == 0 && (m_ui32HeroFlags35C & 2u) == 0 &&
                             !(jumps == 1 && static_cast<int32_t>(m_unkecc) < 0)) {
                             jump = true;
                         }

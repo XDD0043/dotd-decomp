@@ -92,7 +92,7 @@ CKLevel::CKLevel() {
     m_KGuidIdentifier[2] = 0;
     m_bEndLoadingNeedWarning = 0;
     m_requestedSector = -2;
-    m_unk34 = nullptr;
+    m_pTriggerSynchro = nullptr;
     m_i32NumLoadingSector = -2;
     m_i32NumUnloadingSector = -2;
     m_ui32ProjectVersionNumber = 0;
@@ -121,7 +121,7 @@ void CKLevel::Destroy() {
 // renderer's +0xd4 to 99.
 int32_t CKLevel::Load(IKFile* file, int32_t type) {
     if (type == 0) {
-        IKFile_ReadRef(file, &m_unk34);
+        IKFile_ReadRef(file, &m_pTriggerSynchro);
         ReadU32LE(file, &m_ui32NbSectors);
         GameVector_Allocate(&m_vpSectors, m_ui32NbSectors);
         GameVector_Resize(&m_vpSectors, m_ui32NbSectors);
@@ -165,7 +165,7 @@ void CKLevel::PostSectorUnload(int32_t sector) {
 // BUG(original): the set found for the sector is not tested; a sector without one would be written at
 // address 0x10.
 void CKLevel::SectorUnload(int32_t sector) {
-    static_cast<CKTriggerSynchro*>(m_unk34)->FindSetForSector(sector)->SetEnabled(0);
+    static_cast<CKTriggerSynchro*>(m_pTriggerSynchro)->FindSetForSector(sector)->SetEnabled(0);
     for (uint32_t i = 0; i < m_ui32NbSectors; ++i) static_cast<CKSector*>(m_vpSectors.m_pBlock[i])->SectorUnload(sector);
 }
 
@@ -306,7 +306,7 @@ void CKLevel::PreSectorLoaded(int32_t sector) {
 // BUG(original): the set found for the sector is not tested (as in SectorUnload).
 void CKLevel::SectorLoaded(int32_t sector) {
     for (uint32_t i = 0; i < m_ui32NbSectors; ++i) static_cast<CKSector*>(m_vpSectors.m_pBlock[i])->SectorLoaded(sector);
-    static_cast<CKTriggerSynchro*>(m_unk34)->FindSetForSector(sector)->SetEnabled(1);
+    static_cast<CKTriggerSynchro*>(m_pTriggerSynchro)->FindSetForSector(sector)->SetEnabled(1);
 }
 
 // 0x00030170 CKLevel_Restart (vt+0x54): every sector (last to first) that is not kept (+0x06 bit 1) gets bit 2; then
@@ -319,7 +319,7 @@ void CKLevel::Restart() {
         if ((sector->m_ba16Properties & 2u) != 0) continue;
         sector->m_ba16Properties = static_cast<uint16_t>(sector->m_ba16Properties | 4u);  // rlwinm 29,1,31 / 3,0,31 / ori 4
     }
-    CKTriggerSynchro* synchro = static_cast<CKTriggerSynchro*>(m_unk34);
+    CKTriggerSynchro* synchro = static_cast<CKTriggerSynchro*>(m_pTriggerSynchro);
     for (uint32_t i = 0; i < m_ui32NbSectors; ++i) {
         const uint8_t enabled = (i == 0 || static_cast<int32_t>(i) == m_currentSector) ? 1 : 0;
         if (enabled != synchro->FindSetForSector(static_cast<int32_t>(i))->m_unk10) {

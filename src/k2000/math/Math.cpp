@@ -333,7 +333,7 @@ uint32_t GroundContact_SnapNavPoint(CGroundContactDatasInOut* contact, CPFPoint*
     CVector3 probe;
     probe.x = point->m_position.x;
     probe.z = point->m_position.z;
-    probe.y = static_cast<const CKPFGraphNode*>(service->m_Graph.m_apGraphNodes[point->m_unk0c])->m_Sector.m_box.m_sup.y;
+    probe.y = static_cast<const CKPFGraphNode*>(service->m_Graph.m_apGraphNodes[point->m_i16GraphNodeIndex])->m_Sector.m_box.m_sup.y;
     CGroundContactDatasIn in;
     in.m_fDeltaMax = 0.0f;
     in.m_fObjectHeight = 0.0f;
@@ -353,10 +353,10 @@ uint32_t GroundContact_SnapNavPoint(CGroundContactDatasInOut* contact, CPFPoint*
     point->m_position.x = probe.x;
     point->m_position.z = probe.z;
     point->m_position.y = y;
-    const uint16_t sector = point->m_unk0c;
+    const uint16_t sector = point->m_i16GraphNodeIndex;
     service->FindSectorForPoint(point);  // 0x001e5ca0
-    if (static_cast<int16_t>(point->m_unk0c) == -1) return 0;
-    return static_cast<int32_t>(sector) == static_cast<int16_t>(point->m_unk0c) ? 1u : 0u;
+    if (static_cast<int16_t>(point->m_i16GraphNodeIndex) == -1) return 0;
+    return static_cast<int32_t>(sector) == static_cast<int16_t>(point->m_i16GraphNodeIndex) ? 1u : 0u;
 }
 
 // 0x00584e40 Vec3_RotateYawFlatNormalized_maybe

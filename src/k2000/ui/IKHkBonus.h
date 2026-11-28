@@ -31,9 +31,9 @@ public:
     // vt+0xe4 XXL2 InitSpeedAndTarget(const CVector3&, const IKHook*)
     virtual void VfE4(const CVector3* velocity, IKSerializable* hero) = 0;
 
-    IKSerializable* m_pUnk20;  // +0x20 XXL2 m_pNextBonus: the next bonus in the pool's list (a reference in both Loads)
-    uint32_t m_unk24;          // +0x24 (DotD) runtime (not set by Create or Load): the index in the pool (ResetPool)
+    IKSerializable* m_pNextBonus;  // +0x20 XXL2 m_pNextBonus: the next bonus in the pool's list (a reference in both Loads)
+    uint32_t m_ui32PoolIndex;          // +0x24 (DotD) runtime (not set by Create or Load): the index in the pool (ResetPool)
 };
 DOTD_ASSERT_SIZE(IKHkBonus, 0x28);
-DOTD_ASSERT_OFFSET(IKHkBonus, m_pUnk20, 0x20);
-DOTD_ASSERT_OFFSET(IKHkBonus, m_unk24, 0x24);
+DOTD_ASSERT_OFFSET(IKHkBonus, m_pNextBonus, 0x20);
+DOTD_ASSERT_OFFSET(IKHkBonus, m_ui32PoolIndex, 0x24);

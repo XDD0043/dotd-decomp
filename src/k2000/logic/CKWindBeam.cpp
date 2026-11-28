@@ -72,41 +72,41 @@
 int32_t CKWindBeam::Load(IKFile* file, int32_t type) {
     CKGrabElement::Load(file, type);
     if (type == 0) {
-        IKFile_ReadRef(file, &m_unk1a4);
+        IKFile_ReadRef(file, &m_pBeamMesh);
         for (int32_t i = 0; i < 3; ++i) {
-            ReadF32LE(file, &m_unk140[i]);
-            ReadS32LE(file, &m_unk14c[i]);
-            ReadS32LE(file, &m_unk158[i]);
-            ReadS32LE(file, &m_unk164[i]);
-            ReadF32LE(file, &m_unk170[i]);
-            ReadU32LEWords(file, reinterpret_cast<uint32_t*>(m_unk17c[i]), 3);
+            ReadF32LE(file, &m_afKnockAngleDeg[i]);
+            ReadS32LE(file, &m_ai32BeamMeshFullAlpha[i]);
+            ReadS32LE(file, &m_ai32BeamMeshGrabAlpha[i]);
+            ReadS32LE(file, &m_ai32BeamMeshEndAlpha[i]);
+            ReadF32LE(file, &m_afBeamMeshSpinDegPerSec[i]);
+            ReadU32LEWords(file, reinterpret_cast<uint32_t*>(m_avBeamMeshScale[i]), 3);
         }
-        ReadF32LE(file, &m_unk1a0);
+        ReadF32LE(file, &m_fBeamMeshFadeTime);
         for (int32_t i = 0; i < 3; ++i) {
-            IKFile_ReadRef(file, &m_unk1fc[i]);
-            IKFile_ReadRef(file, &m_unk20c[i]);
+            IKFile_ReadRef(file, &m_apHotSpotParticles[i]);
+            IKFile_ReadRef(file, &m_apBeamMeshParticles[i]);
         }
-        IKFile_ReadRef(file, &m_unk1f8);
+        IKFile_ReadRef(file, &m_pTipMesh);
         for (int32_t i = 0; i < 3; ++i) {
-            ReadS32LE(file, &m_unk1a8[i]);
-            ReadS32LE(file, &m_unk1b4[i]);
-            ReadS32LE(file, &m_unk1c0[i]);
-            ReadU32LEWords(file, reinterpret_cast<uint32_t*>(m_unk1cc[i]), 3);
+            ReadS32LE(file, &m_ai32TipMeshFullAlpha[i]);
+            ReadS32LE(file, &m_ai32TipMeshStartAlpha[i]);
+            ReadS32LE(file, &m_ai32TipMeshEndAlpha[i]);
+            ReadU32LEWords(file, reinterpret_cast<uint32_t*>(m_avTipMeshScale[i]), 3);
         }
-        ReadF32LE(file, &m_unk1f0);
-        ReadF32LE(file, &m_unk1f4);
+        ReadF32LE(file, &m_fTipMeshFadeInTime);
+        ReadF32LE(file, &m_fTipMeshFadeOutTime);
         for (int32_t i = 0; i < 3; ++i) {
-            IKFile_ReadRef(file, &m_unk21c[i]);
-            IKFile_ReadRef(file, &m_unk228[i]);
+            IKFile_ReadRef(file, &m_apBeamStreamParticlesA[i]);
+            IKFile_ReadRef(file, &m_apBeamStreamParticlesB[i]);
         }
-        ReadU32LE(file, &m_unk234);
-        for (int32_t i = 0; i <= 3; ++i) ReadF32LE(file, &m_unk238[i]);   // +0x238..+0x244
-        for (int32_t i = 7; i <= 20; ++i) ReadF32LE(file, &m_unk238[i]);  // +0x254..+0x288
-        for (int32_t i = 4; i <= 6; ++i) ReadF32LE(file, &m_unk238[i]);   // +0x248..+0x250
-        IKFile_ReadRef(file, &m_unk28c);
-        IKFile_ReadRef(file, &m_unk290[0]);
-        IKFile_ReadRef(file, &m_unk290[1]);
-        IKFile_ReadRef(file, &m_unk290[2]);
+        ReadU32LE(file, &m_ui32BezierSampleCount);
+        for (int32_t i = 0; i <= 3; ++i) ReadF32LE(file, &m_afBezierDynamics[i]);   // +0x238..+0x244
+        for (int32_t i = 7; i <= 20; ++i) ReadF32LE(file, &m_afBezierDynamics[i]);  // +0x254..+0x288
+        for (int32_t i = 4; i <= 6; ++i) ReadF32LE(file, &m_afBezierDynamics[i]);   // +0x248..+0x250
+        IKFile_ReadRef(file, &m_pSoundDico);
+        IKFile_ReadRef(file, &m_apThrowDamages[0]);
+        IKFile_ReadRef(file, &m_apThrowDamages[1]);
+        IKFile_ReadRef(file, &m_apThrowDamages[2]);
     }
     return 1;
 }
@@ -240,8 +240,8 @@ const RwMatrix* TargetLtm(IKSerializable* target) {
 // 0x003e03e8 CKWindBeam_PostLoad
 int32_t CKWindBeam::PostLoad(int32_t type) {
     CKGrabElement::PostLoad(type);
-    HideUnderSector0(m_unk1a4);
-    HideUnderSector0(m_unk1f8);
+    HideUnderSector0(m_pBeamMesh);
+    HideUnderSector0(m_pTipMesh);
     return 1;
 }
 
@@ -249,23 +249,23 @@ int32_t CKWindBeam::PostLoad(int32_t type) {
 void CKWindBeam::Start(CKS08AbilityHostBase* host) {
     m_pLoopSound = nullptr;
     CKGrabElement::Start(host);
-    m_unk2a8 = 0;
-    m_unk2c0 = 0.0f;
-    m_unk2a0 = 0.0f;
-    m_unk30c = 0.0f;
-    m_unk2b0 = 0;
-    m_unk314 = 0;
-    m_unk2bc = 0;
-    m_unk2c4 = kNullVector;
-    m_unk2d0 = kNullVector;
-    m_unk2dc[0] = kNullVector.x;  // +0x2dc and +0x2e8 written as two null vectors
-    m_unk2dc[1] = kNullVector.y;
-    m_unk2dc[2] = kNullVector.z;
-    m_unk2dc[3] = kNullVector.x;
-    m_unk2dc[4] = kNullVector.y;
-    m_unk2dc[5] = kNullVector.z;
-    m_unk2f4 = kNullVector;
-    m_unk310 = 0;
+    m_bBeamMeshFadingOut = 0;
+    m_fEmitPhase = 0.0f;
+    m_fElapsedTime = 0.0f;
+    m_fPullStateTime = 0.0f;
+    m_bTipMeshShown = 0;
+    m_bTargetUncatchable = 0;
+    m_ui32GrownPoints = 0;
+    m_vCtrlPoint1 = kNullVector;
+    m_vCtrlPoint2 = kNullVector;
+    m_afCtrlWanderRates[0] = kNullVector.x;  // +0x2dc and +0x2e8 written as two null vectors
+    m_afCtrlWanderRates[1] = kNullVector.y;
+    m_afCtrlWanderRates[2] = kNullVector.z;
+    m_afCtrlWanderRates[3] = kNullVector.x;
+    m_afCtrlWanderRates[4] = kNullVector.y;
+    m_afCtrlWanderRates[5] = kNullVector.z;
+    m_vEndPoint = kNullVector;
+    m_ui32PullState = 0;
 }
 
 // 0x003e0800 CKWindBeam_End
@@ -276,28 +276,28 @@ void CKWindBeam::End(int32_t forced) {
     }
     CVector3 none = kNullVector;
     GrabTarget(0, 0, &none);  // vt+0x7c
-    HideUnderSector0(m_unk1a4);
-    HideUnderSector0(m_unk1f8);
+    HideUnderSector0(m_pBeamMesh);
+    HideUnderSector0(m_pTipMesh);
     CKGrabElement::End(static_cast<uint8_t>(forced));
 }
 
 // 0x003e0e38 CKWindBeam_ResetRuntime
 void CKWindBeam::ResetRuntime() {
     CKGrabElement::ResetRuntime();
-    m_unk2a4 = 0.0f;
-    m_unk12c = 2;
-    m_unk314 = 0;
-    m_unk310 = 0;
+    m_fReleaseTime = 0.0f;
+    m_bHotspotIndex = 2;
+    m_bTargetUncatchable = 0;
+    m_ui32PullState = 0;
     m_unk29c = 0;
-    m_unk2a0 = 0.0f;
-    m_unk30c = 0.0f;
-    m_unk2a8 = 0;
-    m_unk2b0 = 0;
+    m_fElapsedTime = 0.0f;
+    m_fPullStateTime = 0.0f;
+    m_bBeamMeshFadingOut = 0;
+    m_bTipMeshShown = 0;
     m_pFx208 = nullptr;
     m_pLoopSound = nullptr;
     m_pFx218 = nullptr;
     // The six particle nodes in the original's order (+0x21c, +0x228, +0x220, +0x22c, +0x224, +0x230).
-    IKSerializable* const nodes[6] = {m_unk21c[0], m_unk228[0], m_unk21c[1], m_unk228[1], m_unk21c[2], m_unk228[2]};
+    IKSerializable* const nodes[6] = {m_apBeamStreamParticlesA[0], m_apBeamStreamParticlesB[0], m_apBeamStreamParticlesA[1], m_apBeamStreamParticlesB[1], m_apBeamStreamParticlesA[2], m_apBeamStreamParticlesB[2]};
     for (IKSerializable* object : nodes) {
         CSGLeaf* node = static_cast<CSGLeaf*>(object);
         if (node != nullptr) node->m_sgProperties = (node->m_sgProperties & ~0x8000u) | 0x8000u;
@@ -307,22 +307,22 @@ void CKWindBeam::ResetRuntime() {
 // 0x003e02a0 CKWindBeam_GetFxSound_maybe (CKSoundDictionaryID_GetSound 0x00112bc0, CKSound_GetSample_maybe 0x00111000;
 // each sound looked up again before it is returned, as the original).
 CKSound* CKWindBeam::GetFxSound(int32_t which) {
-    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_unk28c);
+    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_pSoundDico);
     if (which == 0) return sounds->GetSound(0);
     if (which != 1) return nullptr;
     const auto usable = [sounds](uint32_t i) {
         return sounds->GetSound(i) != nullptr && sounds->GetSound(i)->GetSample() != nullptr;
     };
-    if (m_unk04 == 2 && usable(3)) return sounds->GetSound(3);
-    if ((m_unk04 == 1 || m_unk04 == 2) && usable(2)) return sounds->GetSound(2);
+    if (m_dwLevelIndex == 2 && usable(3)) return sounds->GetSound(3);
+    if ((m_dwLevelIndex == 1 || m_dwLevelIndex == 2) && usable(2)) return sounds->GetSound(2);
     return sounds->GetSound(1);
 }
 
 // 0x003e0248 CKWindBeam_ApplyDamageParams
 void CKWindBeam::ApplyDamageParams(uint8_t continuous) {
     CKGrabElement::ApplyDamageParams(continuous);
-    const float angle = m_unk140[m_unk04] * kDegToRad;
-    std::memcpy(&static_cast<CKS08ElementDamage*>(m_unk138)->m_unk18, &angle, sizeof(angle));
+    const float angle = m_afKnockAngleDeg[m_dwLevelIndex] * kDegToRad;
+    std::memcpy(&static_cast<CKS08ElementDamage*>(m_pElementDamage)->m_unk18, &angle, sizeof(angle));
 }
 
 // 0x003e14a0 CKWindBeam_SetFxActive. The effects are the inlined CKSrvFx::AcquireFx (owned by this element); off, they
@@ -342,12 +342,12 @@ void CKWindBeam::SetFxActive(int32_t on) {
             fx->ReleaseReservation(this);
             m_pFx218 = nullptr;
         }
-        CParticlesNodeFx* particles = static_cast<CParticlesNodeFx*>(m_unk21c[m_unk04]);
+        CParticlesNodeFx* particles = static_cast<CParticlesNodeFx*>(m_apBeamStreamParticlesA[m_dwLevelIndex]);
         if (particles != nullptr) {
             particles->m_sgProperties &= 0xfff7fbffu;
             particles->m_pRpPrtStdEmitter->flag &= ~static_cast<uint32_t>(rpPRTSTDEMITTERFLAGEMIT);
         }
-        particles = static_cast<CParticlesNodeFx*>(m_unk228[m_unk04]);
+        particles = static_cast<CParticlesNodeFx*>(m_apBeamStreamParticlesB[m_dwLevelIndex]);
         if (particles != nullptr) {
             particles->m_sgProperties &= 0xfff7fbffu;
             particles->m_pRpPrtStdEmitter->flag &= ~static_cast<uint32_t>(rpPRTSTDEMITTERFLAGEMIT);
@@ -359,29 +359,29 @@ void CKWindBeam::SetFxActive(int32_t on) {
         return;
     }
     // The hot spot's effect, then (with the beam mesh) the mesh's.
-    CKParticlesEffectFxData* spotData = static_cast<CKParticlesEffectFxData*>(m_unk1fc[m_unk04]);
-    spotData->m_pAttachHotSpot = m_pHost->GetHotspot(m_unk12c);  // vt+0xcc
+    CKParticlesEffectFxData* spotData = static_cast<CKParticlesEffectFxData*>(m_apHotSpotParticles[m_dwLevelIndex]);
+    spotData->m_pAttachHotSpot = m_pHost->GetHotspot(m_bHotspotIndex);  // vt+0xcc
     spotData->m_pAttachOwner = nullptr;
-    m_pFx208 = fxService->AcquireFx(static_cast<IKFxData*>(m_unk1fc[m_unk04]), this);
-    CNode* beam = static_cast<CNode*>(m_unk1a4);
+    m_pFx208 = fxService->AcquireFx(static_cast<IKFxData*>(m_apHotSpotParticles[m_dwLevelIndex]), this);
+    CNode* beam = static_cast<CNode*>(m_pBeamMesh);
     if (beam != nullptr) {
-        CKParticlesEffectFxData* beamData = static_cast<CKParticlesEffectFxData*>(m_unk20c[m_unk04]);
+        CKParticlesEffectFxData* beamData = static_cast<CKParticlesEffectFxData*>(m_apBeamMeshParticles[m_dwLevelIndex]);
         beamData->m_pAttachHotSpot = nullptr;
         beamData->m_pAttachOwner = beam;
-        m_pFx218 = fxService->AcquireFx(static_cast<IKFxData*>(m_unk20c[m_unk04]), this);
+        m_pFx218 = fxService->AcquireFx(static_cast<IKFxData*>(m_apBeamMeshParticles[m_dwLevelIndex]), this);
     }
     // The tip mesh under the hot spot, scaled, shown with the level's alpha.
-    CNode* tip = static_cast<CNode*>(m_unk1f8);
+    CNode* tip = static_cast<CNode*>(m_pTipMesh);
     if (tip != nullptr) {
         if (tip->m_pParent != nullptr) tip->m_pParent->RemoveChild(tip);  // vt+0x78
-        static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_unk12c))->AttachVolume(tip);  // vt+0xcc, 0x000ce2b8
-        tip->Scale(m_unk1cc[m_unk04]);  // 0x000d0d88
+        static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_bHotspotIndex))->AttachVolume(tip);  // vt+0xcc, 0x000ce2b8
+        tip->Scale(m_avTipMeshScale[m_dwLevelIndex]);  // 0x000d0d88
         tip->m_sgProperties &= 0xfffffffbu;
-        SetMeshAlpha(tip, static_cast<uint8_t>(m_unk1b4[m_unk04]), true);
+        SetMeshAlpha(tip, static_cast<uint8_t>(m_ai32TipMeshStartAlpha[m_dwLevelIndex]), true);
     }
     // The level's particle nodes emit: properties 0x400 set and 0x80000 cleared, no speed adjustment, the emitter
     // ACTIVE | EMIT.
-    IKSerializable* const nodes[2] = {m_unk21c[m_unk04], m_unk228[m_unk04]};
+    IKSerializable* const nodes[2] = {m_apBeamStreamParticlesA[m_dwLevelIndex], m_apBeamStreamParticlesB[m_dwLevelIndex]};
     for (IKSerializable* object : nodes) {
         CParticlesNodeFx* particles = static_cast<CParticlesNodeFx*>(object);
         if (particles == nullptr) continue;
@@ -397,15 +397,15 @@ void CKWindBeam::SetFxActive(int32_t on) {
 
 // 0x003e0f98 CKWindBeam_GrabTarget_maybe
 void CKWindBeam::GrabTarget(uint8_t grab, uint8_t mode, CVector3* direction) {
-    if (m_pTarget != nullptr && m_unk310 == 3) {
+    if (m_pTarget != nullptr && m_ui32PullState == 3) {
         // The throw: along the end point's velocity, the damage's push twice its speed over 0.2 s (TOC +0x4288).
-        direction->y = m_unk300.y;
-        direction->x = m_unk300.x;
-        direction->z = m_unk300.z;
-        const float speed = LengthYXZ(m_unk300);
-        CKS08ElementDamage* damage = static_cast<CKS08ElementDamage*>(m_unk138);
-        damage->m_unk10 = (speed + speed) / 0.2f;
-        damage->m_unk14 = 0.2f;
+        direction->y = m_vEndVelocity.y;
+        direction->x = m_vEndVelocity.x;
+        direction->z = m_vEndVelocity.z;
+        const float speed = LengthYXZ(m_vEndVelocity);
+        CKS08ElementDamage* damage = static_cast<CKS08ElementDamage*>(m_pElementDamage);
+        damage->m_fKnockbackForce = (speed + speed) / 0.2f;
+        damage->m_fKnockbackTime = 0.2f;
     }
     CVector3 copy = *direction;
     CKGrabElement::GrabTarget(grab, mode, &copy);
@@ -417,10 +417,10 @@ void CKWindBeam::GrabTarget(uint8_t grab, uint8_t mode, CVector3* direction) {
     }
     if (m_pTarget == nullptr) return;
     m_unk29c = 0;
-    CNode* beam = static_cast<CNode*>(m_unk1a4);
+    CNode* beam = static_cast<CNode*>(m_pBeamMesh);
     if (beam != nullptr) {
         beam->SetIdentity();             // 0x000d08f0
-        beam->Scale(m_unk17c[m_unk04]);  // 0x000d0d88
+        beam->Scale(m_avBeamMeshScale[m_dwLevelIndex]);  // 0x000d0d88
         const CVector3 aim = m_pHost->GetTargetAimPoint(0, 0);  // vt+0xdc
         RwFrame* frame = beam->m_pRwFrame;
         frame->modelling.pos.z = aim.z;
@@ -429,7 +429,7 @@ void CKWindBeam::GrabTarget(uint8_t grab, uint8_t mode, CVector3* direction) {
         frame->modelling.flags &= ~0x20000u;
         RwFrame_MarkDirty(frame);  // 0x00010698
         beam->m_sgProperties &= 0xfffffffbu;
-        SetMeshAlpha(beam, static_cast<uint8_t>(m_unk158[m_unk04]), true);
+        SetMeshAlpha(beam, static_cast<uint8_t>(m_ai32BeamMeshGrabAlpha[m_dwLevelIndex]), true);
     }
     m_pHost->SetHeroActionPermission(1, 0, 0, 0);
     m_pHost->SetHeroActionPermission(0, 1, 0, 1);
@@ -441,25 +441,25 @@ void CKWindBeam::GrabTarget(uint8_t grab, uint8_t mode, CVector3* direction) {
 // with the element damage (vt+0xfc, 0.1) each step, and once the host's pull ratio (vt+0xe8) reaches 1 (cror gt|eq)
 // state 3: the throw spheres with the level's stun damage (+0x290), permissions 1 / 0 back, the aim reset (pi, no cone).
 uint8_t CKWindBeam::Vf80(float /*dt*/) {
-    if (m_unk314 != 0 || m_pTarget == nullptr) return 0;
+    if (m_bTargetUncatchable != 0 || m_pTarget == nullptr) return 0;
     const CVector3 none = kNullVector;
     if (m_pHost->GrabEnemy(this, 1, 1, &none, nullptr, nullptr) == 0) {  // vt+0xec
         m_pHost->SetHeroActionPermission(1, m_unkD8, m_unkE4, m_unk104);
         m_pHost->SetHeroActionPermission(0, m_unkD9, m_unkE5, m_unk105);
         return 0;
     }
-    if (m_unk310 == 0) m_pHost->ComputeAimDirection(kHalfPi, this, m_unkD0);  // vt+0x58 (the result unused)
-    if (m_unk310 == 1) {
+    if (m_ui32PullState == 0) m_pHost->ComputeAimDirection(kHalfPi, this, m_pAimCone);  // vt+0x58 (the result unused)
+    if (m_ui32PullState == 1) {
         ApplyDamageParams(1);  // vt+0x8c
-        m_unk310 = 2;
-    } else if (m_unk310 != 2) {
+        m_ui32PullState = 2;
+    } else if (m_ui32PullState != 2) {
         return 1;
     }
-    m_pHost->ComputeAimDirection(kHalfPi, this, m_unkD0);
-    m_pHost->SetAbilityAttackSpheres(this, 1, 0.1f, m_unk138, 1.0f, nullptr);  // TOC +0x4270 / +0x4274
-    if (m_unk310 == 2 && m_pHost->GetGrabPullRatio(this) >= 1.0f) {
-        m_unk310 = 3;
-        m_pHost->SetAbilityAttackSpheres(this, 1, 1.0f, nullptr, 1.0f, m_unk290[m_unk04]);
+    m_pHost->ComputeAimDirection(kHalfPi, this, m_pAimCone);
+    m_pHost->SetAbilityAttackSpheres(this, 1, 0.1f, m_pElementDamage, 1.0f, nullptr);  // TOC +0x4270 / +0x4274
+    if (m_ui32PullState == 2 && m_pHost->GetGrabPullRatio(this) >= 1.0f) {
+        m_ui32PullState = 3;
+        m_pHost->SetAbilityAttackSpheres(this, 1, 1.0f, nullptr, 1.0f, m_apThrowDamages[m_dwLevelIndex]);
         m_pHost->SetHeroActionPermission(1, m_unkD8, m_unkE4, m_unk104);
         m_pHost->SetHeroActionPermission(0, m_unkD9, m_unkE5, m_unk105);
         m_pHost->ComputeAimDirection(kPi, this, nullptr);
@@ -470,27 +470,27 @@ uint8_t CKWindBeam::Vf80(float /*dt*/) {
 // 0x003e0cd8 CKWindBeam_ReleaseAndStopFx_maybe
 void CKWindBeam::ReleaseAndStopFx() {
     CKGrabElement::ReleaseAndStopFx();
-    CNode* beam = static_cast<CNode*>(m_unk1a4);
+    CNode* beam = static_cast<CNode*>(m_pBeamMesh);
     if (beam != nullptr) {
         CGeometry* geometry = static_cast<CGeometry*>(beam->m_lGeometryList);
-        m_unk2ac = geometry != nullptr ? geometry->m_cGeometryColor[3] : static_cast<uint32_t>(m_unk14c[m_unk04]);
-        if (m_unk1a0 == 0.0f) {  // TOC +0x427c
+        m_ui32BeamReleaseAlpha = geometry != nullptr ? geometry->m_cGeometryColor[3] : static_cast<uint32_t>(m_ai32BeamMeshFullAlpha[m_dwLevelIndex]);
+        if (m_fBeamMeshFadeTime == 0.0f) {  // TOC +0x427c
             HideUnderSector0(beam);
         } else {
-            m_unk2a8 = 1;
+            m_bBeamMeshFadingOut = 1;
         }
     }
-    CNode* tip = static_cast<CNode*>(m_unk1f8);
+    CNode* tip = static_cast<CNode*>(m_pTipMesh);
     if (tip != nullptr) {
         CGeometry* geometry = static_cast<CGeometry*>(tip->m_lGeometryList);
-        m_unk2b4 = geometry != nullptr ? geometry->m_cGeometryColor[3] : static_cast<uint32_t>(m_unk1a8[m_unk04]);
-        if (m_unk1f4 == 0.0f) {
+        m_ui32TipReleaseAlpha = geometry != nullptr ? geometry->m_cGeometryColor[3] : static_cast<uint32_t>(m_ai32TipMeshFullAlpha[m_dwLevelIndex]);
+        if (m_fTipMeshFadeOutTime == 0.0f) {
             HideUnderSector0(tip);
         } else {
-            m_unk2b0 = 1;
+            m_bTipMeshShown = 1;
         }
     }
-    m_unk2a4 = m_unk2a0;
+    m_fReleaseTime = m_fElapsedTime;
 }
 
 // 0x003e1e60 CKWindBeam_Slot84_maybe, the hold step (after Vf80). In three parts:
@@ -514,30 +514,30 @@ void CKWindBeam::ReleaseAndStopFx() {
 //    pull (state 0 -> 1) once all points are out. The float tests are the original's (cror where it has them; plain
 //    blt / bgt / ble / bge otherwise, a NaN taking the branch's C semantics as written).
 void CKWindBeam::Vf84(float dt) {
-    if (m_unk310 == 2) m_unk30c = dt + m_unk30c;
-    m_unk2a0 = m_unk2a0 + dt;
+    if (m_ui32PullState == 2) m_fPullStateTime = dt + m_fPullStateTime;
+    m_fElapsedTime = m_fElapsedTime + dt;
 
     // 1. The beam mesh.
-    CNode* beam = static_cast<CNode*>(m_unk1a4);
+    CNode* beam = static_cast<CNode*>(m_pBeamMesh);
     if (beam != nullptr) {
-        if (m_unk310 - 2u <= 1u) {
+        if (m_ui32PullState - 2u <= 1u) {
             const float ratio = m_pHost->GetGrabPullRatio(this);  // vt+0xe8
             if (beam->m_lGeometryList != nullptr) {
-                const int32_t from = m_unk158[m_unk04];
-                const int32_t to = m_unk14c[m_unk04];
+                const int32_t from = m_ai32BeamMeshGrabAlpha[m_dwLevelIndex];
+                const int32_t to = m_ai32BeamMeshFullAlpha[m_dwLevelIndex];
                 SetMeshAlpha(beam, AlphaByte(ppc::fmadds(ratio, IntToFloat(to - from), IntToFloat(from))));
             }
-            m_unk2a8 = 1;
+            m_bBeamMeshFadingOut = 1;
         }
-        if (m_unk125 == 0 && m_unk2a8 != 0) {
-            const float time = m_unk2a0;
-            const float span = m_unk1a0;
-            if (time - m_unk2a4 >= span) {  // cror gt|eq
-                m_unk2a8 = 0;
+        if (m_bInLoop == 0 && m_bBeamMeshFadingOut != 0) {
+            const float time = m_fElapsedTime;
+            const float span = m_fBeamMeshFadeTime;
+            if (time - m_fReleaseTime >= span) {  // cror gt|eq
+                m_bBeamMeshFadingOut = 0;
                 SceneNode_SetVisibleInLayer(beam, 1, 1, 0);  // TocBridge 0x0098f340
             } else if (beam->m_lGeometryList != nullptr) {
-                const float tail = IntToFloat(m_unk164[m_unk04]) * (time / span);
-                SetMeshAlpha(beam, AlphaByte(ppc::fmadds(UIntToFloat(m_unk2ac), (span - time) / span, tail)));
+                const float tail = IntToFloat(m_ai32BeamMeshEndAlpha[m_dwLevelIndex]) * (time / span);
+                SetMeshAlpha(beam, AlphaByte(ppc::fmadds(UIntToFloat(m_ui32BeamReleaseAlpha), (span - time) / span, tail)));
             }
         }
         // The spin matrix: the identity (flags 0x20003) with the frame's modelling pads.
@@ -549,7 +549,7 @@ void CKWindBeam::Vf84(float dt) {
         spin.m_up = CVector3{0.0f, 1.0f, 0.0f};
         spin.m_at = CVector3{0.0f, 0.0f, 1.0f};
         spin.m_pos = CVector3{0.0f, 0.0f, 0.0f};
-        float angle = m_unk2a0 * m_unk170[m_unk04];
+        float angle = m_fElapsedTime * m_afBeamMeshSpinDegPerSec[m_dwLevelIndex];
         while (angle < -360.0f) angle = angle + 720.0f;  // TOC +0x42a0 / +0x42a4
         while (angle >= 360.0f) angle = angle - 720.0f;  // TOC +0x42a8
         Mat4_RotateLocalYDeg(angle, &spin);  // 0x002413d0
@@ -558,64 +558,64 @@ void CKWindBeam::Vf84(float dt) {
         spin.m_pos.z = aim.z;
         spin.m_pos.y = aim.y;
         spin.m_ui32Flags &= ~0x20000u;
-        RwMatrixScalePreConcat_Thunk(&spin, reinterpret_cast<const CVector3*>(m_unk17c[m_unk04]));  // 0x0023f670
+        RwMatrixScalePreConcat_Thunk(&spin, reinterpret_cast<const CVector3*>(m_avBeamMeshScale[m_dwLevelIndex]));  // 0x0023f670
         beam->SetLocalMatrix(reinterpret_cast<const RwMatrix*>(&spin));  // 0x000d0be8
     }
 
     // 2. The tip mesh.
-    CNode* tip = static_cast<CNode*>(m_unk1f8);
+    CNode* tip = static_cast<CNode*>(m_pTipMesh);
     if (tip != nullptr) {
-        const float time = m_unk2a0;
-        const float fadeIn = m_unk1f0;
+        const float time = m_fElapsedTime;
+        const float fadeIn = m_fTipMeshFadeInTime;
         bool toBeam = false;  // 0x3e22ac: straight to the beam (a missing geometry list)
         uint8_t loop = 0;
         bool afterShow = true;  // 0x3e2178 runs (else straight to 0x3e2290)
-        if (time < fadeIn && m_unk125 != 0) {
+        if (time < fadeIn && m_bInLoop != 0) {
             if (tip->m_lGeometryList == nullptr) {
                 toBeam = true;
             } else {
-                const float tail = IntToFloat(m_unk1a8[m_unk04]) * (time / fadeIn);
-                SetMeshAlpha(tip, AlphaByte(ppc::fmadds(IntToFloat(m_unk1b4[m_unk04]), (fadeIn - time) / fadeIn, tail)));
-                loop = m_unk125;
+                const float tail = IntToFloat(m_ai32TipMeshFullAlpha[m_dwLevelIndex]) * (time / fadeIn);
+                SetMeshAlpha(tip, AlphaByte(ppc::fmadds(IntToFloat(m_ai32TipMeshStartAlpha[m_dwLevelIndex]), (fadeIn - time) / fadeIn, tail)));
+                loop = m_bInLoop;
                 afterShow = false;
             }
         } else {
-            loop = time < fadeIn ? 0 : m_unk125;
+            loop = time < fadeIn ? 0 : m_bInLoop;
         }
-        if (!toBeam && afterShow && m_unk2b0 == 0) {
+        if (!toBeam && afterShow && m_bTipMeshShown == 0) {
             if (loop == 0) {
                 toBeam = true;
             } else {
                 if (tip->m_lGeometryList != nullptr) {
-                    SetMeshAlpha(tip, AlphaByte(IntToFloat(m_unk1a8[m_unk04])));
-                    loop = m_unk125;
+                    SetMeshAlpha(tip, AlphaByte(IntToFloat(m_ai32TipMeshFullAlpha[m_dwLevelIndex])));
+                    loop = m_bInLoop;
                 }
-                m_unk2b0 = 1;
+                m_bTipMeshShown = 1;
             }
         }
-        if (!toBeam && loop == 0 && m_unk2b0 != 0) {
-            const float fadeOut = m_unk1f4;
+        if (!toBeam && loop == 0 && m_bTipMeshShown != 0) {
+            const float fadeOut = m_fTipMeshFadeOutTime;
             if (time >= fadeOut) {  // cror gt|eq
-                m_unk2b0 = 0;
+                m_bTipMeshShown = 0;
                 tip->m_sgProperties = (tip->m_sgProperties & 0xfffffffbu) | 4u;
             } else if (tip->m_lGeometryList != nullptr) {
-                const float tail = IntToFloat(m_unk1c0[m_unk04]) * (time / fadeOut);
-                SetMeshAlpha(tip, AlphaByte(ppc::fmadds(UIntToFloat(m_unk2b4), (fadeOut - time) / fadeOut, tail)));
+                const float tail = IntToFloat(m_ai32TipMeshEndAlpha[m_dwLevelIndex]) * (time / fadeOut);
+                SetMeshAlpha(tip, AlphaByte(ppc::fmadds(UIntToFloat(m_ui32TipReleaseAlpha), (fadeOut - time) / fadeOut, tail)));
             }
         }
     }
 
     // 3. The beam.
-    const float reach = static_cast<CKAimCamembert*>(m_unkD0)->m_afUnk04[2];  // the aim cone's +0x0c
-    if (m_unk21c[m_unk04] == nullptr && m_unk228[m_unk04] == nullptr) return;
-    const uint32_t pointCount = m_unk234;
-    const float held = m_unk2a0 - m_unk30c;
+    const float reach = static_cast<CKAimCamembert*>(m_pAimCone)->m_afUnk04[2];  // the aim cone's +0x0c
+    if (m_apBeamStreamParticlesA[m_dwLevelIndex] == nullptr && m_apBeamStreamParticlesB[m_dwLevelIndex] == nullptr) return;
+    const uint32_t pointCount = m_ui32BezierSampleCount;
+    const float held = m_fElapsedTime - m_fPullStateTime;
     {
         const float spacing = reach / UIntToFloat(pointCount);
-        const float phase = (dt * m_unk238[0]) / spacing + m_unk2c0;
-        m_unk2c0 = phase - TruncateBits(phase);
+        const float phase = (dt * m_afBezierDynamics[0]) / spacing + m_fEmitPhase;
+        m_fEmitPhase = phase - TruncateBits(phase);
     }
-    const CVector3 spot = m_pHost->GetHotspotPosition(m_unk12c);  // vt+0xd0
+    const CVector3 spot = m_pHost->GetHotspotPosition(m_bHotspotIndex);  // vt+0xd0
     CVector3 goal;
     if (m_pTarget == nullptr) {
         const CVector3 aim = m_pHost->GetAimDirection(0);  // vt+0x24
@@ -629,8 +629,8 @@ void CKWindBeam::Vf84(float dt) {
     NormaliseInPlace(&axis);
 
     // The points grow with the time held; the first one draws the curve.
-    uint32_t grown = m_unk2bc;
-    if (pointCount > grown && (reach / UIntToFloat(pointCount)) * UIntToFloat(grown) <= held * m_unk238[0]) {
+    uint32_t grown = m_ui32GrownPoints;
+    if (pointCount > grown && (reach / UIntToFloat(pointCount)) * UIntToFloat(grown) <= held * m_afBezierDynamics[0]) {
         do {
             if (grown == 0) {
                 CMatrix34 basis = {};
@@ -642,17 +642,17 @@ void CKWindBeam::Vf84(float dt) {
                 // The first inner control point: a random turn about z (-90..90) and x (0..-cone), a random length.
                 const float rz = WB_RAND_U16() / 65535.0f;
                 Mat4_RotateLocalZDeg(ppc::fmadds(rz + rz, -90.0f, 90.0f), &basis);
-                Mat4_RotateLocalXDeg(WB_RAND_U16() / -65535.0f * m_unk238[9], &basis);
-                const float length0 = WB_RAND_RANGE(m_unk238[10], m_unk238[11]);
-                m_unk2c4.z = ppc::fmadds(length0, basis.m_at.z, kNullVector.z);
-                m_unk2c4.x = ppc::fmadds(length0, basis.m_at.x, kNullVector.x);
-                m_unk2c4.y = ppc::fmadds(length0, basis.m_at.y, kNullVector.y);
+                Mat4_RotateLocalXDeg(WB_RAND_U16() / -65535.0f * m_afBezierDynamics[9], &basis);
+                const float length0 = WB_RAND_RANGE(m_afBezierDynamics[10], m_afBezierDynamics[11]);
+                m_vCtrlPoint1.z = ppc::fmadds(length0, basis.m_at.z, kNullVector.z);
+                m_vCtrlPoint1.x = ppc::fmadds(length0, basis.m_at.x, kNullVector.x);
+                m_vCtrlPoint1.y = ppc::fmadds(length0, basis.m_at.y, kNullVector.y);
                 float sign = WB_RAND_SIGN();
-                m_unk2dc[0] = sign * WB_RAND_RANGE(m_unk238[7], m_unk238[8]);
+                m_afCtrlWanderRates[0] = sign * WB_RAND_RANGE(m_afBezierDynamics[7], m_afBezierDynamics[8]);
                 sign = WB_RAND_SIGN();
-                m_unk2dc[1] = sign * WB_RAND_RANGE(m_unk238[12], m_unk238[13]);
+                m_afCtrlWanderRates[1] = sign * WB_RAND_RANGE(m_afBezierDynamics[12], m_afBezierDynamics[13]);
                 sign = WB_RAND_SIGN();
-                m_unk2dc[2] = sign * WB_RAND_RANGE(m_unk238[12], m_unk238[13]);
+                m_afCtrlWanderRates[2] = sign * WB_RAND_RANGE(m_afBezierDynamics[12], m_afBezierDynamics[13]);
                 // The second one, from the other end.
                 const CVector3 reverse = Negated(axis);
                 const CVector3 up2 = m_pHost->GetOwnerUp();
@@ -663,39 +663,39 @@ void CKWindBeam::Vf84(float dt) {
                 }
                 const float rz2 = WB_RAND_U16() / 65535.0f;
                 Mat4_RotateLocalZDeg(ppc::fmadds(rz2 + rz2, -90.0f, 90.0f), &basis);
-                Mat4_RotateLocalXDeg(WB_RAND_U16() / -65535.0f * m_unk238[16], &basis);
-                const float length1 = WB_RAND_RANGE(m_unk238[17], m_unk238[18]);
-                m_unk2d0.z = ppc::fmadds(length1, basis.m_at.z, kNullVector.z);
-                m_unk2d0.x = ppc::fmadds(length1, basis.m_at.x, kNullVector.x);
-                m_unk2d0.y = ppc::fmadds(length1, basis.m_at.y, kNullVector.y);
+                Mat4_RotateLocalXDeg(WB_RAND_U16() / -65535.0f * m_afBezierDynamics[16], &basis);
+                const float length1 = WB_RAND_RANGE(m_afBezierDynamics[17], m_afBezierDynamics[18]);
+                m_vCtrlPoint2.z = ppc::fmadds(length1, basis.m_at.z, kNullVector.z);
+                m_vCtrlPoint2.x = ppc::fmadds(length1, basis.m_at.x, kNullVector.x);
+                m_vCtrlPoint2.y = ppc::fmadds(length1, basis.m_at.y, kNullVector.y);
                 sign = WB_RAND_SIGN();
-                m_unk2dc[3] = sign * WB_RAND_RANGE(m_unk238[14], m_unk238[15]);
+                m_afCtrlWanderRates[3] = sign * WB_RAND_RANGE(m_afBezierDynamics[14], m_afBezierDynamics[15]);
                 sign = WB_RAND_SIGN();
-                m_unk2dc[4] = sign * WB_RAND_RANGE(m_unk238[19], m_unk238[20]);
+                m_afCtrlWanderRates[4] = sign * WB_RAND_RANGE(m_afBezierDynamics[19], m_afBezierDynamics[20]);
                 sign = WB_RAND_SIGN();
-                const float rate5 = WB_RAND_RANGE(m_unk238[19], m_unk238[20]);
-                m_unk2f4 = goal;
-                m_unk300 = kNullVector;
-                m_unk2dc[5] = sign * rate5;
+                const float rate5 = WB_RAND_RANGE(m_afBezierDynamics[19], m_afBezierDynamics[20]);
+                m_vEndPoint = goal;
+                m_vEndVelocity = kNullVector;
+                m_afCtrlWanderRates[5] = sign * rate5;
             }
             grown = grown + 1;
-            m_unk2bc = grown;
-        } while (pointCount > grown && held * m_unk238[0] >= UIntToFloat(grown) * (reach / UIntToFloat(pointCount)));
+            m_ui32GrownPoints = grown;
+        } while (pointCount > grown && held * m_afBezierDynamics[0] >= UIntToFloat(grown) * (reach / UIntToFloat(pointCount)));
     }
     if (grown == 0) return;
 
     // The end point flies to its goal: the held enemy (held, not thrown), else the hot spot + the reach along the aim.
-    const bool tracking = m_pTarget != nullptr && m_unk310 <= 2;
+    const bool tracking = m_pTarget != nullptr && m_ui32PullState <= 2;
     CVector3 toGoal;
     if (tracking) {
         const RwV3d& target = TargetLtm(m_pTarget)->pos;
-        toGoal = CVector3{target.x - m_unk2f4.x, target.y - m_unk2f4.y, target.z - m_unk2f4.z};
+        toGoal = CVector3{target.x - m_vEndPoint.x, target.y - m_vEndPoint.y, target.z - m_vEndPoint.z};
     } else {
         const CVector3 aim = m_pHost->GetAimDirection(0);  // vt+0x24
         const float gx = ppc::fmadds(reach, aim.x, spot.x);
         const float gy = ppc::fmadds(reach, aim.y, spot.y);
         const float gz = ppc::fmadds(reach, aim.z, spot.z);
-        toGoal = CVector3{gx - m_unk2f4.x, gy - m_unk2f4.y, gz - m_unk2f4.z};
+        toGoal = CVector3{gx - m_vEndPoint.x, gy - m_vEndPoint.y, gz - m_vEndPoint.z};
     }
     float lead = 0.0f;  // the first control point's pull along toGoal (a quarter of the distance)
     {
@@ -706,45 +706,45 @@ void CKWindBeam::Vf84(float dt) {
             toGoal.x = toGoal.x * inv;
             toGoal.y = toGoal.y * inv;
             if (distance > 0.1f) {  // TOC +0x4270
-                const float speed = LengthYXZ(m_unk300);
-                const float acceleration = m_unk238[4 + m_unk04];
+                const float speed = LengthYXZ(m_vEndVelocity);
+                const float acceleration = m_afBezierDynamics[4 + m_dwLevelIndex];
                 float next;
                 if (speed * (speed / acceleration) > distance) {
                     next = speed - dt * acceleration;  // braking
                     if (!(next > 0.0f)) next = 0.0f;
                 } else {
                     next = ppc::fmadds(dt, acceleration, speed);
-                    const float top = m_unk238[1 + m_unk04];
+                    const float top = m_afBezierDynamics[1 + m_dwLevelIndex];
                     if (next > top) next = top;
                 }
                 const CVector3 velocity = {next * toGoal.x, next * toGoal.y, next * toGoal.z};
                 lead = distance * 0.25f;  // TOC +0x42c4
-                m_unk300 = velocity;
-                m_unk2f4.x = ppc::fmadds(dt, velocity.x, m_unk2f4.x);
-                m_unk2f4.y = ppc::fmadds(dt, velocity.y, m_unk2f4.y);
-                m_unk2f4.z = ppc::fmadds(dt, velocity.z, m_unk2f4.z);
+                m_vEndVelocity = velocity;
+                m_vEndPoint.x = ppc::fmadds(dt, velocity.x, m_vEndPoint.x);
+                m_vEndPoint.y = ppc::fmadds(dt, velocity.y, m_vEndPoint.y);
+                m_vEndPoint.z = ppc::fmadds(dt, velocity.z, m_vEndPoint.z);
             } else {
                 lead = distance * 0.25f;
             }
         }
     }
-    const float span = std::sqrt(ppc::fmadds(m_unk2f4.z - spot.z, m_unk2f4.z - spot.z,
-                                             ppc::fmadds(m_unk2f4.x - spot.x, m_unk2f4.x - spot.x,
-                                                         (m_unk2f4.y - spot.y) * (m_unk2f4.y - spot.y))));
+    const float span = std::sqrt(ppc::fmadds(m_vEndPoint.z - spot.z, m_vEndPoint.z - spot.z,
+                                             ppc::fmadds(m_vEndPoint.x - spot.x, m_vEndPoint.x - spot.x,
+                                                         (m_vEndPoint.y - spot.y) * (m_vEndPoint.y - spot.y))));
     uint32_t emitCount = grown;
     if (tracking) {
         // Held: as many points as the beam's growth covers at the current length, at most +0x234 (fctidz, low word).
         const float total = UIntToFloat(pointCount);
-        const float reachable = (held * m_unk238[0]) / (span / total);
+        const float reachable = (held * m_afBezierDynamics[0]) / (span / total);
         emitCount = static_cast<uint32_t>(ppc::fctidz(total < reachable ? total : reachable));
     }
 
     // The first inner control point (+0x2c4) turns in the frame of the beam's axis.
     {
-        const float length = LengthYXZ(m_unk2c4);
-        NormaliseInPlace(&m_unk2c4);
+        const float length = LengthYXZ(m_vCtrlPoint1);
+        NormaliseInPlace(&m_vCtrlPoint1);
         CMatrix34 basis = {};
-        if (Mat4_SetBasisFromAtUp(&basis, &axis, &m_unk2c4) == 0) {
+        if (Mat4_SetBasisFromAtUp(&basis, &axis, &m_vCtrlPoint1) == 0) {
             const CVector3 up = m_pHost->GetOwnerUp();  // vt+0x2c
             if (Mat4_SetBasisFromAtUp(&basis, &axis, &up) == 0) {
                 const CVector3 forward = m_pHost->GetHeroForward();  // vt+0x18
@@ -754,7 +754,7 @@ void CKWindBeam::Vf84(float dt) {
         CMatrix34 inverse = {};
         Mat4_Invert(&inverse, &basis);
         CVector3 local;
-        Mat4_TransformVectors(&inverse, &local, &m_unk2c4, 1);
+        Mat4_TransformVectors(&inverse, &local, &m_vCtrlPoint1, 1);
         NormaliseInPlace(&local);
         float cosine = local.z;
         if (cosine <= -1.0f) {
@@ -763,52 +763,52 @@ void CKWindBeam::Vf84(float dt) {
             cosine = 1.0f;
         }
         const float angle = crt::Acosf(cosine);  // TocBridge 0x0098e1a0
-        const float cone = m_unk238[9] * kDegToRad;
-        float turnX = (dt * m_unk2dc[2]) / length;
-        const float turnZ = (dt * m_unk2dc[1]) / length;
+        const float cone = m_afBezierDynamics[9] * kDegToRad;
+        float turnX = (dt * m_afCtrlWanderRates[2]) / length;
+        const float turnZ = (dt * m_afCtrlWanderRates[1]) / length;
         if (!(cone <= angle)) {
             if (angle < kTenDegrees) {
-                m_unk2dc[2] = WB_REDRAW_RATE(m_unk2dc[2], m_unk238[12], m_unk238[13]);
+                m_afCtrlWanderRates[2] = WB_REDRAW_RATE(m_afCtrlWanderRates[2], m_afBezierDynamics[12], m_afBezierDynamics[13]);
                 turnX = -std::fabs(turnX);
             }
         } else {
-            m_unk2dc[2] = WB_REDRAW_RATE(m_unk2dc[2], m_unk238[12], m_unk238[13]);
+            m_afCtrlWanderRates[2] = WB_REDRAW_RATE(m_afCtrlWanderRates[2], m_afBezierDynamics[12], m_afBezierDynamics[13]);
             turnX = std::fabs(turnX);
         }
         Mat4_RotateLocalZDeg(turnZ, &basis);
         Mat4_RotateLocalXDeg(turnX, &basis);
-        Mat4_TransformVectors(&basis, &m_unk2c4, &local, 1);
+        Mat4_TransformVectors(&basis, &m_vCtrlPoint1, &local, 1);
         // --fps N (not in the original): the 10% roll once per 60 Hz frame (none in a displayed frame that ends none).
-        if (m_unk2c4.y < 0.0f || ((!dotd::fps::Unlocked() || dotd::fps::Ticks() > 0) && WB_RAND_U16() / 65535.0f < 0.1f)) {
+        if (m_vCtrlPoint1.y < 0.0f || ((!dotd::fps::Unlocked() || dotd::fps::Ticks() > 0) && WB_RAND_U16() / 65535.0f < 0.1f)) {
             Mat4_RotateLocalZDeg(-turnZ, &basis);
-            Mat4_TransformVectors(&basis, &m_unk2c4, &local, 1);
-            m_unk2dc[1] = WB_REDRAW_RATE(m_unk2dc[1], m_unk238[12], m_unk238[13]);
+            Mat4_TransformVectors(&basis, &m_vCtrlPoint1, &local, 1);
+            m_afCtrlWanderRates[1] = WB_REDRAW_RATE(m_afCtrlWanderRates[1], m_afBezierDynamics[12], m_afBezierDynamics[13]);
         }
-        const float grownLength = ppc::fmadds(dt, m_unk2dc[0], length);
-        if (m_unk238[10] - m_unk238[11] > grownLength || m_unk238[10] + m_unk238[11] < grownLength) {
-            m_unk2dc[0] = WB_REDRAW_RATE(m_unk2dc[0], m_unk238[7], m_unk238[8]);
+        const float grownLength = ppc::fmadds(dt, m_afCtrlWanderRates[0], length);
+        if (m_afBezierDynamics[10] - m_afBezierDynamics[11] > grownLength || m_afBezierDynamics[10] + m_afBezierDynamics[11] < grownLength) {
+            m_afCtrlWanderRates[0] = WB_REDRAW_RATE(m_afCtrlWanderRates[0], m_afBezierDynamics[7], m_afBezierDynamics[8]);
         }
-        const float low = m_unk238[10] - m_unk238[11];
+        const float low = m_afBezierDynamics[10] - m_afBezierDynamics[11];
         const float want = grownLength * (span / reach);
         float kept;
         if (want <= low) {
             kept = low;
-        } else if (want >= m_unk238[10] + m_unk238[11]) {
-            kept = m_unk238[10] + m_unk238[11];
+        } else if (want >= m_afBezierDynamics[10] + m_afBezierDynamics[11]) {
+            kept = m_afBezierDynamics[10] + m_afBezierDynamics[11];
         } else {
             kept = want;
         }
-        ScaleToLength(&m_unk2c4, kept);
+        ScaleToLength(&m_vCtrlPoint1, kept);
     }
 
     // The second inner control point (+0x2d0), in the frame of the reversed axis; at a fog horn it is laid along the
     // horn's frame instead (and the end point onto its aim point).
     {
-        const float length = LengthYXZ(m_unk2d0);
-        NormaliseInPlace(&m_unk2d0);
+        const float length = LengthYXZ(m_vCtrlPoint2);
+        NormaliseInPlace(&m_vCtrlPoint2);
         CMatrix34 basis = {};
         const CVector3 reverse = Negated(axis);
-        if (Mat4_SetBasisFromAtUp(&basis, &reverse, &m_unk2d0) == 0) {
+        if (Mat4_SetBasisFromAtUp(&basis, &reverse, &m_vCtrlPoint2) == 0) {
             const CVector3 reverse2 = Negated(axis);
             const CVector3 up = m_pHost->GetOwnerUp();
             if (Mat4_SetBasisFromAtUp(&basis, &reverse2, &up) == 0) {
@@ -820,7 +820,7 @@ void CKWindBeam::Vf84(float dt) {
         CMatrix34 inverse = {};
         Mat4_Invert(&inverse, &basis);
         CVector3 local;
-        Mat4_TransformVectors(&inverse, &local, &m_unk2d0, 1);
+        Mat4_TransformVectors(&inverse, &local, &m_vCtrlPoint2, 1);
         NormaliseInPlace(&local);
         float cosine = local.z;
         if (cosine <= -1.0f) {
@@ -829,33 +829,33 @@ void CKWindBeam::Vf84(float dt) {
             cosine = 1.0f;
         }
         const float angle = crt::Acosf(cosine);
-        const float cone = m_unk238[16] * kDegToRad;
-        float turnX = (dt * m_unk2dc[5]) / length;
-        const float turnZ = (dt * m_unk2dc[4]) / length;
+        const float cone = m_afBezierDynamics[16] * kDegToRad;
+        float turnX = (dt * m_afCtrlWanderRates[5]) / length;
+        const float turnZ = (dt * m_afCtrlWanderRates[4]) / length;
         if (!(cone <= angle)) {
             if (angle < kTenDegrees) {
-                m_unk2dc[5] = WB_REDRAW_RATE(m_unk2dc[5], m_unk238[19], m_unk238[20]);
+                m_afCtrlWanderRates[5] = WB_REDRAW_RATE(m_afCtrlWanderRates[5], m_afBezierDynamics[19], m_afBezierDynamics[20]);
                 turnX = -std::fabs(turnX);
             }
         } else {
-            m_unk2dc[5] = WB_REDRAW_RATE(m_unk2dc[5], m_unk238[19], m_unk238[20]);
+            m_afCtrlWanderRates[5] = WB_REDRAW_RATE(m_afCtrlWanderRates[5], m_afBezierDynamics[19], m_afBezierDynamics[20]);
             turnX = std::fabs(turnX);
         }
         Mat4_RotateLocalZDeg(turnZ, &basis);
         Mat4_RotateLocalXDeg(turnX, &basis);
-        Mat4_TransformVectors(&basis, &m_unk2d0, &local, 1);
-        if (m_unk2d0.y < 0.0f || ((!dotd::fps::Unlocked() || dotd::fps::Ticks() > 0) && WB_RAND_U16() / 65535.0f < 0.1f)) {
+        Mat4_TransformVectors(&basis, &m_vCtrlPoint2, &local, 1);
+        if (m_vCtrlPoint2.y < 0.0f || ((!dotd::fps::Unlocked() || dotd::fps::Ticks() > 0) && WB_RAND_U16() / 65535.0f < 0.1f)) {
             Mat4_RotateLocalZDeg(-turnZ, &basis);
-            Mat4_TransformVectors(&basis, &m_unk2d0, &local, 1);
-            m_unk2dc[4] = WB_REDRAW_RATE(m_unk2dc[4], m_unk238[19], m_unk238[20]);
+            Mat4_TransformVectors(&basis, &m_vCtrlPoint2, &local, 1);
+            m_afCtrlWanderRates[4] = WB_REDRAW_RATE(m_afCtrlWanderRates[4], m_afBezierDynamics[19], m_afBezierDynamics[20]);
         }
-        const float grownLength = ppc::fmadds(dt, m_unk2dc[3], length);
-        if (m_unk238[17] - m_unk238[18] > grownLength || m_unk238[17] + m_unk238[18] < grownLength) {
-            m_unk2dc[3] = WB_REDRAW_RATE(m_unk2dc[3], m_unk238[14], m_unk238[15]);
+        const float grownLength = ppc::fmadds(dt, m_afCtrlWanderRates[3], length);
+        if (m_afBezierDynamics[17] - m_afBezierDynamics[18] > grownLength || m_afBezierDynamics[17] + m_afBezierDynamics[18] < grownLength) {
+            m_afCtrlWanderRates[3] = WB_REDRAW_RATE(m_afCtrlWanderRates[3], m_afBezierDynamics[14], m_afBezierDynamics[15]);
         }
         float want;
         if (m_pTarget != nullptr && m_pTarget->IsKindOfClass(0x2f02) != 0) {  // vt+0x08: CKHkS08FogHorn
-            m_unk2f4 = m_pHost->GetTargetAimPoint(1, 0);  // vt+0xdc
+            m_vEndPoint = m_pHost->GetTargetAimPoint(1, 0);  // vt+0xdc
             const RwMatrix* ltm = TargetLtm(m_pTarget);
             CVector3 side = {kNullVector.x - ltm->at.x, kNullVector.y - ltm->at.y, kNullVector.z - ltm->at.z};
             side.z = ppc::fmadds(ltm->up.z, 0.5f, side.z);  // TOC +0x42cc
@@ -864,59 +864,59 @@ void CKWindBeam::Vf84(float dt) {
             side.x = ppc::fmadds(ltm->right.x, -0.1f, side.x);  // TOC +0x42d0
             side.y = ppc::fmadds(ltm->right.y, -0.1f, side.y);
             side.z = ppc::fmadds(ltm->right.z, -0.1f, side.z);
-            m_unk2d0 = side;
-            NormaliseInPlace(&m_unk2d0);
-            m_unk2f4.x = m_unk2f4.x + m_unk2d0.x;
-            m_unk2f4.y = m_unk2f4.y + m_unk2d0.y;
-            m_unk2f4.z = m_unk2f4.z + m_unk2d0.z;
+            m_vCtrlPoint2 = side;
+            NormaliseInPlace(&m_vCtrlPoint2);
+            m_vEndPoint.x = m_vEndPoint.x + m_vCtrlPoint2.x;
+            m_vEndPoint.y = m_vEndPoint.y + m_vCtrlPoint2.y;
+            m_vEndPoint.z = m_vEndPoint.z + m_vCtrlPoint2.z;
             const RwMatrix* ltm2 = TargetLtm(m_pTarget);
-            m_unk2f4.z = ppc::fmadds(ltm2->right.z, 0.3f, m_unk2f4.z);  // TOC +0x42d4
-            m_unk2f4.x = ppc::fmadds(ltm2->right.x, 0.3f, m_unk2f4.x);
-            m_unk2f4.y = ppc::fmadds(ltm2->right.y, 0.3f, m_unk2f4.y);
-            want = m_unk238[17] + m_unk238[18];
+            m_vEndPoint.z = ppc::fmadds(ltm2->right.z, 0.3f, m_vEndPoint.z);  // TOC +0x42d4
+            m_vEndPoint.x = ppc::fmadds(ltm2->right.x, 0.3f, m_vEndPoint.x);
+            m_vEndPoint.y = ppc::fmadds(ltm2->right.y, 0.3f, m_vEndPoint.y);
+            want = m_afBezierDynamics[17] + m_afBezierDynamics[18];
         } else {
             want = (span / reach) * grownLength;
         }
-        const float low = m_unk238[17] - m_unk238[18];
+        const float low = m_afBezierDynamics[17] - m_afBezierDynamics[18];
         float kept;
         if (want <= low) {
             kept = low;
-        } else if (want >= m_unk238[17] + m_unk238[18]) {
-            kept = m_unk238[17] + m_unk238[18];
+        } else if (want >= m_afBezierDynamics[17] + m_afBezierDynamics[18]) {
+            kept = m_afBezierDynamics[17] + m_afBezierDynamics[18];
         } else {
             kept = want;
         }
-        ScaleToLength(&m_unk2d0, kept);
+        ScaleToLength(&m_vCtrlPoint2, kept);
     }
 
     // The Bezier: the hot spot, the hot spot + the first control point + lead along toGoal, the end point + the second
     // control point, the end point.
-    const CVector3 control1 = {ppc::fmadds(toGoal.x, lead, spot.x + m_unk2c4.x),
-                               ppc::fmadds(toGoal.y, lead, spot.y + m_unk2c4.y),
-                               ppc::fmadds(toGoal.z, lead, spot.z + m_unk2c4.z)};
-    const CVector3 control2 = {m_unk2f4.x + m_unk2d0.x, m_unk2f4.y + m_unk2d0.y, m_unk2f4.z + m_unk2d0.z};
+    const CVector3 control1 = {ppc::fmadds(toGoal.x, lead, spot.x + m_vCtrlPoint1.x),
+                               ppc::fmadds(toGoal.y, lead, spot.y + m_vCtrlPoint1.y),
+                               ppc::fmadds(toGoal.z, lead, spot.z + m_vCtrlPoint1.z)};
+    const CVector3 control2 = {m_vEndPoint.x + m_vCtrlPoint2.x, m_vEndPoint.y + m_vCtrlPoint2.y, m_vEndPoint.z + m_vCtrlPoint2.z};
     if (emitCount == 0) return;
     for (uint32_t i = 0; i != emitCount; ++i) {
-        const float t = (UIntToFloat(i) + m_unk2c0) / UIntToFloat(m_unk234);
+        const float t = (UIntToFloat(i) + m_fEmitPhase) / UIntToFloat(m_ui32BezierSampleCount);
         CVector3 point;
-        Vec3_CubicBezier(t, &point, &spot, &control1, &control2, &m_unk2f4);  // 0x00010fc0
-        EmitPoint(m_unk21c[m_unk04], point);
-        EmitPoint(m_unk228[m_unk04], point);
+        Vec3_CubicBezier(t, &point, &spot, &control1, &control2, &m_vEndPoint);  // 0x00010fc0
+        EmitPoint(m_apBeamStreamParticlesA[m_dwLevelIndex], point);
+        EmitPoint(m_apBeamStreamParticlesB[m_dwLevelIndex], point);
         if (i != emitCount - 1 || m_pTarget == nullptr) continue;
-        if (m_unk310 == 3) {
+        if (m_ui32PullState == 3) {
             // Thrown: the beam's end at the growth so far (clamped 0..1) must be a place the target can be held.
-            float along = (held * m_unk238[0]) / reach;
+            float along = (held * m_afBezierDynamics[0]) / reach;
             if (along <= 0.0f) {
                 along = 0.0f;
             } else if (along >= 1.0f) {
                 along = 1.0f;
             }
             CVector3 end;
-            Vec3_CubicBezier(along, &end, &spot, &control1, &control2, &m_unk2f4);
+            Vec3_CubicBezier(along, &end, &spot, &control1, &control2, &m_vEndPoint);
             CVector3 place = end;
-            if (m_pHost->CanGrabTarget(this, m_pTarget, &place) == 0) m_unk314 = 1;  // vt+0xe0
-        } else if (m_unk234 - 1 == emitCount - 1 && m_unk310 == 0) {
-            m_unk310 = 1;  // every point is out: the pull starts
+            if (m_pHost->CanGrabTarget(this, m_pTarget, &place) == 0) m_bTargetUncatchable = 1;  // vt+0xe0
+        } else if (m_ui32BezierSampleCount - 1 == emitCount - 1 && m_ui32PullState == 0) {
+            m_ui32PullState = 1;  // every point is out: the pull starts
         }
     }
 }

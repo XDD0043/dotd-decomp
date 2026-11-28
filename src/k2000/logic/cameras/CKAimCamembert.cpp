@@ -52,10 +52,10 @@ int32_t CKAimCamembert::Load(IKFile* file, int32_t type) {
 
 // 0x005be2a0 CKAimCamembert_vf60
 void CKAimCamembert::ResetAim() {
-    m_pUnk20 = nullptr;
+    m_pReferenceObj = nullptr;
     m_vOrigin = CVector3{0.0f, 0.0f, 0.0f};     // TOC2 -0x6214: 0x00c50d64
     m_vDirection = CVector3{1.0f, 0.0f, 0.0f};  // TOC2 -0x6210: 0x00c50d34, the X axis (a static initialiser's)
-    m_unk3c = 0;
+    m_bUseReference = 0;
 }
 
 // 0x005be2f0 CKAimCamembert_SetOriginAndDirection_maybe: reset (vt+0x60), the origin, then the direction unless it is
@@ -75,8 +75,8 @@ uint8_t CKAimCamembert::ScoreTarget(const CVector3* point, float* score) {
     *score = -1.0f;  // TOC2 -0x620c
     CVector3 origin;
     CVector3 direction;
-    if (m_unk3c != 0 && m_pUnk20 != nullptr) {
-        const uint8_t* object = reinterpret_cast<const uint8_t*>(m_pUnk20);
+    if (m_bUseReference != 0 && m_pReferenceObj != nullptr) {
+        const uint8_t* object = reinterpret_cast<const uint8_t*>(m_pReferenceObj);
         std::memcpy(&direction, object + 0x20, sizeof direction);
         std::memcpy(&origin, object + 0x30, sizeof origin);
     } else {

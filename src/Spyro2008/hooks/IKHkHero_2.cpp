@@ -313,20 +313,20 @@ uint32_t ModelFloatAsWord(float value) {
 // about z, and the heading (+0x538) turns it about y; or the node's up axis (the one before the identity) turns toward
 // +0x798 by +0x230 degrees a second and the basis is built from it and the direction +0x540.
 void CKHkS08Hero::UpdateModelOffsetAndBank(IKTime* clock) {
-    if ((m_unk358 & 4u) != 0 || (m_unk35c & 0x800u) != 0) return;
+    if ((m_ui32HeroFlags358 & 4u) != 0 || (m_ui32HeroFlags35C & 0x800u) != 0) return;
     CSGMovable* node = static_cast<CSGMovable*>(m_pKGLObject);
     const float upX = node->m_pRwFrame->modelling.up.x;
     const float upY = node->m_pRwFrame->modelling.up.y;
     const float upZ = node->m_pRwFrame->modelling.up.z;
     node->SetIdentity();  // 0x000d08f0
-    if ((m_unk358 & 0x80000u) == 0 || (m_unk358 & 0x40000000u) != 0) {
+    if ((m_ui32HeroFlags358 & 0x80000u) == 0 || (m_ui32HeroFlags358 & 0x40000000u) != 0) {
         RwFrame* frame = node->m_pRwFrame;
         frame->modelling.pos.z = m_unk554;
         frame->modelling.pos.x = m_unk54c;
         frame->modelling.pos.y = m_unk550;
         frame->modelling.flags &= 0xfffdffffu;
         c22spyro::RwFrameMarkDirty(node->m_pRwFrame);  // 0x00010698
-        m_unk358 &= 0xfff7ffffu;
+        m_ui32HeroFlags358 &= 0xfff7ffffu;
     } else {
         const float length =
             std::sqrt(ppc::fmadds(m_unk470, m_unk470, ppc::fmadds(m_unk468, m_unk468, m_unk46c * m_unk46c)));  // 0x10690
@@ -340,7 +340,7 @@ void CKHkS08Hero::UpdateModelOffsetAndBank(IKTime* clock) {
             m_unk468 = kHeroZeroVector.x;  // 0x00c50d64 (TOC1 +0x2c44)
             m_unk46c = kHeroZeroVector.y;
             m_unk470 = kHeroZeroVector.z;
-            m_unk358 &= 0xfff7ffffu;
+            m_ui32HeroFlags358 &= 0xfff7ffffu;
         }
         RwFrame* frame = node->m_pRwFrame;
         frame->modelling.pos.x = m_unk54c + m_unk468;
@@ -350,13 +350,13 @@ void CKHkS08Hero::UpdateModelOffsetAndBank(IKTime* clock) {
         c22spyro::RwFrameMarkDirty(node->m_pRwFrame);
     }
     const float dt = clock->m_afDeltaTime[0];
-    if ((m_unk360 & 0x200u) == 0) {
+    if ((m_ui32HeroFlags360 & 0x200u) == 0) {
         static const float kAxisX[3] = {1.0f, 0.0f, 0.0f};  // 0x00c50d34 (TOC1 +0x2cd0; a static initialiser's)
         static const float kAxisY[3] = {0.0f, 1.0f, 0.0f};  // 0x00c50d40 (TOC1 +0x2c48)
         static const float kAxisZ[3] = {0.0f, 0.0f, 1.0f};  // 0x00c50d4c (TOC1 +0x2cd8)
         const float kHalfPi = 1.5707964f;                   // TOC1 +0x2c64
         float pitchTarget = 0.0f;                           // TOC1 +0x2c24
-        if ((m_unk35c & 0x100000u) == 0 &&
+        if ((m_ui32HeroFlags35C & 0x100000u) == 0 &&
             m_asSpeedModes[m_unk588].m_abAnimMustBeTurned[static_cast<int32_t>(m_unk58c)] != 0) {
             pitchTarget = m_unk58c == 1 ? static_cast<float>(m_unk343) : -static_cast<float>(m_unk343);
         }
@@ -369,14 +369,14 @@ void CKHkS08Hero::UpdateModelOffsetAndBank(IKTime* clock) {
         }
         if (pitch != 0.0f) node->RotateInPlace(kAxisX, pitch);  // 0x000d11b0
         float bankTarget = 0.0f;
-        if (m_aui8Unk1a4[8] != 0 && (m_unk360 & 0x10000000u) == 0 && m_unk530 != 0.0f && (m_unk354 & 1u) == 0 &&
-            (m_unk358 & 0x400u) == 0) {
+        if (m_aui8Unk1a4[8] != 0 && (m_ui32HeroFlags360 & 0x10000000u) == 0 && m_fCurHSpeed != 0.0f && (m_ui32HeroFlags354 & 1u) == 0 &&
+            (m_ui32HeroFlags358 & 0x400u) == 0) {
             const CVector3 facing = {m_unk3b8, m_unk3bc, m_unk3c0};
             const float turn = Math_WrapAngleToPi(m_unk538 - Vec3_GetYawAngleFromX(&facing));  // 0x00244638, 0x00582c18
             float rate = std::fabs(turn) / (dt * kHalfPi);
             if (!(rate <= 1.0f)) rate = 1.0f;  // ble (TOC1 +0x2c3c)
-            float speed = m_unk530;
-            if (!(m_unk21c >= m_unk530)) speed = m_unk21c;  // bge
+            float speed = m_fCurHSpeed;
+            if (!(m_unk21c >= m_fCurHSpeed)) speed = m_unk21c;  // bge
             float sign = 1.0f;
             if (!(turn < 0.0f)) sign = -1.0f;  // blt (TOC1 +0x2cd4)
             bankTarget = rate * (speed / m_unk21c) * (sign * static_cast<float>(m_unk344));
@@ -467,7 +467,7 @@ void IKHkHero::SetPositionAndDirection(const CVector3* position, const CVector3*
 void CKHkS08Hero::UpdateHazardAndSavedPositionRespawn(IKTime* clock) {
     const CGround* ground = static_cast<const CGround*>(m_gcCurDatasInOut.m_pGround);
     if (ground == nullptr) return;
-    if ((m_unk358 & 0x2000000u) != 0 && (m_unk354 & 1u) == 0) {
+    if ((m_ui32HeroFlags358 & 0x2000000u) != 0 && (m_ui32HeroFlags354 & 1u) == 0) {
         m_unk6d4 = m_unk564;
         m_unk6dc = m_unk56c;
         m_unk6d8 = m_unk568;
@@ -475,28 +475,28 @@ void CKHkS08Hero::UpdateHazardAndSavedPositionRespawn(IKTime* clock) {
         m_unk6dc = value * m_unk6dc;
         m_unk6d4 = value * m_unk6d4;
         m_unk6d8 = value * m_unk6d8;
-        m_unk358 = (m_unk358 & ~0x10000000u) | 0x10000000u;
+        m_ui32HeroFlags358 = (m_ui32HeroFlags358 & ~0x10000000u) | 0x10000000u;
     }
     CKS08GameManager* manager = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager);
     const uint8_t points = manager->Vf270(m_ui8Hero);  // vt+0x270
     const bool dead = points == 0;                     // (points - 1) < 0
-    if ((m_unk358 & 0x4000000u) != 0 && (m_unk354 & 1u) == 0 && (m_unk360 & 0x4000u) == 0 && !dead) {
+    if ((m_ui32HeroFlags358 & 0x4000000u) != 0 && (m_ui32HeroFlags354 & 1u) == 0 && (m_ui32HeroFlags360 & 0x4000u) == 0 && !dead) {
         if (TeleportToSavedPosition()) {
-            m_unk358 &= ~0x4000000u;
+            m_ui32HeroFlags358 &= ~0x4000000u;
         } else {
             ApplyHazardHitAndLeaveAttach(manager->Vf274(m_ui8Hero), 1);  // vt+0x274
             RequestOwnDragonSelectionIfMultiHero();
         }
     }
-    if ((m_unk360 & 0x2000u) != 0 && (m_unk354 & 1u) == 0 && (m_unk360 & 0x8000u) == 0 && !dead) {
-        if (TeleportToSavedPosition()) m_unk360 &= ~0x2000u;
+    if ((m_ui32HeroFlags360 & 0x2000u) != 0 && (m_ui32HeroFlags354 & 1u) == 0 && (m_ui32HeroFlags360 & 0x8000u) == 0 && !dead) {
+        if (TeleportToSavedPosition()) m_ui32HeroFlags360 &= ~0x2000u;
     }
-    if ((m_unk358 & 0x8000000u) != 0 && (m_unk354 & 1u) == 0 && (m_unk354 & 0x4000000u) == 0 && (m_unk35c & 4u) == 0 &&
+    if ((m_ui32HeroFlags358 & 0x8000000u) != 0 && (m_ui32HeroFlags354 & 1u) == 0 && (m_ui32HeroFlags354 & 0x4000000u) == 0 && (m_ui32HeroFlags35C & 4u) == 0 &&
         !dead) {
         uint8_t damage = manager->Vf270(m_ui8Hero);
         uint8_t kind = 1;
         bool hurt = false;
-        if ((m_unk364 & 0x80u) == 0) {
+        if ((m_ui32HeroFlags364 & 0x80u) == 0) {
             const int32_t value = ppc::fctiwz(ground->m_fPropertieValue);
             if (damage > static_cast<uint8_t>(value)) {
                 ApplyHazardHitAndLeaveAttach(static_cast<uint8_t>(value), static_cast<uint8_t>(value));
@@ -508,20 +508,20 @@ void CKHkS08Hero::UpdateHazardAndSavedPositionRespawn(IKTime* clock) {
         }
         if (!hurt) {
             if (TeleportToSavedPosition()) {
-                m_unk358 &= ~0x8000000u;
+                m_ui32HeroFlags358 &= ~0x8000000u;
             } else {
                 ApplyHazardHitAndLeaveAttach(damage, kind);
                 RequestOwnDragonSelectionIfMultiHero();
             }
         }
     }
-    const uint32_t onGround = (m_unk364 & 0x80u) != 0 ? ((m_unk354 & 1u) << 7) : 0u;
-    m_unk364 = (m_unk364 & ~0x80u) | onGround;
-    if (m_ui8TrackedLeader == m_ui8Hero && (m_unk354 & 4u) != 0 && m_unk300 != 0.0f && (m_unk360 & 0x2000u) == 0 &&
-        (m_unk358 & 0x4000000u) == 0 && (m_unk358 & 4u) == 0 && m_unk478 - m_unk550 > m_unk300) {
+    const uint32_t onGround = (m_ui32HeroFlags364 & 0x80u) != 0 ? ((m_ui32HeroFlags354 & 1u) << 7) : 0u;
+    m_ui32HeroFlags364 = (m_ui32HeroFlags364 & ~0x80u) | onGround;
+    if (m_ui8TrackedLeader == m_ui8Hero && (m_ui32HeroFlags354 & 4u) != 0 && m_unk300 != 0.0f && (m_ui32HeroFlags360 & 0x2000u) == 0 &&
+        (m_ui32HeroFlags358 & 0x4000000u) == 0 && (m_ui32HeroFlags358 & 4u) == 0 && m_unk478 - m_unk550 > m_unk300) {
         // A fall from too high.
         ApplyHazardHitAndLeaveAttach(manager->Vf274(m_ui8Hero), 1);
-        m_unk364 = (m_unk364 & ~0x2000u) | 0x2000u;
+        m_ui32HeroFlags364 = (m_ui32HeroFlags364 & ~0x2000u) | 0x2000u;
     }
     UpdateGroundSurfaceFlags(clock);  // vt+0x14c 0x002dc660
 }
@@ -550,7 +550,7 @@ void CKHkS08Hero::ApplyHazardHitAndLeaveAttach(uint8_t damage, uint8_t kind) {
     m_unkf8 = zero.x;
     m_unk100 = zero.z;
     m_unkfc = zero.y;
-    m_unk354 = (m_unk354 & ~0x40000000u) | 0x40000000u;
+    m_ui32HeroFlags354 = (m_ui32HeroFlags354 & ~0x40000000u) | 0x40000000u;
 }
 
 // 0x00361b68 CKHkS08Hero_GetGroundInfo_maybe: the ground of the current contact (+0x4b8).
@@ -585,14 +585,14 @@ uint8_t CKHkS08Hero::ActFreeMovement(IKTime*, int32_t phase, uint8_t other) {
 void CKHkS08Hero::UpdateLocomotionAndResolvePosition(IKTime* clock) {
     // Bit 3 takes bit 0 (the ground flag of the frame before); bit 2 is cleared (its old value goes to the moving
     // ground attachment).
-    const uint32_t old354 = m_unk354;
+    const uint32_t old354 = m_ui32HeroFlags354;
     const uint32_t step1 = (old354 & 0xfffffff7u) | ((old354 & 1u) << 3);
-    m_unk354 = step1;
+    m_ui32HeroFlags354 = step1;
     const uint32_t wasOnMovingGround = (step1 >> 2) & 1u;
-    m_unk354 = step1 & 0xfffffffbu;
+    m_ui32HeroFlags354 = step1 & 0xfffffffbu;
     const uint32_t* handlers = reinterpret_cast<const uint32_t*>(m_unk528);
-    if ((m_unk358 & 4u) != 0 || (m_unk35c & 0x800u) != 0) {
-        if (m_unk52c != 0xff) SwitchState(handlers, m_unk52c, 0xff, clock);
+    if ((m_ui32HeroFlags358 & 4u) != 0 || (m_ui32HeroFlags35C & 0x800u) != 0) {
+        if (m_ui8DynamicCurrentState != 0xff) SwitchState(handlers, m_ui8DynamicCurrentState, 0xff, clock);
         // The position and the flat facing from the attach hot spot's world matrix (group vt+0x16c with 0), the
         // previous position kept (+0x558), the move (+0x5b4) and the speeds (+0x530 flat, +0x534 vertical) from it,
         // then SetPositions, the path-finding position and the move entry.
@@ -627,26 +627,26 @@ void CKHkS08Hero::UpdateLocomotionAndResolvePosition(IKTime* clock) {
         m_unk5b8 = dy;
         const float dt = clock->m_afDeltaTime[0];
         const float flat = static_cast<float>(c22spyro::MathSqrtf(ppc::fmadds(dz, dz, ppc::fmadds(dx, dx, kZeroF))));
-        m_unk534 = m_unk5b8 / dt;
+        m_fCurVSpeed = m_unk5b8 / dt;
         float height = m_unk1f0;
         const float step = m_unk510;
-        m_unk530 = flat / dt;
+        m_fCurHSpeed = flat / dt;
         CVector3 target = {m_unk54c, m_unk550, m_unk554};
-        if ((m_unk354 & 1u) == 0 && !(m_unk204 >= kZeroF)) {
+        if ((m_ui32HeroFlags354 & 1u) == 0 && !(m_unk204 >= kZeroF)) {
             height = ppc::fmadds(height, (kZeroF - m_unk204) / m_unk204, height);  // a negative +0x204 only (bge), as the original
         }
         m_gcDatasIn.m_fDeltaMax = height;    // +0x4a8
         m_gcDatasIn.m_fObjectHeight = step;  // +0x4ac
         SetPositions(clock, &target);        // 0x0035f6f8
         m_PFCpnt.SetDestination(reinterpret_cast<const CVector3*>(&m_unk54c));  // 0x001e3a40
-        m_unk588 = SelectMoveEntryIndexForSpeed(m_unk530);  // 0x00369ac8
+        m_unk588 = SelectMoveEntryIndexForSpeed(m_fCurHSpeed);  // 0x00369ac8
         return;
     }
     UpdateDynamicGroundAttachment(clock, wasOnMovingGround);  // 0x00360648
     // The slope test (+0x1ad): a ground steeper than +0x349 degrees (or the slide flag +0x1ae with +0x358 bit 24)
     // starts the slide timer (+0x608, +0x354 bit 23).
     bool steep = false;
-    if ((m_unk358 & 0x1000000u) != 0) steep = m_aui8Unk1a4[0x1ae - 0x1a4] != 0;  // +0x1ae
+    if ((m_ui32HeroFlags358 & 0x1000000u) != 0) steep = m_aui8Unk1a4[0x1ae - 0x1a4] != 0;  // +0x1ae
     if (m_aui8Unk1a4[0x1ad - 0x1a4] != 0 && !steep) {  // +0x1ad
         const float cosine = ppc::fmadds(m_unk56c, kHeroAxisY.z, ppc::fmadds(m_unk564, kHeroAxisY.x, m_unk568 * kHeroAxisY.y));  // TOC +0x2c48
         float angle = 0.0f;                                     // TOC +0x2c24
@@ -654,10 +654,10 @@ void CKHkS08Hero::UpdateLocomotionAndResolvePosition(IKTime* clock) {
         steep = angle >= static_cast<float>(static_cast<double>(m_unk349));  // cror gt|eq
     }
     if (!steep) {
-        m_unk354 &= 0xff7fffffu;
-    } else if ((m_unk354 & 0x800000u) == 0) {
+        m_ui32HeroFlags354 &= 0xff7fffffu;
+    } else if ((m_ui32HeroFlags354 & 0x800000u) == 0) {
         m_unk608 = clock->m_afCurrentTime[0];
-        m_unk354 = (m_unk354 & 0xff7fffffu) | 0x800000u;
+        m_ui32HeroFlags354 = (m_ui32HeroFlags354 & 0xff7fffffu) | 0x800000u;
     }
     const uint8_t count = static_cast<IKGrpHero*>(m_pGrpHero)->GetNbHeroStatesC();  // vt+0x12c
     uint8_t found = count;
@@ -667,7 +667,7 @@ void CKHkS08Hero::UpdateLocomotionAndResolvePosition(IKTime* clock) {
             break;
         }
     }
-    if (found != m_unk52c) SwitchState(handlers, m_unk52c, found, clock);
+    if (found != m_ui8DynamicCurrentState) SwitchState(handlers, m_ui8DynamicCurrentState, found, clock);
     const CVector3& zero = kHeroZeroVector;  // TOC +0x2c44
     m_unk5b4 = zero.x;
     m_unk5b8 = zero.y;
@@ -688,11 +688,11 @@ void CKHkS08Hero::UpdateLocomotionAndResolvePosition(IKTime* clock) {
     m_unk5cc = m_unk5cc + m_unk5fc;
     m_unk5d0 = m_unk5d0 + m_unk600;
     m_unk5d4 = m_unk5d4 + m_unk604;
-    const float speedBefore = m_unk530;
-    if ((m_unk35c & 0x1000u) == 0) RunState(handlers, m_unk52c, clock);
+    const float speedBefore = m_fCurHSpeed;
+    if ((m_ui32HeroFlags35C & 0x1000u) == 0) RunState(handlers, m_ui8DynamicCurrentState, clock);
     uint32_t started = 0;
-    if (speedBefore == 0.0f && m_unk530 != 0.0f) started = 0x2000u;  // TOC +0x2c24
-    m_unk358 = (m_unk358 & 0xffffdfffu) | started;
+    if (speedBefore == 0.0f && m_fCurHSpeed != 0.0f) started = 0x2000u;  // TOC +0x2c24
+    m_ui32HeroFlags358 = (m_ui32HeroFlags358 & 0xffffdfffu) | started;
     Vf180();  // vt+0x180 (empty)
     const float dx = m_unk5c0 + m_unk5cc;
     const float dy = m_unk5c4 + m_unk5d0;
@@ -704,7 +704,7 @@ void CKHkS08Hero::UpdateLocomotionAndResolvePosition(IKTime* clock) {
     m_unk5d8 = m_unk5b4;
     m_unk5dc = m_unk5b8;
     m_unk5e0 = m_unk5bc;
-    if ((m_unk35c & 0x80u) != 0) {
+    if ((m_ui32HeroFlags35C & 0x80u) != 0) {
         // Moved without collision: the position is the target, the path follows.
         m_unk558 = m_unk54c;
         m_unk560 = m_unk554;
@@ -714,7 +714,7 @@ void CKHkS08Hero::UpdateLocomotionAndResolvePosition(IKTime* clock) {
         m_unk550 = target.y;
         m_PFCpnt.SetDestination(reinterpret_cast<const CVector3*>(&m_unk54c));  // 0x001e3a40
     } else {
-        if (m_aui8Unk1a4[0x1aa - 0x1a4] != 0 && (m_unk360 & 0x8000000u) == 0 && (m_unk35c & 0x10000000u) == 0) {
+        if (m_aui8Unk1a4[0x1aa - 0x1a4] != 0 && (m_ui32HeroFlags360 & 0x8000000u) == 0 && (m_ui32HeroFlags35C & 0x10000000u) == 0) {
             const uint32_t noRootMotion = (m_unk5a8 == zero.x && m_unk5ac == zero.y && m_unk5b0 == zero.z) ? 1u : 0u;
             ResolveWallMovement(reinterpret_cast<CVector3*>(&m_unk5b4), &target,
                                 reinterpret_cast<const CVector3*>(&m_unk5a8), noRootMotion);  // 0x0035b278
@@ -726,15 +726,15 @@ void CKHkS08Hero::UpdateLocomotionAndResolvePosition(IKTime* clock) {
             step = step - m_unk5b8;
             height = m_unk1f0 - m_unk5b8;
         }
-        if ((m_unk354 & 1u) == 0 && m_unk530 > m_unk204) {
-            height = ppc::fmadds(m_unk1f0, (m_unk530 - m_unk204) / m_unk204, height);
+        if ((m_ui32HeroFlags354 & 1u) == 0 && m_fCurHSpeed > m_unk204) {
+            height = ppc::fmadds(m_unk1f0, (m_fCurHSpeed - m_unk204) / m_unk204, height);
         }
         m_gcDatasIn.m_fDeltaMax = height;      // +0x4a8
         m_gcDatasIn.m_fObjectHeight = step;    // +0x4ac
         SetPositions(clock, &target);          // 0x0035f6f8
     }
-    if (m_aui8Unk1a4[0x1b3 - 0x1a4] != 0 && (m_unk358 & 0x40000000u) == 0 && (m_unk358 & 0x80000u) == 0 && (m_unk358 & 0x8000u) == 0) {
-        const bool moved = (m_unk354 & 0x40000u) != 0 || (m_unk358 & 0x80u) != 0 || m_unk5f0 != zero.x ||
+    if (m_aui8Unk1a4[0x1b3 - 0x1a4] != 0 && (m_ui32HeroFlags358 & 0x40000000u) == 0 && (m_ui32HeroFlags358 & 0x80000u) == 0 && (m_ui32HeroFlags358 & 0x8000u) == 0) {
+        const bool moved = (m_ui32HeroFlags354 & 0x40000u) != 0 || (m_ui32HeroFlags358 & 0x80u) != 0 || m_unk5f0 != zero.x ||
                            m_unk5f4 != zero.y || m_unk5f8 != zero.z || m_unk5fc != zero.x || m_unk600 != zero.y ||
                            m_unk604 != zero.z;
         if (moved) {
@@ -744,10 +744,10 @@ void CKHkS08Hero::UpdateLocomotionAndResolvePosition(IKTime* clock) {
             m_unk46c = FrameLtm(frame)->pos.y - target.y;
             m_unk46c = 0.0f;
             m_unk470 = FrameLtm(frame)->pos.z - target.z;
-            m_unk358 = (m_unk358 & 0xfff7ffffu) | 0x80000u;
+            m_ui32HeroFlags358 = (m_ui32HeroFlags358 & 0xfff7ffffu) | 0x80000u;
         }
     }
-    m_unk588 = SelectMoveEntryIndexForSpeed(m_unk530);  // 0x00369ac8
+    m_unk588 = SelectMoveEntryIndexForSpeed(m_fCurHSpeed);  // 0x00369ac8
     UpdateSignedSlopePitchClass();                     // 0x00359c60
 }
 
@@ -767,21 +767,21 @@ void CKHkS08Hero::UpdateDynamicGroundAttachment(IKTime* clock, uint32_t wasOnMov
             static_cast<const CKSector*>(g_pEngine->m_level->m_vpSectors.m_pBlock[ground->GetSectorNumber()]);
         if ((sector->m_ba16Properties & 1) != 0) {
             Mat4_TransformPoints(ground->GetWorldMatrix(), &point, &m_gcCurDatasInOut.m_ProjectionOnGround, 1);
-            uint32_t flags = m_unk354;
+            uint32_t flags = m_ui32HeroFlags354;
             if ((flags & 1u) != 0 && point.y >= m_unk550 + m_gcDatasIn.m_fDeltaMax && ((ground->m_ba16EngineFlags >> 3) & 1) == 0) {
                 // An airborne hero the ground came up to: landed.
-                if (m_ui8Hero == m_ui8TrackedLeader && (m_unk35c & 0x400000u) == 0 && (m_unk358 & 4u) == 0) {
+                if (m_ui8Hero == m_ui8TrackedLeader && (m_ui32HeroFlags35C & 0x400000u) == 0 && (m_ui32HeroFlags358 & 4u) == 0) {
                     static_cast<CKSrvCamera*>(g_pEngine->m_srvCamera)->m_baTemporaryFlags &= ~1u;
                 }
-                m_unk354 &= 0xfffffdfeu;
-                m_unk364 &= ~0x400u;
-                m_unk354 &= ~2u;
+                m_ui32HeroFlags354 &= 0xfffffdfeu;
+                m_ui32HeroFlags364 &= ~0x400u;
+                m_ui32HeroFlags354 &= ~2u;
                 m_unk590 = 0xff;
-                m_unk354 = (m_unk354 & ~6u) | 4u;
+                m_ui32HeroFlags354 = (m_ui32HeroFlags354 & ~6u) | 4u;
                 SetDirectionLock(0);  // 0x009bdb48
-                flags = m_unk354;
+                flags = m_ui32HeroFlags354;
             }
-            if ((flags & 1u) != 0 || (m_unk35c & 0x100u) != 0) {
+            if ((flags & 1u) != 0 || (m_ui32HeroFlags35C & 0x100u) != 0) {
                 carriedBy = ground;
             } else {
                 const float dx = point.x - m_unk54c;
@@ -869,13 +869,13 @@ void CKHkS08Hero::ResolveWallMovement(CVector3* move, CVector3* target, const CV
     const float height = (m_unk510 - lift) + feetOffset;
     CKSrvCollision* collision = static_cast<CKSrvCollision*>(g_pEngine->m_srvCollision);
     m_unk60c = collision->ResolveSweptCylinderWalls(&line, m_unk794, height, &m_wallSlide, &m_wallSlidePrev, nullptr, 1);
-    m_unk354 &= 0xfffbffffu;
-    m_unk35c &= 0xfffeffffu;
+    m_ui32HeroFlags354 &= 0xfffbffffu;
+    m_ui32HeroFlags35C &= 0xfffeffffu;
     const int32_t result = static_cast<int32_t>(m_unk60c);
     // The speed scaled by 1 + 0.01 * (u8)+0x347 * k (k = -1 when blocked or by several walls).
     auto scaleSpeed = [&](float k) {
         const float factor = static_cast<float>(static_cast<double>(m_unk347));  // fcfid + frsp
-        m_unk530 = m_unk530 * ppc::fmadds(k * factor, -0.00999999978f, 1.0f);  // TOC +0x2c70 / +0x2c3c
+        m_fCurHSpeed = m_fCurHSpeed * ppc::fmadds(k * factor, -0.00999999978f, 1.0f);  // TOC +0x2c70 / +0x2c3c
     };
     if (result == 1) {
         target->x = m_unk54c;
@@ -883,14 +883,14 @@ void CKHkS08Hero::ResolveWallMovement(CVector3* move, CVector3* target, const CV
         move->x = 0.0f;
         move->z = 0.0f;
         const float factor = static_cast<float>(static_cast<double>(m_unk347));
-        m_unk530 = m_unk530 * ppc::fmadds(factor, -0.00999999978f, 1.0f);
-        m_unk354 |= 0x40000u;
+        m_fCurHSpeed = m_fCurHSpeed * ppc::fmadds(factor, -0.00999999978f, 1.0f);
+        m_ui32HeroFlags354 |= 0x40000u;
         return;
     }
     if (result < 1 || result > 3) return;
     float lift2 = 0.0f;  // TOC +0x2c24
     const CVector3& bounce = m_wallSlide.m_v3BouncingVector;
-    if ((m_unk354 & 1u) == 0 && (m_unk358 & 0x400u) == 0) {
+    if ((m_ui32HeroFlags354 & 1u) == 0 && (m_ui32HeroFlags358 & 0x400u) == 0) {
         // In the air: the bounce's length, the vertical part of its direction along the ground's plane.
         float by = bounce.y, bx = bounce.x, bz = bounce.z;
         float length = static_cast<float>(c22spyro::MathSqrtf(ppc::fmadds(bz, bz, ppc::fmadds(bx, bx, by * by))));
@@ -931,20 +931,20 @@ void CKHkS08Hero::ResolveWallMovement(CVector3* move, CVector3* target, const CV
         }
         const float dot = ppc::fmadds(wz, m_unk548, ppc::fmadds(wx, m_unk540, wy * m_unk544));
         if (dot < 0.0f) scaleSpeed(-dot);
-        m_unk35c = (m_unk35c & 0xfffeffffu) | (dot <= 0.0f ? 0x10000u : 0u);
+        m_ui32HeroFlags35C = (m_ui32HeroFlags35C & 0xfffeffffu) | (dot <= 0.0f ? 0x10000u : 0u);
     } else {
         const float factor = static_cast<float>(static_cast<double>(m_unk347));
-        m_unk530 = m_unk530 * ppc::fmadds(factor, -0.00999999978f, 1.0f);
-        m_unk35c |= 0x10000u;
+        m_fCurHSpeed = m_fCurHSpeed * ppc::fmadds(factor, -0.00999999978f, 1.0f);
+        m_ui32HeroFlags35C |= 0x10000u;
     }
-    m_unk354 |= 0x40000u;
+    m_ui32HeroFlags354 |= 0x40000u;
 }
 
 // 0x0035f6f8 SetPositions
 void CKHkS08Hero::SetPositions(IKTime* clock, CVector3* target) {
-    m_unk35c &= ~0x40000u;
-    m_unk364 &= ~0x8000u;
-    m_unk360 &= 0xfffffbfdu;
+    m_ui32HeroFlags35C &= ~0x40000u;
+    m_ui32HeroFlags364 &= ~0x8000u;
+    m_ui32HeroFlags360 &= 0xfffffbfdu;
     CopyGroundContact(m_gcOldDatasInOut, m_gcCurDatasInOut);
     CVector3* const position = reinterpret_cast<CVector3*>(&m_unk54c);
     ICollisionMesh* deactivated = nullptr;
@@ -953,12 +953,12 @@ void CKHkS08Hero::SetPositions(IKTime* clock, CVector3* target) {
         if (!ResolveGroundContactAndPosition(clock, target, position, 1, nullptr)) {
             uint32_t falling = 0;  // +0x364 bit 15
             if (firstStatus == 3) {
-                m_unk35c = (m_unk35c & ~0x40000u) | (m_gcCurDatasInOut.m_eContactStatus == 3 ? 0x40000u : 0u);
+                m_ui32HeroFlags35C = (m_ui32HeroFlags35C & ~0x40000u) | (m_gcCurDatasInOut.m_eContactStatus == 3 ? 0x40000u : 0u);
             } else {
-                m_unk35c &= ~0x40000u;
+                m_ui32HeroFlags35C &= ~0x40000u;
                 if (firstStatus == 2 && m_gcCurDatasInOut.m_eContactStatus == 2) falling = 0x8000;
             }
-            m_unk364 = (m_unk364 & ~0x8000u) | falling;
+            m_ui32HeroFlags364 = (m_ui32HeroFlags364 & ~0x8000u) | falling;
             CopyGroundContact(m_gcCurDatasInOut, m_gcOldDatasInOut);
         }
         if (deactivated != nullptr) deactivated->SetActive(1);
@@ -991,7 +991,7 @@ void CKHkS08Hero::SetPositions(IKTime* clock, CVector3* target) {
     m_unk580 = m_unk574;
     m_unk584 = m_unk578;
     CVector3* const groundPoint = reinterpret_cast<CVector3*>(&m_unk570);
-    if ((m_unk354 & 1u) == 0 && (m_unk35c & 0x400u) == 0) {
+    if ((m_ui32HeroFlags354 & 1u) == 0 && (m_ui32HeroFlags35C & 0x400u) == 0) {
         *groundPoint = *position;
         return;
     }
@@ -1000,13 +1000,13 @@ void CKHkS08Hero::SetPositions(IKTime* clock, CVector3* target) {
 
 // 0x00354cf0 CKHkS08Hero_SetCameraDirectionLock_maybe
 void CKHkS08Hero::SetCameraDirectionLock(uint8_t airborne) {
-    if (m_ui8Hero != m_ui8TrackedLeader || (m_unk35c & 0x400000u) != 0 || (m_unk358 & 4u) != 0) return;
+    if (m_ui8Hero != m_ui8TrackedLeader || (m_ui32HeroFlags35C & 0x400000u) != 0 || (m_ui32HeroFlags358 & 4u) != 0) return;
     CKSrvCamera* camera = static_cast<CKSrvCamera*>(g_pEngine->m_srvCamera);
     if (airborne == 0) {
-        if ((m_unk354 & 1u) != 0) camera->m_baTemporaryFlags &= ~1u;
+        if ((m_ui32HeroFlags354 & 1u) != 0) camera->m_baTemporaryFlags &= ~1u;
         return;
     }
-    if ((m_unk354 & 1u) != 0) return;
+    if ((m_ui32HeroFlags354 & 1u) != 0) return;
     static const CVector3 kAxisY = {0.0f, 1.0f, 0.0f};  // 0x00c50d40 (filled by a static initialiser)
     camera->EnableDirectionLock(&kAxisY);  // 0x0012bc98 CKSrvCamera_EnableDirectionLock_maybe
 }
@@ -1015,8 +1015,8 @@ namespace {
 // The camera's bit 0 of +0x46c cleared when the player's hero is in the air (+0x354 bit 0; the inlined
 // CKHkS08Hero_SetCameraDirectionLock_maybe 0x354cf0 with 0, before the bit is cleared).
 void ClearCameraLockIfOnGround(CKHkS08Hero* hero) {
-    if (hero->m_ui8Hero == hero->m_ui8TrackedLeader && (hero->m_unk35c & 0x400000u) == 0 && (hero->m_unk358 & 4u) == 0 &&
-        (hero->m_unk354 & 1u) != 0) {
+    if (hero->m_ui8Hero == hero->m_ui8TrackedLeader && (hero->m_ui32HeroFlags35C & 0x400000u) == 0 && (hero->m_ui32HeroFlags358 & 4u) == 0 &&
+        (hero->m_ui32HeroFlags354 & 1u) != 0) {
         static_cast<CKSrvCamera*>(g_pEngine->m_srvCamera)->m_baTemporaryFlags &= ~1u;
     }
 }
@@ -1102,11 +1102,11 @@ uint8_t CKHkS08Hero::ResolveGroundContactAndPosition(IKTime* clock, CVector3* ta
             target->y = target->y - lift;
         }
         if (!(target->y < m_unk574 + m_unk1f0)) {
-            float speed = m_unk534;
+            float speed = m_fCurVSpeed;
             if (speed > 0.0f) speed = 0.0f;
-            m_unk534 = speed;
-            if ((m_unk354 & 1u) == 0) return 0;
-            m_unk354 = (m_unk354 & ~0x200u) | 0x200u;
+            m_fCurVSpeed = speed;
+            if ((m_ui32HeroFlags354 & 1u) == 0) return 0;
+            m_ui32HeroFlags354 = (m_ui32HeroFlags354 & ~0x200u) | 0x200u;
             return 0;
         }
         if ((ground->m_ba16EngineFlags & 8) != 0) return 0;
@@ -1116,20 +1116,20 @@ uint8_t CKHkS08Hero::ResolveGroundContactAndPosition(IKTime* clock, CVector3* ta
         const float reach = Vf160() * m_unk278;  // vt+0x160
         target->y = !(reach < above) ? point.y : m_unk574;
         ClearCameraLockIfOnGround(this);
-        uint32_t flags = m_unk354 & 0xfffffdfeu;
-        m_unk354 = flags;
-        m_unk364 &= ~0x400u;
-        m_unk354 &= ~2u;
+        uint32_t flags = m_ui32HeroFlags354 & 0xfffffdfeu;
+        m_ui32HeroFlags354 = flags;
+        m_ui32HeroFlags364 &= ~0x400u;
+        m_ui32HeroFlags354 &= ~2u;
         m_unk590 = 0xff;
-        flags = (m_unk354 & ~6u) | 4u;
-        m_unk354 = flags;
-        if (m_ui8Hero == m_ui8TrackedLeader && (m_unk35c & 0x400000u) == 0 && (m_unk358 & 4u) == 0 && (m_unk354 & 1u) != 0) {
+        flags = (m_ui32HeroFlags354 & ~6u) | 4u;
+        m_ui32HeroFlags354 = flags;
+        if (m_ui8Hero == m_ui8TrackedLeader && (m_ui32HeroFlags35C & 0x400000u) == 0 && (m_ui32HeroFlags358 & 4u) == 0 && (m_ui32HeroFlags354 & 1u) != 0) {
             static_cast<CKSrvCamera*>(g_pEngine->m_srvCamera)->m_baTemporaryFlags &= ~1u;
-            flags = m_unk354;
+            flags = m_ui32HeroFlags354;
         }
-        m_unk354 = flags & 0xfffffdfeu;
-        m_unk364 &= ~0x400u;
-        m_unk354 &= ~2u;
+        m_ui32HeroFlags354 = flags & 0xfffffdfeu;
+        m_ui32HeroFlags364 &= ~0x400u;
+        m_ui32HeroFlags354 &= ~2u;
         m_unk590 = 0xff;
         return 0;
     }
@@ -1143,14 +1143,14 @@ uint8_t CKHkS08Hero::ResolveGroundContactAndPosition(IKTime* clock, CVector3* ta
         *target = *previous;
         return 0;
     }
-    if ((m_unk354 & 0x400u) != 0 && m_gcOldDatasInOut.m_pGround != nullptr && contact.m_pGround != m_gcOldDatasInOut.m_pGround) {
+    if ((m_ui32HeroFlags354 & 0x400u) != 0 && m_gcOldDatasInOut.m_pGround != nullptr && contact.m_pGround != m_gcOldDatasInOut.m_pGround) {
         target->z = previous->z;
         target->x = previous->x;
         return 0;
     }
     if (status == 1) {
         // A ground under the target within m_fDeltaMax: the hero is put on it.
-        if ((m_unk354 & 1u) != 0) {
+        if ((m_ui32HeroFlags354 & 1u) != 0) {
             if ((Vf150() & ground->m_ui16PropertiesFlags) != 0) {  // vt+0x150
                 if (deactivated == nullptr) return 0;
                 ground->SetActive(0);
@@ -1158,14 +1158,14 @@ uint8_t CKHkS08Hero::ResolveGroundContactAndPosition(IKTime* clock, CVector3* ta
                 return 0;
             }
             if (((ground->m_ba16EngineFlags >> 3) & 1) != 0) {
-                m_unk534 = 0.0f;
-                if ((m_unk354 & 1u) == 0) return 1;
-                m_unk354 = (m_unk354 & ~0x200u) | 0x200u;
+                m_fCurVSpeed = 0.0f;
+                if ((m_ui32HeroFlags354 & 1u) == 0) return 1;
+                m_ui32HeroFlags354 = (m_ui32HeroFlags354 & ~0x200u) | 0x200u;
                 return 1;
             }
-            if ((m_unk35c & 0x400u) == 0) {
+            if ((m_ui32HeroFlags35C & 0x400u) == 0) {
                 SetDirectionLock(0);  // 0x009bdb48
-                m_unk354 = (m_unk354 & ~6u) | 4u;
+                m_ui32HeroFlags354 = (m_ui32HeroFlags354 & ~6u) | 4u;
                 SetDirectionLock(0);
             }
         }
@@ -1176,13 +1176,13 @@ uint8_t CKHkS08Hero::ResolveGroundContactAndPosition(IKTime* clock, CVector3* ta
     }
     if (status != 0) return 1;
     // The target under a ground (status 0).
-    if ((m_unk35c & 0x400u) != 0) return 1;
-    if ((m_unk354 & 1u) != 0) return 1;
+    if ((m_ui32HeroFlags35C & 0x400u) != 0) return 1;
+    if ((m_ui32HeroFlags354 & 1u) != 0) return 1;
     if (contact.m_fdH < m_gcDatasIn.m_fDeltaMax) {
         GroundContact_GetWorldPointOr(&contact, previous, target);
         return 1;
     }
-    if (m_aui8Unk1a4[0x1a6 - 0x1a4] == 0 || (m_unk354 & 0x100u) != 0) {
+    if (m_aui8Unk1a4[0x1a6 - 0x1a4] == 0 || (m_ui32HeroFlags354 & 0x100u) != 0) {
         if (keepPrevious == 0) {
             target->z = previous->z;
             target->x = previous->x;
@@ -1203,12 +1203,12 @@ uint8_t CKHkS08Hero::ResolveGroundContactAndPosition(IKTime* clock, CVector3* ta
         CGroundEdgeDatasOut edge;
         if (collision->RaycastWalls(&line, m_unk1f0, &edge, 0, nullptr, 1)) {
             uint32_t slide = 0;
-            if (m_aui8Unk1a4[0x1b8 - 0x1a4] != 0 && static_cast<int32_t>(m_unk35c) >= 0 && (m_unk354 & 0x800000u) == 0) {
-                slide = ((m_unk354 >> 24) & 1u) ^ 1u;
+            if (m_aui8Unk1a4[0x1b8 - 0x1a4] != 0 && static_cast<int32_t>(m_ui32HeroFlags35C) >= 0 && (m_ui32HeroFlags354 & 0x800000u) == 0) {
+                slide = ((m_ui32HeroFlags354 >> 24) & 1u) ^ 1u;
             }
             uint32_t push = 0;
             if (contact.m_fdH > m_unk2ec || (ground->m_ui16PropertiesFlags & 0x94u) != 0) push = slide;
-            const bool place = (m_aui8Unk1a4[0x1b4 - 0x1a4] != 0 && (m_unk354 & 0x1000000u) == 0) || (push & 0xffu) != 0;
+            const bool place = (m_aui8Unk1a4[0x1b4 - 0x1a4] != 0 && (m_ui32HeroFlags354 & 0x1000000u) == 0) || (push & 0xffu) != 0;
             if (place) {
                 float ux = wx, uy = wy, uz = wz;
                 const float t = edge.m_ftLine;
@@ -1243,15 +1243,15 @@ uint8_t CKHkS08Hero::ResolveGroundContactAndPosition(IKTime* clock, CVector3* ta
                     m_unk6e0 = inverse * m_unk6e0;
                     m_unk6e4 = inverse * m_unk6e4;
                 }
-                if ((push & 0xffu) != 0) m_unk360 = (m_unk360 & ~2u) | 2u;
-                m_unk360 = (m_unk360 & ~0x400u) | 0x400u;
+                if ((push & 0xffu) != 0) m_ui32HeroFlags360 = (m_ui32HeroFlags360 & ~2u) | 2u;
+                m_ui32HeroFlags360 = (m_ui32HeroFlags360 & ~0x400u) | 0x400u;
                 return 0;
             }
         }
     }
     Vf178(clock, 0);  // vt+0x178 0x002f8708
-    const uint32_t keep = ((m_unk360 & 0x4000000u) != 0 || (m_unk35c & 0x10000u) != 0) ? 0x4000000u : 0u;
-    m_unk360 = (m_unk360 & ~0x4000000u) | keep;
+    const uint32_t keep = ((m_ui32HeroFlags360 & 0x4000000u) != 0 || (m_ui32HeroFlags35C & 0x10000u) != 0) ? 0x4000000u : 0u;
+    m_ui32HeroFlags360 = (m_ui32HeroFlags360 & ~0x4000000u) | keep;
     return 1;
 }
 
@@ -1260,7 +1260,7 @@ uint8_t CKHkS08Hero::ResolveGroundContactAndPosition(IKTime* clock, CVector3* ta
 // 2 down) once it reaches +0x348 degrees; 0 / 0 without +0x1a8, in the air (+0x354 bit 0) or bit 22, or standing.
 void CKHkS08Hero::UpdateSignedSlopePitchClass() {
     m_unk58c = 0;
-    if (m_aui8Unk1a4[0x1a8 - 0x1a4] == 0 || (m_unk354 & 0x400000u) != 0 || (m_unk354 & 1u) != 0 || m_unk530 == 0.0f) {
+    if (m_aui8Unk1a4[0x1a8 - 0x1a4] == 0 || (m_ui32HeroFlags354 & 0x400000u) != 0 || (m_ui32HeroFlags354 & 1u) != 0 || m_fCurHSpeed == 0.0f) {
         m_unk7a4 = 0.0f;
         return;
     }
@@ -1288,11 +1288,11 @@ void CKHkS08Hero::UpdateSignedSlopePitchClass() {
 }
 
 // 0x00362040 IKHkHero_IsLockedToObject_maybe: +0x358 bit 2.
-uint8_t CKHkS08Hero::IsLockedToObject() { return static_cast<uint8_t>((m_unk358 >> 2) & 1u); }
+uint8_t CKHkS08Hero::IsLockedToObject() { return static_cast<uint8_t>((m_ui32HeroFlags358 >> 2) & 1u); }
 
 // 0x00361b20 IKHkHero_SetInvulnerable_maybe: +0x35c bit 2.
 void CKHkS08Hero::SetInvulnerable(uint8_t invulnerable) {
-    m_unk35c = (m_unk35c & 0xfffffffbu) | (static_cast<uint32_t>(invulnerable) << 2);
+    m_ui32HeroFlags35C = (m_ui32HeroFlags35C & 0xfffffffbu) | (static_cast<uint32_t>(invulnerable) << 2);
 }
 
 // ---- pre-C2.7 gamemgr: the attachment calls of the game manager's hero death state ----
@@ -1303,8 +1303,8 @@ uint8_t CKHkS08Hero::AttachToObject(IKSerializable* object, int32_t mode) {
     LeaveAttachedObject();                         // 0x344e88
     m_unk90 = object;
     m_unk94 = static_cast<uint32_t>(mode);
-    m_unk358 = (m_unk358 & ~1u) | 1u;
-    m_unk35c &= ~0x20000u;
+    m_ui32HeroFlags358 = (m_ui32HeroFlags358 & ~1u) | 1u;
+    m_ui32HeroFlags35C &= ~0x20000u;
     OnAttachToObject();  // vt+0x120
     return 1;
 }
@@ -1367,31 +1367,31 @@ void CKHkS08Hero::PlaceAtHotspotOrPosition(const float* position, const float* d
 
 // 0x003622a8 IKHkHero_SetLockedToObject_maybe
 void CKHkS08Hero::SetLockedToObject(uint8_t locked, const float* position, const float* direction) {
-    if ((m_unk358 & 1u) == 0) return;
-    if ((m_unk358 & 4u) != 0 && locked == 0) {
+    if ((m_ui32HeroFlags358 & 1u) == 0) return;
+    if ((m_ui32HeroFlags358 & 4u) != 0 && locked == 0) {
         PlaceAtHotspotOrPosition(position, direction);  // 0x35b058
     } else if (locked != 0) {
         SetCameraDirectionLock(0);  // 0x354cf0
     }
-    m_unk358 = (m_unk358 & ~4u) | (static_cast<uint32_t>(locked) << 2);
+    m_ui32HeroFlags358 = (m_ui32HeroFlags358 & ~4u) | (static_cast<uint32_t>(locked) << 2);
 }
 
 // 0x00362010 IKHkHero_SetObjectControlsAnim_maybe
 void CKHkS08Hero::SetObjectControlsAnim(uint8_t value) {
-    if ((m_unk358 & 1u) == 0) return;
-    m_unk358 = (m_unk358 & ~2u) | (static_cast<uint32_t>(value) << 1);
+    if ((m_ui32HeroFlags358 & 1u) == 0) return;
+    m_ui32HeroFlags358 = (m_ui32HeroFlags358 & ~2u) | (static_cast<uint32_t>(value) << 1);
 }
 
 // 0x00362050 IKHkHero_SetAttachedMovementEnabled_maybe
 void CKHkS08Hero::SetAttachedMovementEnabled(uint8_t enabled) {
-    if ((m_unk358 & 1u) == 0) return;
-    if ((m_unk358 & 8u) != 0 && enabled == 0) m_unk35c &= ~0xc0u;
-    m_unk358 = (m_unk358 & ~8u) | (static_cast<uint32_t>(enabled) << 3);
+    if ((m_ui32HeroFlags358 & 1u) == 0) return;
+    if ((m_ui32HeroFlags358 & 8u) != 0 && enabled == 0) m_ui32HeroFlags35C &= ~0xc0u;
+    m_ui32HeroFlags358 = (m_ui32HeroFlags358 & ~8u) | (static_cast<uint32_t>(enabled) << 3);
 }
 
 // 0x00362150 IKHkHero_SetCollisionDisabledWhileAttached_maybe: the volume count is the hero group's vt+0x100.
 void CKHkS08Hero::SetCollisionDisabledWhileAttached(uint8_t disabled) {
-    if ((m_unk358 & 1u) == 0) return;
+    if ((m_ui32HeroFlags358 & 1u) == 0) return;
     if (disabled == 0) {
         RestoreDefaultVolumes();  // 0x352bf8 IKHkHero_CallRestoreDefaultVolumes: vt+0x130
     } else {
@@ -1399,37 +1399,37 @@ void CKHkS08Hero::SetCollisionDisabledWhileAttached(uint8_t disabled) {
         const uint8_t count = static_cast<CKGrpS08Hero*>(m_pGrpHero)->GetNbBoundingVolumes(m_ui8Hero);  // vt+0x100
         for (uint32_t i = 0; i < count; ++i) collision->DisableVolume(static_cast<IKBoundingVolume*>(m_apBoundings[i]));  // 0x1920e8
     }
-    m_unk360 = (m_unk360 & ~0x10000u) | (static_cast<uint32_t>(disabled) << 16);
+    m_ui32HeroFlags360 = (m_ui32HeroFlags360 & ~0x10000u) | (static_cast<uint32_t>(disabled) << 16);
 }
 
 // 0x00363dc8 IKHkHero_SetFlag360Bit14_IfAttached_maybe
 void CKHkS08Hero::SetFlag360Bit14IfAttached(uint8_t value) {
-    if ((m_unk358 & 1u) == 0) return;
-    m_unk360 = (m_unk360 & ~0x4000u) | (static_cast<uint32_t>(value) << 14);
+    if ((m_ui32HeroFlags358 & 1u) == 0) return;
+    m_ui32HeroFlags360 = (m_ui32HeroFlags360 & ~0x4000u) | (static_cast<uint32_t>(value) << 14);
 }
 
 // 0x00363df8 IKHkHero_SetFlag360Bit15_IfAttached_maybe
 void CKHkS08Hero::SetFlag360Bit15IfAttached(uint8_t value) {
-    if ((m_unk358 & 1u) == 0) return;
-    m_unk360 = (m_unk360 & ~0x8000u) | (static_cast<uint32_t>(value) << 15);
+    if ((m_ui32HeroFlags358 & 1u) == 0) return;
+    m_ui32HeroFlags360 = (m_ui32HeroFlags360 & ~0x8000u) | (static_cast<uint32_t>(value) << 15);
 }
 
 // 0x00363f98 IKHkHero_SetFlag360Bit8_IfAttached_maybe
 void CKHkS08Hero::SetFlag360Bit8IfAttached(uint8_t value) {
-    if ((m_unk358 & 1u) == 0) return;
-    m_unk360 = (m_unk360 & ~0x100u) | (static_cast<uint32_t>(value) << 8);
+    if ((m_ui32HeroFlags358 & 1u) == 0) return;
+    m_ui32HeroFlags360 = (m_ui32HeroFlags360 & ~0x100u) | (static_cast<uint32_t>(value) << 8);
 }
 
 // 0x00363ee8 IKHkHero_SetFlag35CBit3_IfAttached_maybe
 void CKHkS08Hero::SetFlag35CBit3IfAttached(uint8_t value) {
-    if ((m_unk358 & 1u) == 0) return;
-    m_unk35c = (m_unk35c & ~8u) | (static_cast<uint32_t>(value) << 3);
+    if ((m_ui32HeroFlags358 & 1u) == 0) return;
+    m_ui32HeroFlags35C = (m_ui32HeroFlags35C & ~8u) | (static_cast<uint32_t>(value) << 3);
 }
 
 // 0x00363fc8 IKHkHero_SetFlag35CBit21_IfAttached_maybe
 void CKHkS08Hero::SetFlag35CBit21IfAttached(uint8_t value) {
-    if ((m_unk358 & 1u) == 0) return;
-    m_unk35c = (m_unk35c & ~0x200000u) | (static_cast<uint32_t>(value) << 21);
+    if ((m_ui32HeroFlags358 & 1u) == 0) return;
+    m_ui32HeroFlags35C = (m_ui32HeroFlags35C & ~0x200000u) | (static_cast<uint32_t>(value) << 21);
 }
 
 // 0x00364020 CKHkS08Hero_WillAnimEndWithin_maybe (C2.8 sequence): the active controller of the animation slot (vt+0x194)
@@ -1443,8 +1443,8 @@ uint8_t CKHkS08Hero::WillAnimEndWithin(float dt) {
 
 // 0x00363410 IKHkHero_AdvanceObjectAnimTime_maybe
 void CKHkS08Hero::AdvanceObjectAnimTime(float dt) {
-    if ((m_unk358 & 2u) == 0) return;
-    m_unk360 = (m_unk360 & ~0x800u) | 0x800u;
+    if ((m_ui32HeroFlags358 & 2u) == 0) return;
+    m_ui32HeroFlags360 = (m_ui32HeroFlags360 & ~0x800u) | 0x800u;
     AnimBlendSlot* slot = GetAnimBlendSlot();  // vt+0x194
     CKAnmKeyFrameController* controller = static_cast<CKAnmKeyFrameController*>(
         static_cast<CKBlenderController*>(slot->m_pController)->m_apControllers[slot->m_unk10]);
@@ -1453,14 +1453,14 @@ void CKHkS08Hero::AdvanceObjectAnimTime(float dt) {
 
 // 0x003626a0 IKHkHero_SetFloat530_IfAttachedMovementEnabled_maybe: +0x530 while +0x358 bit 3 is set.
 void CKHkS08Hero::SetUnk530IfAttachedMovement(float value) {
-    if ((m_unk358 & 8u) == 0) return;
-    m_unk530 = value;
+    if ((m_ui32HeroFlags358 & 8u) == 0) return;
+    m_fCurHSpeed = value;
 }
 
 // 0x00362688 IKHkHero_SetFloat534_IfAttachedMovementEnabled_maybe: +0x534 while +0x358 bit 3 is set.
 void CKHkS08Hero::SetUnk534IfAttachedMovement(float value) {
-    if ((m_unk358 & 8u) == 0) return;
-    m_unk534 = value;
+    if ((m_ui32HeroFlags358 & 8u) == 0) return;
+    m_fCurVSpeed = value;
 }
 
 // 0x00364608 CKHkS08Hero_DetachFromObject_maybe: an attached hero (+0x358 bit 0) leaves its object: the object's animation
@@ -1469,33 +1469,33 @@ void CKHkS08Hero::SetUnk534IfAttachedMovement(float value) {
 // cleared, the default volumes back (vt+0x130 through IKHkHero_CallRestoreDefaultVolumes 0x352bf8, +0x360 bit 16),
 // +0x794 = +0x218, vt+0x124 (OnDetachFromObject), +0x90 / +0x94 cleared and bit 0 last.
 void CKHkS08Hero::DetachFromObject() {
-    if ((m_unk358 & 1u) == 0) return;
-    m_unk358 &= 0xfffffffdu;
-    if ((m_unk358 & 1u) != 0) {
-        if ((m_unk358 & 4u) != 0) PlaceAtHotspotOrPosition(nullptr, nullptr);  // 0x0035b058
-        m_unk358 &= 0xfffffffbu;
+    if ((m_ui32HeroFlags358 & 1u) == 0) return;
+    m_ui32HeroFlags358 &= 0xfffffffdu;
+    if ((m_ui32HeroFlags358 & 1u) != 0) {
+        if ((m_ui32HeroFlags358 & 4u) != 0) PlaceAtHotspotOrPosition(nullptr, nullptr);  // 0x0035b058
+        m_ui32HeroFlags358 &= 0xfffffffbu;
     }
-    if ((m_unk358 & 1u) != 0) {
-        if ((m_unk358 & 8u) != 0) m_unk35c &= 0xffffff3fu;
-        m_unk358 &= 0xfffffff7u;
+    if ((m_ui32HeroFlags358 & 1u) != 0) {
+        if ((m_ui32HeroFlags358 & 8u) != 0) m_ui32HeroFlags35C &= 0xffffff3fu;
+        m_ui32HeroFlags358 &= 0xfffffff7u;
     }
-    if ((m_unk358 & 1u) != 0) m_unk364 &= 0xfbffffffu;
-    m_unk35c &= 0xffdffff4u;
-    m_unk358 &= 0xdfbfffffu;
-    m_unk35c &= 0xffff7fffu;
-    m_unk360 &= 0xffef3e7fu;
-    m_unk35c &= 0xefffffffu;
-    m_unk364 &= 0xffffefffu;
-    if ((m_unk358 & 1u) != 0) {
+    if ((m_ui32HeroFlags358 & 1u) != 0) m_ui32HeroFlags364 &= 0xfbffffffu;
+    m_ui32HeroFlags35C &= 0xffdffff4u;
+    m_ui32HeroFlags358 &= 0xdfbfffffu;
+    m_ui32HeroFlags35C &= 0xffff7fffu;
+    m_ui32HeroFlags360 &= 0xffef3e7fu;
+    m_ui32HeroFlags35C &= 0xefffffffu;
+    m_ui32HeroFlags364 &= 0xffffefffu;
+    if ((m_ui32HeroFlags358 & 1u) != 0) {
         RestoreDefaultVolumes();  // 0x00352bf8 -> vt+0x130
-        m_unk360 &= 0xfffeffffu;
+        m_ui32HeroFlags360 &= 0xfffeffffu;
     }
-    m_unk35c &= 0xffffffbfu;
+    m_ui32HeroFlags35C &= 0xffffffbfu;
     m_unk794 = m_unk218;
     OnDetachFromObject();  // vt+0x124
     m_unk94 = 0;
     m_unk90 = nullptr;
-    m_unk358 &= 0xfffffffeu;
+    m_ui32HeroFlags358 &= 0xfffffffeu;
 }
 
 namespace {
@@ -1525,7 +1525,7 @@ int8_t CKHkS08Hero::FindNextEnabledJump(int8_t index) {
 void CKHkS08Hero::StartJumpOrFall(IKTime* clock, uint8_t flag) {
     if ((m_unk368 & 0x800u) != 0) return;
     if (m_aui8Unk1a4[0x1a6 - 0x1a4] == 0) return;
-    const uint32_t flags354 = m_unk354;
+    const uint32_t flags354 = m_ui32HeroFlags354;
     const bool airborne = (flags354 & 1u) != 0;
     // The position and the drawn bit that every stage start stores.
     auto storeStart = [this]() {
@@ -1540,16 +1540,16 @@ void CKHkS08Hero::StartJumpOrFall(IKTime* clock, uint8_t flag) {
         const int8_t stage = FindNextEnabledJump(static_cast<int8_t>(m_unk590));
         if (stage == -1) return;
         storeStart();
-        const uint32_t flags358 = m_unk358;
+        const uint32_t flags358 = m_ui32HeroFlags358;
         m_unk790 = clock->m_afCurrentTime[0];
-        if ((flags358 & 0x400u) == 0) m_unk534 = 0.0f;
+        if ((flags358 & 0x400u) == 0) m_fCurVSpeed = 0.0f;
         m_unk590 = static_cast<uint8_t>(stage);
         SetCameraDirectionLock(1);  // the inlined 0x00354cf0 (airborne is still clear: the camera is told)
-        m_unk354 = (m_unk354 | 1u) & ~4u;
+        m_ui32HeroFlags354 = (m_ui32HeroFlags354 | 1u) & ~4u;
         return;
     }
     if (airborne || flag != 0) {
-        if ((flags354 & 0x800u) != 0 || (m_unk35c & 2u) != 0 || (flags354 & 0x200u) != 0) return;
+        if ((flags354 & 0x800u) != 0 || (m_ui32HeroFlags35C & 2u) != 0 || (flags354 & 0x200u) != 0) return;
         if (m_ui8Hero == m_ui8TrackedLeader && !airborne) {
             // A jump from the ground: the ground must still be the one under the hero (not a moving ground: those are
             // trusted), probed from the position raised by +0x208 with the object height 0.1.
@@ -1576,12 +1576,12 @@ void CKHkS08Hero::StartJumpOrFall(IKTime* clock, uint8_t flag) {
             stage = FindNextEnabledJump(static_cast<int8_t>(m_unk590));
         }
         if (stage == -1) return;
-        if ((m_unk354 & 1u) == 0) storeStart();
-        m_unk534 = m_asJumps[stage].m_fImpulse;
+        if ((m_ui32HeroFlags354 & 1u) == 0) storeStart();
+        m_fCurVSpeed = m_asJumps[stage].m_fImpulse;
         m_unk590 = static_cast<uint8_t>(stage);
         if ((m_unk368 & 0x100u) == 0) m_unk790 = -1000.0f;  // TOC1 +0x2c58
         SetCameraDirectionLock(1);
-        m_unk354 = ((m_unk354 | 1u) & ~6u) | 2u;
+        m_ui32HeroFlags354 = ((m_ui32HeroFlags354 | 1u) & ~6u) | 2u;
         return;
     }
 }
@@ -1591,7 +1591,7 @@ float CKHkS08Hero::GetFloat218() const { return m_unk218; }
 
 // 0x00361968 CKHkS08Hero_GetPositionPtr
 const float* CKHkS08Hero::GetPositionPtr() const {
-    if ((m_bitArray & 2u) == 0 || ((m_unked4 >> 4) & 1u) != 0) return &m_unk54c;
+    if ((m_bitArray & 2u) == 0 || ((m_ui32StatusFlagsED4 >> 4) & 1u) != 0) return &m_unk54c;
     return &FrameLtm(static_cast<const CSGMovable*>(m_pKGLObject)->m_pRwFrame)->pos.x;  // RwFrame +0x80
 }
 
@@ -1625,7 +1625,7 @@ void CKHkS08Hero::GetAnimMarkWindow(float* from, float* to) {
 // 0x00364470 IKHkHero_SetMoveDestination_maybe
 void CKHkS08Hero::SetMoveDestinationBase(float timeout, const CVector3* position, const CVector3* direction,
                                          uint32_t flag4, uint32_t flag31) {
-    if ((m_unk358 & 8u) == 0 || (m_unk358 & 4u) != 0) return;
+    if ((m_ui32HeroFlags358 & 8u) == 0 || (m_ui32HeroFlags358 & 4u) != 0) return;
     m_unk398 = position->x;
     m_unk39c = position->y;
     m_unk3a0 = position->z;
@@ -1640,12 +1640,12 @@ void CKHkS08Hero::SetMoveDestinationBase(float timeout, const CVector3* position
         m_unk3a4 = inverse * m_unk3a4;
         m_unk3a8 = inverse * m_unk3a8;
     }
-    m_unk358 = (m_unk358 & 0xffffffefu) | ((flag4 & 0xffu) << 4);
-    m_unk360 = (m_unk360 & 0x7fffffffu) | ((flag31 & 1u) << 31);
+    m_ui32HeroFlags358 = (m_ui32HeroFlags358 & 0xffffffefu) | ((flag4 & 0xffu) << 4);
+    m_ui32HeroFlags360 = (m_ui32HeroFlags360 & 0x7fffffffu) | ((flag31 & 1u) << 31);
     m_unk484 = -1000.0f;  // TOC +0x2d30
     m_unk480 = timeout;
-    m_unk358 = (m_unk358 & 0xdfffffffu) | 0x20000000u;
-    m_unk35c &= 0xffff7fffu;
+    m_ui32HeroFlags358 = (m_ui32HeroFlags358 & 0xdfffffffu) | 0x20000000u;
+    m_ui32HeroFlags35C &= 0xffff7fffu;
 }
 
 // 0x00363900 IKHkHero_UpdateMoveTo_maybe: the walk to the destination (AIMoveToTarget, the lost check without a timeout),
@@ -1653,20 +1653,20 @@ void CKHkS08Hero::SetMoveDestinationBase(float timeout, const CVector3* position
 // the hero there when the path finding has a route, `out` = blocked (no route with +0x3b0 bit 9, else +0x3b0 bit 0 when
 // standing still).
 uint8_t CKHkS08Hero::UpdateMoveToBase(IKTime* clock, uint8_t* out) {
-    if ((m_unk358 & 8u) == 0 || (m_unk358 & 4u) != 0) return 0;
+    if ((m_ui32HeroFlags358 & 8u) == 0 || (m_ui32HeroFlags358 & 4u) != 0) return 0;
     CVector3* target = reinterpret_cast<CVector3*>(&m_unk398);
     const CVector3* facing = reinterpret_cast<const CVector3*>(&m_unk3a4);
     const uint8_t lostCheck = m_unk480 == 0.0f ? 1 : 0;
-    const uint8_t moved = AIMoveToTarget(clock, target, facing, static_cast<uint8_t>((m_unk358 >> 4) & 1u),
-                                         static_cast<uint8_t>(m_unk360 >> 31), lostCheck);  // 0x0036dd08
+    const uint8_t moved = AIMoveToTarget(clock, target, facing, static_cast<uint8_t>((m_ui32HeroFlags358 >> 4) & 1u),
+                                         static_cast<uint8_t>(m_ui32HeroFlags360 >> 31), lostCheck);  // 0x0036dd08
     uint8_t arrived = 0;   // r24
     uint8_t result = 0;    // r27
     uint32_t bit6 = 0;
-    if (moved != 0 && (m_unk3b0 & 2u) != 0 && (m_unk354 & 1u) == 0) {
+    if (moved != 0 && (m_unk3b0 & 2u) != 0 && (m_ui32HeroFlags354 & 1u) == 0) {
         arrived = 1;
         result = 1;
         bit6 = 0x40;
-        if ((m_unk358 & 0x80000u) != 0) {
+        if ((m_ui32HeroFlags358 & 0x80000u) != 0) {
             const float length = static_cast<float>(c22spyro::MathSqrtf(
                 ppc::fmadds(m_unk470, m_unk470, ppc::fmadds(m_unk468, m_unk468, m_unk46c * m_unk46c))));
             arrived = length < 0.1f ? 1 : 0;  // TOC +0x2d34
@@ -1674,7 +1674,7 @@ uint8_t CKHkS08Hero::UpdateMoveToBase(IKTime* clock, uint8_t* out) {
             bit6 = static_cast<uint32_t>(result) << 6;
         }
     }
-    m_unk35c = (m_unk35c & 0xffffffbfu) | bit6;
+    m_ui32HeroFlags35C = (m_ui32HeroFlags35C & 0xffffffbfu) | bit6;
     CKSrvPathFinding* pathFinding = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);
     if (m_unk480 != 0.0f) {
         float start = m_unk484;
@@ -1694,7 +1694,7 @@ uint8_t CKHkS08Hero::UpdateMoveToBase(IKTime* clock, uint8_t* out) {
                                                                 &m_PFCharacter, nullptr) ^ 1u);  // 0x001e9198
         return result;
     }
-    if (arrived == 0 && m_unk530 == 0.0f && m_unk534 == 0.0f) {
+    if (arrived == 0 && m_fCurHSpeed == 0.0f && m_fCurVSpeed == 0.0f) {
         *out = static_cast<uint8_t>(m_unk3b0 & 1u);
     } else {
         *out = 0;
@@ -1712,8 +1712,8 @@ float CKHkS08Hero::GetCurrentAnimDuration() {
 
 // 0x00363378 IKHkHero_SetObjectAnimTime_maybe
 void CKHkS08Hero::SetObjectAnimTime(float time) {
-    if ((m_unk358 & 2u) == 0) return;
-    m_unk360 = (m_unk360 & 0xfffff7ffu) | 0x800u;
+    if ((m_ui32HeroFlags358 & 2u) == 0) return;
+    m_ui32HeroFlags360 = (m_ui32HeroFlags360 & 0xfffff7ffu) | 0x800u;
     AnimBlendSlot* slot = GetAnimBlendSlot();  // vt+0x194
     static_cast<CKAnmKeyFrameController*>(
         static_cast<CKBlenderController*>(slot->m_pController)->m_apControllers[slot->m_unk10])
@@ -1727,14 +1727,14 @@ uint8_t CKHkS08Hero::IsAnimBlendCrossfading() { return GetAnimBlendSlot()->m_unk
 const float* CKHkS08Hero::GetPlayerMoveVectorPtr() {
     static const float kNull[3] = {0.0f, 0.0f, 0.0f};  // 0x00c50d64 (TOC +0x2d20)
     if (m_ui8Hero != m_ui8TrackedLeader) return kNull;
-    if ((m_unk358 & 8u) != 0) ReadHeroPlayerInput();  // 0x00369670
+    if ((m_ui32HeroFlags358 & 8u) != 0) ReadHeroPlayerInput();  // 0x00369670
     return &m_unk37c;
 }
 
 // 0x00362dd0 CKHkS08Hero_GetPlayerInputByte394
 uint8_t CKHkS08Hero::GetPlayerInputByte394() {
     if (m_ui8Hero != m_ui8TrackedLeader) return 0;
-    if ((m_unk358 & 8u) != 0) ReadHeroPlayerInput();  // 0x00369670
+    if ((m_ui32HeroFlags358 & 8u) != 0) ReadHeroPlayerInput();  // 0x00369670
     return m_unk394;
 }
 
@@ -1747,43 +1747,43 @@ void* IKHkHero::GetPFDestination() { return &m_PFCpnt.m_Destination; }
 // 0x00361a60 IKHkHero_GetVec3Ptr3B8_maybe
 float* IKHkHero::GetUnk3B8Ptr() { return &m_unk3b8; }
 // 0x00361a90 IKHkHero_GetFlag354Bit0_Word_maybe
-uint32_t IKHkHero::GetFlag354Bit0() const { return m_unk354 & 1u; }
+uint32_t IKHkHero::GetFlag354Bit0() const { return m_ui32HeroFlags354 & 1u; }
 // 0x00361ab0 IKHkHero_GetFlag35CBit8_maybe
-uint32_t IKHkHero::GetFlag35CBit8() const { return (m_unk35c >> 8) & 1u; }
+uint32_t IKHkHero::GetFlag35CBit8() const { return (m_ui32HeroFlags35C >> 8) & 1u; }
 // 0x00361b10 IKHkHero_IsInvulnerable_maybe
-uint32_t IKHkHero::IsInvulnerable() const { return (m_unk35c >> 2) & 1u; }
+uint32_t IKHkHero::IsInvulnerable() const { return (m_ui32HeroFlags35C >> 2) & 1u; }
 // 0x00361b50 IKHkHero_GetFlag358Bit8_maybe
-uint32_t IKHkHero::GetFlag358Bit8() const { return (m_unk358 >> 8) & 1u; }
+uint32_t IKHkHero::GetFlag358Bit8() const { return (m_ui32HeroFlags358 >> 8) & 1u; }
 // 0x00361b60 IKHkHero_GetFloat26C_maybe
 float IKHkHero::GetUnk26C() const { return m_unk26c; }
 // 0x00361c00 CKHkS08Hero_GetFloat510_maybe
 float IKHkHero::GetUnk510() const { return m_unk510; }
 // 0x00361c10 IKHkHero_GetFloat530_maybe
-float IKHkHero::GetUnk530() const { return m_unk530; }
+float IKHkHero::GetUnk530() const { return m_fCurHSpeed; }
 // 0x00361ca0 IKHkHero_GetVec3Ptr4A8_maybe
 CGroundContactDatasIn* IKHkHero::GetGroundContactIn() { return &m_gcDatasIn; }
 
 // 0x00361cc0 IKHkHero_SetFlag354Bit9_maybe: setting it needs +0x354 bit 0; clearing always.
 void IKHkHero::SetFlag354Bit9(uint8_t on) {
-    if (on != 0 && (m_unk354 & 1u) == 0) return;
-    m_unk354 = (m_unk354 & 0xfffffdffu) | (static_cast<uint32_t>(on) << 9);
+    if (on != 0 && (m_ui32HeroFlags354 & 1u) == 0) return;
+    m_ui32HeroFlags354 = (m_ui32HeroFlags354 & 0xfffffdffu) | (static_cast<uint32_t>(on) << 9);
 }
 
 // 0x00361d98 IKHkHero_SetFlag364Bit5_maybe
-void IKHkHero::SetFlag364Bit5() { m_unk364 = (m_unk364 & 0xffffffdfu) | 0x20u; }
+void IKHkHero::SetFlag364Bit5() { m_ui32HeroFlags364 = (m_ui32HeroFlags364 & 0xffffffdfu) | 0x20u; }
 // 0x00362000 IKHkHero_IsObjectControllingAnim_maybe
-uint32_t IKHkHero::IsObjectControllingAnim() const { return (m_unk358 >> 1) & 1u; }
+uint32_t IKHkHero::IsObjectControllingAnim() const { return (m_ui32HeroFlags358 >> 1) & 1u; }
 
 // 0x00362878 IKHkHero_GetFlag35CBit0_IfAttached_maybe
 uint32_t IKHkHero::GetFlag35CBit0IfAttached() const {
-    if ((m_unk358 & 1u) == 0) return 0;
-    return m_unk35c & 1u;
+    if ((m_ui32HeroFlags358 & 1u) == 0) return 0;
+    return m_ui32HeroFlags35C & 1u;
 }
 
 // 0x003628e0 IKHkHero_ClearFlag358Bit21_IfAttached_maybe
 void IKHkHero::ClearFlag358Bit21IfAttached() {
-    if ((m_unk358 & 1u) == 0) return;
-    m_unk358 &= 0xffdfffffu;
+    if ((m_ui32HeroFlags358 & 1u) == 0) return;
+    m_ui32HeroFlags358 &= 0xffdfffffu;
 }
 
 // 0x00362fd0 IKHkHero_SetPendingSourceAndVec3_Flag35CBit4_maybe
@@ -1799,12 +1799,12 @@ void IKHkHero::SetPendingSource(IKSerializable* source, const float* point) {
         m_unke0 = 0.0f;
         m_unkdc = 0.0f;
     }
-    m_unk35c = (m_unk35c & 0xffffffefu) | 0x10u;
+    m_ui32HeroFlags35C = (m_ui32HeroFlags35C & 0xffffffefu) | 0x10u;
 }
 
 // 0x00363770 IKHkHero_GetLedgeGroundContact_maybe
 IKSerializable* IKHkHero::GetLedgeGroundContact() const {
-    if ((m_unk35c & 0x400000u) == 0) return nullptr;
+    if ((m_ui32HeroFlags35C & 0x400000u) == 0) return nullptr;
     return m_gcOldDatasInOut2_maybe.m_pGround;  // +0x81c
 }
 
@@ -1815,20 +1815,20 @@ const float* IKHkHero::GetTargetingPositionPtr() {
 }
 
 // 0x00363ca0 IKHkHero_GetFlag360Bit12_maybe
-uint32_t IKHkHero::GetFlag360Bit12() const { return (m_unk360 >> 12) & 1u; }
+uint32_t IKHkHero::GetFlag360Bit12() const { return (m_ui32HeroFlags360 >> 12) & 1u; }
 
 // 0x003626f8 CKHkS08Hero_GetPlayerInputFloat38C (TOC +0x2d1c 0.0 for another hero)
 float CKHkS08Hero::GetPlayerInputFloat38C() {
     if (m_ui8Hero != m_ui8TrackedLeader) return 0.0f;
-    if ((m_unk358 & 8u) != 0) ReadHeroPlayerInput();  // 0x00369670
+    if ((m_ui32HeroFlags358 & 8u) != 0) ReadHeroPlayerInput();  // 0x00369670
     return m_unk38c;
 }
 
 // 0x00362c98 CKHkS08Hero_GetPlayerInputFlag358b21
 uint32_t CKHkS08Hero::GetPlayerInputFlag358b21() {
     if (m_ui8Hero != m_ui8TrackedLeader) return 0;
-    if ((m_unk358 & 8u) != 0) ReadHeroPlayerInput();
-    return (m_unk358 >> 21) & 1u;
+    if ((m_ui32HeroFlags358 & 8u) != 0) ReadHeroPlayerInput();
+    return (m_ui32HeroFlags358 >> 21) & 1u;
 }
 
 // 0x00361ee0 IKHkHero_GetCurrentAnim_maybe: the dictionary word of the active controller's evaluated animation (+0x5c).

@@ -99,13 +99,13 @@ namespace {
 // A pool list's bonuses (their +0x20 links) told vt+0xd8, then the list chained in front of the free list.
 IKSerializable* ReleaseList(IKSerializable* head, IKSerializable* freeList) {
     if (head == nullptr) return freeList;
-    for (IKSerializable* it = head; it != nullptr; it = static_cast<IKHkBonus*>(it)->m_pUnk20) {
+    for (IKSerializable* it = head; it != nullptr; it = static_cast<IKHkBonus*>(it)->m_pNextBonus) {
         static_cast<IKHkBonus*>(it)->DisableAndReleaseFx();  // vt+0xd8 0x005b7890
     }
     if (freeList == nullptr) return head;
     IKSerializable* last = head;
-    while (static_cast<IKHkBonus*>(last)->m_pUnk20 != nullptr) last = static_cast<IKHkBonus*>(last)->m_pUnk20;
-    static_cast<IKHkBonus*>(last)->m_pUnk20 = freeList;
+    while (static_cast<IKHkBonus*>(last)->m_pNextBonus != nullptr) last = static_cast<IKHkBonus*>(last)->m_pNextBonus;
+    static_cast<IKHkBonus*>(last)->m_pNextBonus = freeList;
     return head;
 }
 }  // namespace
@@ -135,8 +135,8 @@ void CKGrpBonusPool::ResetPool() {
     uint32_t index = 0;
     while (hook != nullptr) {
         IKHkBonus* bonus = static_cast<IKHkBonus*>(hook);
-        bonus->m_unk24 = index;
-        bonus->m_pUnk20 = bonus->m_pNextHook;
+        bonus->m_ui32PoolIndex = index;
+        bonus->m_pNextBonus = bonus->m_pNextHook;
         hook = bonus->m_pNextHook;
         ++index;
     }
@@ -160,23 +160,23 @@ void MoveMatching(IKSerializable** from, IKSerializable** to, Pred pred) {
     IKSerializable* prev = nullptr;
     IKSerializable* cur = *from;
     while (cur != nullptr) {
-        IKSerializable* next = Bonus(cur)->m_pUnk20;
+        IKSerializable* next = Bonus(cur)->m_pNextBonus;
         if (!pred(Bonus(cur))) {
             prev = cur;
             cur = next;
             continue;
         }
         if (prev == nullptr) {
-            Bonus(cur)->m_pUnk20 = nullptr;  // the head: its link cleared (r28 = 0), the list starts at the next one
+            Bonus(cur)->m_pNextBonus = nullptr;  // the head: its link cleared (r28 = 0), the list starts at the next one
             *from = next;
         } else {
-            IKSerializable* taken = Bonus(prev)->m_pUnk20;
+            IKSerializable* taken = Bonus(prev)->m_pNextBonus;
             if (taken != nullptr) {
-                Bonus(prev)->m_pUnk20 = Bonus(taken)->m_pUnk20;
-                Bonus(taken)->m_pUnk20 = nullptr;
+                Bonus(prev)->m_pNextBonus = Bonus(taken)->m_pNextBonus;
+                Bonus(taken)->m_pNextBonus = nullptr;
             }
         }
-        Bonus(cur)->m_pUnk20 = *to;
+        Bonus(cur)->m_pNextBonus = *to;
         *to = cur;
         cur = next;
     }
@@ -220,7 +220,7 @@ void CKGrpBonusPool::UpdateBonuses(IKTime* frameClock) {
     // The used bonuses: updated, then a free one is collected by the nearest hero that may take it and is in reach.
     if (m_pFirstUsed != nullptr) {
         for (IKSerializable* it = m_pFirstUsed; it != nullptr;) {
-            IKSerializable* next = Bonus(it)->m_pUnk20;
+            IKSerializable* next = Bonus(it)->m_pNextBonus;
             Bonus(it)->Update(frameClock);  // vt+0x7c
             if (Bonus(it)->IsCollected() == 0) {
                 float best = 3.40282347e+38f;  // 0x00c4ace0
@@ -253,11 +253,11 @@ void CKGrpBonusPool::UpdateBonuses(IKTime* frameClock) {
     if (m_pFirstBeaconed != nullptr) {
         IKSerializable* last = m_pFirstBeaconed;
         Bonus(last)->DisableAndReleaseFx();
-        for (IKSerializable* it = Bonus(last)->m_pUnk20; it != nullptr; it = Bonus(it)->m_pUnk20) {
+        for (IKSerializable* it = Bonus(last)->m_pNextBonus; it != nullptr; it = Bonus(it)->m_pNextBonus) {
             Bonus(it)->DisableAndReleaseFx();
             last = it;
         }
-        Bonus(last)->m_pUnk20 = m_pFirstFree;
+        Bonus(last)->m_pNextBonus = m_pFirstFree;
         m_pFirstFree = m_pFirstBeaconed;
         m_pFirstBeaconed = nullptr;
     }
@@ -301,9 +301,9 @@ void CKGrpBonusPool::UpdateBonuses(IKTime* frameClock) {
                 if (!(d < m_fFarDistance * m_fFarDistance)) return;  // bge
             }
             ++spawned;
-            m_pFirstFree = Bonus(bonus)->m_pUnk20;
-            Bonus(bonus)->m_pUnk20 = nullptr;
-            Bonus(bonus)->m_pUnk20 = m_pFirstBeaconed;
+            m_pFirstFree = Bonus(bonus)->m_pNextBonus;
+            Bonus(bonus)->m_pNextBonus = nullptr;
+            Bonus(bonus)->m_pNextBonus = m_pFirstBeaconed;
             m_pFirstBeaconed = bonus;
             Bonus(bonus)->SpawnAtBeacon(heroAccessor);  // vt+0xd0
             Bonus(bonus)->Update(frameClock);           // vt+0x7c
@@ -325,9 +325,9 @@ void CKGrpBonusPool::UpdateBonuses(IKTime* frameClock) {
 IKSerializable* CKGrpBonusPool::SpawnBonus(const CVector3* position, uint8_t playSound) {
     IKSerializable* bonus = m_pFirstFree;
     if (bonus == nullptr) return nullptr;
-    m_pFirstFree = Bonus(bonus)->m_pUnk20;
-    Bonus(bonus)->m_pUnk20 = nullptr;
-    Bonus(bonus)->m_pUnk20 = m_pFirstUsed;
+    m_pFirstFree = Bonus(bonus)->m_pNextBonus;
+    Bonus(bonus)->m_pNextBonus = nullptr;
+    Bonus(bonus)->m_pNextBonus = m_pFirstUsed;
     m_pFirstUsed = bonus;
     Bonus(bonus)->SpawnAt(static_cast<IKBonusCpnt*>(m_pBonusCpnt)->m_fSpawnedLifeExpectancy, position);  // vt+0xc4
     if (playSound != 0) {
@@ -345,7 +345,7 @@ IKSerializable* CKGrpBonusPool::SpawnBonus(const CVector3* position, uint8_t pla
 IKSerializable* CKGrpBonusPool::AcquireBonusFx(IKSerializable* node) {
     if (node == nullptr) return nullptr;
     CKParticlesEffectFxData* data = static_cast<CKParticlesEffectFxData*>(m_pStaticParticles);
-    data->m_unk08 = static_cast<uint8_t>((data->m_unk08 & 0xe0u) | (data->m_unk08 & 0x0fu) | 0x10u);
+    data->m_ui8Flags = static_cast<uint8_t>((data->m_ui8Flags & 0xe0u) | (data->m_ui8Flags & 0x0fu) | 0x10u);
     data->m_pAttachOwner = static_cast<CSGLeaf*>(node);
     data->m_pAttachHotSpot = nullptr;
     return static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(data, this);  // inlined

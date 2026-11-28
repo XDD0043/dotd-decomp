@@ -49,34 +49,34 @@ public:
 
     float m_unk178[10];          // +0x178 the spark's shaping (live: floats): +0x178..+0x184 scales, +0x188..+0x194 the
                                  // two ranges, +0x198 the speed, +0x19c the cone's full angle (degrees)
-    IKSerializable* m_unk1a0;    // +0x1a0 reference (live: CKSparkFxData)
-    IKSerializable* m_unk1a4;    // +0x1a4 (not loaded) the spark effect (a CKSparkNodeFx)
-    IKSerializable* m_unk1a8[3]; // +0x1a8 references: the particle effect data of each level (CKParticlesEffectFxData)
-    IKSerializable* m_unk1b4;    // +0x1b4 (not loaded) the particle effect (a CKParticlesEffectNodeFx)
-    IKSerializable* m_unk1b8[3]; // +0x1b8 references (live: CKPointLightFxData) of each level
-    IKSerializable* m_unk1c4;    // +0x1c4 (not loaded) the point light effect
-    float m_unk1c8[3];           // +0x1c8 the point light's reach of each level (+0x1d0 is the last one)
-    IKSerializable* m_unk1d4;    // +0x1d4 reference (live: CKAnimatedFxCollection) of level 1 (+0x1d0 + 4 x level)
-    IKSerializable* m_unk1d8;    // +0x1d8 reference (live: CKAnimatedFxCollection) of level 2
-    IKSerializable* m_unk1dc;    // +0x1dc (not loaded) the playing collection
-    IKSerializable* m_unk1e0;    // +0x1e0 reference (live: CKSoundDictionaryID)
-    IKSerializable* m_unk1e4;    // +0x1e4 reference (live: CKAimCamembert)
-    CKSound* m_unk1e8;           // +0x1e8 (not loaded) the loop sound
-    float m_unk1ec;              // +0x1ec (not loaded) the flame's roll (radians)
+    IKSerializable* m_pSparkFxData;    // +0x1a0 reference (live: CKSparkFxData)
+    IKSerializable* m_pSparkNodeFx;    // +0x1a4 (not loaded) the spark effect (a CKSparkNodeFx)
+    IKSerializable* m_apParticlesFxData[3]; // +0x1a8 references: the particle effect data of each level (CKParticlesEffectFxData)
+    IKSerializable* m_pParticlesNodeFx;    // +0x1b4 (not loaded) the particle effect (a CKParticlesEffectNodeFx)
+    IKSerializable* m_apPointLightFxData[3]; // +0x1b8 references (live: CKPointLightFxData) of each level
+    IKSerializable* m_pPointLightNodeFx;    // +0x1c4 (not loaded) the point light effect
+    float m_afPointLightReach[3];           // +0x1c8 the point light's reach of each level (+0x1d0 is the last one)
+    IKSerializable* m_pAnimFxLevel1;    // +0x1d4 reference (live: CKAnimatedFxCollection) of level 1 (+0x1d0 + 4 x level)
+    IKSerializable* m_pAnimFxLevel2;    // +0x1d8 reference (live: CKAnimatedFxCollection) of level 2
+    IKSerializable* m_pActiveAnimFx;    // +0x1dc (not loaded) the playing collection
+    IKSerializable* m_pSoundDico;    // +0x1e0 reference (live: CKSoundDictionaryID)
+    IKSerializable* m_pAimCamembert;    // +0x1e4 reference (live: CKAimCamembert)
+    CKSound* m_pLoopSound;           // +0x1e8 (not loaded) the loop sound
+    float m_fFlameRollRad;              // +0x1ec (not loaded) the flame's roll (radians)
 };
 DOTD_ASSERT_SIZE(CKFireBreath, 0x1f0);
 DOTD_ASSERT_OFFSET(CKFireBreath, m_unk178, 0x178);
-DOTD_ASSERT_OFFSET(CKFireBreath, m_unk1a0, 0x1a0);
-DOTD_ASSERT_OFFSET(CKFireBreath, m_unk1a4, 0x1a4);
-DOTD_ASSERT_OFFSET(CKFireBreath, m_unk1a8, 0x1a8);
-DOTD_ASSERT_OFFSET(CKFireBreath, m_unk1b4, 0x1b4);
-DOTD_ASSERT_OFFSET(CKFireBreath, m_unk1b8, 0x1b8);
-DOTD_ASSERT_OFFSET(CKFireBreath, m_unk1c4, 0x1c4);
-DOTD_ASSERT_OFFSET(CKFireBreath, m_unk1c8, 0x1c8);
-DOTD_ASSERT_OFFSET(CKFireBreath, m_unk1d4, 0x1d4);
-DOTD_ASSERT_OFFSET(CKFireBreath, m_unk1d8, 0x1d8);
-DOTD_ASSERT_OFFSET(CKFireBreath, m_unk1dc, 0x1dc);
-DOTD_ASSERT_OFFSET(CKFireBreath, m_unk1e0, 0x1e0);
-DOTD_ASSERT_OFFSET(CKFireBreath, m_unk1e4, 0x1e4);
-DOTD_ASSERT_OFFSET(CKFireBreath, m_unk1e8, 0x1e8);
-DOTD_ASSERT_OFFSET(CKFireBreath, m_unk1ec, 0x1ec);
+DOTD_ASSERT_OFFSET(CKFireBreath, m_pSparkFxData, 0x1a0);
+DOTD_ASSERT_OFFSET(CKFireBreath, m_pSparkNodeFx, 0x1a4);
+DOTD_ASSERT_OFFSET(CKFireBreath, m_apParticlesFxData, 0x1a8);
+DOTD_ASSERT_OFFSET(CKFireBreath, m_pParticlesNodeFx, 0x1b4);
+DOTD_ASSERT_OFFSET(CKFireBreath, m_apPointLightFxData, 0x1b8);
+DOTD_ASSERT_OFFSET(CKFireBreath, m_pPointLightNodeFx, 0x1c4);
+DOTD_ASSERT_OFFSET(CKFireBreath, m_afPointLightReach, 0x1c8);
+DOTD_ASSERT_OFFSET(CKFireBreath, m_pAnimFxLevel1, 0x1d4);
+DOTD_ASSERT_OFFSET(CKFireBreath, m_pAnimFxLevel2, 0x1d8);
+DOTD_ASSERT_OFFSET(CKFireBreath, m_pActiveAnimFx, 0x1dc);
+DOTD_ASSERT_OFFSET(CKFireBreath, m_pSoundDico, 0x1e0);
+DOTD_ASSERT_OFFSET(CKFireBreath, m_pAimCamembert, 0x1e4);
+DOTD_ASSERT_OFFSET(CKFireBreath, m_pLoopSound, 0x1e8);
+DOTD_ASSERT_OFFSET(CKFireBreath, m_fFlameRollRad, 0x1ec);

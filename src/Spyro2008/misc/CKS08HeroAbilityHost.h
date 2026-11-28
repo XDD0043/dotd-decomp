@@ -36,12 +36,12 @@ public:
     uint8_t GetCollisionGroup() override { return 3; }   // vt+0xb0 0x003ee4c8
     uint16_t GetCollisionMask() override { return 0x2a; }  // vt+0xb4 0x003ee4d0
 
-    // vt+0x30 0x003f0fa0 IsAirborne_maybe: not on a ground contact (flying: +0x13d1, else +0x1511) and +0xec4 bit 18
-    // clear.
-    uint8_t IsAirborne() override;
-    // vt+0x3c 0x003eee50 SelectByMovementContext: `flying` while flying (movement mode 1), else `air` when airborne,
-    // else `ground`.
-    uint8_t SelectByMovementContext(uint8_t air, uint8_t ground, uint8_t flying) override;
+    // vt+0x30 0x003f0fa0 IsOnGround_maybe: on a ground contact: 0 while +0x13d1 (flying) / +0x1511 (else, "left the
+    // ground") is set, else +0xec4 bit 18 clear.
+    uint8_t IsOnGround() override;
+    // vt+0x3c 0x003eee50 SelectByMovementContext: `flying` while flying (movement mode 1), else `ground` on the ground
+    // (vt+0x30), else `air`.
+    uint8_t SelectByMovementContext(uint8_t ground, uint8_t air, uint8_t flying) override;
     // vt+0x40 0x003ee270 Slot40Switch_maybe: the hero state test `index`: 0 +0xec4 bit 21, 1 bit 12, 2 bit 11, 3 +0x354
     // bit 11 or else +0x35c bit 1, 4 +0xec4 bit 9, 5 the byte +0x1d11, 6 +0xec8 bit 28, 7 +0x354 bit 6, 8 +0xecc bit 31,
     // 9 +0xec4 bit 13, 10 the ability is 15 (vt+0x50), 11 +0xecc bit 27; 0 past 11.
@@ -83,20 +83,20 @@ public:
     // `fromHotSpot`, else its node's position), else the hook's (+0x12c), else the "no point" vector.
     struct CVector3 GetTargetAimPoint(int32_t fromHotSpot, uint8_t clampHeight) override;
     // vt+0x44 0x003f18f8 SetHeroActionPermission: action `index` (0..12) allowed or not by the movement context
-    // (`air` airborne, `flying` in movement mode 1, `ground` on the ground): the hero's state bits; a flying hero that is
-    // airborne is put on the ground first (movement mode 0).
-    void SetHeroActionPermission(uint32_t index, uint8_t air, uint8_t flying, uint8_t ground) override;
+    // (`ground` on the ground, `flying` in movement mode 1, `air` in the air): the hero's state bits; a flying hero
+    // on a ground contact is put in movement mode 0 first.
+    void SetHeroActionPermission(uint32_t index, uint8_t ground, uint8_t flying, uint8_t air) override;
     // vt+0x48 0x003efcb0: +0x12c4, negative when the velocity points backwards.
     float GetHeroSpeedForAbility() override;
-    void SetAbilityMoveSpeed(float air, float flying, float ground) override;  // vt+0x50 0x003eed48: +0x1d14 by context
+    void SetAbilityMoveSpeed(float ground, float flying, float air) override;  // vt+0x50 0x003eed48: +0x1d14 by context
     void SetAbilityMoveSpeedEnabled(uint8_t on) override;  // vt+0x54 0x003ee3e0: +0x1d10
     // vt+0x64 0x003eeaf8 SetAbilityTurnParams_maybe: the turn pair (+0x1d04 / +0x1d08) of the context whose gate is
     // set, +0x1d0c the first and +0x1dfc set; else +0x1d0c from +0xaf8 and +0x1dfc cleared.
-    void SetAbilityTurnParams(float airA, float airB, float flyA, float flyB, float groundA, float groundB, uint8_t gateAir,
-                              uint8_t gateFly, uint8_t gateGround) override;
+    void SetAbilityTurnParams(float groundA, float groundB, float flyA, float flyB, float airA, float airB, uint8_t gateGround,
+                              uint8_t gateFly, uint8_t gateAir) override;
     // vt+0x68 0x003efef8 SetAbilityParam11f8_maybe: +0x11f8 of the gated context and +0xec8 bit 26, else bit 26 cleared.
-    void SetAbilityParam11f8(float air, float flying, float ground, uint8_t gateAir, uint8_t gateFly,
-                             uint8_t gateGround) override;
+    void SetAbilityParam11f8(float ground, float flying, float air, uint8_t gateGround, uint8_t gateFly,
+                             uint8_t gateAir) override;
     // vt+0x4c 0x003ef5a0 CKS08HeroAbilityHost_maybe_GetHeroVelocity_maybe: the hero's +0x127c vector.
     CVector3 GetOwnerVelocity() override;
     // vt+0x78 0x003ee460 CKS08HeroAbilityHost_maybe_SetHeroEd4Bit0_maybe: +0xed4 bit 0 = `on`, +0x1b2c = `value`.

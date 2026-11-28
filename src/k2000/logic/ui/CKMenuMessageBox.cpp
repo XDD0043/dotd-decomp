@@ -75,9 +75,9 @@ void CKMenuMessageBox::Open() {
             button->m_baSuppress = static_cast<uint8_t>((button->m_baSuppress & 0xfe) | CKInterfaceButton::kSuppressText);
         }
     }
-    m_unk6c[1] = 0;
+    m_aui8FocusedItem[1] = 0;
     m_bBlockAnswer = 1;
-    m_unk6c[0] = 0;
+    m_aui8FocusedItem[0] = 0;
 }
 
 // 0x0052c9c0 CKMenuMessageBox_Close: the menus' Close (KBase730C_Close 0x513f88), nothing else.

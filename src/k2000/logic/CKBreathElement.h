@@ -88,153 +88,153 @@ public:
     };
 
     // The per-level arrays ([3], indexed by the level index +0x04).
-    uint32_t m_unk04;        // +0x04 (not loaded) runtime: the level index (0..2, host vt+0xf4) at Start
-    int32_t m_unk08[3];      // +0x08 the damage amount (file: 500/1000/3000)
-    float m_unk14[3];        // +0x14 the knock-back distance (the damage's +0x10 = this / 0.2)
-    float m_unk20[3];        // +0x20 the cooldown after an End (file and live: 0)
-    float m_unk2c[3];        // +0x2c the cooldown after a forced End
-    int32_t m_unk38[3];      // +0x38 the mana per second (file: 200/300/500)
-    float m_unk44[3];        // +0x44 the cone's angle in degrees (the spheres grow by tan(half of it))
+    uint32_t m_dwLevelIndex;        // +0x04 (not loaded) runtime: the level index (0..2, host vt+0xf4) at Start
+    int32_t m_ai32Damage[3];      // +0x08 the damage amount (file: 500/1000/3000)
+    float m_afKnockbackDist[3];        // +0x14 the knock-back distance (the damage's +0x10 = this / 0.2)
+    float m_afCooldown[3];        // +0x20 the cooldown after an End (file and live: 0)
+    float m_afCooldownForced[3];        // +0x2c the cooldown after a forced End
+    int32_t m_ai32ManaPerSecond[3];      // +0x38 the mana per second (file: 200/300/500)
+    float m_afConeAngleDeg[3];        // +0x44 the cone's angle in degrees (the spheres grow by tan(half of it))
     float m_unk50[3];        // +0x50 the spheres' base radius
-    float m_unk5c[3];        // +0x5c the damage's stun duration (vt+0x60)
-    float m_unk68[3];        // +0x68 the damage's stun (vt+0x5c)
-    float m_unk74[3];        // +0x74 the damage's element value 0
-    float m_unk80[3];        // +0x80 element value 1 (file and live: 0)
-    float m_unk8c[3];        // +0x8c element value 2
-    float m_unk98[3];        // +0x98 element value 4
-    float m_unkA4[3];        // +0xa4 element value 6
-    float m_unkB0[3];        // +0xb0 element value 5
-    float m_unkBc[3];        // +0xbc element value 7
-    float m_unkC8[3];        // +0xc8 element value 3
-    uint8_t m_unkD4[3];      // +0xd4 the damage's +0x34 (vt+0x6c)
-    uint8_t m_unkD7[3];      // +0xd7 the damage's +0x35 (vt+0x70)
+    float m_afDisarmAmount[3];        // +0x5c the damage's disarm amount (vt+0x60: damage +0x2c, added to the enemy's disarm gauge +0x278)
+    float m_afStunAmount[3];        // +0x68 the damage's stun (vt+0x5c)
+    float m_afElementEffect0[3];        // +0x74 the damage's element value 0
+    float m_afElementEffect1[3];        // +0x80 element value 1 (file and live: 0)
+    float m_afElementEffect2[3];        // +0x8c element value 2
+    float m_afElementEffect4[3];        // +0x98 element value 4
+    float m_afElementEffect6[3];        // +0xa4 element value 6
+    float m_afElementEffect5[3];        // +0xb0 element value 5
+    float m_afElementEffect7[3];        // +0xbc element value 7
+    float m_afElementEffect3[3];        // +0xc8 element value 3
+    uint8_t m_abDamageFlag34[3];      // +0xd4 the damage's +0x34 (vt+0x6c)
+    uint8_t m_abDamageFlag35[3];      // +0xd7 the damage's +0x35 (vt+0x70)
     // The hero control of the three movement contexts (airborne +0xda.., flying +0xe8.., ground +0x108..).
-    uint8_t m_unkDa;         // +0xda airborne: permission 1
-    uint8_t m_unkDb;         // +0xdb airborne: permission 0
-    uint8_t m_unkDc;         // +0xdc airborne: the turn gate
+    uint8_t m_bGroundPerm1;         // +0xda on the ground: permission 1
+    uint8_t m_bGroundPerm0;         // +0xdb on the ground: permission 0
+    uint8_t m_bGroundTurnEnable;         // +0xdc on the ground: the turn gate
     uint8_t m_padDd[3];      // +0xdd (not loaded)
-    float m_unkE0;           // +0xe0 airborne: turn A (CKFireBreath: the spark's turn rate)
-    float m_unkE4;           // +0xe4 airborne: turn B
-    uint8_t m_unkE8;         // +0xe8 flying: permission 1
-    uint8_t m_unkE9;         // +0xe9 flying: permission 0
-    uint8_t m_unkEa;         // +0xea flying: the turn gate
+    float m_fGroundTurnA;           // +0xe0 on the ground: turn A (CKFireBreath: the spark's turn rate)
+    float m_fGroundTurnB;           // +0xe4 on the ground: turn B
+    uint8_t m_bFlyPerm1;         // +0xe8 flying: permission 1
+    uint8_t m_bFlyPerm0;         // +0xe9 flying: permission 0
+    uint8_t m_bFlyTurnEnable;         // +0xea flying: the turn gate
     uint8_t m_padEb;         // +0xeb
-    float m_unkEc;           // +0xec flying: turn A
-    float m_unkF0;           // +0xf0 flying: turn B
-    float m_unkF4;           // +0xf4 airborne: the move speed
-    float m_unkF8;           // +0xf8 flying: the move speed
-    uint8_t m_unkFc;         // +0xfc airborne: the 11f8 gate
-    uint8_t m_unkFd;         // +0xfd flying: the 11f8 gate
+    float m_fFlyTurnA;           // +0xec flying: turn A
+    float m_fFlyTurnB;           // +0xf0 flying: turn B
+    float m_fGroundMoveSpeed;           // +0xf4 on the ground: the move speed
+    float m_fFlyMoveSpeed;           // +0xf8 flying: the move speed
+    uint8_t m_bGroundParam11f8Enable;         // +0xfc on the ground: the 11f8 gate
+    uint8_t m_bFlyParam11f8Enable;         // +0xfd flying: the 11f8 gate
     uint8_t m_padFe[2];      // +0xfe (not loaded)
-    float m_unk100;          // +0x100 airborne: the 11f8 value
-    float m_unk104;          // +0x104 flying: the 11f8 value
-    uint8_t m_unk108;        // +0x108 ground: permission 1
-    uint8_t m_unk109;        // +0x109 ground: permission 0
-    uint8_t m_unk10a;        // +0x10a ground: the turn gate
+    float m_fGroundParam11f8;          // +0x100 on the ground: the 11f8 value
+    float m_fFlyParam11f8;          // +0x104 flying: the 11f8 value
+    uint8_t m_bAirPerm1;        // +0x108 in the air: permission 1
+    uint8_t m_bAirPerm0;        // +0x109 in the air: permission 0
+    uint8_t m_bAirTurnEnable;        // +0x10a in the air: the turn gate
     uint8_t m_pad10b;        // +0x10b
-    float m_unk10c;          // +0x10c ground: turn A
-    float m_unk110;          // +0x110 ground: turn B
-    float m_unk114;          // +0x114 ground: the move speed
-    uint8_t m_unk118;        // +0x118 ground: the 11f8 gate
+    float m_fAirTurnA;          // +0x10c in the air: turn A
+    float m_fAirTurnB;          // +0x110 in the air: turn B
+    float m_fAirMoveSpeed;          // +0x114 in the air: the move speed
+    uint8_t m_bAirParam11f8Enable;        // +0x118 in the air: the 11f8 gate
     uint8_t m_pad119[3];     // +0x119 (not loaded)
-    float m_unk11c;          // +0x11c ground: the 11f8 value
-    IKSerializable* m_unk120;  // +0x120 reference (live: CKExplosionFxData): the fizzle
+    float m_fAirParam11f8;          // +0x11c in the air: the 11f8 value
+    IKSerializable* m_pFizzleExplosionFxData;  // +0x120 reference (live: CKExplosionFxData): the fizzle
     Segment* m_pSegments;    // +0x124 the damage spheres in flight (a K array: block, capacity, count); constructor 0
     uint32_t m_ui32SegmentCapacity;  // +0x128 constructor: 1
     uint32_t m_ui32SegmentCount;     // +0x12c constructor: 0
-    float m_unk130;          // +0x130 a sphere's life time
-    float m_unk134;          // +0x134 the distance the newest sphere covers before the next leaves
-    float m_unk138;          // +0x138 the spheres' speed (added to the hero's)
-    float m_unk13c;          // +0x13c the ground scorch's period
-    float m_unk140;          // +0x140 its random spread
-    float m_unk144;          // +0x144 the scorch's height above the ground (file and live: 0)
-    float m_unk148;          // +0x148 its random spread (file and live: 0)
-    uint8_t m_unk14c;        // +0x14c the spheres scorch the ground (fire elements only)
+    float m_fSphereLifetime;          // +0x130 a sphere's life time
+    float m_fSphereSpacing;          // +0x134 the distance the newest sphere covers before the next leaves
+    float m_fSphereSpeed;          // +0x138 the spheres' speed (added to the hero's)
+    float m_fGroundScorchPeriod;          // +0x13c the ground scorch's period
+    float m_fGroundScorchPeriodSpread;          // +0x140 its random spread
+    float m_fGroundScorchHeight;          // +0x144 the scorch's height above the ground (file and live: 0)
+    float m_fGroundScorchHeightSpread;          // +0x148 its random spread (file and live: 0)
+    uint8_t m_bScorchesGround;        // +0x14c the spheres scorch the ground (fire elements only)
     uint8_t m_pad14d[3];     // +0x14d
     // Runtime (not loaded).
     CKS08AbilityHostBase* m_pHost;  // +0x150 the host while running
     uint8_t m_bRunning;      // +0x154
-    uint8_t m_unk155;        // +0x155 breathing (the loop, phase 1 / 2)
-    uint8_t m_unk156;        // +0x156 in the start animation (phase 0)
-    uint8_t m_unk157;        // +0x157 in the end animation (phase 4)
-    float m_unk158;          // +0x158 the mana spent but not taken yet (a fraction)
-    uint8_t m_unk15c;        // +0x15c the hot spot index (host vt+0xcc / +0xd0; ResetRuntime 0xff)
-    uint8_t m_unk15d;        // +0x15d the button (host vt+0x8c / +0x94; ResetRuntime 1)
-    uint8_t m_unk15e;        // +0x15e in the alternative loop (phase 2)
-    uint8_t m_unk15f;        // +0x15f the hero control's grounded state (host vt+0x30 negated)
+    uint8_t m_bBreathing;        // +0x155 breathing (the loop, phase 1 / 2)
+    uint8_t m_bInStartAnim;        // +0x156 in the start animation (phase 0)
+    uint8_t m_bInEndAnim;        // +0x157 in the end animation (phase 4)
+    float m_fManaRemainder;          // +0x158 the mana spent but not taken yet (a fraction)
+    uint8_t m_ui8HotspotIndex;        // +0x15c the hot spot index (host vt+0xcc / +0xd0; ResetRuntime 0xff)
+    uint8_t m_ui8ButtonIndex;        // +0x15d the button (host vt+0x8c / +0x94; ResetRuntime 1)
+    uint8_t m_bAltLoopAnim;        // +0x15e in the alternative loop (phase 2)
+    uint8_t m_bInAir;        // +0x15f in the air (host vt+0x30, IsOnGround, negated)
     float m_fStartTime;      // +0x160 the game clock at Start (ResetRuntime: -1)
-    float m_unk164;          // +0x164 the time left before the next ground scorch
-    uint32_t m_unk168;       // +0x168 the spheres that scorched (index) since the timer ran out
-    float m_unk16c;          // +0x16c the breathing time
-    IKSerializable* m_unk170;  // +0x170 reference (live: CKS08ElementDamage)
-    uint8_t m_unk174;        // +0x174 End's argument after the fizzle (a byte; the other three are never written)
+    float m_fGroundScorchTimer;          // +0x164 the time left before the next ground scorch
+    uint32_t m_dwScorchSegmentIndex;       // +0x168 the spheres that scorched (index) since the timer ran out
+    float m_fBreathElapsedTime;          // +0x16c the breathing time
+    IKSerializable* m_pElementDamage;  // +0x170 reference (live: CKS08ElementDamage)
+    uint8_t m_bForcedEnd;        // +0x174 End's argument after the fizzle (a byte; the other three are never written)
     uint8_t m_pad175[3];
 };
 DOTD_ASSERT_SIZE(CKBreathElement::Segment, 0x18);
 DOTD_ASSERT_SIZE(CKBreathElement, 0x178);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk08, 0x08);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk14, 0x14);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk20, 0x20);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk2c, 0x2c);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk38, 0x38);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk44, 0x44);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_ai32Damage, 0x08);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_afKnockbackDist, 0x14);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_afCooldown, 0x20);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_afCooldownForced, 0x2c);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_ai32ManaPerSecond, 0x38);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_afConeAngleDeg, 0x44);
 DOTD_ASSERT_OFFSET(CKBreathElement, m_unk50, 0x50);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk5c, 0x5c);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk68, 0x68);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk74, 0x74);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk80, 0x80);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk8c, 0x8c);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk98, 0x98);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unkA4, 0xa4);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unkB0, 0xb0);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unkBc, 0xbc);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unkC8, 0xc8);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unkD4, 0xd4);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unkD7, 0xd7);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unkDa, 0xda);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unkDb, 0xdb);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unkDc, 0xdc);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unkE0, 0xe0);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unkE4, 0xe4);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unkE8, 0xe8);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unkE9, 0xe9);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unkEa, 0xea);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unkEc, 0xec);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unkF0, 0xf0);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unkF4, 0xf4);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unkF8, 0xf8);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unkFc, 0xfc);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unkFd, 0xfd);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk100, 0x100);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk104, 0x104);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk108, 0x108);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk109, 0x109);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk10a, 0x10a);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk10c, 0x10c);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk110, 0x110);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk114, 0x114);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk118, 0x118);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk11c, 0x11c);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk120, 0x120);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_afDisarmAmount, 0x5c);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_afStunAmount, 0x68);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_afElementEffect0, 0x74);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_afElementEffect1, 0x80);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_afElementEffect2, 0x8c);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_afElementEffect4, 0x98);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_afElementEffect6, 0xa4);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_afElementEffect5, 0xb0);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_afElementEffect7, 0xbc);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_afElementEffect3, 0xc8);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_abDamageFlag34, 0xd4);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_abDamageFlag35, 0xd7);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_bGroundPerm1, 0xda);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_bGroundPerm0, 0xdb);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_bGroundTurnEnable, 0xdc);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fGroundTurnA, 0xe0);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fGroundTurnB, 0xe4);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_bFlyPerm1, 0xe8);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_bFlyPerm0, 0xe9);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_bFlyTurnEnable, 0xea);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fFlyTurnA, 0xec);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fFlyTurnB, 0xf0);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fGroundMoveSpeed, 0xf4);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fFlyMoveSpeed, 0xf8);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_bGroundParam11f8Enable, 0xfc);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_bFlyParam11f8Enable, 0xfd);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fGroundParam11f8, 0x100);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fFlyParam11f8, 0x104);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_bAirPerm1, 0x108);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_bAirPerm0, 0x109);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_bAirTurnEnable, 0x10a);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fAirTurnA, 0x10c);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fAirTurnB, 0x110);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fAirMoveSpeed, 0x114);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_bAirParam11f8Enable, 0x118);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fAirParam11f8, 0x11c);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_pFizzleExplosionFxData, 0x120);
 DOTD_ASSERT_OFFSET(CKBreathElement, m_pSegments, 0x124);
 DOTD_ASSERT_OFFSET(CKBreathElement, m_ui32SegmentCapacity, 0x128);
 DOTD_ASSERT_OFFSET(CKBreathElement, m_ui32SegmentCount, 0x12c);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk130, 0x130);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk134, 0x134);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk138, 0x138);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk13c, 0x13c);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk140, 0x140);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk144, 0x144);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk148, 0x148);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk14c, 0x14c);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fSphereLifetime, 0x130);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fSphereSpacing, 0x134);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fSphereSpeed, 0x138);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fGroundScorchPeriod, 0x13c);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fGroundScorchPeriodSpread, 0x140);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fGroundScorchHeight, 0x144);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fGroundScorchHeightSpread, 0x148);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_bScorchesGround, 0x14c);
 DOTD_ASSERT_OFFSET(CKBreathElement, m_pHost, 0x150);
 DOTD_ASSERT_OFFSET(CKBreathElement, m_bRunning, 0x154);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk158, 0x158);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk15c, 0x15c);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk15f, 0x15f);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fManaRemainder, 0x158);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_ui8HotspotIndex, 0x15c);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_bInAir, 0x15f);
 DOTD_ASSERT_OFFSET(CKBreathElement, m_fStartTime, 0x160);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk164, 0x164);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk168, 0x168);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk16c, 0x16c);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk170, 0x170);
-DOTD_ASSERT_OFFSET(CKBreathElement, m_unk174, 0x174);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fGroundScorchTimer, 0x164);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_dwScorchSegmentIndex, 0x168);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_fBreathElapsedTime, 0x16c);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_pElementDamage, 0x170);
+DOTD_ASSERT_OFFSET(CKBreathElement, m_bForcedEnd, 0x174);

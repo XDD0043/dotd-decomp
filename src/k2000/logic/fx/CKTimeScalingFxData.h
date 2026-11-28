@@ -44,7 +44,7 @@ public:
 
     uint8_t m_unk08;     // +0x08
     uint8_t m_pad09[3];
-    float m_unk0c;       // +0x0c
+    float m_fDuration;       // +0x0c
     uint32_t m_unk10;    // +0x10
     Key* m_pKeys;        // +0x14 Mem_AllocAligned16(count * 8)
     uint8_t m_nbKeys;    // +0x18
@@ -53,7 +53,7 @@ public:
 DOTD_ASSERT_SIZE(CKTimeScalingFxData::Key, 0x8);
 DOTD_ASSERT_SIZE(CKTimeScalingFxData, 0x1c);
 DOTD_ASSERT_OFFSET(CKTimeScalingFxData, m_unk08, 0x08);
-DOTD_ASSERT_OFFSET(CKTimeScalingFxData, m_unk0c, 0x0c);
+DOTD_ASSERT_OFFSET(CKTimeScalingFxData, m_fDuration, 0x0c);
 DOTD_ASSERT_OFFSET(CKTimeScalingFxData, m_unk10, 0x10);
 DOTD_ASSERT_OFFSET(CKTimeScalingFxData, m_pKeys, 0x14);
 DOTD_ASSERT_OFFSET(CKTimeScalingFxData, m_nbKeys, 0x18);

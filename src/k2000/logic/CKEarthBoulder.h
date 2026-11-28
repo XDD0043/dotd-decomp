@@ -75,139 +75,139 @@ public:
     // The fades' alpha on the boulder and, while shown, the extra node (UpdateEffect inlines the walks).
     void SetBouldersAlpha(uint8_t alpha);
 
-    float m_unk154[3];                  // +0x154 the attack sphere's radius (and the roll's), per level
-    float m_unk160[3];                  // +0x160 the boulder's height above the hot spot, per level
-    float m_unk16c[3];                  // +0x16c the host's vt+0x78 value (the hero's +0x1b2c), per level
-    float m_unk178[3];                  // +0x178 the speed above which the attack sphere is on, per level
-    int32_t m_unk184;                   // +0x184 the boulder's alpha while rolling (lwz: unsigned)
-    uint32_t m_unk188;                  // +0x188 the boulder's alpha at the start (its low byte: Start)
-    uint32_t m_unk18c;                  // +0x18c the boulder's alpha at the end of the fade-out
-    float m_unk190;                     // +0x190 the fade-in time
-    float m_unk194;                     // +0x194 the fade-out time (0: hidden at once)
-    float m_unk198;                     // +0x198 how long a landing holds actions 0, 1 and 3
-    float m_unk19c;                     // +0x19c the falling speed of a landing
-    float m_unk1a0[3];                  // +0x1a0 the full charge time, per level
-    float m_unk1ac[3];                  // +0x1ac the launch impulse's strength, no charge
-    float m_unk1b8[3];                  // +0x1b8 the launch impulse's strength, full charge
-    float m_unk1c4[3];                  // +0x1c4 the launch impulse's duration, no charge
-    float m_unk1d0[3];                  // +0x1d0 the launch impulse's duration, full charge
-    float m_unk1dc[3];                  // +0x1dc the roll speed while charging, no charge
-    float m_unk1e8[3];                  // +0x1e8 the roll speed while charging, full charge
-    IKSerializable* m_unk1f4;           // +0x1f4 (reference; CKSparkFxData) the start spark
-    IKSerializable* m_unk1f8;           // +0x1f8 runtime: its effect (a CKSparkNodeFx)
-    IKSerializable* m_unk1fc;           // +0x1fc (reference; CKSparkFxData) the charge spark
-    IKSerializable* m_unk200;           // +0x200 runtime: its effect
-    IKSerializable* m_unk204;           // +0x204 (reference; Ghidra: CKExplosionFxData *) the start explosion
-    IKSerializable* m_unk208[3];        // +0x208 (references; Ghidra: CKExplosionFxData *) the landing, per level
-    IKSerializable* m_unk214;           // +0x214 (reference; Ghidra: CKExplosionFxData *) the stop explosion
-    IKSerializable* m_unk218;           // +0x218 (reference; Ghidra: CKExplosionFxData *) the full charge
-    IKSerializable* m_unk21c;           // +0x21c (reference; Ghidra: CKExplosionFxData *) the launch (levels 0, 1)
-    IKSerializable* m_unk220;           // +0x220 (reference; Ghidra: CKExplosionFxData *) the launch (level 2)
-    IKSerializable* m_unk224;           // +0x224 (reference; Ghidra: CKS08ElementDamage *) the landing's damage
-    IKSerializable* m_unk228[3];        // +0x228 (references; Ghidra: CNode *) the boulder, per level
-    IKSerializable* m_unk234;           // +0x234 (reference; Ghidra: CNode *) the level 2 extra node (scaled by speed)
-    float m_unk238;                     // +0x238 the extra node's scale at speed 0
-    float m_unk23c;                     // +0x23c its scale at speed +0x240 (and its maximum)
-    float m_unk240;                     // +0x240
-    IKSerializable* m_unk244;           // +0x244 (reference; CKAnimatedFxCollection) level 1
-    IKSerializable* m_unk248;           // +0x248 (reference; CKAnimatedFxCollection) level 2
-    IKSerializable* m_unk24c;           // +0x24c runtime: the collection that plays
-    IKSerializable* m_unk250;           // +0x250 (reference; CKParticlesEffectFxData) the start particles
-    IKSerializable* m_unk254;           // +0x254 runtime: their effect
-    IKSerializable* m_unk258;           // +0x258 (reference; CKParticlesEffectFxData) the stop particles
-    IKSerializable* m_unk25c;           // +0x25c (reference; CKParticlesEffectFxData) the full charge particles
-    IKSerializable* m_unk260;           // +0x260 runtime: their effect
-    IKSerializable* m_unk264[3];        // +0x264 (references; Ghidra: CKPointLightFxData *) per level
-    IKSerializable* m_unk270;           // +0x270 runtime: the light's effect
-    IKSerializable* m_unk274;           // +0x274 (reference; Ghidra: CKSoundDictionaryID *)
-    float m_unk278;                     // +0x278 the charge sound's pitch at full charge
-    float m_unk27c;                     // +0x27c the charge time's scale of the charge sound's pitch
-    float m_unk280;                     // +0x280 the roll sound's volume at speed 0
-    float m_unk284;                     // +0x284 the roll sound's pitch at full speed
-    float m_unk288;                     // +0x288 the speed ratio of the roll sound's full volume
-    IKSerializable* m_unk28c;           // +0x28c (reference; Ghidra: CKMeshPopFxData *) the airborne ground pop
-    IKSerializable* m_unk290;           // +0x290 (reference; Ghidra: CKMeshPopFxData *) the charge ground pop
-    IKSerializable* m_unk294;           // +0x294 (reference; Ghidra: CKMeshPopFxData *) the landing pop
+    float m_afBoulderRadius[3];                  // +0x154 the attack sphere's radius (and the roll's), per level
+    float m_afBoulderHeightOffset[3];                  // +0x160 the boulder's height above the hot spot, per level
+    float m_afExtraHeroMass[3];                  // _maybe: +0x16c the host's vt+0x78 value (the hero's +0x1b2c), per level
+    float m_afMinDamageSpeed[3];                  // +0x178 the speed above which the attack sphere is on, per level
+    int32_t m_i32RollAlpha;                   // +0x184 the boulder's alpha while rolling (lwz: unsigned)
+    uint32_t m_ui32StartAlpha;                  // +0x188 the boulder's alpha at the start (its low byte: Start)
+    uint32_t m_ui32EndAlpha;                  // +0x18c the boulder's alpha at the end of the fade-out
+    float m_fFadeInTime;                     // +0x190 the fade-in time
+    float m_fFadeOutTime;                     // +0x194 the fade-out time (0: hidden at once)
+    float m_fLandingActionHoldTime;                     // +0x198 how long a landing holds actions 0, 1 and 3
+    float m_fLandingMinFallSpeed;                     // +0x19c the falling speed of a landing
+    float m_afFullChargeTime[3];                  // +0x1a0 the full charge time, per level
+    float m_afLaunchStrengthMin[3];                  // +0x1ac the launch impulse's strength, no charge
+    float m_afLaunchStrengthMax[3];                  // +0x1b8 the launch impulse's strength, full charge
+    float m_afLaunchDurationMin[3];                  // +0x1c4 the launch impulse's duration, no charge
+    float m_afLaunchDurationMax[3];                  // +0x1d0 the launch impulse's duration, full charge
+    float m_afChargeRollSpeedMin[3];                  // +0x1dc the roll speed while charging, no charge
+    float m_afChargeRollSpeedMax[3];                  // +0x1e8 the roll speed while charging, full charge
+    IKSerializable* m_pStartSparkFxData;           // +0x1f4 (reference; CKSparkFxData) the start spark
+    IKSerializable* m_pActiveStartSparks;           // +0x1f8 runtime: its effect (a CKSparkNodeFx)
+    IKSerializable* m_pChargeSparkFxData;           // +0x1fc (reference; CKSparkFxData) the charge spark
+    IKSerializable* m_pActiveChargeSparks;           // +0x200 runtime: its effect
+    IKSerializable* m_pStartExplosion;           // +0x204 (reference; Ghidra: CKExplosionFxData *) the start explosion
+    IKSerializable* m_apLandingExplosions[3];        // +0x208 (references; Ghidra: CKExplosionFxData *) the landing, per level
+    IKSerializable* m_pStopExplosion;           // +0x214 (reference; Ghidra: CKExplosionFxData *) the stop explosion
+    IKSerializable* m_pFullChargeExplosion;           // +0x218 (reference; Ghidra: CKExplosionFxData *) the full charge
+    IKSerializable* m_pLaunchExplosion;           // +0x21c (reference; Ghidra: CKExplosionFxData *) the launch (levels 0, 1)
+    IKSerializable* m_pLaunchExplosionLevel2;           // +0x220 (reference; Ghidra: CKExplosionFxData *) the launch (level 2)
+    IKSerializable* m_pLandingDamage;           // +0x224 (reference; Ghidra: CKS08ElementDamage *) the landing's damage
+    IKSerializable* m_apBoulderMeshes[3];        // +0x228 (references; Ghidra: CNode *) the boulder, per level
+    IKSerializable* m_pLevel2ExtraNode;           // +0x234 (reference; Ghidra: CNode *) the level 2 extra node (scaled by speed)
+    float m_fExtraNodeScaleMin;                     // +0x238 the extra node's scale at speed 0
+    float m_fExtraNodeScaleMax;                     // +0x23c its scale at speed +0x240 (and its maximum)
+    float m_fExtraNodeMaxScaleSpeed;                     // +0x240
+    IKSerializable* m_pAnimFxLevel1;           // +0x244 (reference; CKAnimatedFxCollection) level 1
+    IKSerializable* m_pAnimFxLevel2;           // +0x248 (reference; CKAnimatedFxCollection) level 2
+    IKSerializable* m_pActiveAnimFx;           // +0x24c runtime: the collection that plays
+    IKSerializable* m_pStartParticlesData;           // +0x250 (reference; CKParticlesEffectFxData) the start particles
+    IKSerializable* m_pActiveStartParticles;           // +0x254 runtime: their effect
+    IKSerializable* m_pStopParticlesData;           // +0x258 (reference; CKParticlesEffectFxData) the stop particles
+    IKSerializable* m_pFullChargeParticlesData;           // +0x25c (reference; CKParticlesEffectFxData) the full charge particles
+    IKSerializable* m_pActiveFullChargeParticles;           // +0x260 runtime: their effect
+    IKSerializable* m_apPointLightFxData[3];        // +0x264 (references; Ghidra: CKPointLightFxData *) per level
+    IKSerializable* m_pActivePointLight;           // +0x270 runtime: the light's effect
+    IKSerializable* m_pSoundDico;           // +0x274 (reference; Ghidra: CKSoundDictionaryID *)
+    float m_fChargeSoundMaxPitch;                     // +0x278 the charge sound's pitch at full charge
+    float m_fChargeSoundPitchTimeScale;                     // +0x27c the charge time's scale of the charge sound's pitch
+    float m_fRollSoundMinVolume;                     // +0x280 the roll sound's volume at speed 0
+    float m_fRollSoundMaxPitch;                     // +0x284 the roll sound's pitch at full speed
+    float m_fRollSoundFullVolSpeedRatio;                     // +0x288 the speed ratio of the roll sound's full volume
+    IKSerializable* m_pRollPopFxData;           // +0x28c (reference; Ghidra: CKMeshPopFxData *) the airborne ground pop
+    IKSerializable* m_pChargePopFxData;           // +0x290 (reference; Ghidra: CKMeshPopFxData *) the charge ground pop
+    IKSerializable* m_pLandingPopFxData;           // +0x294 (reference; Ghidra: CKMeshPopFxData *) the landing pop
     // The run-time state (not loaded; ResetRuntime / Start).
-    IKSerializable* m_unk298;           // +0x298 the airborne pop's effect (a CKMeshPopNodeFx)
-    IKSerializable* m_unk29c;           // +0x29c the charge pop's effect
-    uint32_t m_unk2a0;                  // +0x2a0 the fade-out's start alpha
-    float m_unk2a4;                     // +0x2a4 the fade timer
-    float m_unk2a8;                     // +0x2a8 the fade timer when the fade-out started
-    float m_unk2ac;                     // +0x2ac the charge time
-    uint8_t m_unk2b0;                   // +0x2b0 fading out
-    uint8_t m_unk2b1;                   // +0x2b1 faded in: the attack runs
-    uint8_t m_unk2b2;                   // +0x2b2 charging
-    uint8_t m_unk2b3;                   // +0x2b3 launched
-    float m_unk2b4;                     // +0x2b4 the launch's time left
-    float m_unk2b8;                     // +0x2b8 the landing's hold time left
-    IKSerializable* m_unk2bc;           // +0x2bc the level's boulder (a CNode)
-    uint8_t m_unk2c0;                   // +0x2c0 the full charge effects fired
+    IKSerializable* m_pActiveRollPop;           // +0x298 the airborne pop's effect (a CKMeshPopNodeFx)
+    IKSerializable* m_pActiveChargePop;           // +0x29c the charge pop's effect
+    uint32_t m_ui32FadeOutStartAlpha;                  // +0x2a0 the fade-out's start alpha
+    float m_fFadeTimer;                     // +0x2a4 the fade timer
+    float m_fFadeOutStartTime;                     // +0x2a8 the fade timer when the fade-out started
+    float m_fChargeTime;                     // +0x2ac the charge time
+    uint8_t m_bFadingOut;                   // +0x2b0 fading out
+    uint8_t m_bFadedIn;                   // +0x2b1 faded in: the attack runs
+    uint8_t m_bCharging;                   // +0x2b2 charging
+    uint8_t m_bLaunched;                   // +0x2b3 launched
+    float m_fLaunchTimeLeft;                     // +0x2b4 the launch's time left
+    float m_fLandingHoldTimeLeft;                     // +0x2b8 the landing's hold time left
+    IKSerializable* m_pActiveBoulderMesh;           // +0x2bc the level's boulder (a CNode)
+    uint8_t m_bFullChargeFired;                   // +0x2c0 the full charge effects fired
     uint8_t m_pad2c1[3];
-    CKSound* m_unk2c4;                  // +0x2c4 the roll sound
-    CKSound* m_unk2c8;                  // +0x2c8 the charge sound
+    CKSound* m_pRollSound;                  // +0x2c4 the roll sound
+    CKSound* m_pChargeSound;                  // +0x2c8 the charge sound
     // +0x2cc set in the air (SwitchLoopAnim), cleared by Start / End / Update (read by the hero:
     // CKHkS08Hero_GetEarthBoulderFlag2CC_maybe 0x32a840).
-    uint8_t m_unk2cc;
+    uint8_t m_bJustLanded;
     uint8_t m_pad2cd[3];
 };
 DOTD_ASSERT_SIZE(CKEarthBoulder, 0x2d0);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk154, 0x154);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk160, 0x160);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk16c, 0x16c);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk178, 0x178);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk184, 0x184);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk188, 0x188);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk18c, 0x18c);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk190, 0x190);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk19c, 0x19c);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk1a0, 0x1a0);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk1ac, 0x1ac);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk1b8, 0x1b8);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk1c4, 0x1c4);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk1d0, 0x1d0);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk1dc, 0x1dc);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk1e8, 0x1e8);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk1f4, 0x1f4);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk1f8, 0x1f8);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk1fc, 0x1fc);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk200, 0x200);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk204, 0x204);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk208, 0x208);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk214, 0x214);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk218, 0x218);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk21c, 0x21c);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk220, 0x220);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk224, 0x224);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk228, 0x228);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk234, 0x234);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk238, 0x238);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk240, 0x240);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk244, 0x244);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk24c, 0x24c);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk250, 0x250);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk254, 0x254);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk258, 0x258);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk25c, 0x25c);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk260, 0x260);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk264, 0x264);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk270, 0x270);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk274, 0x274);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk278, 0x278);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk280, 0x280);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk288, 0x288);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk28c, 0x28c);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk294, 0x294);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk298, 0x298);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk29c, 0x29c);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk2a0, 0x2a0);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk2ac, 0x2ac);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk2b0, 0x2b0);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk2b3, 0x2b3);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk2b4, 0x2b4);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk2b8, 0x2b8);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk2bc, 0x2bc);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk2c0, 0x2c0);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk2c4, 0x2c4);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk2c8, 0x2c8);
-DOTD_ASSERT_OFFSET(CKEarthBoulder, m_unk2cc, 0x2cc);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_afBoulderRadius, 0x154);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_afBoulderHeightOffset, 0x160);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_afExtraHeroMass, 0x16c);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_afMinDamageSpeed, 0x178);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_i32RollAlpha, 0x184);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_ui32StartAlpha, 0x188);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_ui32EndAlpha, 0x18c);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_fFadeInTime, 0x190);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_fLandingMinFallSpeed, 0x19c);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_afFullChargeTime, 0x1a0);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_afLaunchStrengthMin, 0x1ac);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_afLaunchStrengthMax, 0x1b8);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_afLaunchDurationMin, 0x1c4);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_afLaunchDurationMax, 0x1d0);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_afChargeRollSpeedMin, 0x1dc);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_afChargeRollSpeedMax, 0x1e8);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pStartSparkFxData, 0x1f4);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pActiveStartSparks, 0x1f8);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pChargeSparkFxData, 0x1fc);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pActiveChargeSparks, 0x200);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pStartExplosion, 0x204);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_apLandingExplosions, 0x208);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pStopExplosion, 0x214);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pFullChargeExplosion, 0x218);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pLaunchExplosion, 0x21c);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pLaunchExplosionLevel2, 0x220);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pLandingDamage, 0x224);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_apBoulderMeshes, 0x228);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pLevel2ExtraNode, 0x234);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_fExtraNodeScaleMin, 0x238);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_fExtraNodeMaxScaleSpeed, 0x240);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pAnimFxLevel1, 0x244);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pActiveAnimFx, 0x24c);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pStartParticlesData, 0x250);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pActiveStartParticles, 0x254);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pStopParticlesData, 0x258);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pFullChargeParticlesData, 0x25c);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pActiveFullChargeParticles, 0x260);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_apPointLightFxData, 0x264);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pActivePointLight, 0x270);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pSoundDico, 0x274);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_fChargeSoundMaxPitch, 0x278);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_fRollSoundMinVolume, 0x280);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_fRollSoundFullVolSpeedRatio, 0x288);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pRollPopFxData, 0x28c);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pLandingPopFxData, 0x294);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pActiveRollPop, 0x298);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pActiveChargePop, 0x29c);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_ui32FadeOutStartAlpha, 0x2a0);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_fChargeTime, 0x2ac);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_bFadingOut, 0x2b0);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_bLaunched, 0x2b3);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_fLaunchTimeLeft, 0x2b4);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_fLandingHoldTimeLeft, 0x2b8);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pActiveBoulderMesh, 0x2bc);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_bFullChargeFired, 0x2c0);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pRollSound, 0x2c4);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_pChargeSound, 0x2c8);
+DOTD_ASSERT_OFFSET(CKEarthBoulder, m_bJustLanded, 0x2cc);

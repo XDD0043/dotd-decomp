@@ -29,9 +29,9 @@ struct CPFCharacter {
     void Load(IKFile* file, int32_t type);
 
     uint32_t m_bits;  // +0x00 a bitfield: 0x407 in the service, 0 in the path slots
-    float m_unk04;    // +0x04 g_pfGridScale.m_halfCellSize * 0.2 at construction
-    float m_unk08;    // +0x08 0.2
-    float m_unk0c;    // +0x0c 1.0
+    float m_fRadius;    // +0x04 g_pfGridScale.m_halfCellSize * 0.2 at construction
+    float m_fMaxStepHeight;    // _maybe: +0x08 0.2
+    float m_fMaxStepRise;    // _maybe: +0x0c 1.0
 };
 DOTD_ASSERT_SIZE(CPFCharacter, 0x10);
 
@@ -58,7 +58,7 @@ DOTD_ASSERT_SIZE(CPFGraph, 0x3c);
 // XXL2 CPFPoint (m_vPoint, m_i16GraphNodeIndex).
 struct CPFPoint {
     CVector3 m_position;  // +0x00 XXL2 m_vPoint; not set by the constructor
-    uint16_t m_unk0c;     // +0x0c XXL2 m_i16GraphNodeIndex: the graph node (or included box) holding the point,
+    uint16_t m_i16GraphNodeIndex;     // +0x0c XXL2 m_i16GraphNodeIndex: the graph node (or included box) holding the point,
                           //       0xffff none (the constructors' value)
     uint16_t m_pad0e;
 };

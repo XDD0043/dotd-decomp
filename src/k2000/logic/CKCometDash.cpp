@@ -104,12 +104,12 @@ void SetMeshAlpha(IKSerializable* mesh, float value) {
 // sphere `on` with the level's radius (+0x1a8) and the damage (+0x19c).
 void CKCometDash::SetAttackActive(uint8_t on) {
     ApplyDamageParams(0);  // vt+0x88
-    m_pHost->SetAbilityAttackSpheres(this, on, m_unk1a8[m_unk04], m_unk19c, kOne, nullptr);  // vt+0xfc
+    m_pHost->SetAbilityAttackSpheres(this, on, m_afHitSphereRadius[m_ui32LevelIndex], m_pElementDamage, kOne, nullptr);  // vt+0xfc
 }
 
 // 0x00385b88 CKCometDash_IsGroundTrailActive_maybe: above level index 1, while airborne (host vt+0x30).
 uint8_t CKCometDash::IsGroundTrailActive() {
-    if (m_unk04 > 1) return m_pHost->IsAirborne();
+    if (m_ui32LevelIndex > 1) return m_pHost->IsOnGround();
     return 0;
 }
 
@@ -117,16 +117,16 @@ uint8_t CKCometDash::IsGroundTrailActive() {
 void CKCometDash::End(int32_t forced) {
     m_pHost->SetHero1d20(kOne);  // vt+0x84
     CKAttackMoveElement::End(forced);
-    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_unk24c), 1, 0, 0);  // 0x0098f340
+    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_pDashMesh), 1, 0, 0);  // 0x0098f340
 }
 
 // 0x00385c78 CKCometDash_StopFxAndAttack: the base's, the mesh hidden (not faded in), the attack sphere off, the host's
 // +0x1d20 back to 1.
 void CKCometDash::StopFxAndAttack() {
     CKAttackMoveElement::StopFxAndAttack();  // 0x00374e60
-    CSGLeaf* mesh = static_cast<CSGLeaf*>(m_unk24c);
+    CSGLeaf* mesh = static_cast<CSGLeaf*>(m_pDashMesh);
     if (mesh != nullptr) {
-        m_unk258 = 0;
+        m_bMeshFadedIn = 0;
         mesh->m_sgProperties = (mesh->m_sgProperties & 0xfffffffbu) | 4u;
     }
     m_pHost->SetAbilityAttackSpheres(this, 0, kOne, nullptr, kOne, nullptr);  // vt+0xfc
@@ -136,34 +136,34 @@ void CKCometDash::StopFxAndAttack() {
 // 0x00385d88 CKCometDash_Start: the base's, the hot spot asked (the result unused), the runtime cleared.
 void CKCometDash::Start(CKS08AbilityHostBase* host) {
     CKAttackMoveElement::Start(host);  // 0x003760b0
-    m_pHost->GetHotspot(m_unk186);    // vt+0xcc (unused)
-    m_unk260 = 0;
-    m_unk25c = 0.0f;  // (a word store of 0)
-    m_unk258 = 0;
+    m_pHost->GetHotspot(m_ui8HotSpotIndex);    // vt+0xcc (unused)
+    m_bHitHeld = 0;
+    m_fHitSlowdownTimer = 0.0f;  // (a word store of 0)
+    m_bMeshFadedIn = 0;
 }
 
 // 0x00385df8 CKCometDash_ResetRuntime: the base's, the hot spot 4, the runtime and the running effects cleared.
 void CKCometDash::ResetRuntime(int32_t type) {
     CKAttackMoveElement::ResetRuntime(type);  // 0x003756d0
-    m_unk186 = 4;
-    m_unk25c = 0.0f;  // (a word store of 0)
-    m_unk260 = 0;
-    m_unk23c = nullptr;
-    m_unk248 = nullptr;
-    m_unk258 = 0;
+    m_ui8HotSpotIndex = 4;
+    m_fHitSlowdownTimer = 0.0f;  // (a word store of 0)
+    m_bHitHeld = 0;
+    m_pActiveParticles = nullptr;
+    m_pActiveSparks = nullptr;
+    m_bMeshFadedIn = 0;
 }
 
 // 0x00386100 CKCometDash_PostLoad: the base's (ResetRuntime), the mesh shown under sector 0; the trail taken off its
 // parent and hung under the mesh (or, without one, the dynamic scene root).
 int32_t CKCometDash::PostLoad(int32_t type) {
     CKAttackMoveElement::PostLoad(type);  // 0x00376e60
-    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_unk24c), 1, 0, 0);
-    CSGLeaf* trail = static_cast<CSGLeaf*>(m_unk250);
+    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_pDashMesh), 1, 0, 0);
+    CSGLeaf* trail = static_cast<CSGLeaf*>(m_pTrailNode);
     if (trail == nullptr) return 1;
     if (trail->m_pParent != nullptr) trail->m_pParent->RemoveChild(trail);  // vt+0x78
-    CSGBranch* parent = m_unk24c != nullptr ? static_cast<CSGBranch*>(m_unk24c)
+    CSGBranch* parent = m_pDashMesh != nullptr ? static_cast<CSGBranch*>(m_pDashMesh)
                                             : static_cast<CSGBranch*>(g_pEngine->m_dynamicSceneRoot);
-    parent->AddChild(static_cast<CSGLeaf*>(m_unk250));  // vt+0x70
+    parent->AddChild(static_cast<CSGLeaf*>(m_pTrailNode));  // vt+0x70
     return 1;
 }
 
@@ -172,7 +172,7 @@ int32_t CKCometDash::PostLoad(int32_t type) {
 void CKCometDash::SteerTowardsTarget(const CVector3* direction) {
     CVector3 at = *direction;
     if (kNullVector.x == at.x && kNullVector.y == at.y && kNullVector.z == at.z) {
-        at = m_pHost->ComputeAimDirection(m_unk210[m_unk04] * kDegToRad, this, m_unk21c);  // vt+0x58
+        at = m_pHost->ComputeAimDirection(m_afSteerConeDeg[m_ui32LevelIndex] * kDegToRad, this, m_pAimCamembert);  // vt+0x58
         m_pHost->SetHeroActionPermission(1, 0, 0, 0);                                       // vt+0x44
     }
     CKAttackMoveElement::SteerTowardsTarget(&at);  // 0x00376eb0
@@ -184,36 +184,36 @@ void CKCometDash::SteerTowardsTarget(const CVector3* direction) {
 // into [-360, 360)) at the level's scale (+0x1e4), its position kept. The animated collection (+0x240) runs while it
 // plays. The float tests keep the original's senses (bge: a NaN time counts as faded in; cror for the fade-out).
 void CKCometDash::UpdateAttack(float dt) {
-    CNode* mesh = static_cast<CNode*>(m_unk24c);
+    CNode* mesh = static_cast<CNode*>(m_pDashMesh);
     if (mesh != nullptr) {
-        const float fadeIn = m_unk208;
-        if (m_unk18c < fadeIn) {
-            const float t = m_unk18c;
-            const uint32_t level = m_unk04;
-            SetMeshAlpha(mesh, ppc::fmadds(static_cast<float>(m_unk1c0[level]), (fadeIn - t) / fadeIn,
-                                           static_cast<float>(m_unk1b4[level]) * (t / fadeIn)));
-        } else if (m_unk258 == 0) {
-            SetMeshAlpha(mesh, static_cast<float>(m_unk1b4[m_unk04]));
-            m_unk258 = 1;
+        const float fadeIn = m_fFadeInTime;
+        if (m_fElapsedTime < fadeIn) {
+            const float t = m_fElapsedTime;
+            const uint32_t level = m_ui32LevelIndex;
+            SetMeshAlpha(mesh, ppc::fmadds(static_cast<float>(m_ai32MeshStartAlpha[level]), (fadeIn - t) / fadeIn,
+                                           static_cast<float>(m_ai32MeshHoldAlpha[level]) * (t / fadeIn)));
+        } else if (m_bMeshFadedIn == 0) {
+            SetMeshAlpha(mesh, static_cast<float>(m_ai32MeshHoldAlpha[m_ui32LevelIndex]));
+            m_bMeshFadedIn = 1;
         }
-        const float t = m_unk18c;
-        const float fadeOut = m_unk20c;
-        const float duration = m_unk44[m_unk04];
-        mesh = static_cast<CNode*>(m_unk24c);
-        if ((t > duration - fadeOut || t == duration - fadeOut) && m_unk258 != 0 && mesh->m_lGeometryList != nullptr &&
+        const float t = m_fElapsedTime;
+        const float fadeOut = m_fFadeOutTime;
+        const float duration = m_afAttackDuration[m_ui32LevelIndex];
+        mesh = static_cast<CNode*>(m_pDashMesh);
+        if ((t > duration - fadeOut || t == duration - fadeOut) && m_bMeshFadedIn != 0 && mesh->m_lGeometryList != nullptr &&
             // --fps N (not in the original): the fade-out re-reads the alpha it wrote, so it compounds per update: step
             // it once per 60 Hz frame only, as at 60 fps.
             (!dotd::fps::Unlocked() || dotd::fps::Ticks() > 0) && true) {
             const float left = duration - t;
             const uint8_t current = static_cast<CGeometry*>(mesh->m_lGeometryList)->m_cGeometryColor[3];
-            m_unk254 = current;
+            m_ui32FadeOutStartAlpha = current;
             const float value = ppc::fmadds(static_cast<float>(current), left / fadeOut,
-                                            static_cast<float>(m_unk1cc[m_unk04]) * ((fadeOut - left) / fadeOut));
+                                            static_cast<float>(m_ai32MeshEndAlpha[m_ui32LevelIndex]) * ((fadeOut - left) / fadeOut));
             TransformFx::SetGeometriesAlpha(mesh, static_cast<uint8_t>(ppc::fctiwz(value)));
         }
         // The spin: the identity turned about z, the position and the pads of the local matrix kept, then scaled.
-        RwMatrix local = static_cast<CNode*>(m_unk24c)->m_pRwFrame->modelling;
-        float angle = m_unk1d8[m_unk04] * m_unk18c;
+        RwMatrix local = static_cast<CNode*>(m_pDashMesh)->m_pRwFrame->modelling;
+        float angle = m_afMeshSpinDegPerSec[m_ui32LevelIndex] * m_fElapsedTime;
         while (angle < kAngleLow) angle = angle + kAngleTurn;
         while (angle > kAngleHigh || angle == kAngleHigh) angle = angle - kAngleTurn;
         const RwV3d position = local.pos;
@@ -226,10 +226,10 @@ void CKCometDash::UpdateAttack(float dt) {
         local.pos = position;
         local.flags &= ~0x20000u;
         RwMatrixScalePreConcat_Thunk(reinterpret_cast<CMatrix34*>(&local),
-                                     reinterpret_cast<const CVector3*>(&m_unk1e4[m_unk04]));  // 0x0023f670
-        static_cast<CNode*>(m_unk24c)->SetLocalMatrix(&local);                                  // 0x000d0be8
+                                     reinterpret_cast<const CVector3*>(&m_avMeshScale[m_ui32LevelIndex]));  // 0x0023f670
+        static_cast<CNode*>(m_pDashMesh)->SetLocalMatrix(&local);                                  // 0x000d0be8
     }
-    CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_unk240);
+    CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_pAnimFxCollection);
     if (collection->m_bPlaying != 0) collection->Update(dt);  // 0x0098f4b0 (TocBridge)
 }
 
@@ -238,29 +238,29 @@ void CKCometDash::UpdateAttack(float dt) {
 // holds for its time-scaling sub-effect's time (type 6, +0x0c); when that time has run out (cror lt|eq) the host aims
 // again (vt+0x58, the result unused) and action 1 is forbidden.
 void CKCometDash::UpdateMovement(float dt) {
-    if (m_unk04 != 2) {
+    if (m_ui32LevelIndex != 2) {
         if (m_pHost->VfF0() == 0) return;  // vt+0xf0
-        FireExplosion(this, m_unk22c, m_unk186);
+        FireExplosion(this, m_pHitExplosionLow, m_ui8HotSpotIndex);
         return;
     }
     const uint8_t hit = m_pHost->VfF0();  // vt+0xf0
     if (hit == 0) {
-        if (m_unk260 == 0) return;
-        const float left = m_unk25c - dt;
-        m_unk25c = left;
+        if (m_bHitHeld == 0) return;
+        const float left = m_fHitSlowdownTimer - dt;
+        m_fHitSlowdownTimer = left;
         if (!(left < 0.0f || left == 0.0f)) return;
-        m_pHost->ComputeAimDirection(m_unk210[m_unk04] * kDegToRad, this, m_unk21c);  // vt+0x58 (unused)
+        m_pHost->ComputeAimDirection(m_afSteerConeDeg[m_ui32LevelIndex] * kDegToRad, this, m_pAimCamembert);  // vt+0x58 (unused)
         m_pHost->SetHeroActionPermission(1, 0, 0, 0);                                 // vt+0x44
-        m_unk260 = hit;
+        m_bHitHeld = hit;
         return;
     }
-    m_unk260 = 1;
+    m_bHitHeld = 1;
     m_pHost->SetHeroActionPermission(1, 1, 1, 1);  // vt+0x44
-    m_unk25c = 0.0f;  // (a word store of 0)
-    CKExplosionNodeFx* burst = FireExplosion(this, m_unk228, m_unk186);
+    m_fHitSlowdownTimer = 0.0f;  // (a word store of 0)
+    CKExplosionNodeFx* burst = FireExplosion(this, m_pHitExplosionMax, m_ui8HotSpotIndex);
     if (burst == nullptr) return;
     CKTimeScalingFxData* slow = static_cast<CKTimeScalingFxData*>(burst->GetNthSubEffectOfType(6, this, 0));  // 0x001b6530
-    if (slow != nullptr) m_unk25c = slow->m_unk0c;
+    if (slow != nullptr) m_fHitSlowdownTimer = slow->m_fDuration;
 }
 
 // 0x00388a58 CKCometDash_SetFxActive. On: the attack (vt+0x74), the level's particles (+0x230[level]) under the hot spot
@@ -271,52 +271,52 @@ void CKCometDash::UpdateMovement(float dt) {
 // particles and the sparks stopped and released, the collection stopped, the trail's ribbons off (laid out again).
 void CKCometDash::SetFxActive(uint8_t on) {
     if (on == 0) {
-        TransformFx::ReleaseParticles(&m_unk23c, this);
-        TransformFx::ReleaseSpark(&m_unk248, this);
-        if (m_unk240 != nullptr) static_cast<CKAnimatedFxCollection*>(m_unk240)->Stop();  // 0x005cc990 (TocBridge)
-        CTrailNodeFx* trail = static_cast<CTrailNodeFx*>(m_unk250);
+        TransformFx::ReleaseParticles(&m_pActiveParticles, this);
+        TransformFx::ReleaseSpark(&m_pActiveSparks, this);
+        if (m_pAnimFxCollection != nullptr) static_cast<CKAnimatedFxCollection*>(m_pAnimFxCollection)->Stop();  // 0x005cc990 (TocBridge)
+        CTrailNodeFx* trail = static_cast<CTrailNodeFx*>(m_pTrailNode);
         if (trail == nullptr) return;
         // Every ribbon off, its points laid out again (CTrailNodeFx_SetRibbonActive_maybe 0x009bdfb8, inlined).
         const uint32_t count = trail->m_ui32NbTrail;
-        for (uint32_t i = 0; i < count; ++i) static_cast<CTrailNodeFx*>(m_unk250)->SetRibbonActive(i, 0, 1);
+        for (uint32_t i = 0; i < count; ++i) static_cast<CTrailNodeFx*>(m_pTrailNode)->SetRibbonActive(i, 0, 1);
         return;
     }
     SetAttackActive(1);  // vt+0x74
-    CKParticlesEffectFxData* particles = static_cast<CKParticlesEffectFxData*>(LevelParticles(this, m_unk04));
-    particles->m_pAttachHotSpot = m_pHost->GetHotspot(m_unk186);  // vt+0xcc
+    CKParticlesEffectFxData* particles = static_cast<CKParticlesEffectFxData*>(LevelParticles(this, m_ui32LevelIndex));
+    particles->m_pAttachHotSpot = m_pHost->GetHotspot(m_ui8HotSpotIndex);  // vt+0xcc
     particles->m_pAttachOwner = nullptr;
-    m_unk23c = TransformFx::Acquire(LevelParticles(this, m_unk04), this);
-    if (m_unk04 != 0) {
-        CKSparkFxData* sparks = static_cast<CKSparkFxData*>(m_unk244);
-        sparks->m_unk10 = m_pHost->GetHotspot(m_unk186);  // the hot spot to hang the node under
+    m_pActiveParticles = TransformFx::Acquire(LevelParticles(this, m_ui32LevelIndex), this);
+    if (m_ui32LevelIndex != 0) {
+        CKSparkFxData* sparks = static_cast<CKSparkFxData*>(m_pSparkFxData);
+        sparks->m_unk10 = m_pHost->GetHotspot(m_ui8HotSpotIndex);  // the hot spot to hang the node under
         sparks->m_unk0c = nullptr;
-        m_unk248 = TransformFx::Acquire(m_unk244, this);
+        m_pActiveSparks = TransformFx::Acquire(m_pSparkFxData, this);
     }
-    FireExplosion(this, m_unk04 > 1 ? m_unk224 : m_unk220, 1);
-    if (m_unk04 > 1) {
+    FireExplosion(this, m_ui32LevelIndex > 1 ? m_pStartExplosionMax : m_pStartExplosionLow, 1);
+    if (m_ui32LevelIndex > 1) {
         CSGLeaf* owner = TransformFx::OwnerNode(m_pHost);                 // vt+0x08, +0x1c
         SAnimatedFxRig* rigs = TransformFx::AttachmentSets(m_pHost);      // vt+0x104
-        static_cast<CKAnimatedFxCollection*>(m_unk240)->Play(
-            owner, rigs, static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_unk186)));  // 0x0098f4d0 (TocBridge)
+        static_cast<CKAnimatedFxCollection*>(m_pAnimFxCollection)->Play(
+            owner, rigs, static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_ui8HotSpotIndex)));  // 0x0098f4d0 (TocBridge)
     }
-    CNode* mesh = static_cast<CNode*>(m_unk24c);
+    CNode* mesh = static_cast<CNode*>(m_pDashMesh);
     if (mesh != nullptr) {
         if (mesh->m_pParent != nullptr) mesh->m_pParent->RemoveChild(mesh);  // vt+0x78
-        static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_unk186))->AttachVolume(static_cast<CNode*>(m_unk24c));
-        static_cast<CNode*>(m_unk24c)->Scale(&m_unk1e4[m_unk04].m_unk0);  // 0x000d0d88
-        mesh = static_cast<CNode*>(m_unk24c);
+        static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_ui8HotSpotIndex))->AttachVolume(static_cast<CNode*>(m_pDashMesh));
+        static_cast<CNode*>(m_pDashMesh)->Scale(&m_avMeshScale[m_ui32LevelIndex].m_unk0);  // 0x000d0d88
+        mesh = static_cast<CNode*>(m_pDashMesh);
         mesh->m_sgProperties &= 0xfffffffbu;
-        for (CGeometry* geometry = static_cast<CGeometry*>(static_cast<CNode*>(m_unk24c)->m_lGeometryList);
+        for (CGeometry* geometry = static_cast<CGeometry*>(static_cast<CNode*>(m_pDashMesh)->m_lGeometryList);
              geometry != nullptr; geometry = geometry->m_pNext) {
             geometry->m_BitProperties = (geometry->m_BitProperties & 0xffffffc0u) | 0x2cu;
-            TransformFx::SetGeometryAlpha(geometry, static_cast<uint8_t>(m_unk1c0[m_unk04]));
+            TransformFx::SetGeometryAlpha(geometry, static_cast<uint8_t>(m_ai32MeshStartAlpha[m_ui32LevelIndex]));
         }
     }
-    if (m_unk04 == 0 || m_unk250 == nullptr) return;
-    if (m_unk24c != nullptr) static_cast<CSGLeaf*>(m_unk24c)->ForceWorldMatrixUpdate();  // vt+0x50
+    if (m_ui32LevelIndex == 0 || m_pTrailNode == nullptr) return;
+    if (m_pDashMesh != nullptr) static_cast<CSGLeaf*>(m_pDashMesh)->ForceWorldMatrixUpdate();  // vt+0x50
     // Every ribbon on (CTrailNodeFx_SetRibbonActive_maybe, inlined).
-    const uint32_t count = static_cast<CTrailNodeFx*>(m_unk250)->m_ui32NbTrail;
-    for (uint32_t i = 0; i < count; ++i) static_cast<CTrailNodeFx*>(m_unk250)->SetRibbonActive(i, 1, 1);
+    const uint32_t count = static_cast<CTrailNodeFx*>(m_pTrailNode)->m_ui32NbTrail;
+    for (uint32_t i = 0; i < count; ++i) static_cast<CTrailNodeFx*>(m_pTrailNode)->SetRibbonActive(i, 1, 1);
 }
 
 // 0x00386be0 CKCometDash_Load: CKAttackMoveElement's data, then (type 0 only) 164 bytes, interleaving
@@ -324,35 +324,35 @@ void CKCometDash::SetFxActive(uint8_t on) {
 int32_t CKCometDash::Load(IKFile* file, int32_t type) {
     CKAttackMoveElement::Load(file, type);
     if (type == 0) {
-        IKFile_ReadRef(file, &m_unk220);
-        IKFile_ReadRef(file, &m_unk24c);
+        IKFile_ReadRef(file, &m_pStartExplosionLow);
+        IKFile_ReadRef(file, &m_pDashMesh);
         for (int32_t i = 0; i < 3; ++i) {
-            ReadF32LE(file, &m_unk1a8[i]);
-            ReadS32LE(file, &m_unk1b4[i]);
-            ReadS32LE(file, &m_unk1c0[i]);
-            ReadS32LE(file, &m_unk1cc[i]);
+            ReadF32LE(file, &m_afHitSphereRadius[i]);
+            ReadS32LE(file, &m_ai32MeshHoldAlpha[i]);
+            ReadS32LE(file, &m_ai32MeshStartAlpha[i]);
+            ReadS32LE(file, &m_ai32MeshEndAlpha[i]);
         }
-        ReadF32LE(file, &m_unk208);
-        ReadF32LE(file, &m_unk20c);
-        IKFile_ReadRef(file, &m_unk250);
-        ReadF32LE(file, &m_unk1d8[0]);
-        ReadF32LE(file, &m_unk1d8[1]);
-        ReadF32LE(file, &m_unk1d8[2]);
-        IKFile_ReadRef(file, &m_unk21c);
-        ReadF32LE(file, &m_unk210[0]);
-        ReadF32LE(file, &m_unk210[1]);
-        ReadF32LE(file, &m_unk210[2]);
+        ReadF32LE(file, &m_fFadeInTime);
+        ReadF32LE(file, &m_fFadeOutTime);
+        IKFile_ReadRef(file, &m_pTrailNode);
+        ReadF32LE(file, &m_afMeshSpinDegPerSec[0]);
+        ReadF32LE(file, &m_afMeshSpinDegPerSec[1]);
+        ReadF32LE(file, &m_afMeshSpinDegPerSec[2]);
+        IKFile_ReadRef(file, &m_pAimCamembert);
+        ReadF32LE(file, &m_afSteerConeDeg[0]);
+        ReadF32LE(file, &m_afSteerConeDeg[1]);
+        ReadF32LE(file, &m_afSteerConeDeg[2]);
         IKFile_ReadRef(file, &m_unk230);
         IKFile_ReadRef(file, &m_unk234);
         IKFile_ReadRef(file, &m_unk238);
-        IKFile_ReadRef(file, &m_unk224);
-        IKFile_ReadRef(file, &m_unk240);
+        IKFile_ReadRef(file, &m_pStartExplosionMax);
+        IKFile_ReadRef(file, &m_pAnimFxCollection);
         for (int32_t i = 0; i < 3; ++i) {
-            ReadU32LEWords(file, reinterpret_cast<uint32_t*>(&m_unk1e4[i]), 3);
+            ReadU32LEWords(file, reinterpret_cast<uint32_t*>(&m_avMeshScale[i]), 3);
         }
-        IKFile_ReadRef(file, &m_unk228);
-        IKFile_ReadRef(file, &m_unk22c);
-        IKFile_ReadRef(file, &m_unk244);
+        IKFile_ReadRef(file, &m_pHitExplosionMax);
+        IKFile_ReadRef(file, &m_pHitExplosionLow);
+        IKFile_ReadRef(file, &m_pSparkFxData);
     }
     return 1;
 }

@@ -140,7 +140,7 @@ uint8_t CKS08MenuMain::OnMenuState(int32_t phase, uint8_t /*other*/) {
         manager->m_unkAFC &= ~4u;
         manager->m_unkAFC &= ~8u;
         manager->m_unkAFC &= ~0x10u;
-        manager->m_unk2FC = 1;
+        manager->m_i32FrontEndEntryMenu = 1;
     }
     return static_cast<uint8_t>(GetMenuId());
 }

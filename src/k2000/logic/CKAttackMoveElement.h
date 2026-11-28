@@ -80,134 +80,134 @@ public:
     // along it (host vt+0x5c), the attack phase on (+0x198) and the impulse's time (+0x18c + +0x50[level]).
     virtual void SteerTowardsTarget(const CVector3* direction);
 
-    uint32_t m_unk04;      // +0x04 (not loaded) the level index (0..2, host vt+0xf4) at Start
-    int32_t m_unk08[3];    // +0x08 the damage amount (file: 90 135 270)
-    float m_unk14[3];      // +0x14 the knock-back distance (the damage's +0x10 = this / 0.2)
-    float m_unk20[3];      // +0x20 the cooldown after an End
-    float m_unk2c[3];      // +0x2c the cooldown after a forced End
-    int32_t m_unk38[3];    // +0x38 the mana cost (file: 80 100 133)
-    float m_unk44[3];      // +0x44 the attack's duration
-    float m_unk50[3];      // +0x50 the impulse's delay after the steer
-    float m_unk5c;         // +0x5c the ground trail's period
-    float m_unk60;         // +0x60 its random spread
-    float m_unk64;         // +0x64 the trail's scatter radius
-    float m_unk68;         // +0x68 the trail's height (file and live: 0)
-    float m_unk6c;         // +0x6c its random spread (file and live: 0)
-    float m_unk70;         // +0x70 the damage's knock angle (degrees; file and live: 0)
-    float m_unk74;         // +0x74 its random spread (file and live: 0)
-    float m_unk78[3];      // +0x78 the damage's stun duration (vt+0x60)
-    float m_unk84[3];      // +0x84 the damage's stun (vt+0x5c)
-    float m_unk90[3];      // +0x90 the damage's element value 0
-    float m_unk9c[3];      // +0x9c element value 1 (file and live: 0)
-    float m_unka8[3];      // +0xa8 element value 2
-    float m_unkb4[3];      // +0xb4 element value 4
-    float m_unkc0[3];      // +0xc0 element value 6
-    float m_unkcc[3];      // +0xcc element value 5
-    float m_unkd8[3];      // +0xd8 element value 7
-    float m_unke4[3];      // +0xe4 element value 3 (the Load reads the three words apart)
-    uint8_t m_unkf0[3];    // +0xf0 the damage's +0x34 (vt+0x6c)
-    uint8_t m_unkf3[3];    // +0xf3 the damage's +0x35 (vt+0x70)
+    uint32_t m_ui32LevelIndex;      // +0x04 (not loaded) the level index (0..2, host vt+0xf4) at Start
+    int32_t m_ai32Damage[3];    // +0x08 the damage amount (file: 90 135 270)
+    float m_afKnockbackImpulse[3];      // +0x14 the knock-back distance (the damage's +0x10 = this / 0.2)
+    float m_afCooldown[3];      // +0x20 the cooldown after an End
+    float m_afCooldownForced[3];      // +0x2c the cooldown after a forced End
+    int32_t m_ai32ManaCost[3];    // +0x38 the mana cost (file: 80 100 133)
+    float m_afAttackDuration[3];      // +0x44 the attack's duration
+    float m_afImpulseDelay[3];      // +0x50 the impulse's delay after the steer
+    float m_fGroundTrailPeriod;         // +0x5c the ground trail's period
+    float m_fGroundTrailPeriodSpread;         // +0x60 its random spread
+    float m_fGroundTrailScatterRadius;         // +0x64 the trail's scatter radius
+    float m_fGroundTrailHeight;         // +0x68 the trail's height (file and live: 0)
+    float m_fGroundTrailHeightSpread;         // +0x6c its random spread (file and live: 0)
+    float m_fKnockbackPitchDeg;         // +0x70 the damage's knock angle (degrees; file and live: 0)
+    float m_fKnockbackPitchSpread;         // +0x74 its random spread (file and live: 0)
+    float m_afDisarmAmount[3];      // +0x78 the damage's disarm amount (vt+0x60: damage +0x2c, added to the enemy's disarm gauge +0x278)
+    float m_afStunAmount[3];      // +0x84 the damage's stun (vt+0x5c)
+    float m_afElementEffect0[3];      // +0x90 the damage's element value 0
+    float m_afElementEffect1[3];      // +0x9c element value 1 (file and live: 0)
+    float m_afElementEffect2[3];      // +0xa8 element value 2
+    float m_afElementEffect4[3];      // +0xb4 element value 4
+    float m_afElementEffect6[3];      // +0xc0 element value 6
+    float m_afElementEffect5[3];      // +0xcc element value 5
+    float m_afElementEffect7[3];      // +0xd8 element value 7
+    float m_afElementEffect3[3];      // +0xe4 element value 3 (the Load reads the three words apart)
+    uint8_t m_abDamageFlag34[3];    // +0xf0 the damage's +0x34 (vt+0x6c)
+    uint8_t m_abDamageFlag35[3];    // +0xf3 the damage's +0x35 (vt+0x70)
     uint8_t m_padF6[2];    // +0xf6
-    float m_unkf8[3];      // +0xf8 the impulse's speed (over 0.001 s)
-    float m_unk104[3];     // +0x104 the impulse's second value (host vt+0x5c)
-    float m_unk110[3];     // +0x110 the impulse's first value, negated (host vt+0x5c)
-    float m_unk11c[3];     // +0x11c the steer's pitch (degrees; file and live: 0)
-    float m_unk128;        // +0x128 the wind-up before the steer
-    float m_unk12c;        // +0x12c the hero speed up to which the pitch is not limited
-    float m_unk130;        // +0x130 the hero speed from which it is limited most
+    float m_afSteerImpulseStrength[3];      // +0xf8 the impulse's speed (over 0.001 s)
+    float m_afImpulseDuration[3];     // +0x104 the impulse's second value (host vt+0x5c)
+    float m_afImpulseStrength[3];     // +0x110 the impulse's first value, negated (host vt+0x5c)
+    float m_afSteerPitchDeg[3];     // +0x11c the steer's pitch (degrees; file and live: 0)
+    float m_fWindUpDuration;        // +0x128 the wind-up before the steer
+    float m_fPitchLimitMinHeight;        // +0x12c the hero speed up to which the pitch is not limited
+    float m_fPitchLimitMaxHeight;        // +0x130 the hero speed from which it is limited most
     // The hero control of the three movement contexts (airborne +0x134.., flying +0x140.., ground +0x160..).
-    uint8_t m_unk134;      // +0x134 airborne: permission 1
-    uint8_t m_unk135;      // +0x135 airborne: permission 0
-    uint8_t m_unk136;      // +0x136 airborne: the turn gate
+    uint8_t m_bGroundPerm1;      // +0x134 on the ground: permission 1
+    uint8_t m_bGroundPerm0;      // +0x135 on the ground: permission 0
+    uint8_t m_bGroundTurnEnable;      // +0x136 on the ground: the turn gate
     uint8_t m_pad137;      // +0x137
-    float m_unk138;        // +0x138 airborne: turn A
-    float m_unk13c;        // +0x13c airborne: turn B
-    uint8_t m_unk140;      // +0x140 flying: permission 1
-    uint8_t m_unk141;      // +0x141 flying: permission 0
-    uint8_t m_unk142;      // +0x142 flying: the turn gate
+    float m_fGroundTurnA;        // +0x138 on the ground: turn A
+    float m_fGroundTurnB;        // +0x13c on the ground: turn B
+    uint8_t m_bFlyPerm1;      // +0x140 flying: permission 1
+    uint8_t m_bFlyPerm0;      // +0x141 flying: permission 0
+    uint8_t m_bFlyTurnEnable;      // +0x142 flying: the turn gate
     uint8_t m_pad143;      // +0x143
-    float m_unk144;        // +0x144 flying: turn A
-    float m_unk148;        // +0x148 flying: turn B
-    float m_unk14c;        // +0x14c airborne: the move speed
-    float m_unk150;        // +0x150 flying: the move speed
-    uint8_t m_unk154;      // +0x154 airborne: the 11f8 gate
-    uint8_t m_unk155;      // +0x155 flying: the 11f8 gate
+    float m_fFlyTurnA;        // +0x144 flying: turn A
+    float m_fFlyTurnB;        // +0x148 flying: turn B
+    float m_fGroundMoveSpeed;        // +0x14c on the ground: the move speed
+    float m_fFlyMoveSpeed;        // +0x150 flying: the move speed
+    uint8_t m_bGroundParam11f8Enable;      // +0x154 on the ground: the 11f8 gate
+    uint8_t m_bFlyParam11f8Enable;      // +0x155 flying: the 11f8 gate
     uint8_t m_pad156[2];   // +0x156
-    float m_unk158;        // +0x158 airborne: the 11f8 value
-    float m_unk15c;        // +0x15c flying: the 11f8 value
-    uint8_t m_unk160;      // +0x160 ground: permission 1
-    uint8_t m_unk161;      // +0x161 ground: permission 0
-    uint8_t m_unk162;      // +0x162 ground: the turn gate
+    float m_fGroundParam11f8;        // +0x158 on the ground: the 11f8 value
+    float m_fFlyParam11f8;        // +0x15c flying: the 11f8 value
+    uint8_t m_bAirPerm1;      // +0x160 in the air: permission 1
+    uint8_t m_bAirPerm0;      // +0x161 in the air: permission 0
+    uint8_t m_bAirTurnEnable;      // +0x162 in the air: the turn gate
     uint8_t m_pad163;      // +0x163
-    float m_unk164;        // +0x164 ground: turn A
-    float m_unk168;        // +0x168 ground: turn B
-    float m_unk16c;        // +0x16c ground: the move speed
-    uint8_t m_unk170;      // +0x170 ground: the 11f8 gate (one byte loaded)
+    float m_fAirTurnA;        // +0x164 in the air: turn A
+    float m_fAirTurnB;        // +0x168 in the air: turn B
+    float m_fAirMoveSpeed;        // +0x16c in the air: the move speed
+    uint8_t m_bAirParam11f8Enable;      // +0x170 in the air: the 11f8 gate (one byte loaded)
     uint8_t m_unk171[3];   // +0x171 (not loaded)
-    float m_unk174;        // +0x174 ground: the 11f8 value
-    IKSerializable* m_unk178;  // +0x178 reference (live: CKExplosionFxData): the fizzle
+    float m_fAirParam11f8;        // +0x174 in the air: the 11f8 value
+    IKSerializable* m_pFizzleExplosionFxData;  // +0x178 reference (live: CKExplosionFxData): the fizzle
     // Runtime (not loaded).
     CKS08AbilityHostBase* m_pHost;  // +0x17c the host while running
     uint8_t m_bRunning;    // +0x180
-    uint8_t m_unk181;      // +0x181 in the loop (phase 1)
-    uint8_t m_unk182;      // +0x182 in the start animation (phase 0)
-    uint8_t m_unk183;      // +0x183 in the end animation (phase 4)
-    uint8_t m_unk184;      // +0x184 the hero control's grounded state (host vt+0x30 negated)
-    uint8_t m_unk185;      // +0x185 started in the loop (the mana not taken yet)
-    uint8_t m_unk186;      // +0x186 the hot spot of the fizzle (ResetRuntime 0xff)
+    uint8_t m_bInLoop;      // +0x181 in the loop (phase 1)
+    uint8_t m_bInStartAnim;      // +0x182 in the start animation (phase 0)
+    uint8_t m_bInEndAnim;      // +0x183 in the end animation (phase 4)
+    uint8_t m_bInAir;      // +0x184 in the air (host vt+0x30, IsOnGround, negated)
+    uint8_t m_bManaPending;      // +0x185 started in the loop (the mana not taken yet)
+    uint8_t m_ui8HotSpotIndex;      // +0x186 the hot spot of the fizzle (ResetRuntime 0xff)
     uint8_t m_unk187;      // +0x187 (ResetRuntime 0; nothing else accesses it)
     uint32_t m_unk188;     // +0x188 (never accessed)
-    float m_unk18c;        // +0x18c the time since Start
+    float m_fElapsedTime;        // +0x18c the time since Start
     float m_fStartTime;    // +0x190 the game clock at Start (ResetRuntime: -1)
-    float m_unk194;        // +0x194 the time left before the next ground trail
-    uint8_t m_unk198;      // +0x198 steered (the attack phase)
-    uint8_t m_unk199;      // +0x199 the impulse started
+    float m_fGroundTrailTimer;        // +0x194 the time left before the next ground trail
+    uint8_t m_bSteered;      // +0x198 steered (the attack phase)
+    uint8_t m_bImpulseStarted;      // +0x199 the impulse started
     uint8_t m_pad19a[2];
-    IKSerializable* m_unk19c;  // +0x19c reference (live: CKS08ElementDamage)
-    uint8_t m_unk1a0;      // +0x1a0 End's argument after the fizzle
+    IKSerializable* m_pElementDamage;  // +0x19c reference (live: CKS08ElementDamage)
+    uint8_t m_bForcedEnd;      // +0x1a0 End's argument after the fizzle
     uint8_t m_pad1a1[3];
-    float m_unk1a4;        // +0x1a4 the time the impulse starts at
+    float m_fImpulseStartTime;        // +0x1a4 the time the impulse starts at
 };
 DOTD_ASSERT_SIZE(CKAttackMoveElement, 0x1a8);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk08, 0x08);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk14, 0x14);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk20, 0x20);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk2c, 0x2c);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk38, 0x38);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk44, 0x44);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk50, 0x50);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk5c, 0x5c);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk70, 0x70);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk78, 0x78);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk9c, 0x9c);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unkd8, 0xd8);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unke4, 0xe4);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unkf0, 0xf0);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unkf3, 0xf3);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unkf8, 0xf8);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk110, 0x110);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk11c, 0x11c);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk128, 0x128);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk130, 0x130);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk134, 0x134);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk138, 0x138);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk140, 0x140);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk144, 0x144);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk154, 0x154);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk158, 0x158);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk160, 0x160);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk164, 0x164);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk170, 0x170);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk174, 0x174);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk178, 0x178);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_ai32Damage, 0x08);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_afKnockbackImpulse, 0x14);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_afCooldown, 0x20);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_afCooldownForced, 0x2c);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_ai32ManaCost, 0x38);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_afAttackDuration, 0x44);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_afImpulseDelay, 0x50);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_fGroundTrailPeriod, 0x5c);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_fKnockbackPitchDeg, 0x70);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_afDisarmAmount, 0x78);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_afElementEffect1, 0x9c);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_afElementEffect7, 0xd8);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_afElementEffect3, 0xe4);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_abDamageFlag34, 0xf0);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_abDamageFlag35, 0xf3);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_afSteerImpulseStrength, 0xf8);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_afImpulseStrength, 0x110);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_afSteerPitchDeg, 0x11c);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_fWindUpDuration, 0x128);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_fPitchLimitMaxHeight, 0x130);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_bGroundPerm1, 0x134);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_fGroundTurnA, 0x138);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_bFlyPerm1, 0x140);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_fFlyTurnA, 0x144);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_bGroundParam11f8Enable, 0x154);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_fGroundParam11f8, 0x158);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_bAirPerm1, 0x160);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_fAirTurnA, 0x164);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_bAirParam11f8Enable, 0x170);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_fAirParam11f8, 0x174);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_pFizzleExplosionFxData, 0x178);
 DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_pHost, 0x17c);
 DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_bRunning, 0x180);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk186, 0x186);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_ui8HotSpotIndex, 0x186);
 DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk188, 0x188);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk18c, 0x18c);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_fElapsedTime, 0x18c);
 DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_fStartTime, 0x190);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk194, 0x194);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk198, 0x198);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk19c, 0x19c);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk1a0, 0x1a0);
-DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_unk1a4, 0x1a4);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_fGroundTrailTimer, 0x194);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_bSteered, 0x198);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_pElementDamage, 0x19c);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_bForcedEnd, 0x1a0);
+DOTD_ASSERT_OFFSET(CKAttackMoveElement, m_fImpulseStartTime, 0x1a4);

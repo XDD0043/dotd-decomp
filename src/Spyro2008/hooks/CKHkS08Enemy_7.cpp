@@ -88,7 +88,7 @@
 // 0x0028bfc0 CKHkS08Enemy_UpdateShadowAndAuraFx_maybe (vt+0x140): the shadow caster updated (vt+0xe4) unless grabbed, or
 // hidden (+0x7c4 clear in states 0 / 0x17 / 0x18 / 0x16): then unregistered; kind 7's hot spot particles while shown.
 void CKHkS08Enemy::UpdateShadowAndAuraFx() {
-    bool unregister = m_unk294 != 0;
+    bool unregister = m_pGrabbingHero != 0;
     if (!unregister && m_unk7c4 == 0) {
         const uint8_t state = m_mainState;
         unregister = state == 0 || state == 0x17 || state == 0x18 || state == 0x16;
@@ -110,7 +110,7 @@ void CKHkS08Enemy::UpdateShadowAndAuraFx() {
 // on a hero moves the slot's first holder of that hero to the back.
 void CKHkS08Enemy::UpdateTargetingAndAwareness(IKTime* clock) {
     CKGrpS08Enemy* group = static_cast<CKGrpS08Enemy*>(g_pEngine->m_gameManager->m_unk04[0]);  // GetEnemyGroup 0x276f58
-    if (group->m_unk1bc == 0) {
+    if (group->m_bAlerted == 0) {
         m_unk37c = m_unk1c4;
         m_unk380 = m_unk1c8;
         m_unk384 = m_unk1cc;
@@ -134,7 +134,7 @@ void CKHkS08Enemy::UpdateTargetingAndAwareness(IKTime* clock) {
     const float kFar = 3.40282347e+38f;  // 0x00c4ace0 (TOC +0xf2c, +0x28): FLT_MAX
     float best = kFar;
     if ((IsInDeathStates() & 0xffu) != 0) {  // 0x0027ce50
-        const RwV3d& hero = FrameLtm(static_cast<CSGMovable*>(static_cast<IKHook*>(m_unk330)->m_pKGLObject)->m_pRwFrame)->pos;
+        const RwV3d& hero = FrameLtm(static_cast<CSGMovable*>(static_cast<IKHook*>(m_pTarget)->m_pKGLObject)->m_pRwFrame)->pos;
         const float dz = m_v3Position.z - hero.z;
         const float dx = m_v3Position.x - hero.x;
         m_unk344 = std::sqrt(ppc::fmadds(dx, dx, dz * dz));
@@ -151,14 +151,14 @@ void CKHkS08Enemy::UpdateTargetingAndAwareness(IKTime* clock) {
                 const float d = ppc::fmadds(dx, dx, dz * dz);
                 if (d < best) {
                     best = d;
-                    m_unk330 = other;
+                    m_pTarget = other;
                 }
             }
             m_unk344 = best == kFar ? best : std::sqrt(best);
         }
     }
-    if (m_unk330 != nullptr) {
-        const RwV3d& target = FrameLtm(static_cast<CSGMovable*>(static_cast<IKHook*>(m_unk330)->m_pKGLObject)->m_pRwFrame)->pos;
+    if (m_pTarget != nullptr) {
+        const RwV3d& target = FrameLtm(static_cast<CSGMovable*>(static_cast<IKHook*>(m_pTarget)->m_pKGLObject)->m_pRwFrame)->pos;
         const float dx = target.x - m_v3Position.x;
         const float dz = target.z - m_v3Position.z;
         m_unk38c = target.y - m_v3Position.y;
@@ -185,12 +185,12 @@ void CKHkS08Enemy::UpdateTargetingAndAwareness(IKTime* clock) {
             }
         }
     }
-    if (m_unk891 != 0 && m_unk330 != nullptr && m_unk330->IsKindOfClass(0x25c2) != 0) {
+    if (m_unk891 != 0 && m_pTarget != nullptr && m_pTarget->IsKindOfClass(0x25c2) != 0) {
         // The attack slots (+0x154 the count, +0x164 the holders): the first holder targeting the same dragon is this
         // enemy, not in state 1 -> it goes to the back of the holders and gets the life flag 0x20000.
-        const uint8_t dragon = static_cast<CKHkS08Hero*>(m_unk330)->GetDragonIndex();  // 0x00361960
+        const uint8_t dragon = static_cast<CKHkS08Hero*>(m_pTarget)->GetDragonIndex();  // 0x00361960
         CKGrpS08Enemy* group = static_cast<CKGrpS08Enemy*>(enemy::EnemyGroup());
-        const uint32_t count = group->m_unk154;
+        const uint32_t count = group->m_ui32ReservedAttackSlotsTotal;
         for (uint32_t i = 0; i < count; ++i) {
             const TVector<IKSerializable*, 1>& holders = static_cast<CKGrpS08Enemy*>(enemy::EnemyGroup())->m_vUnk164;
             CKHkS08Enemy* holder = i < holders.m_ui32NbUsedElt ? static_cast<CKHkS08Enemy*>(holders.m_pBlock[i]) : nullptr;
@@ -223,7 +223,7 @@ void CKHkS08Enemy::SelectTarget() {
         }
         const uint32_t count = group->m_ui32NbActiveEnemies;
         float best = kFar;
-        m_unk330 = nullptr;
+        m_pTarget = nullptr;
         for (uint32_t i = 0; i < count; ++i) {
             IKHook* other = static_cast<IKHook*>(group->m_apActiveEnemies[i]);
             const RwFrame* frame = static_cast<const CSGMovable*>(other->m_pKGLObject)->m_pRwFrame;
@@ -233,15 +233,15 @@ void CKHkS08Enemy::SelectTarget() {
             const float d = ppc::fmadds(dx, dx, dz * dz);
             if (best > d) {
                 best = d;
-                m_unk330 = other;
+                m_pTarget = other;
             }
         }
-        if (m_unk330 != nullptr) return;
+        if (m_pTarget != nullptr) return;
     }
     // The attack slots' holders that target a hero, per dragon (r18: dragon 0, r19: the others).
     uint32_t dragon0 = 0;
     uint32_t dragon1 = 0;
-    const uint32_t slots = group->m_unk154;
+    const uint32_t slots = group->m_ui32ReservedAttackSlotsTotal;
     for (uint32_t i = 0; i < slots; ++i) {
         IKSerializable* holder = i < group->m_vUnk164.m_ui32NbUsedElt ? group->m_vUnk164.m_pBlock[i] : nullptr;
         if (holder == this) continue;
@@ -277,13 +277,13 @@ void CKHkS08Enemy::SelectTarget() {
         const float score = ScoreHeroTarget(static_cast<uint32_t>(i), dragon0, dragon1);
         if (best != score) {
             if (best >= score) continue;
-        } else if (m_unk330 == nullptr || m_unk330 != hero) {
+        } else if (m_pTarget == nullptr || m_pTarget != hero) {
             continue;
         }
         best = score;
         pick = hero;
     }
-    IKSerializable* previous = m_unk330;
+    IKSerializable* previous = m_pTarget;
     if (pick == nullptr) {
         m_unk344 = kFar;
     } else {
@@ -292,7 +292,7 @@ void CKHkS08Enemy::SelectTarget() {
         const float dz = m_v3Position.z - position[2];
         m_unk344 = std::sqrt(ppc::fmadds(dx, dx, dz * dz));  // Math_Sqrtf 0x10690
     }
-    m_unk330 = static_cast<IKHook*>(pick);
+    m_pTarget = static_cast<IKHook*>(pick);
     m_unk830 = previous;
     if (zone->m_unk04 == 5 && crumblies != 0) {
         // The last live crumbly zone (health above 0, its current state's +0xc0 byte set) whose targeting count is at most
@@ -303,7 +303,7 @@ void CKHkS08Enemy::SelectTarget() {
             if (targeting[i] > limit) continue;
             const CKHkS08CrumblyZoneMultiState* crumbly = static_cast<CKHkS08CrumblyZoneMultiState*>(zone->m_vUnk98.m_pBlock[i]);
             if (crumbly->GetTotalHealth() <= 0.0f) continue;  // 0x00413fe8, TOC +0xee8 (ble: a NaN is taken)
-            if (crumbly->m_vUnkC0.m_pBlock[crumbly->m_unk28] == 0) continue;
+            if (crumbly->m_vUnkC0.m_pBlock[crumbly->m_ui32CurrentState] == 0) continue;
             chosen = static_cast<int32_t>(i);
             limit = targeting[i];
         }
@@ -313,15 +313,15 @@ void CKHkS08Enemy::SelectTarget() {
                 m_unk891 = 0;
             }
             IKHook* crumbly = static_cast<IKHook*>(zone->m_vUnk98.m_pBlock[chosen]);
-            m_unk330 = crumbly;
+            m_pTarget = crumbly;
             const RwV3d& at = FrameLtm(static_cast<CSGMovable*>(crumbly->m_pKGLObject)->m_pRwFrame)->pos;
             const float dz = m_v3Position.z - at.z;
             const float dx = m_v3Position.x - at.x;
             m_unk344 = std::sqrt(ppc::fmadds(dx, dx, dz * dz));  // Math_Sqrtf 0x10690
         }
     }
-    if (m_unk830 != nullptr && m_unk830->IsKindOfClass(0x3582) != 0 && m_unk330 != nullptr &&
-        m_unk330->IsKindOfClass(0x25c2) != 0) {
+    if (m_unk830 != nullptr && m_unk830->IsKindOfClass(0x3582) != 0 && m_pTarget != nullptr &&
+        m_pTarget->IsKindOfClass(0x25c2) != 0) {
         m_unk7d8 = -1;
     }
 }
@@ -331,7 +331,7 @@ void CKHkS08Enemy::SelectTarget() {
 float CKHkS08Enemy::ScoreHeroTarget(uint32_t dragon, uint32_t dragon0, uint32_t dragon1) {
     IKGrpHero* heroes = static_cast<IKGrpHero*>(g_pEngine->m_gameManager->m_unk04[1]);
     const uint8_t index = static_cast<uint8_t>(dragon);
-    CKS08EnemyCpnt* cfg = m_unk884;
+    CKS08EnemyCpnt* cfg = m_pActiveEnemyCpnt;
     CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(heroes->m_apHeros[index]);  // 0x002ca080
     const float player = hero->IsPlayerControlled() != 0 ? cfg->m_unk4c0 : 0.0f;  // TOC +0xee8 0.0f
     const float* position = hero->GetPositionPtr();
@@ -355,7 +355,7 @@ float CKHkS08Enemy::ScoreHeroTarget(uint32_t dragon, uint32_t dragon0, uint32_t 
 float CKHkS08Enemy::ScoreTargetCrowding(uint32_t dragon, uint32_t dragon0, uint32_t dragon1) {
     IKGrpHero* heroes = static_cast<IKGrpHero*>(g_pEngine->m_gameManager->m_unk04[1]);
     CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(heroes->m_apHeros[static_cast<uint8_t>(dragon)]);  // 0x002ca080
-    CKS08EnemyCpnt* cfg = m_unk884;
+    CKS08EnemyCpnt* cfg = m_pActiveEnemyCpnt;
     const uint32_t count = hero->GetDragonIndex() == 0 ? dragon0 : dragon1;
     const uint32_t limit = cfg->m_unk4dc;
     float value = 0.0f;  // TOC +0xee8
@@ -382,13 +382,13 @@ void CKHkS08Enemy::UpdateMoveDestination(IKTime* clock) {
     const CVector3 kNull{0.0f, 0.0f, 0.0f};  // TOC +0xf40: 0x00c50d64
     CVector3 targetPoint;  // sp+0x94: the target hero's frame position
     uint8_t picked = 0;    // r27
-    auto isHero = [this]() { return m_unk330 != nullptr && m_unk330->IsKindOfClass(CKHkS08Hero::kClassKey) != 0; };
+    auto isHero = [this]() { return m_pTarget != nullptr && m_pTarget->IsKindOfClass(CKHkS08Hero::kClassKey) != 0; };
     auto isCrumbly = [this]() {
-        return m_unk330 != nullptr && m_unk330->IsKindOfClass(CKHkS08CrumblyZoneMultiState::kClassKey) != 0;
+        return m_pTarget != nullptr && m_pTarget->IsKindOfClass(CKHkS08CrumblyZoneMultiState::kClassKey) != 0;
     };
     auto heroGroupBlocked = []() {
         const CKGrpS08Hero* heroes = static_cast<const CKGrpS08Hero*>(g_pEngine->m_gameManager->m_unk04[1]);  // gm +8
-        return ((heroes->m_unkf8 >> 3) & 1u) != 0;  // 0x002ca258 CKGrpS08Hero_IsInputBlocked_maybe
+        return ((heroes->m_baWorkFlags >> 3) & 1u) != 0;  // 0x002ca258 CKGrpS08Hero_IsInputBlocked_maybe
     };
     auto probe = [this, collision](CVector3* point) {
         collision->GroundProbePoints(&m_GrdContDatasIn, &m_GrdContDatasInOut, &point->x, 1);  // 0x00196540
@@ -423,13 +423,13 @@ void CKHkS08Enemy::UpdateMoveDestination(IKTime* clock) {
         m_unk398 = m_unk1ed;
     };
     auto ownFrame = [this]() { return static_cast<CSGMovable*>(m_pKGLObject)->m_pRwFrame; };
-    auto targetFrame = [this]() { return static_cast<CSGMovable*>(m_unk330->m_pKGLObject)->m_pRwFrame; };
+    auto targetFrame = [this]() { return static_cast<CSGMovable*>(m_pTarget->m_pKGLObject)->m_pRwFrame; };
 
     if (isHero()) goto L6d0;
     m_unk8b0 = 0;
 L46c:
     group = static_cast<CKGrpS08Enemy*>(g_pEngine->m_gameManager->m_unk04[0]);  // GetEnemyGroup 0x276f58
-    if (group->m_unk1bc == 0 || m_unk708 != 0) {
+    if (group->m_bAlerted == 0 || m_unk708 != 0) {
         // L490: the spawn target, the direction flattened.
         spawnTarget();
         m_unk38c = 0.0f;
@@ -438,12 +438,12 @@ L46c:
     }
     // L5cc
     if ((group->m_pCurrentFightZone->m_bitArray & 0x200u) == 0) goto L89c;
-    cfg = m_unk884;
+    cfg = m_pActiveEnemyCpnt;
     if (cfg->m_unk338 != 0 && zone->GetFirstNonNullRef4C() != nullptr && (zone->m_unk04 == 2 || zone->m_unk04 == 5)) {
         goto L80c;
     }
 L628:
-    cfg = m_unk884;
+    cfg = m_pActiveEnemyCpnt;
     if (!heroGroupBlocked() && static_cast<CKGrpSquad*>(m_pGroupSquad)->m_unk94 == 0 && m_unk710 != 0 &&
         cfg->m_vUnk11c.m_ui32NbUsedElt != 0) {
         goto L964;
@@ -458,7 +458,7 @@ L628:
     goto L550;
 
 L6d0: {
-    CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(static_cast<IKSerializable*>(m_unk330));
+    CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(static_cast<IKSerializable*>(m_pTarget));
     if (hero->m_unk1dd1 != 0 || hero->IsAttachedToContextualMeca() != 0) {  // 0x0032a420, 0x0032a010
         m_unk8b0 = 1;
     } else {
@@ -469,7 +469,7 @@ L6d0: {
 
 L80c: {
     if (!isHero()) goto L628;
-    const float* heroPosition = static_cast<CKHkS08Hero*>(static_cast<IKSerializable*>(m_unk330))->GetPositionPtr();
+    const float* heroPosition = static_cast<CKHkS08Hero*>(static_cast<IKSerializable*>(m_pTarget))->GetPositionPtr();
     IKHook* reference = static_cast<IKHook*>(zone->GetFirstNonNullRef4C());  // 0x00274b18
     const RwV3d& at = FrameLtm(static_cast<CSGMovable*>(reference->m_pKGLObject)->m_pRwFrame)->pos;
     const float dz = heroPosition[2] - at.z;
@@ -494,9 +494,9 @@ L6f8: {
     if (m_unk7b4 != 0 || state == 2 || state == 0xd || state == 0xe || state == 0xf || state == 0x1a) goto L7c0;
     if (isHero()) {
         // L928: the hero's height above the ground between 1 and the kind's +0x494.
-        const float height = static_cast<CKHkS08Hero*>(static_cast<IKSerializable*>(m_unk330))->GetHeightAboveGround();
+        const float height = static_cast<CKHkS08Hero*>(static_cast<IKSerializable*>(m_pTarget))->GetHeightAboveGround();
         uint8_t high = 0;
-        if (height > 1.0f) high = height < m_unk884->m_unk494 ? 1 : 0;
+        if (height > 1.0f) high = height < m_pActiveEnemyCpnt->m_unk494 ? 1 : 0;
         m_unk7b4 = high;
     }
     // L778
@@ -533,8 +533,8 @@ L9f8:
         if (m_unk528 <= 7u) SelectAttack();  // 0x0028ed10 (the switch's eight cases)
     }
     // La80
-    cfg = m_unk884;
-    attack = m_unk73c;
+    cfg = m_pActiveEnemyCpnt;
+    attack = m_pCurrentAttack;
     if (attack != nullptr && (m_unk740 >= cfg->m_unk36c || m_unk744 == 0)) {
         // Lab0
         if (m_unk7dc == 0) goto Lb40;
@@ -544,7 +544,7 @@ L9f8:
         m_unk37c = ppc::fmadds(k, m_unk388, at.x);
         m_unk384 = ppc::fmadds(k, m_unk390, at.z);
         m_unk380 = ppc::fmadds(k, m_unk38c, at.y);
-        attack = m_unk73c;
+        attack = m_pCurrentAttack;
     }
     // Lb2c
     if (m_unk7dc != 0) goto Lb6c;
@@ -553,43 +553,43 @@ Lb40:
     if (!(attack->m_unk10 > m_unk344) && !(attack->m_unk14 < m_unk344)) goto L1424;  // bgt / bge
     m_unk7dc = 1;
 Lb6c:
-    cfg = m_unk884;
+    cfg = m_pActiveEnemyCpnt;
     if (attack == nullptr) goto Lc00;
     if (m_unk740 >= cfg->m_unk36c && m_unk7dc != 0) {
         if (m_unk83c == kNull.x && m_unk840 == kNull.y && m_unk844 == kNull.z) {
             ComputeAttackApproachPoint();  // 0x00280e30
             m_bitArray = (m_bitArray & ~0x40000u) | 0x40000u;
-            attack = m_unk73c;
+            attack = m_pCurrentAttack;
         }
     }
 Lbf4:
     if (attack != nullptr) goto Lc5c;
-    cfg = m_unk884;
+    cfg = m_pActiveEnemyCpnt;
 Lc00:
     if (!(m_unk344 < cfg->m_unk4e0)) goto Lc5c;
-    if (m_unk330 == nullptr) goto Lc5c;
+    if (m_pTarget == nullptr) goto Lc5c;
     if (isHero()) {
         // L13cc: in front of the hero by the kind's +0x4e0 along the direction.
-        const float* heroPosition = static_cast<CKHkS08Hero*>(static_cast<IKSerializable*>(m_unk330))->GetPositionPtr();
-        const float k = -m_unk884->m_unk4e0;
+        const float* heroPosition = static_cast<CKHkS08Hero*>(static_cast<IKSerializable*>(m_pTarget))->GetPositionPtr();
+        const float k = -m_pActiveEnemyCpnt->m_unk4e0;
         m_unk37c = ppc::fmadds(k, m_unk388, heroPosition[0]);
         m_unk384 = ppc::fmadds(k, m_unk390, heroPosition[2]);
         m_unk380 = ppc::fmadds(k, m_unk38c, heroPosition[1]);
     }
-    attack = m_unk73c;
+    attack = m_pCurrentAttack;
 Lc5c:
     m_unk81a = 1;
-    if (attack == nullptr || m_unk330 == nullptr) goto Ldf4;
-    if (!(m_unk740 >= m_unk884->m_unk36c)) goto Ldf4;
+    if (attack == nullptr || m_pTarget == nullptr) goto Ldf4;
+    if (!(m_unk740 >= m_pActiveEnemyCpnt->m_unk36c)) goto Ldf4;
     if (m_ui8EnemyClassType == 1 || m_ui8EnemyClassType == 8) goto Le08;
     {
         const RwV3d& at = targetFrame()->modelling.pos;  // +0x40
         targetPoint = CVector3{at.x, at.y, at.z};
         probe(&targetPoint);
         if (m_GrdContDatasInOut.m_eContactStatus != 0) goto Ldf4;
-        if (!(m_GrdContDatasInOut.m_fdH >= m_unk884->m_unk4f8)) goto Ldf4;
+        if (!(m_GrdContDatasInOut.m_fdH >= m_pActiveEnemyCpnt->m_unk4f8)) goto Ldf4;
         m_unk81a = 0;
-        if (m_unk344 <= m_unk884->m_unk4f4) {
+        if (m_unk344 <= m_pActiveEnemyCpnt->m_unk4f4) {
             // Close: stay, facing the hero.
             m_unk37c = m_v3Position.x;
             m_unk380 = m_v3Position.y;
@@ -615,7 +615,7 @@ Lc5c:
                 m_unk388 = dx;
                 m_unk38c = dy;
             }
-            const float k = -m_unk884->m_unk4f4;
+            const float k = -m_pActiveEnemyCpnt->m_unk4f4;
             m_unk37c = ppc::fmadds(k, dx, targetPoint.x);
             m_unk384 = ppc::fmadds(k, dz, targetPoint.z);
             m_unk380 = ppc::fmadds(k, dy, targetPoint.y);
@@ -627,10 +627,10 @@ Le08:
     picked = 0;
 Le0c:
     if (IsInDeathStates() != 0) goto L99c;
-    attack = m_unk73c;
+    attack = m_pCurrentAttack;
     if (attack == nullptr) goto L99c;
     if (!(m_unk2ac <= 0.0f) && m_unk709 == 0 && m_unk8b0 == 0 && !isCrumbly()) goto L99c;
-    if (m_unk6c8 != 0.0f) goto L99c;
+    if (m_fIceGauge != 0.0f) goto L99c;
     if (picked != 0) goto L99c;
     {
         // The flat direction to the target hero.
@@ -645,16 +645,16 @@ Le0c:
             x = x * inverse;
             y = inverse * 0.0f;
         }
-        if (!(m_unk2b0[m_unk32c] <= 0.0f) && m_unk709 == 0 && m_unk8b0 == 0 && !isCrumbly()) goto L99c;
+        if (!(m_afAttackCooldowns[m_unk32c] <= 0.0f) && m_unk709 == 0 && m_unk8b0 == 0 && !isCrumbly()) goto L99c;
         const RwV3d& facingAt = ownFrame()->modelling.at;  // +0x30
         CVector3 facing{facingAt.x, facingAt.y, facingAt.z};
         CVector3 direction{x, y, z};
         const float angle = AngleBetween(&direction, &facing);  // 0x0027eb88
-        attack = m_unk73c;
+        attack = m_pCurrentAttack;
         if (!(attack->m_unk60 > angle)) goto L99c;
         if (attack->m_unk08 == 2) {
             // L1174: only while the sector's animated node was drawn this frame.
-            const CSGLeaf* node = static_cast<const CSGLeaf*>(m_unk18C[GetSectorIndex()]->GetAnimatedNode(0));  // 0x002b3110
+            const CSGLeaf* node = static_cast<const CSGLeaf*>(m_apEnemySectorCpnt[GetSectorIndex()]->GetAnimatedNode(0));  // 0x002b3110
             if (node->m_ui16LastRenderedFrame != g_ui16RenderFrameCounter) goto L99c;  // 0x00c29694
         }
         m_bitArray = (m_bitArray & ~0x10000u) | 0x10000u;  // Lffc
@@ -709,11 +709,11 @@ L1100:
 L1424: {
     const uint32_t r = static_cast<uint32_t>(Rand_Int()) & 0xffffu;  // 0x00011500
     const float roll = static_cast<float>(static_cast<double>(r)) / 65535.0f;  // TOC +0xf24
-    if (roll < m_unk884->m_unk558) {
+    if (roll < m_pActiveEnemyCpnt->m_unk558) {
         m_unk8a8 = 1;
         m_unk7dc = 1;
     }
-    attack = m_unk73c;
+    attack = m_pCurrentAttack;
     goto Lb6c;
 }
 }
@@ -723,7 +723,7 @@ namespace {
 // BUG(original): a holder past the vector's length is read through null.
 uint32_t CountHoldersWith(const CKGrpS08Enemy* group, uint8_t value) {
     uint32_t count = 0;
-    const uint32_t total = group->m_unk154;
+    const uint32_t total = group->m_ui32ReservedAttackSlotsTotal;
     for (uint32_t i = 0; i < total; ++i) {
         const auto* holder = static_cast<const CKHkS08Enemy*>(
             static_cast<int32_t>(i) < static_cast<int32_t>(group->m_vUnk164.m_ui32NbUsedElt) ? group->m_vUnk164.m_pBlock[i]
@@ -740,7 +740,7 @@ uint32_t CountHoldersWith(const CKGrpS08Enemy* group, uint8_t value) {
 // goes to 4 (the count +0x52c reset) once +0x530 reaches the kind's +0x1a8; mode 4 back to 0 (+0x530 reset) once the
 // count reaches the kind's +0x1a4.
 void CKHkS08Enemy::UpdateBehaviourMode(IKTime* /*clock*/) {
-    const CKS08EnemyCpnt* cfg = m_unk884;
+    const CKS08EnemyCpnt* cfg = m_pActiveEnemyCpnt;
     const int32_t behaviour = cfg->m_unk198;
     if (behaviour == 1) {
         if (m_unk528 != 1 && m_unk528 != 0) return;
@@ -757,7 +757,7 @@ void CKHkS08Enemy::UpdateBehaviourMode(IKTime* /*clock*/) {
     if (static_cast<uint32_t>(behaviour) < 1) {
         if (m_unk528 != 0) return;
         const float threshold = static_cast<float>(static_cast<double>(static_cast<uint32_t>(cfg->m_unk19c)));  // fcfid
-        if (m_unk258 <= threshold) m_unk528 = 1;  // cror lt / eq
+        if (m_fHealth <= threshold) m_unk528 = 1;  // cror lt / eq
         return;
     }
     if (behaviour == 3) {
@@ -787,22 +787,22 @@ void CKHkS08Enemy::UpdateBehaviourMode(IKTime* /*clock*/) {
 // score +0x740; a new slot category (+0x7d8) is reserved in the enemy group for a hero target (released first when
 // one is held, +0x891), else just noted. No attacks: +0x73c null.
 void CKHkS08Enemy::SelectAttack() {
-    CKS08EnemyCpnt* cfg = m_unk884;
+    CKS08EnemyCpnt* cfg = m_pActiveEnemyCpnt;
     const uint32_t count = cfg->m_vUnk11c.m_ui32NbUsedElt;  // +0x124
     uint32_t best = 0;
     float bestScore = 0.0f;     // TOC +0xee8
     float currentScore = 0.0f;  // the current attack's score
     for (uint32_t i = 0; i < count; ++i) {
-        cfg = m_unk884;
+        cfg = m_pActiveEnemyCpnt;
         CKS08EnemyAttack* attack = static_cast<CKS08EnemyAttack*>(cfg->m_vUnk11c.m_pBlock[i]);
-        const bool crumbly = m_unk330 != nullptr && m_unk330->IsKindOfClass(CKHkS08CrumblyZoneMultiState::kClassKey) != 0;
+        const bool crumbly = m_pTarget != nullptr && m_pTarget->IsKindOfClass(CKHkS08CrumblyZoneMultiState::kClassKey) != 0;
         float score;
         if ((crumbly || m_unk709 != 0) && attack->m_unk08 != 0) {
             score = 0.0f;
         } else {
             score = ScoreAttack(i);  // 0x0028e758
         }
-        const bool isCurrent = attack == m_unk73c;
+        const bool isCurrent = attack == m_pCurrentAttack;
         if (isCurrent) currentScore = score;
         bool pick;
         if (score == bestScore) {
@@ -822,19 +822,19 @@ void CKHkS08Enemy::SelectAttack() {
             bestScore = score;
         }
     }
-    cfg = m_unk884;
-    m_unk73c = nullptr;
+    cfg = m_pActiveEnemyCpnt;
+    m_pCurrentAttack = nullptr;
     if (cfg->m_vUnk11c.m_ui32NbUsedElt == 0) return;
     CKS08EnemyAttack* chosen = static_cast<CKS08EnemyAttack*>(cfg->m_vUnk11c.m_pBlock[best]);
     m_unk32c = best;
     m_unk740 = bestScore;
-    m_unk73c = chosen;
+    m_pCurrentAttack = chosen;
     const int32_t category = GetAttackSlotCategory(chosen->m_unk08);  // 0x0027d100
     if (m_unk7d8 == category) {
-        if (category == -1) m_unk73c = nullptr;
+        if (category == -1) m_pCurrentAttack = nullptr;
         return;
     }
-    if (m_unk330->IsKindOfClass(CKHkS08Hero::kClassKey) == 0 || m_unk709 != 0) {
+    if (m_pTarget->IsKindOfClass(CKHkS08Hero::kClassKey) == 0 || m_unk709 != 0) {
         m_unk7d8 = category;
         return;
     }
@@ -852,13 +852,13 @@ void CKHkS08Enemy::SelectAttack() {
 // +0x08: 1; 10 for type 0 while +0x709), the cooldown left (+0x2b0, 1 when ready), and the target hero's ground for the
 // attacks of +0x64 1 / 2 / 3 (the ground's height above +0x68, the hero above the ground by 0.2, over the ground).
 float CKHkS08Enemy::ScoreAttack(uint32_t index) {
-    CKS08EnemyCpnt* cfg = m_unk884;
+    CKS08EnemyCpnt* cfg = m_pActiveEnemyCpnt;
     CKS08EnemyAttack* attack = static_cast<CKS08EnemyAttack*>(cfg->m_vUnk11c.m_pBlock[index]);
     const int32_t category = attack->m_unk08 == 1 ? 1 : (attack->m_unk08 == 2 ? 2 : 0);
-    if (m_unk7d8 != category && m_unk330 != nullptr && m_unk330->IsKindOfClass(CKHkS08Hero::kClassKey) != 0) {
+    if (m_unk7d8 != category && m_pTarget != nullptr && m_pTarget->IsKindOfClass(CKHkS08Hero::kClassKey) != 0) {
         CKGrpS08Enemy* group = static_cast<CKGrpS08Enemy*>(g_pEngine->m_gameManager->m_unk04[0]);  // GetEnemyGroup
         if (group->CanReserveAttackSlot(category & 3) == 0) return 0.0f;  // 0x00267848
-        cfg = m_unk884;
+        cfg = m_pActiveEnemyCpnt;
         attack = static_cast<CKS08EnemyAttack*>(cfg->m_vUnk11c.m_pBlock[index]);
     }
     const float distance = m_unk344;
@@ -885,11 +885,11 @@ float CKHkS08Enemy::ScoreAttack(uint32_t index) {
     const int32_t type = attack->m_unk08;
     float typeScore = cfg->m_vUnk370.m_pBlock[type] != 0 ? 1.0f : 0.0f;
     if (m_unk709 != 0 && type == 0) typeScore = 10.0f;  // TOC +0xeec
-    const float timer = m_unk2b0[index];
+    const float timer = m_afAttackCooldowns[index];
     const float readiness = timer >= 0.0f ? (attack->m_unk1c - timer) / attack->m_unk1c : 1.0f;
     CKSrvCollision* collision = static_cast<CKSrvCollision*>(g_pEngine->m_srvCollision);  // TOC +0xf00 -> +0x58
     auto probeTarget = [this, collision]() {
-        const RwV3d& at = static_cast<CSGMovable*>(m_unk330->m_pKGLObject)->m_pRwFrame->modelling.pos;  // +0x40
+        const RwV3d& at = static_cast<CSGMovable*>(m_pTarget->m_pKGLObject)->m_pRwFrame->modelling.pos;  // +0x40
         CVector3 point{at.x, at.y, at.z};
         collision->GroundProbePoints(&m_GrdContDatasIn, &m_GrdContDatasInOut, &point.x, 1);  // 0x00196540
     };
@@ -897,10 +897,10 @@ float CKHkS08Enemy::ScoreAttack(uint32_t index) {
     float groundB = 0.0f;  // the +0x364 term
     float groundC = 0.0f;  // the +0x368 term
     if (m_unk7b4 == 0) {
-        if (m_unk330 != nullptr && attack->m_unk64 == 1) {
+        if (m_pTarget != nullptr && attack->m_unk64 == 1) {
             probeTarget();
             const float flag = m_GrdContDatasInOut.m_eContactStatus == 0 && m_GrdContDatasInOut.m_fdH >= attack->m_unk68 ? 1.0f : 0.0f;
-            cfg = m_unk884;
+            cfg = m_pActiveEnemyCpnt;
             groundA = flag * cfg->m_unk360;
             attack = static_cast<CKS08EnemyAttack*>(cfg->m_vUnk11c.m_pBlock[index]);
             if (m_unk7b4 != 0) goto withHeight;
@@ -913,22 +913,22 @@ float CKHkS08Enemy::ScoreAttack(uint32_t index) {
     }
     groundA = cfg->m_unk360 * 0.0f;
 withHeight:
-    if (m_unk330 != nullptr && attack->m_unk64 == 2) {
+    if (m_pTarget != nullptr && attack->m_unk64 == 2) {
         probeTarget();
         const float flag = m_GrdContDatasInOut.m_eContactStatus != 0 || m_GrdContDatasInOut.m_fdH < 0.2f ? 1.0f : 0.0f;  // TOC +0xf04 (bge)
-        cfg = m_unk884;
+        cfg = m_pActiveEnemyCpnt;
         groundB = flag * cfg->m_unk364;
         attack = static_cast<CKS08EnemyAttack*>(cfg->m_vUnk11c.m_pBlock[index]);
         if (m_unk7b4 == 0) goto sum;
     } else {
-        cfg = m_unk884;
+        cfg = m_pActiveEnemyCpnt;
         groundB = cfg->m_unk364 * 0.0f;
         attack = static_cast<CKS08EnemyAttack*>(cfg->m_vUnk11c.m_pBlock[index]);
     }
-    if (m_unk330 != nullptr && attack->m_unk64 == 3) {
+    if (m_pTarget != nullptr && attack->m_unk64 == 3) {
         probeTarget();
         groundC = m_GrdContDatasInOut.m_eContactStatus == 0 && m_GrdContDatasInOut.m_fdH >= attack->m_unk68 ? 1.0f : 0.0f;
-        cfg = m_unk884;
+        cfg = m_pActiveEnemyCpnt;
     }
 sum:
     float total = typeScore * cfg->m_unk358;
@@ -947,7 +947,7 @@ sum:
 // (in the windup of a type 0 / 3 attack) or +0x498 higher. +0x7dc (moving to the point) cleared within 0.05 of it in
 // x / z; the flying kinds following an actor approach its height instead (+0x7dc set).
 void CKHkS08Enemy::ComputeAttackApproachPoint() {
-    auto targetFrame = [this]() { return static_cast<CSGMovable*>(m_unk330->m_pKGLObject)->m_pRwFrame; };
+    auto targetFrame = [this]() { return static_cast<CSGMovable*>(m_pTarget->m_pKGLObject)->m_pRwFrame; };
     CKSrvPathFinding* pathFinding = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);
     const CVector3 kAxisY{0.0f, 1.0f, 0.0f};  // TOC +0xb10: 0x00c50d40
     // The inlined test after each candidate: the point found in a node (FindSectorForPoint's result unused), inside
@@ -955,7 +955,7 @@ void CKHkS08Enemy::ComputeAttackApproachPoint() {
     auto accepted = [this, pathFinding]() {
         CPFPoint point;
         point.m_position = m_unk338;
-        point.m_unk0c = m_PFCpnt.m_Destination.m_unk0c;  // +0x108
+        point.m_i16GraphNodeIndex = m_PFCpnt.m_Destination.m_i16GraphNodeIndex;  // +0x108
         pathFinding->FindSectorForPoint(&point);  // 0x001e5ca0
         return PointInNodeBox(pathFinding, &point) &&
                (pathFinding->IsPointWalkable(&point, &m_PFCpnt.m_CharacterType) & 0xffu) != 0;  // 0x001e42d0
@@ -980,7 +980,7 @@ void CKHkS08Enemy::ComputeAttackApproachPoint() {
     }
     if (m_mainState != 0xd && m_mainState != 0xe && m_mainState != 0xf && m_unk8a8 != 0) {
         // 0x00281fa8: turned about y by a random angle of the kind's range, either way.
-        const CKS08EnemyCpnt* cfg = m_unk884;
+        const CKS08EnemyCpnt* cfg = m_pActiveEnemyCpnt;
         const uint32_t r0 = static_cast<uint32_t>(Rand_Int()) & 0xffffu;  // 0x00011500
         float angle = ppc::fmadds(static_cast<float>(static_cast<double>(r0)) / 65535.0f, cfg->m_unk560 - cfg->m_unk55c,
                                   cfg->m_unk55c);  // TOC +0xb64
@@ -1002,27 +1002,27 @@ void CKHkS08Enemy::ComputeAttackApproachPoint() {
         m_unk8a8 = 0;
     }
     {
-        const float range = m_unk73c->m_unk0c;
+        const float range = m_pCurrentAttack->m_unk0c;
         const RwV3d& hero = FrameLtm(targetFrame())->pos;
         m_unk338.x = ppc::fmadds(range, x, hero.x);
         m_unk338.z = ppc::fmadds(range, z, hero.z);
         m_unk338.y = ppc::fmadds(y, range, hero.y);
     }
-    if (flyingKind && m_unk330->IsKindOfClass(CKHkS08Hero::kClassKey) != 0) {
+    if (flyingKind && m_pTarget->IsKindOfClass(CKHkS08Hero::kClassKey) != 0) {
         // 0x00281e58: over a ground 0.2 or more below the hero (or none), the height of the hero (the windup of a type
         // 0 / 3 attack) or the kind's +0x498 above the candidate.
         CKSrvCollision* collision = static_cast<CKSrvCollision*>(g_pEngine->m_srvCollision);
         collision->GroundProbePoints(&m_GrdContDatasIn, &m_GrdContDatasInOut, &targetFrame()->modelling.pos.x, 1);  // 0x00196540
         if (m_GrdContDatasInOut.m_eContactStatus != 0 || m_GrdContDatasInOut.m_fdH < 0.2f) {  // bge: NaN keeps the point
-            const CKS08EnemyAttack* attack = m_unk73c;
+            const CKS08EnemyAttack* attack = m_pCurrentAttack;
             if (attack != nullptr && (attack->m_unk08 == 0 || attack->m_unk08 == 3) && m_mainState == 0xd) {
                 m_unk338.y = targetFrame()->modelling.pos.y;
             } else {
-                m_unk338.y = m_unk338.y + m_unk884->m_unk498;
+                m_unk338.y = m_unk338.y + m_pActiveEnemyCpnt->m_unk498;
             }
         }
     }
-    if (m_unk73c != nullptr && !accepted()) {
+    if (m_pCurrentAttack != nullptr && !accepted()) {
         // 0x00280ff0: beyond the hero, then turned.
         const RwV3d& heroPos = FrameLtm(targetFrame())->pos;
         const float hx = heroPos.x;
@@ -1041,7 +1041,7 @@ void CKHkS08Enemy::ComputeAttackApproachPoint() {
             }
         };
         auto place = [this, hx, hy, hz](const CVector3& d) {
-            const float range = m_unk73c->m_unk0c;
+            const float range = m_pCurrentAttack->m_unk0c;
             m_unk338.z = ppc::fmadds(range, d.z, hz);
             m_unk338.x = ppc::fmadds(d.x, range, hx);
             m_unk338.y = ppc::fmadds(range, d.y, hy);
@@ -1068,11 +1068,11 @@ void CKHkS08Enemy::ComputeAttackApproachPoint() {
         }
     }
     // 0x002816e8
-    if (flyingKind && m_unk330->IsKindOfClass(CKHkActorBase::kClassKey) != 0) {
+    if (flyingKind && m_pTarget->IsKindOfClass(CKHkActorBase::kClassKey) != 0) {
         const float heroY = FrameLtm(targetFrame())->pos.y;
         m_unk338.y = heroY;
         float approach[3] = {heroY, 1.0f, m_v3Position.y};  // TOC +0xb44
-        m_v3Position.y = FloatApproach_Step(m_unk1fc, approach);  // 0x002436e8
+        m_v3Position.y = FloatApproach_Step(m_fScaledDt, approach);  // 0x002436e8
         m_unk7dc = 1;
         return;
     }
@@ -1116,43 +1116,43 @@ void CKHkS08Enemy::SetMeshPopFxActive(int32_t active, int32_t positionOnly) {
     CKMeshPopFxData* data = static_cast<CKMeshPopFxData*>(Cfg()->m_pUnk544);
     const CVector3 at = {m_unk850, m_unk854, m_unk858};
     if (active == 0) {
-        if (m_unk87c == nullptr) return;
-        m_unk87c->SetActive(this, 0);       // 0x001cb568
-        m_unk87c->StopAndRelease(this);     // vt+0x58
-        m_unk87c = nullptr;
+        if (m_pBurrowMeshPopFx == nullptr) return;
+        m_pBurrowMeshPopFx->SetActive(this, 0);       // 0x001cb568
+        m_pBurrowMeshPopFx->StopAndRelease(this);     // vt+0x58
+        m_pBurrowMeshPopFx = nullptr;
         return;
     }
     if (positionOnly != 0) {
-        if (m_unk87c == nullptr) return;
-        m_unk87c->SetPositionForOwner(this, &at);  // 0x001c9c08
+        if (m_pBurrowMeshPopFx == nullptr) return;
+        m_pBurrowMeshPopFx->SetPositionForOwner(this, &at);  // 0x001c9c08
         return;
     }
-    if (m_unk87c != nullptr) return;
+    if (m_pBurrowMeshPopFx != nullptr) return;
     data->m_unk08 = nullptr;
     data->m_unk0c = nullptr;
-    m_unk87c = static_cast<CKMeshPopNodeFx*>(
+    m_pBurrowMeshPopFx = static_cast<CKMeshPopNodeFx*>(
         static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(reinterpret_cast<IKFxData*>(data), this));
-    if (m_unk87c == nullptr) return;
-    m_unk87c->SetPositionForOwner(this, &at);
-    m_unk87c->SetActive(this, 1);
+    if (m_pBurrowMeshPopFx == nullptr) return;
+    m_pBurrowMeshPopFx->SetPositionForOwner(this, &at);
+    m_pBurrowMeshPopFx->SetActive(this, 1);
 }
 
 // 0x0028cb88 CKHkS08Enemy_SetFreezeFxActive_maybe (the pooled lookup inlined, as CKSrvFx::AcquireFx)
 void CKHkS08Enemy::SetFreezeFxActive(int32_t active, int32_t hotSpot) {
-    CKMeshPopFxData* data = static_cast<CKMeshPopFxData*>(m_unk884->m_pUnk4f0);
+    CKMeshPopFxData* data = static_cast<CKMeshPopFxData*>(m_pActiveEnemyCpnt->m_pUnk4f0);
     if (active == 0) {
-        if (m_unk878 == nullptr) return;
-        m_unk878->StopAndRelease(this);  // vt+0x58
-        m_unk878 = nullptr;
+        if (m_pFreezeMeshPopFx == nullptr) return;
+        m_pFreezeMeshPopFx->StopAndRelease(this);  // vt+0x58
+        m_pFreezeMeshPopFx = nullptr;
         return;
     }
-    if (m_unk878 != nullptr) return;
+    if (m_pFreezeMeshPopFx != nullptr) return;
     data->m_unk0c = GetHotSpot(hotSpot < 0 ? 1 : hotSpot);  // 0x002892e8
     data->m_unk08 = nullptr;
-    m_unk878 = static_cast<CKMeshPopNodeFx*>(
+    m_pFreezeMeshPopFx = static_cast<CKMeshPopNodeFx*>(
         static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(reinterpret_cast<IKFxData*>(data), this));
-    if (m_unk878 == nullptr) return;
-    m_unk878->TriggerPop(this, 0);  // 0x001caf50
+    if (m_pFreezeMeshPopFx == nullptr) return;
+    m_pFreezeMeshPopFx->TriggerPop(this, 0);  // 0x001caf50
 }
 
 namespace {
@@ -1171,7 +1171,7 @@ void TriggerExplosionAt(IKFxData* data, const CVector3* at, CKHkS08Enemy* owner)
 // 0x0028cec0 CKHkS08Enemy_SpawnShieldDropFx_maybe: the kind's FX 0x15 (+0x128) set off at the sector component's hot
 // spot 4.
 void CKHkS08Enemy::SpawnShieldDropFx() {
-    IKFxData* data = static_cast<IKFxData*>(m_unk884->m_vUnk128.m_pBlock[0x15]);
+    IKFxData* data = static_cast<IKFxData*>(m_pActiveEnemyCpnt->m_vUnk128.m_pBlock[0x15]);
     IKFx* effect = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(data, this);
     if (effect == nullptr) return;
     CKExplosionNodeFx* explosion = static_cast<CKExplosionNodeFx*>(effect);
@@ -1188,17 +1188,17 @@ void CKHkS08Enemy::SpawnShieldDropFx() {
 // BUG(original)?: the test is the other way round from the off branch's (a spark is taken only when one is held); the
 // kind's +0x330 is shared by every enemy of the kind.
 void CKHkS08Enemy::SetStunFxActive(uint8_t on) {
-    CKSparkFxData* data = static_cast<CKSparkFxData*>(m_unk884->m_pUnk32c);
+    CKSparkFxData* data = static_cast<CKSparkFxData*>(m_pActiveEnemyCpnt->m_pUnk32c);
     data->m_unk10 = GetSectorHotSpot(1);  // 0x0028a160
     data->m_unk0c = nullptr;
     if (on == 0) {
-        if (m_unk884->m_unk330 == nullptr) return;
-        StopOwnedSparkEffect(static_cast<CKSparkNodeFx*>(m_unk884->m_unk330), this);  // 0x001d4698
-        m_unk884->m_unk330->ReleaseReservation(this);  // vt+0x54
-        m_unk884->m_unk330 = nullptr;
+        if (m_pActiveEnemyCpnt->m_unk330 == nullptr) return;
+        StopOwnedSparkEffect(static_cast<CKSparkNodeFx*>(m_pActiveEnemyCpnt->m_unk330), this);  // 0x001d4698
+        m_pActiveEnemyCpnt->m_unk330->ReleaseReservation(this);  // vt+0x54
+        m_pActiveEnemyCpnt->m_unk330 = nullptr;
         return;
     }
-    CKS08EnemyCpnt* kind = m_unk884;
+    CKS08EnemyCpnt* kind = m_pActiveEnemyCpnt;
     if (kind->m_unk330 == nullptr) return;
     kind->m_unk330 = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(static_cast<IKFxData*>(kind->m_pUnk32c), this);
 }
@@ -1209,7 +1209,7 @@ void CKHkS08Enemy::PlayFxAtHotspot1(uint32_t fx) {
     if (static_cast<uint8_t>(m_ui8EnemyClassType - 5) > 1) {
         CVector3 at;
         GetHotSpot(1)->GetWorldPosition(&at);  // 0x002892e8, 0x000ce790
-        TriggerExplosionAt(static_cast<IKFxData*>(m_unk884->m_vUnk128.m_pBlock[fx]), &at, this);
+        TriggerExplosionAt(static_cast<IKFxData*>(m_pActiveEnemyCpnt->m_vUnk128.m_pBlock[fx]), &at, this);
         return;
     }
     const uint32_t count = enemy::kHotSpotCount[m_ui8EnemyClassType];  // TOC +0xee0 (0x00a70130)
@@ -1217,7 +1217,7 @@ void CKHkS08Enemy::PlayFxAtHotspot1(uint32_t fx) {
         if (i == 3) continue;
         CVector3 at;
         GetHotSpot(static_cast<int32_t>(i))->GetWorldPosition(&at);
-        TriggerExplosionAt(static_cast<IKFxData*>(m_unk884->m_vUnk128.m_pBlock[fx]), &at, this);
+        TriggerExplosionAt(static_cast<IKFxData*>(m_pActiveEnemyCpnt->m_vUnk128.m_pBlock[fx]), &at, this);
     }
 }
 

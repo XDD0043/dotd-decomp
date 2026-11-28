@@ -101,14 +101,14 @@ CKGameLevel::CKGameLevel() {
     m_vpUnk54.m_ui32NbElt = 8;
     m_vpUnk54.m_pBlock = nullptr;
     m_vpUnk54.m_ui32NbUsedElt = 0;
-    m_ui32NbLocalUnk54 = 0;
+    m_ui32NbLocalSekens = 0;
     m_ui32NbGlobalModules = 0;
     m_ui32NbLocalModules = 0;
     m_ui32NbGlobalSpawnPoints = 0;
     m_ui32NbLocalSpawnPoints = 0;
-    m_ui32NbGlobalUnk48 = 0;
-    m_ui32NbLocalUnk48 = 0;
-    m_ui32NbGlobalUnk54 = 0;
+    m_ui32NbGlobalVideos = 0;
+    m_ui32NbLocalVideos = 0;
+    m_ui32NbGlobalSekens = 0;
 }
 
 // 0x00039410 CKGameLevel_InitLevelData_maybe
@@ -117,8 +117,8 @@ void CKGameLevel::InitializeLevelData() {
     m_pCinematicScene = nullptr;
     m_ui32NbLocalModules = 0;
     m_ui32NbLocalSpawnPoints = 0;
-    m_ui32NbLocalUnk48 = 0;
-    m_ui32NbLocalUnk54 = 0;
+    m_ui32NbLocalVideos = 0;
+    m_ui32NbLocalSekens = 0;
 }
 
 namespace {
@@ -151,8 +151,8 @@ void RemoveLevelEntries(TVector<T*, 8>* list, uint32_t* localCount, bool shrink)
 void CKGameLevel::DestroyLevelData() {
     RemoveLevelEntries(&m_vpModules, &m_ui32NbLocalModules, false);
     RemoveLevelEntries(&m_vpSpawnPoints, &m_ui32NbLocalSpawnPoints, true);
-    RemoveLevelEntries(&m_vpUnk48, &m_ui32NbLocalUnk48, true);
-    RemoveLevelEntries(&m_vpUnk54, &m_ui32NbLocalUnk54, true);
+    RemoveLevelEntries(&m_vpUnk48, &m_ui32NbLocalVideos, true);
+    RemoveLevelEntries(&m_vpUnk54, &m_ui32NbLocalSekens, true);
     IKGameObject::DestroyLevelData();  // 0x42d90
 }
 
@@ -170,7 +170,7 @@ void CKGameLevel::DestroyGameData() {
     freeList(&m_vpSpawnPoints);
     freeList(&m_vpUnk48);
     freeList(&m_vpUnk54);
-    m_pUnk84 = nullptr;
+    m_pLoadingVideo = nullptr;
     IKGameObject::DestroyGameData();  // 0x42da0
 }
 
@@ -189,11 +189,11 @@ void CKGameLevel::InitializeGameData() {
     GameVector_Reserve(&m_vpSpawnPoints);
     GameVector_Reserve(&m_vpUnk48);
     GameVector_Reserve(&m_vpUnk54);
-    m_ui32NbGlobalUnk54 = 0;
-    m_pUnk84 = nullptr;
+    m_ui32NbGlobalSekens = 0;
+    m_pLoadingVideo = nullptr;
     m_ui32NbGlobalModules = 0;
     m_ui32NbGlobalSpawnPoints = 0;
-    m_ui32NbGlobalUnk48 = 0;
+    m_ui32NbGlobalVideos = 0;
 }
 
 // 0x0003a970 CKGameLevel_Load
@@ -202,8 +202,8 @@ int32_t CKGameLevel::Load(IKFile* file, int32_t type) {
     if (type == K_LEVEL_PLATEFORMS) {
         LoadLocalList(file, &m_vpModules, m_ui32NbGlobalModules, &m_ui32NbLocalModules);
         LoadLocalList(file, &m_vpSpawnPoints, m_ui32NbGlobalSpawnPoints, &m_ui32NbLocalSpawnPoints);
-        LoadLocalList(file, &m_vpUnk48, m_ui32NbGlobalUnk48, &m_ui32NbLocalUnk48);
-        LoadLocalList(file, &m_vpUnk54, m_ui32NbGlobalUnk54, &m_ui32NbLocalUnk54);
+        LoadLocalList(file, &m_vpUnk48, m_ui32NbGlobalVideos, &m_ui32NbLocalVideos);
+        LoadLocalList(file, &m_vpUnk54, m_ui32NbGlobalSekens, &m_ui32NbLocalSekens);
         IKFile_ReadRef(file, &m_pCinematicScene);
         return 1;
     }
@@ -213,9 +213,9 @@ int32_t CKGameLevel::Load(IKFile* file, int32_t type) {
     Uuid_Read(m_guidLevelIdentifier, file);
     LoadGlobalList(file, &m_vpModules, &m_ui32NbGlobalModules);
     LoadGlobalList(file, &m_vpSpawnPoints, &m_ui32NbGlobalSpawnPoints);
-    LoadGlobalList(file, &m_vpUnk48, &m_ui32NbGlobalUnk48);
-    LoadGlobalList(file, &m_vpUnk54, &m_ui32NbGlobalUnk54);
-    IKFile_ReadRef(file, &m_pUnk84);
+    LoadGlobalList(file, &m_vpUnk48, &m_ui32NbGlobalVideos);
+    LoadGlobalList(file, &m_vpUnk54, &m_ui32NbGlobalSekens);
+    IKFile_ReadRef(file, &m_pLoadingVideo);
     return 1;
 }
 

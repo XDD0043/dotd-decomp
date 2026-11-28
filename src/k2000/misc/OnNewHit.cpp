@@ -18,11 +18,11 @@
 void OnNewHit(CKS08GameManager* manager, uint8_t dragon, CVector3 /*point*/) {
     const CKHkS08Hero* hero =
         static_cast<const CKHkS08Hero*>(static_cast<IKGrpHero*>(manager->m_unk04[1])->m_apHeros[dragon]);  // 0x002ca080
-    const float factor = (hero->m_unked0 & 0x1000000u) != 0 ? hero->m_unkea0 : 1.0f;  // 0x0032a3b0, TOC +0x2688
+    const float factor = (hero->m_ui32StatusFlagsED0 & 0x1000000u) != 0 ? hero->m_unkea0 : 1.0f;  // 0x0032a3b0, TOC +0x2688
     float base;
     std::memcpy(&base, &manager->m_unkC3C, sizeof base);
-    uint32_t* hits = dragon == 0 ? &manager->m_unkC34 : &manager->m_unkC38;
-    float* timer = dragon == 0 ? &manager->m_fUnkC2C : &manager->m_fUnkC30;
+    uint32_t* hits = dragon == 0 ? &manager->m_ui32SpyroComboHits : &manager->m_ui32CynderComboHits;
+    float* timer = dragon == 0 ? &manager->m_fSpyroComboTimer : &manager->m_fCynderComboTimer;
     *timer = factor * base;
     uint32_t count = *hits + 1;
     if (count > 999) count = 999;

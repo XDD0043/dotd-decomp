@@ -40,9 +40,9 @@
 int32_t INodeFx::Load(IKFile* file, int32_t type) {
     CNode::Load(file, type);
     if (type == K_LEVEL_PLATEFORMS) {
-        ReadU8(file, &m_unk28);
-        ReadU8(file, &m_unk29);
-        ReadU8(file, &m_unk2a);
+        ReadU8(file, &m_bFogEnabled);
+        ReadU8(file, &m_bReceiveShadows);
+        ReadU8(file, &m_bPointLights);
     }
     return 1;
 }
@@ -54,11 +54,11 @@ int32_t INodeFx::PostLoad(int32_t type) {
         for (CGeometry* geometry = static_cast<CGeometry*>(m_lGeometryList); geometry != nullptr;
              geometry = geometry->m_pNext) {
             uint32_t flags = geometry->m_BitProperties;
-            flags = (flags & ~0x400000u) | ((static_cast<uint32_t>(m_unk28) << 22) & 0xffc00000u);
+            flags = (flags & ~0x400000u) | ((static_cast<uint32_t>(m_bFogEnabled) << 22) & 0xffc00000u);
             geometry->m_BitProperties = flags;
-            flags = (flags & ~0x800000u) | ((static_cast<uint32_t>(m_unk29) << 23) & 0xff800000u);
+            flags = (flags & ~0x800000u) | ((static_cast<uint32_t>(m_bReceiveShadows) << 23) & 0xff800000u);
             geometry->m_BitProperties = flags;
-            flags = (flags & ~0x2000000u) | ((static_cast<uint32_t>(m_unk2a) << 25) & 0xfe000000u);
+            flags = (flags & ~0x2000000u) | ((static_cast<uint32_t>(m_bPointLights) << 25) & 0xfe000000u);
             geometry->m_BitProperties = flags;
         }
     }

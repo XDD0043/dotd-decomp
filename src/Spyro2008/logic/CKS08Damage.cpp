@@ -50,7 +50,7 @@ void CKS08GameManager::RequestState(uint8_t state) {
 
 // 0x004ec540 CKS08GameManager_RequestLevelChange_maybe
 uint8_t CKS08GameManager::RequestLevelChange(int32_t level, int32_t sector) {
-    m_unk2FC = 2;
+    m_i32FrontEndEntryMenu = 2;
     m_requestedSector = sector;
     m_requestedLevel = level;
     return 1;
@@ -58,7 +58,7 @@ uint8_t CKS08GameManager::RequestLevelChange(int32_t level, int32_t sector) {
 
 // 0x004ec560 IKCommonGameManager_vf2EC: the front-end level (+0x2cc) requested, sector 0 (vt+0x2e4).
 uint8_t CKS08GameManager::Vf2ECCommon() {
-    return RequestLevelChange(static_cast<CKGameLevel*>(m_unk2CC)->m_i32StageIndex, 0);
+    return RequestLevelChange(static_cast<CKGameLevel*>(m_pFrontEndLevel)->m_i32StageIndex, 0);
 }
 
 // 0x004ec458 IKCommonGameManager_vfCC: the input frame (vt+0x320), then 0 (no slot chosen). CKS08GameManager::VfCC
@@ -76,25 +76,25 @@ uint8_t CKS08GameManager::VfCCCommon() {
 CKS08Damage::CKS08Damage() {
     m_unk26 = 0;
     m_unk1c = 0.0f;
-    m_unk04 = 0.0f;
-    m_unk08 = 0;
-    m_unk0c = 0;
-    m_unk10 = 0.0f;
-    m_unk14 = 0.0f;
+    m_fAmount = 0.0f;
+    m_i32DamageKind = 0;
+    m_bContinuous = 0;
+    m_fKnockbackForce = 0.0f;
+    m_fKnockbackTime = 0.0f;
     m_unk18 = 0;
     m_unk24 = 0;
-    m_unk20 = 0;
+    m_ui32DamageType = 0;
     m_unk25 = 0;
 }
 
 // 0x004ebdf8 CKS08Damage_Load: CKDamage's data, five words and three bytes, whatever the type.
 int32_t CKS08Damage::Load(IKFile* file, int32_t type) {
     CKDamage::Load(file, type);
-    ReadF32LE(file, &m_unk10);
-    ReadF32LE(file, &m_unk14);
+    ReadF32LE(file, &m_fKnockbackForce);
+    ReadF32LE(file, &m_fKnockbackTime);
     ReadU32LE(file, &m_unk18);
     ReadF32LE(file, &m_unk1c);
-    ReadU32LE(file, &m_unk20);
+    ReadU32LE(file, &m_ui32DamageType);
     ReadU8(file, &m_unk24);
     ReadU8(file, &m_unk25);
     ReadU8(file, &m_unk26);
@@ -106,11 +106,11 @@ int32_t CKS08Damage::Load(IKFile* file, int32_t type) {
 // original (only their OPDs; the derived copy constructors call the default constructor 0x4ebce0).
 CKS08Damage::CKS08Damage(const CKS08Damage& other) : CKDamage() {
     m_unk26 = other.m_unk26;
-    m_unk10 = other.m_unk10;
-    m_unk14 = other.m_unk14;
+    m_fKnockbackForce = other.m_fKnockbackForce;
+    m_fKnockbackTime = other.m_fKnockbackTime;
     m_unk18 = other.m_unk18;
     m_unk1c = other.m_unk1c;
-    m_unk20 = other.m_unk20;
+    m_ui32DamageType = other.m_ui32DamageType;
     m_unk24 = other.m_unk24;
     m_unk25 = other.m_unk25;
 }

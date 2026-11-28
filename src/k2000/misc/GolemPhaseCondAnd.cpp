@@ -573,8 +573,8 @@ uint8_t GolemPhaseCondCounter::IsMet(CKGolemAttackCommon* attack) {
 // floats: fcfid / frsp) against +0x0c by the comparison +0x08: 0 above, 1 not below, 2 below, 3 not above, 4 equal.
 uint8_t GolemPhaseCondType9::IsMet(CKGolemAttackCommon* attack) {
     CKHkGolem* golem = GolemOf(attack);
-    const float health = static_cast<float>(static_cast<double>(static_cast<int64_t>(golem->m_unk8C)));
-    const float maximum = static_cast<float>(static_cast<double>(static_cast<int64_t>(golem->m_unk88)));
+    const float health = static_cast<float>(static_cast<double>(static_cast<int64_t>(golem->m_i32Health)));
+    const float maximum = static_cast<float>(static_cast<double>(static_cast<int64_t>(golem->m_i32MaxHealth)));
     const float percent = health / maximum * 100.0f;
     switch (m_unk08) {
     case 0: return m_unk0c < percent ? 1 : 0;

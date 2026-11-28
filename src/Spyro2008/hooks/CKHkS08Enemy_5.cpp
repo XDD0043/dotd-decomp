@@ -109,10 +109,10 @@ const int32_t* const kPairedGrabAnims[9] = {kPairedGrabAnims0, kPairedGrabAnims1
 // 0x00288c58 CKHkS08Enemy_SetGrabbedBy: a hero takes the enemy when none holds it (+0x298 / +0x294, +0x290 set, the
 // position kept at +0x7ec).
 void CKHkS08Enemy::SetGrabbedBy(IKSerializable* hero) {
-    if (m_unk294 != nullptr) return;
-    m_unk298 = hero;
+    if (m_pGrabbingHero != nullptr) return;
+    m_pLastGrabbingHero = hero;
     m_unk290 = 1;
-    m_unk294 = hero;
+    m_pGrabbingHero = hero;
     m_unk7ec = m_v3Position.x;
     m_unk7f4 = m_v3Position.z;
     m_unk7f0 = m_v3Position.y;
@@ -120,8 +120,8 @@ void CKHkS08Enemy::SetGrabbedBy(IKSerializable* hero) {
 
 // 0x00288c98 CKHkS08Enemy_ClearGrabber: the holding hero lets go (the life flag 0x200 cleared).
 void CKHkS08Enemy::ClearGrabber(IKSerializable* hero) {
-    if (m_unk294 != hero) return;
-    m_unk294 = nullptr;
+    if (m_pGrabbingHero != hero) return;
+    m_pGrabbingHero = nullptr;
     m_unk290 = 0;
     m_bitArray = m_bitArray & 0xfffffdffu;  // rlwinm 22 / 10
 }
@@ -140,26 +140,26 @@ uint32_t CKHkS08Enemy::GetAbilityInputFlags() const {
 
 // 0x00288fd0 CKHkS08Enemy_GetGrabbingHero: the holding hero when it is a hero (key 0x25c2), else null.
 IKSerializable* CKHkS08Enemy::GetGrabbingHero() const {
-    if (m_unk294 == nullptr || m_unk294->IsKindOfClass(0x25c2) == 0) return nullptr;  // vt+0x08
-    return m_unk294;
+    if (m_pGrabbingHero == nullptr || m_pGrabbingHero->IsKindOfClass(0x25c2) == 0) return nullptr;  // vt+0x08
+    return m_pGrabbingHero;
 }
 
 // 0x00289060 CKHkS08Enemy_GetTargetHero: the target when it is a hero (key 0x25c2), else null.
 IKSerializable* CKHkS08Enemy::GetTargetHero() const {
-    if (m_unk330 == nullptr || m_unk330->IsKindOfClass(0x25c2) == 0) return nullptr;  // vt+0x08
-    return m_unk330;
+    if (m_pTarget == nullptr || m_pTarget->IsKindOfClass(0x25c2) == 0) return nullptr;  // vt+0x08
+    return m_pTarget;
 }
 
 // 0x002890f0 CKHkS08Enemy_GetTargetRaw
 IKSerializable* CKHkS08Enemy::GetTargetRaw() const {
-    return m_unk330;
+    return m_pTarget;
 }
 
 // 0x002890f8 CKHkS08Enemy_AddPoisonGauge_2: AddPoisonGauge's code again.
 void CKHkS08Enemy::AddPoisonGauge2(float amount) {
-    const float value = ppc::fmadds(amount, m_unk884->m_unk290, m_unk6c0);
-    m_unk6c0 = value;
-    if (!(value <= m_unk884->m_unk24c)) m_unk6c0 = m_unk884->m_unk24c;
+    const float value = ppc::fmadds(amount, m_pActiveEnemyCpnt->m_unk290, m_fPoisonGauge);
+    m_fPoisonGauge = value;
+    if (!(value <= m_pActiveEnemyCpnt->m_unk24c)) m_fPoisonGauge = m_pActiveEnemyCpnt->m_unk24c;
 }
 
 // 0x00289120 CKHkS08Enemy_ClearAttackSlotReservation_maybe
@@ -179,7 +179,7 @@ uint8_t CKHkS08Enemy::IsValidCombatTarget() const {
 
 // 0x002892e8 CKHkS08Enemy_GetHotSpot: hot spot `index` of the sector component.
 CSGHotSpot* CKHkS08Enemy::GetHotSpot(int32_t index) {
-    return static_cast<CSGHotSpot*>(m_unk18C[GetSectorIndex()]->GetHotSpot(static_cast<uint32_t>(index)));  // 0x002771c0, 0x002b31e0
+    return static_cast<CSGHotSpot*>(m_apEnemySectorCpnt[GetSectorIndex()]->GetHotSpot(static_cast<uint32_t>(index)));  // 0x002771c0, 0x002b31e0
 }
 
 // 0x00289370 CKHkS08Enemy_GetAttackSlotCategoryThunk_maybe
@@ -243,25 +243,25 @@ CVector3 CKHkS08Enemy::ComputeGroundPoint() {
 // 0x00289f08 CKHkS08Enemy_SetHeldFlag: while held, the life flag 0x200 (and the bits above it: the value's byte << 9)
 // set from `value`.
 void CKHkS08Enemy::SetHeldFlag(uint32_t value) {
-    if (m_unk294 == nullptr) return;
+    if (m_pGrabbingHero == nullptr) return;
     m_bitArray = (m_bitArray & 0xfffffdffu) | ((value << 9) & 0x1fe00u);
 }
 
 // 0x0028a160 CKHkS08Enemy_GetSectorHotSpot: GetHotSpot's code again.
 IKSerializable* CKHkS08Enemy::GetSectorHotSpot(uint32_t index) {
-    return m_unk18C[GetSectorIndex()]->GetHotSpot(index);
+    return m_apEnemySectorCpnt[GetSectorIndex()]->GetHotSpot(index);
 }
 
 // 0x0028a1c8 CKHkS08Enemy_GetGrabHotSpot_maybe: hot spot 4 (both branches of the kind test, 5 or not, take 4).
 IKSerializable* CKHkS08Enemy::GetGrabHotSpot() {
-    CKEnemySectorCpnt* sector = m_unk18C[GetSectorIndex()];
+    CKEnemySectorCpnt* sector = m_apEnemySectorCpnt[GetSectorIndex()];
     if (m_ui8EnemyClassType != 5) return sector->GetHotSpot(4);
     return sector->GetHotSpot(4);
 }
 
 // 0x0028a268 CKHkS08Enemy_GetSectorHotSpotPosition: hot spot 0 in the world.
 void CKHkS08Enemy::GetSectorHotSpotPosition(CVector3* out) {
-    static_cast<CSGHotSpot*>(m_unk18C[GetSectorIndex()]->GetHotSpot(0))->GetWorldPosition(out);  // 0x000ce790
+    static_cast<CSGHotSpot*>(m_apEnemySectorCpnt[GetSectorIndex()]->GetHotSpot(0))->GetWorldPosition(out);  // 0x000ce790
 }
 
 
@@ -310,7 +310,7 @@ uint8_t CKHkS08Enemy::CanBeHeldAtPosition() {
     line.m_VectDir = CVector3{at.x - m_unk7ec, at.y - m_unk7f0, at.z - m_unk7f4};
     CSlideGroundEdgeDatasOut slide;
     CKSrvCollision* collision = static_cast<CKSrvCollision*>(g_pEngine->m_srvCollision);
-    const uint8_t result = collision->ResolveSweptCylinderWalls(&line, m_unk884->m_MoveCpnt.m_afParams[0], ComponentHeight(),
+    const uint8_t result = collision->ResolveSweptCylinderWalls(&line, m_pActiveEnemyCpnt->m_MoveCpnt.m_afParams[0], ComponentHeight(),
                                                                 &slide, nullptr, nullptr, 1);  // 0x0019aa68
     uint8_t held;
     if (result == 1) {
@@ -387,19 +387,19 @@ float YawFacing(float x, float z) {
 // damage, the velocity cleared, the moving spheres on with the kind's damage, reaction 8, main state 2; a damage with
 // +0x20 clear sets +0x834; the gauge +0x6d0 cleared.
 void CKHkS08Enemy::ApplyThrowImpactDamage(IKSerializable* damage, const CVector3* along) {
-    m_unk27c = static_cast<CKS08Damage*>(damage);
-    const float amount = m_unk27c->m_unk04;
-    if (m_unk258 >= amount) {
-        m_unk258 = m_unk258 - amount;
+    m_pPendingDamage = static_cast<CKS08Damage*>(damage);
+    const float amount = m_pPendingDamage->m_fAmount;
+    if (m_fHealth >= amount) {
+        m_fHealth = m_fHealth - amount;
     } else {
-        m_unk258 = 0.0f;
+        m_fHealth = 0.0f;
     }
-    if (m_unk27c->IsKindOfClass(0x998c) != 0) {  // vt+0x08 CKS08HeroDamage
-        const CKS08StunDamage* stun = static_cast<const CKS08StunDamage*>(static_cast<CKDamage*>(m_unk27c));
+    if (m_pPendingDamage->IsKindOfClass(0x998c) != 0) {  // vt+0x08 CKS08HeroDamage
+        const CKS08StunDamage* stun = static_cast<const CKS08StunDamage*>(static_cast<CKDamage*>(m_pPendingDamage));
         float stunAmount;
-        std::memcpy(&stunAmount, &stun->m_unk28, sizeof stunAmount);
-        m_unk25c = m_unk25c + stunAmount;
-        m_unk278 = m_unk278 + stun->m_unk2c;
+        std::memcpy(&stunAmount, &stun->m_fStunAmount, sizeof stunAmount);
+        m_fStunGauge = m_fStunGauge + stunAmount;
+        m_fDisarmGauge = m_fDisarmGauge + stun->m_fDisarmAmount;
     }
     float yaw;
     if (along->x != 0.0f || along->y != 0.0f || along->z != 0.0f) {  // g_nullVector (TOC +0xe08)
@@ -416,7 +416,7 @@ void CKHkS08Enemy::ApplyThrowImpactDamage(IKSerializable* damage, const CVector3
         }
         yaw = YawFacing(x, z);
     } else {
-        const RwV3d& at = static_cast<CSGMovable*>(m_unk330->m_pKGLObject)->m_pRwFrame->ltm.pos;
+        const RwV3d& at = static_cast<CSGMovable*>(m_pTarget->m_pKGLObject)->m_pRwFrame->ltm.pos;
         m_unk248 = m_v3Position.x - at.x;
         m_unk24c = m_v3Position.y - at.y;
         m_unk250 = m_v3Position.z - at.z;
@@ -431,15 +431,15 @@ void CKHkS08Enemy::ApplyThrowImpactDamage(IKSerializable* damage, const CVector3
         }
         yaw = YawFacing(m_unk248, m_unk250);
     }
-    m_unk154 = yaw;
+    m_fYaw = yaw;
     alignas(16) CMatrix34 basis{};
     basis.m_right = CVector3{-m_unk250, 0.0f, m_unk248};
     basis.m_ui32Flags &= 0xfffdfffcu;
     basis.m_up = CVector3{0.0f, 1.0f, 0.0f};  // 0x00c50d40 (TOC +0xe14)
     basis.m_at = CVector3{m_unk248, m_unk24c, m_unk250};
     float pitch;
-    std::memcpy(&pitch, &m_unk27c->m_unk18, sizeof pitch);
-    Mat4_RotateLocalYDeg(m_unk27c->m_unk1c * -57.2957802f, &basis);  // 0x002413d0, TOC +0xe18
+    std::memcpy(&pitch, &m_pPendingDamage->m_unk18, sizeof pitch);
+    Mat4_RotateLocalYDeg(m_pPendingDamage->m_unk1c * -57.2957802f, &basis);  // 0x002413d0, TOC +0xe18
     Mat4_RotateLocalXDeg(pitch * -57.2957802f, &basis);              // 0x00241118
     m_unk248 = basis.m_at.x;
     m_unk24c = basis.m_at.y;
@@ -452,16 +452,16 @@ void CKHkS08Enemy::ApplyThrowImpactDamage(IKSerializable* damage, const CVector3
         m_unk248 = inverse * m_unk248;
         m_unk24c = inverse * m_unk24c;
     }
-    m_unk270 = m_unk27c->m_unk10;
-    m_unk274 = m_unk27c->m_unk14;
-    m_unk158.x = 0.0f;
-    m_unk158.z = 0.0f;
-    m_unk158.y = 0.0f;
+    m_fKnockbackForce = m_pPendingDamage->m_fKnockbackForce;
+    m_fKnockbackTime = m_pPendingDamage->m_fKnockbackTime;
+    m_v3Speed.x = 0.0f;
+    m_v3Speed.z = 0.0f;
+    m_v3Speed.y = 0.0f;
     SetAttackSpheresActive(1, nullptr);  // inlined: the kind's spheres with its +0x224 damage
     SwitchReactState(8, nullptr);        // the original passes no clock
     SwitchMainState(2, nullptr);
-    if (m_unk27c != nullptr && m_unk27c->m_unk20 == 0) m_unk834 = 1;
-    m_unk6d0 = 0.0f;
+    if (m_pPendingDamage != nullptr && m_pPendingDamage->m_ui32DamageType == 0) m_unk834 = 1;
+    m_fWindGauge = 0.0f;
 }
 
 namespace {
@@ -477,7 +477,7 @@ void CKHkS08Enemy::SetAttackSpheresActive(uint8_t on, IKSerializable* damage) {
         for (uint32_t i = 0; i < count; ++i) ReleaseDynSphere(static_cast<uint8_t>(i));  // vt+0x10c
         return;
     }
-    IKSerializable* given = damage != nullptr ? damage : m_unk884->m_pUnk224;
+    IKSerializable* given = damage != nullptr ? damage : m_pActiveEnemyCpnt->m_pUnk224;
     for (uint32_t i = 0; i < count; ++i) {
         EnableCollisionSphere(i);  // vt+0x108
         static_cast<IKBoundingVolume*>(m_apBVProj[i])->m_unk1c = given;
@@ -491,17 +491,17 @@ uint32_t CKHkS08Enemy::CrossfadeAnimFromDictionary(uint32_t anim, uint32_t mode,
                                                    uint32_t slot) {
     const CAnimationDictionary* dictionary = AnimDictionary(static_cast<uint32_t>(GetSectorIndex()), layer);  // 0x002b3128
     const uint32_t word = static_cast<uint32_t>(dictionary->m_apAnimations[anim]);
-    if (m_unk294 == nullptr) return 0;
+    if (m_pGrabbingHero == nullptr) return 0;
     if ((m_bitArray & 0x200u) == 0) return 0;
-    return m_unk164[layer][slot].m_blendSlot.CrossfadeToAnim(static_cast<double>(blend), static_cast<double>(start), word, mode);
+    return m_apAnimLayerSlots[layer][slot].m_blendSlot.CrossfadeToAnim(static_cast<double>(blend), static_cast<double>(start), word, mode);
 }
 
 // 0x00289df8 CKHkS08Enemy_AdvanceGrabbedAnimTime_maybe: while held (+0x294) with flag 0x200 (+0x0c), the active track
 // of layer `layer` / slot `slot` moves on by `dt`.
 void CKHkS08Enemy::AdvanceGrabbedAnimTime(float dt, uint32_t layer, uint32_t slot) {
-    if (m_unk294 == nullptr) return;
+    if (m_pGrabbingHero == nullptr) return;
     if ((m_bitArray & 0x200u) == 0) return;
-    CKAnmKeyFrameController* track = ActiveTrack(m_unk164[layer][slot]);
+    CKAnmKeyFrameController* track = ActiveTrack(m_apAnimLayerSlots[layer][slot]);
     track->m_unk50 = dt + track->m_unk50;
 }
 

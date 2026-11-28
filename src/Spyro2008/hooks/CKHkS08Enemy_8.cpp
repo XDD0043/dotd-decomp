@@ -76,20 +76,20 @@
 void CKHkS08Enemy::ResetRuntimeState() {
     ResetMovementState();  // 0x00277df8
     m_unk290 = 0;
-    m_unk298 = 0;
-    m_unk238 = 0;
-    m_unk239 = 0;
-    m_unk25c = 0;
+    m_pLastGrabbingHero = 0;
+    m_ui8HitByCount = 0;
+    m_bPendingHit = 0;
+    m_fStunGauge = 0;
     m_unk260 = 0;
     m_unk264 = 0;
-    m_unk294 = 0;
+    m_pGrabbingHero = 0;
     m_unk2a4 = 0;
     m_unk2a8 = 0;
     m_unk2ac = 0;
-    for (uint32_t i = 0; i < 30; ++i) m_unk2b0[i] = 0;
+    for (uint32_t i = 0; i < 30; ++i) m_afAttackCooldowns[i] = 0;
     m_unk344 = 0;
     m_unk32c = 0;
-    m_unk330 = nullptr;
+    m_pTarget = nullptr;
     m_unk348 = 0;
     m_unk328 = 0;
     m_bitArray = m_bitArray & 0xfff8ffffu;
@@ -152,7 +152,7 @@ constexpr uint8_t kDeactivateParticles[9] = {22, 22, 22, 22, 22, 22, 22, 22, 22}
 // under the dynamic scene root.
 void CKHkS08Enemy::Deactivate() {
     IKHkEnemy::Deactivate();  // 0x0027a748 CKHkS08Enemy_UnregisterActive
-    if (m_mainState == 7 && m_unk298 != nullptr) (void)m_unk298->IsKindOfClass(0x25c2);  // vt+0x08, the answer unused
+    if (m_mainState == 7 && m_pLastGrabbingHero != nullptr) (void)m_pLastGrabbingHero->IsKindOfClass(0x25c2);  // vt+0x08, the answer unused
     if (m_mainState != 0xff) CallMainState(m_mainState, nullptr, 2, 0xff);
     m_mainState = 0xff;
     DisableVolumeGroup(0);  // vt+0xfc
@@ -176,20 +176,20 @@ void CKHkS08Enemy::Deactivate() {
         }
         parts[i] = nullptr;
     }
-    if (m_unk524 != nullptr) {
+    if (m_pHeldShield != nullptr) {
         DropShield();  // 0x002915e8
     }
-    if (m_unk520 != nullptr) {
+    if (m_pHeldWeapon != nullptr) {
         // The weapon dropped: its node at its LTM (0x000d0be8), not in hand, under the dynamic scene root, no owner,
         // back in its pool (vt+0xc8), vt+0xcc (empty).
-        CKHkS08Weapon* weapon = m_unk520;
+        CKHkS08Weapon* weapon = m_pHeldWeapon;
         CSGLeaf* node = static_cast<CSGLeaf*>(weapon->m_pKGLObject);
         node->SetLocalMatrix(&node->m_pRwFrame->ltm);  // 0x000d0be8
         weapon->m_inHandA8 = 0;
         if (node->m_pParent != nullptr) node->m_pParent->RemoveChild(node);      // vt+0x78
         static_cast<CSGBranch*>(g_pEngine->m_dynamicSceneRoot)->AddChild(node);  // vt+0x70
         weapon->m_pOwnerB4 = nullptr;
-        m_unk520 = nullptr;
+        m_pHeldWeapon = nullptr;
         weapon->ReturnToPool();  // vt+0xc8 0x002b1558
         weapon->VfCC();          // vt+0xcc
     }
@@ -203,10 +203,10 @@ void CKHkS08Enemy::Deactivate() {
     bool carrying = false;
     if (m_unk738 != nullptr) {
         static_cast<CKHkS08TransportableBase*>(m_unk738)->Vf138(0);  // vt+0x138
-        carrying = static_cast<CKS08CarrierEnemy*>(m_unk734)->IsCarrying() != 0;  // 0x004c7c48
+        carrying = static_cast<CKS08CarrierEnemy*>(m_pCarrierEnemy)->IsCarrying() != 0;  // 0x004c7c48
     }
     if (carrying) DropCarriedTransportableAtHand();  // 0x002945bc (then the carrier's drop too)
-    static_cast<CKS08CarrierEnemy*>(m_unk734)->DropCarriedObject();  // vt+0x6c 0x004c82d0
+    static_cast<CKS08CarrierEnemy*>(m_pCarrierEnemy)->DropCarriedObject();  // vt+0x6c 0x004c82d0
     for (int32_t i = 0; i < 6; ++i) StopTrailRibbon(i);  // vt+0x11c
     if (m_unk891 != 0) {
         CKGrpS08Enemy* group = static_cast<CKGrpS08Enemy*>(g_pEngine->m_gameManager->m_unk04[0]);  // 0x00276f58
@@ -214,17 +214,17 @@ void CKHkS08Enemy::Deactivate() {
         m_unk7d8 = 0xffffffffu;
         m_unk891 = 0;
     }
-    if (m_unk780 != nullptr) {
+    if (m_pAbilityHost != nullptr) {
         // 0x2942b4: the ability stopped, the host deleted.
-        if (m_unk784 != nullptr) {
+        if (m_pSpecialAbility != nullptr) {
             m_unk819 = 0;
             m_unk818 = 0;
-            static_cast<CKAbilityElement*>(m_unk784)->Stop(0);  // vt+0x5c
+            static_cast<CKAbilityElement*>(m_pSpecialAbility)->Stop(0);  // vt+0x5c
         }
-        delete m_unk780;  // vt+0x04
-        m_unk780 = nullptr;
+        delete m_pAbilityHost;  // vt+0x04
+        m_pAbilityHost = nullptr;
     }
-    if (m_unk520 == nullptr && m_unk838 != 0) {
+    if (m_pHeldWeapon == nullptr && m_unk838 != 0) {
         // The weapon dropped in state 0x21 (+0x838): back in its pool (vt+0xc8), vt+0xcc, its state machine (+0xb8)
         // left (phase 2 toward 0xff, no clock) and stopped.
         CKHkS08Weapon* dropped = m_unk838;
@@ -255,7 +255,7 @@ void CKHkS08Enemy::Deactivate() {
             }
         }
     }
-    CSGLeaf* glow = static_cast<CSGLeaf*>(m_unk88C);
+    CSGLeaf* glow = static_cast<CSGLeaf*>(m_pGlowNode);
     if (glow->m_pParent != nullptr) glow->m_pParent->RemoveChild(glow);              // vt+0x78
     static_cast<CSGBranch*>(g_pEngine->m_dynamicSceneRoot)->AddChild(glow);          // TOC +0xf7c -> +0x14, vt+0x70
 }
@@ -336,7 +336,7 @@ void HangUnderHotSpot(IKHook* hook, IKSerializable* sector, uint32_t hotSpot) {
 }
 }  // namespace
 
-CKS08EnemyCpnt* CKHkS08Enemy::Cfg() const { return static_cast<CKS08EnemyCpnt*>(m_unk884); }
+CKS08EnemyCpnt* CKHkS08Enemy::Cfg() const { return static_cast<CKS08EnemyCpnt*>(m_pActiveEnemyCpnt); }
 
 void CKHkS08Enemy::SwitchMainState(uint8_t next, IKTime* clock) {
     const uint8_t old = m_mainState;
@@ -350,7 +350,7 @@ void CKHkS08Enemy::SwitchMainState(uint8_t next, IKTime* clock) {
 // +0x88) is tried, then the next two in turn; with none allowed the slot's default pool (+0x4e4). From the chosen pool a
 // random free element (+0x54) is taken: hung under the slot's hot spot and kept in +0x514. +0x898: a category pool won.
 void CKHkS08Enemy::AttachRandomAccessories() {
-    IKSerializable* sector = m_unk18C[GetSectorIndex()];
+    IKSerializable* sector = m_apEnemySectorCpnt[GetSectorIndex()];
     CKS08FightZoneCpnt* zone = SquadFightZone(m_pGroupSquad)->m_pFightZoneCpnt;
     m_unk898 = 0;
     for (uint32_t i = 0; i < m_unk4E4.m_ui32NbUsedElt; ++i) {
@@ -418,7 +418,7 @@ void CKHkS08Enemy::AttachRandomAccessories() {
 // 0x00292710 CKHkS08Enemy_AttachRandomShield: the shield pools of the kind in order; from the first non-empty one a
 // random shield (the draw past the end skips the pool) is taken (vt+0xc0, vt+0xc4) and hung under hot spot 4.
 void CKHkS08Enemy::AttachRandomShield() {
-    IKSerializable* sector = m_unk18C[GetSectorIndex()];
+    IKSerializable* sector = m_apEnemySectorCpnt[GetSectorIndex()];
     const uint32_t kind = m_ui8EnemyClassType;
     const uint32_t pools = kShieldPoolCount[kind];
     for (uint32_t j = 0; j < pools; ++j) {
@@ -433,28 +433,28 @@ void CKHkS08Enemy::AttachRandomShield() {
         static_cast<CKHkS08Shield*>(shield)->VfC0();  // vt+0xc0 0x002ac398 (empty)
         HangUnderHotSpot(shield, sector, 4);
         static_cast<CKHkS08Shield*>(shield)->TakeFromPool();  // vt+0xc4 0x002ac6e8
-        m_unk524 = shield;
+        m_pHeldShield = shield;
         return;
     }
-    m_unk524 = nullptr;
+    m_pHeldShield = nullptr;
 }
 
 // 0x00292a10 CKHkS08Enemy_EquipWeapon_maybe: a weapon picked up, hung under hot spot 2 and owned (+0xb4).
 void CKHkS08Enemy::EquipWeapon(IKSerializable* weaponObject) {
     CKHkS08Weapon* weapon = static_cast<CKHkS08Weapon*>(weaponObject);
-    IKSerializable* sector = m_unk18C[GetSectorIndex()];
+    IKSerializable* sector = m_apEnemySectorCpnt[GetSectorIndex()];
     HangUnderHotSpot(weapon, sector, 2);
     weapon->m_inHandA8 = 1;
     weapon->m_unkA9 = 0;
     weapon->SetEjected(0);  // 0x002b2bc0
     weapon->SetLanded(0);   // 0x002b2a70
-    m_unk520 = weapon;
+    m_pHeldWeapon = weapon;
     weapon->m_pOwnerB4 = this;
 }
 
 // 0x00292b40 CKHkS08Enemy_AttachRandomWeapon: as the shield, from the weapon pools (hot spot 2, the weapon owned).
 void CKHkS08Enemy::AttachRandomWeapon() {
-    IKSerializable* sector = m_unk18C[GetSectorIndex()];
+    IKSerializable* sector = m_apEnemySectorCpnt[GetSectorIndex()];
     const uint32_t kind = m_ui8EnemyClassType;
     const uint32_t pools = kWeaponPoolCount[kind];
     for (uint32_t j = 0; j < pools; ++j) {
@@ -472,11 +472,11 @@ void CKHkS08Enemy::AttachRandomWeapon() {
         weapon->m_inHandA8 = 1;
         weapon->m_unkA9 = 0;
         weapon->TakeFromPool();  // vt+0xc4 0x2b12f8
-        m_unk520 = weapon;
+        m_pHeldWeapon = weapon;
         weapon->m_pOwnerB4 = this;
         return;
     }
-    m_unk520 = nullptr;
+    m_pHeldWeapon = nullptr;
 }
 
 // 0x00292e60 CKHkS08Enemy_Activate: the enemy comes alive for a spawn: the kind parameters, animation slot 0, health
@@ -485,40 +485,40 @@ void CKHkS08Enemy::AttachRandomWeapon() {
 // this enemy type, the first egg that can take it (state 0).
 void CKHkS08Enemy::Activate() {
     IKHkEnemy::Activate();  // 0x0027b590
-    IKSerializable* sector = m_unk18C[GetSectorIndex()];
-    m_unk884 = m_unk188;
+    IKSerializable* sector = m_apEnemySectorCpnt[GetSectorIndex()];
+    m_pActiveEnemyCpnt = m_pEnemyCpnt;
     m_bitArray = m_bitArray & 0xfd78f0ffu;
     ForceAnimSlot(0, 0, 0, 0);  // 0x00285b98
     m_bitArray = m_bitArray & 0xfffffdffu;
     CSGLeaf* node = SectorAnimatedNode(sector, 0);
     node->m_sgProperties = (node->m_sgProperties & 0xffffdffbu) | 0x2000u;
     CKS08EnemyCpnt* cfg = Cfg();
-    m_unk258 = cfg->m_unkcc;
+    m_fHealth = cfg->m_unkcc;
     const uint32_t r = static_cast<uint32_t>(Rand_Int()) & 0xffffu;
     m_unk290 = 0;
-    m_unk298 = 0;
-    m_unk294 = 0;
+    m_pLastGrabbingHero = 0;
+    m_pGrabbingHero = 0;
     m_unk1f4 = (static_cast<float>(static_cast<double>(r)) / 65535.0f) * cfg->m_unkc0;  // TOC +0xf94
     AttachRandomAccessories();  // 0x002917e0
-    if (g_pEngine->m_gameManager->VfC4() != 0 && m_unk898 == 0) m_unk258 = m_unk258 + m_unk258;
+    if (g_pEngine->m_gameManager->VfC4() != 0 && m_unk898 == 0) m_fHealth = m_fHealth + m_fHealth;
     cfg = Cfg();
     m_unk52c = 0;
     m_unk528 = static_cast<uint32_t>(cfg->m_unk198);
     m_unk530 = 0.0f;
     m_unk67c = 0.0f;
-    m_unk278 = 0.0f;
-    m_unk200 = 1.0f;  // TOC +0xf90
+    m_fDisarmGauge = 0.0f;
+    m_fTimeScale = 1.0f;  // TOC +0xf90
     m_unk204 = 1.0f;
     m_unk254 = cfg->m_unk1f0;
     m_unk6b0 = 0.0f;
-    m_unk6b8 = 0.0f;
+    m_fFireGauge = 0.0f;
     m_unk6bc = 0;
-    m_unk6c0 = 0.0f;
-    m_unk6c4 = 0.0f;
-    m_unk6c8 = 0.0f;
-    m_unk6cc = 0.0f;
-    m_unk6d0 = 0.0f;
-    m_unk6d4 = 0.0f;
+    m_fPoisonGauge = 0.0f;
+    m_fShadowGauge = 0.0f;
+    m_fIceGauge = 0.0f;
+    m_fFearGauge = 0.0f;
+    m_fWindGauge = 0.0f;
+    m_fElectricGauge = 0.0f;
     m_unk6fc = 0;
     m_unk708 = 0;
     m_unk709 = 0;
@@ -527,28 +527,28 @@ void CKHkS08Enemy::Activate() {
     InitAwarenessStateMachine();    // 0x002884b8
     InitHitReactionStateMachine();  // 0x00297250
     InitAuxStateMachine();          // 0x0029dd38
-    m_unk674 = 0;
-    m_unk520 = nullptr;
+    m_pClaimedWeapon = 0;
+    m_pHeldWeapon = nullptr;
     Cfg()->m_unk330 = 0;
     m_unk728 = 0.0f;
     if (m_ui8EnemyClassType == 5 || m_ui8EnemyClassType == 2) {
         AttachRandomShield();  // 0x00292710
-        if (m_unk524 == nullptr && m_unk730 != 0) m_bitArray |= 8u;
+        if (m_pHeldShield == nullptr && m_unk730 != 0) m_bitArray |= 8u;
     } else {
-        m_unk524 = nullptr;
+        m_pHeldShield = nullptr;
     }
     m_unk838 = 0;
     AttachRandomWeapon();  // 0x00292b40
-    if (m_unk520 == nullptr && m_unk730 != 0) m_bitArray |= 8u;
+    if (m_pHeldWeapon == nullptr && m_unk730 != 0) m_bitArray |= 8u;
     m_unk738 = nullptr;
-    static_cast<CKS08CarrierEnemy*>(m_unk734)->Reset();  // vt+0x68 0x004c9720
+    static_cast<CKS08CarrierEnemy*>(m_pCarrierEnemy)->Reset();  // vt+0x68 0x004c9720
     m_unk794 = 0.0f;
     m_unk744 = 0;
     m_unk748 = 0;
     m_unk74c = 0;
     m_unk750 = 0;
     m_unk774 = 1.0f;
-    m_unk780 = nullptr;
+    m_pAbilityHost = nullptr;
     m_unk78c = 0.0f;
     m_unk7b4 = m_ui8EnemyClassType == 8 ? 1 : 0;
     m_unk72c = 0;
@@ -563,7 +563,7 @@ void CKHkS08Enemy::Activate() {
     for (uint32_t i = 0; i < bonus->m_count; ++i) bonus->m_pEntries[i].m_unk18 = 0xffffffffu;
     // BUG(original): +0x7c8 gets an uninitialised stack word (0x70(r1)); DOTD stores 0.
     m_unk7c8 = 0;
-    m_unk73c = 0;
+    m_pCurrentAttack = 0;
     m_unk7cc = 0;
     cfg = Cfg();
     m_unk718 = cfg->m_unkf4;
@@ -572,7 +572,7 @@ void CKHkS08Enemy::Activate() {
     m_unk7dc = 1;
     m_unk7f9 = 0;
     m_unk804 = 0.0f;
-    m_unk694 = nullptr;
+    m_pLastAttacker = nullptr;
     m_unk7dd = 0;
     m_unk7e0 = 0.0f;
     m_unk76c = 0;
@@ -587,17 +587,17 @@ void CKHkS08Enemy::Activate() {
     m_unk83c = 0.0f;  // the zero vector 0x00c50d64 (TOC +0xf98)
     m_unk840 = 0.0f;
     m_unk844 = 0.0f;
-    m_unk878 = nullptr;
-    m_unk87c = 0;
+    m_pFreezeMeshPopFx = nullptr;
+    m_pBurrowMeshPopFx = 0;
     m_unk84c = 0.0f;
     m_unk868 = 0;
-    m_unk880 = 0;
+    m_pBurrowDustFx = 0;
     m_unk86d = 0;
     m_unk86e = 0;
     m_unk86f = 0;
     m_unk870 = 0.0f;
     m_unk874 = 0;
-    m_unk27c = 0;
+    m_pPendingDamage = 0;
     m_unk891 = 0;
     m_unk7a8 = 0.0f;
     m_unk7ac = 0.0f;
@@ -605,7 +605,7 @@ void CKHkS08Enemy::Activate() {
     m_unk79c = 0.0f;
     m_unk7a0 = 0.0f;
     m_unk7a4 = 0.0f;
-    CSGLeaf* glow = static_cast<CSGLeaf*>(m_unk88C);
+    CSGLeaf* glow = static_cast<CSGLeaf*>(m_pGlowNode);
     m_unk89c = 0;
     m_unk8a0 = 0;
     m_unk8a4 = 0.0f;
@@ -627,7 +627,7 @@ void CKHkS08Enemy::Activate() {
     CKGrpFightZone* fightZone = SquadFightZone(m_pGroupSquad);
     CKS08FightZoneCpnt* zone = fightZone->m_pFightZoneCpnt;
     const uint32_t eggs = zone->m_vUnk30.m_ui32NbUsedElt;
-    m_unk680 = nullptr;
+    m_pSpawnEgg = nullptr;
     if (eggs != 0) {
         int32_t waiting = 0;  // the enemies the eggs of this type still hold (+0x54 - +0x58)
         for (uint32_t i = 0; i < eggs; ++i) {
@@ -773,7 +773,7 @@ void CKHkS08Enemy::SpawnAtPosition(const CVector3* position, const CVector3* dir
         yaw = crt::Acosf(z);  // TocBridge_Math_Acosf 0x98e1a0
         if (!(x >= 0.0f)) yaw = 6.28318548f - yaw;  // TOC +0xfd8
     }
-    m_unk154 = yaw;  // +0x154 the yaw
+    m_fYaw = yaw;  // +0x154 the yaw
     SwitchMainState(0, nullptr);
 }
 
@@ -820,32 +820,32 @@ void CKHkS08Enemy::InitMainStateMachine() {
 // 0x002915e8 CKHkS08Enemy_DropShield: a shield (+0x524) falls: the shield-drop FX, the sound 0x2a, its node off its
 // parent (vt+0x78), back in its pool (vt+0xc8), vt+0xcc; +0x524 cleared.
 void CKHkS08Enemy::DropShield() {
-    if (m_unk524 == nullptr) return;
+    if (m_pHeldShield == nullptr) return;
     SpawnShieldDropFx();  // 0x0028cec0
     PlaySound(0x2a, 0, m_pKGLObject);  // 0x002795c0
-    CKHkS08Shield* shield = static_cast<CKHkS08Shield*>(m_unk524);
+    CKHkS08Shield* shield = static_cast<CKHkS08Shield*>(m_pHeldShield);
     CSGLeaf* node = static_cast<CSGLeaf*>(shield->m_pKGLObject);
     if (node->m_pParent != nullptr) {
         node->m_pParent->RemoveChild(node);  // vt+0x78
-        shield = static_cast<CKHkS08Shield*>(m_unk524);
+        shield = static_cast<CKHkS08Shield*>(m_pHeldShield);
     }
     shield->ReturnToPool();  // vt+0xc8 0x002ac900
-    static_cast<CKHkS08Shield*>(m_unk524)->VfCC();  // vt+0xcc 0x002ac3a0 (empty)
-    m_unk524 = nullptr;
+    static_cast<CKHkS08Shield*>(m_pHeldShield)->VfCC();  // vt+0xcc 0x002ac3a0 (empty)
+    m_pHeldShield = nullptr;
 }
 
 // 0x002916f0 CKHkS08Enemy_DetachWeapon_maybe: the held weapon's node keeps its place (its local matrix the LTM), out of
 // the hand, off its parent (vt+0x78) and under the dynamic scene root (vt+0x70), unowned; +0x520 cleared.
 void CKHkS08Enemy::DetachWeapon() {
-    if (m_unk520 == nullptr) return;
-    CSGLeaf* node = static_cast<CSGLeaf*>(m_unk520->m_pKGLObject);
+    if (m_pHeldWeapon == nullptr) return;
+    CSGLeaf* node = static_cast<CSGLeaf*>(m_pHeldWeapon->m_pKGLObject);
     node->SetLocalMatrix(&node->m_pRwFrame->ltm);  // 0x000d0be8
-    m_unk520->m_inHandA8 = 0;
-    CSGLeaf* again = static_cast<CSGLeaf*>(m_unk520->m_pKGLObject);
+    m_pHeldWeapon->m_inHandA8 = 0;
+    CSGLeaf* again = static_cast<CSGLeaf*>(m_pHeldWeapon->m_pKGLObject);
     if (again->m_pParent != nullptr) again->m_pParent->RemoveChild(again);  // vt+0x78
     static_cast<CSGBranch*>(g_pEngine->m_dynamicSceneRoot)->AddChild(again);  // TOC +0xf7c -> +0x14, vt+0x70
-    m_unk520->m_pOwnerB4 = nullptr;
-    m_unk520 = nullptr;
+    m_pHeldWeapon->m_pOwnerB4 = nullptr;
+    m_pHeldWeapon = nullptr;
 }
 
 // The carried transportable (+0x738) dropped on the ground under the hand point (+0x8e4), inlined in Deactivate

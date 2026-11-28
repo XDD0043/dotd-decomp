@@ -42,11 +42,11 @@
 // 0x004f6398 CKS08GameLevelCollectible_InitGameData
 void CKS08GameLevelCollectible::InitializeGameData() {
     KBase1D0C::InitializeGameData();
-    m_unk20 = 0;
-    m_unk1d = 1;
-    m_unk1c = 0;
-    m_unk1e = 0;
-    m_unk1f = 0;
+    m_ui8ArmorSlot = 0;
+    m_ui8Category = 1;
+    m_bCollected = 0;
+    m_ui8DragonIndex = 0;
+    m_ui8ArmorSet = 0;
 }
 
 // 0x004f6268 CKS08GameLevelCollectible_MessageProc: the base's answer combined with its own (3, then 2, win; a base 0
@@ -55,7 +55,7 @@ int32_t CKS08GameLevelCollectible::MessageProc(uint16_t message, void* data) {
     const int32_t base = KBase1D0C::MessageProc(message, data);  // 0x43478: 1
     int32_t own = 1;
     if (message == 0x20a) {
-        if (*static_cast<const uint8_t*>(data) == 0) m_unk1c = 0;
+        if (*static_cast<const uint8_t*>(data) == 0) m_bCollected = 0;
         else ApplyCollect();  // 0x4f5db0
         own = 0;
     }
@@ -69,29 +69,29 @@ int32_t CKS08GameLevelCollectible::MessageProc(uint16_t message, void* data) {
 int32_t CKS08GameLevelCollectible::GetInfo(IKInfo* info, int32_t request) {
     if (request != kGetInfoValueAccessor || info->m_ui32Id != 0x14) return 1;
     // 0x009c6c40 CKS08GameLevelCollectible_GetTriggerProp14: +0x1c.
-    return AnswerInfo(info, [](IKSerializable* o, uint32_t) -> uint32_t { return static_cast<CKS08GameLevelCollectible*>(o)->m_unk1c; }, 0);
+    return AnswerInfo(info, [](IKSerializable* o, uint32_t) -> uint32_t { return static_cast<CKS08GameLevelCollectible*>(o)->m_bCollected; }, 0);
 }
 
 // 0x004f5db0 CKS08GameLevelCollectible_ApplyCollect_maybe
 void CKS08GameLevelCollectible::ApplyCollect() {
     CKS08GameManager* manager = static_cast<CKS08GameManager*>(static_cast<CKGameLevel*>(m_pLevel)->GetGameManager());  // 0x391e0
-    const uint8_t category = m_unk1d;
-    m_unk1c = 1;
+    const uint8_t category = m_ui8Category;
+    m_bCollected = 1;
     CKS08GameStructure* structure = static_cast<CKS08GameStructure*>(manager->m_gameStructure);
     structure->InvalidateCategoryCount(category);  // 0x50ed40
     manager->PlayCollectibleMusic();                // 0x4f8cc0
-    if (m_unk1d == 0) {
-        manager->ShowCollectedItemMessage(m_unk1e, m_unk20, m_unk1f);  // 0x501a08
+    if (m_ui8Category == 0) {
+        manager->ShowCollectedItemMessage(m_ui8DragonIndex, m_ui8ArmorSlot, m_ui8ArmorSet);  // 0x501a08
         if (structure->CountItemsByCategory(0, 1) == 1) manager->QueueFirstCollectibleInfo();  // 0x50f730, 0x4ffdd0
     }
-    if (m_unk1d == 4) manager->QueueCollectibleMessage();  // 0x501938
-    if (m_unk1d == 1) {
+    if (m_ui8Category == 4) manager->QueueCollectibleMessage();  // 0x501938
+    if (m_ui8Category == 1) {
         manager->RefreshDragonStatDisplays(0, 0, 0);  // 0x5022b0
         manager->RefreshDragonStatDisplays(1, 0, 0);
         manager->RefreshHealthShardHud(0, 0);  // 0x5032d0
         manager->RefreshHealthShardHud(1, 0);
     }
-    if (m_unk1d != 2) return;
+    if (m_ui8Category != 2) return;
     manager->RefreshDragonStatDisplays(0, 0, 0);
     manager->RefreshDragonStatDisplays(1, 0, 0);
     manager->RefreshManaShardHud(0, 0);  // 0x502ca0
@@ -102,9 +102,9 @@ void CKS08GameLevelCollectible::ApplyCollect() {
 int32_t CKS08GameLevelCollectible::Load(IKFile* file, int32_t type) {
     KBase1D0C::Load(file, type);
     if (type != kGameStructureBlock) return 1;
-    ReadU8(file, &m_unk1d);
-    ReadU8(file, &m_unk1e);
-    ReadU8(file, &m_unk1f);
-    ReadU8(file, &m_unk20);
+    ReadU8(file, &m_ui8Category);
+    ReadU8(file, &m_ui8DragonIndex);
+    ReadU8(file, &m_ui8ArmorSet);
+    ReadU8(file, &m_ui8ArmorSlot);
     return 1;
 }

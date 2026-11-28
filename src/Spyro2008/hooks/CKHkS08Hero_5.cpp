@@ -87,7 +87,7 @@ void CKHkS08Hero::ShowArmorPieceMesh(uint8_t armor, uint8_t slot) {
 }
 
 // 0x0030b0b8 CKHkS08Hero_ClearArmorBonusFlags_maybe: +0xed0 bits 6..27.
-void CKHkS08Hero::ClearArmorBonusFlags() { m_unked0 &= 0xf000003fu; }
+void CKHkS08Hero::ClearArmorBonusFlags() { m_ui32StatusFlagsED0 &= 0xf000003fu; }
 
 // 0x0030b340 CKHkS08Hero_SetArmorBonusFlags_maybe: the +0xed0 bonus bit of armour `armor` in `slot` (Spyro and Cynder
 // differ for armour 0); with the whole set (`count` 3) its set bit too, and the bit shared with the partner when the
@@ -98,41 +98,41 @@ void CKHkS08Hero::SetArmorBonusFlags(uint8_t armor, uint8_t slot, int32_t count)
     uint32_t sharedBit;
     if (armor == 1) {
         if (slot == 1) {
-            m_unked0 |= 0x80000u;
+            m_ui32StatusFlagsED0 |= 0x80000u;
         } else if (slot == 0) {
-            m_unked0 |= 0x2c000u;
+            m_ui32StatusFlagsED0 |= 0x2c000u;
         } else if (slot == 2) {
-            m_unked0 |= 0x200000u;
+            m_ui32StatusFlagsED0 |= 0x200000u;
         }
         setBit = 0x800000u;
         sharedBit = 0x10000u;
     } else if (armor == 0) {
         if (m_ui8Hero == 0) {
             if (slot == 1) {
-                m_unked0 |= 0x200u;
+                m_ui32StatusFlagsED0 |= 0x200u;
             } else if (slot == 0) {
-                m_unked0 |= 0x40u;
+                m_ui32StatusFlagsED0 |= 0x40u;
             } else if (slot == 2) {
-                m_unked0 |= 0x800u;
+                m_ui32StatusFlagsED0 |= 0x800u;
             }
         } else {
             if (slot == 1) {
-                m_unked0 |= 0x400u;
+                m_ui32StatusFlagsED0 |= 0x400u;
             } else if (slot == 0) {
-                m_unked0 |= 0x1000u;
+                m_ui32StatusFlagsED0 |= 0x1000u;
             } else if (slot == 2) {
-                m_unked0 |= 0x40u;
+                m_ui32StatusFlagsED0 |= 0x40u;
             }
         }
         setBit = 0x2000u;
         sharedBit = 0x400000u;
     } else if (armor == 2) {
         if (slot == 1) {
-            m_unked0 |= 0x100u;
+            m_ui32StatusFlagsED0 |= 0x100u;
         } else if (slot == 0) {
-            m_unked0 |= 0x1000000u;
+            m_ui32StatusFlagsED0 |= 0x1000000u;
         } else if (slot == 2) {
-            m_unked0 |= 0x4000000u;
+            m_ui32StatusFlagsED0 |= 0x4000000u;
         }
         setBit = 0x8000000u;
         sharedBit = 0x2000000u;
@@ -140,8 +140,8 @@ void CKHkS08Hero::SetArmorBonusFlags(uint8_t armor, uint8_t slot, int32_t count)
         return;
     }
     if (count != 3) return;
-    m_unked0 |= setBit;
-    if ((GetPartnerHero()->m_unked0 & setBit) != 0) m_unked0 |= sharedBit;  // 0x002f85f8
+    m_ui32StatusFlagsED0 |= setBit;
+    if ((GetPartnerHero()->m_ui32StatusFlagsED0 & setBit) != 0) m_ui32StatusFlagsED0 |= sharedBit;  // 0x002f85f8
 }
 
 // 0x0030b6b8 CKHkS08Hero_UpdateRegenAndElementTimeout_maybe: the armour bonuses that run every frame (all off without
@@ -155,7 +155,7 @@ void CKHkS08Hero::SetArmorBonusFlags(uint8_t armor, uint8_t slot, int32_t count)
 void CKHkS08Hero::UpdateRegenAndElementTimeout() {
     CKS08GameManager* manager = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager);  // TOC +0x2180 -> +0x8c
     CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_pGrpHero);
-    uint32_t flags = m_unked0;
+    uint32_t flags = m_ui32StatusFlagsED0;
     if ((flags & 0x80000u) != 0) {
         const uint32_t health = manager->GetDragonHealth(m_ui8Hero);  // 0x004fd9c8
         if (health < manager->GetDragonHealthCapacity(m_ui8Hero)) {   // 0x004fd940
@@ -166,7 +166,7 @@ void CKHkS08Hero::UpdateRegenAndElementTimeout() {
                 m_unk1b78 = m_unk1b78 - static_cast<float>(static_cast<double>(whole));
             }
         }
-        flags = m_unked0;
+        flags = m_ui32StatusFlagsED0;
     }
     if ((flags & 0x400u) != 0 && m_unk1ac6 == 0 && m_unk1ac5 == 0) {
         const uint32_t mana = manager->GetDragonMana(m_ui8Hero);  // 0x004fd7c8
@@ -178,16 +178,16 @@ void CKHkS08Hero::UpdateRegenAndElementTimeout() {
                 m_unk1b7c = m_unk1b7c - static_cast<float>(static_cast<double>(whole));
             }
         }
-        flags = m_unked0;
+        flags = m_ui32StatusFlagsED0;
     }
-    if ((flags & 0x4000000u) != 0 && (m_unk354 & 0x2000000u) != 0 && (flags & 0x10u) != 0) {
+    if ((flags & 0x4000000u) != 0 && (m_ui32HeroFlags354 & 0x2000000u) != 0 && (flags & 0x10u) != 0) {
         m_unk1b80 = m_unk1b80 + m_unkea4;
         if (m_unk1b80 >= 1.0f) {
             // The whole part (its low word: rldicl 0,32, then fcfid of that word) goes to the fury; the rest stays.
             const uint32_t whole = static_cast<uint32_t>(ppc::fctidz(m_unk1b80));
             manager->AddDragonFury(m_ui8Hero, whole);  // 0x004fd528
             m_unk1b80 = m_unk1b80 - static_cast<float>(static_cast<double>(whole));
-            flags = m_unked0;
+            flags = m_ui32StatusFlagsED0;
         }
     }
     if ((flags & 0x8000000u) == 0 && m_unk1cc4 == 4 && (flags & 0x10u) == 0) {
@@ -200,10 +200,10 @@ void CKHkS08Hero::UpdateRegenAndElementTimeout() {
         if (m_ui8Hero == 0) hudManager->ShowSpyroSelectedElementHud(shown);    // 0x5039e8
         else hudManager->ShowCynderSelectedElementHud(shown);                 // 0x5024d8
         }
-        flags = m_unked0;
+        flags = m_ui32StatusFlagsED0;
     }
     CKSrvFx* fx = static_cast<CKSrvFx*>(g_pEngine->m_srvFx);  // engine +0x60
-    if ((flags & 0x2000u) != 0 && (m_unk354 & 0x2000000u) != 0 && m_unke4 != nullptr) {
+    if ((flags & 0x2000u) != 0 && (m_ui32HeroFlags354 & 0x2000000u) != 0 && m_unke4 != nullptr) {
         // The combo hit on the touched volume's enemy (+0x24, key 0x26c2, a valid target): Cynder adds +0xe90 to its
         // poison gauge, Spyro sets off an explosion of +0x1b58 at +0xe8 (the inlined CKSrvFx::AcquireFx) dealing +0x1b54
         // as the volume's owner (its owner type, flags 0x2a). No rand.
@@ -230,7 +230,7 @@ void CKHkS08Hero::UpdateRegenAndElementTimeout() {
                 }
             }
         }
-        flags = m_unked0;
+        flags = m_ui32StatusFlagsED0;
     }
     if ((flags & 0x2000000u) != 0 && (flags & 0x10u) != 0) {
         if (m_unk1b68 == nullptr) {
@@ -240,7 +240,7 @@ void CKHkS08Hero::UpdateRegenAndElementTimeout() {
             aura->m_pAttachHotSpot = m_apHotSpots[5];
             m_unk1b68 = fx->AcquireFx(static_cast<CKParticlesEffectFxData*>(m_unk1b64), this);
         }
-        if ((group->m_unkf8 & 0x400u) != 0) {
+        if ((group->m_baWorkFlags & 0x400u) != 0) {
             m_unk1b84 = m_unk1b84 - m_unk88c;
             if (m_unk1b84 <= 0.0f) {  // TOC +0x21a0; cror lt|eq
                 // An explosion of +0x1b5c at hot spot 5 along the node's up row, dealing +0x1b60 (its +0x24 set) as the
@@ -268,15 +268,15 @@ void CKHkS08Hero::UpdateRegenAndElementTimeout() {
                 m_unk1b84 = period;
             }
         }
-        flags = m_unked0;
+        flags = m_ui32StatusFlagsED0;
     }
     if (m_unk1b68 != nullptr && ((flags & 0x2000000u) == 0 || (flags & 0x10u) == 0)) {
         StopOwnedParticleEffect(static_cast<IKFx*>(m_unk1b68), this);  // 0x001cdde8
         static_cast<IKFx*>(m_unk1b68)->ReleaseReservation(this);       // vt+0x54
         m_unk1b68 = nullptr;
-        flags = m_unked0;
+        flags = m_ui32StatusFlagsED0;
     }
-    if ((flags & 0x100000u) != 0 && (m_unk354 & 0x2000000u) != 0) {
+    if ((flags & 0x100000u) != 0 && (m_ui32HeroFlags354 & 0x2000000u) != 0) {
         const uint32_t draw = static_cast<uint32_t>(Rand_Int()) & 0xffffu;  // 0x00011500
         const float chance = m_unke98 / 100.0f;  // TOC +0x2194
         if (!(static_cast<float>(static_cast<double>(draw)) / 65535.0f >= chance)) {  // bge
@@ -289,9 +289,9 @@ void CKHkS08Hero::UpdateRegenAndElementTimeout() {
                                reinterpret_cast<const CVector3*>(&m_unke8), &direction,
                                reinterpret_cast<const CVector3*>(&m_unk54c), 0);  // 0x00126278
         }
-        flags = m_unked0;
+        flags = m_ui32StatusFlagsED0;
     }
-    if ((flags & 0x400000u) != 0 && (group->m_unkf8 & 0x400u) != 0) {
+    if ((flags & 0x400000u) != 0 && (group->m_baWorkFlags & 0x400u) != 0) {
         m_unk1b88 = m_unk1b88 - m_unk88c;
         if (m_unk1b88 <= 0.0f) {
             const float first = RandomPeriod(m_unkeb8, m_unkebc);
@@ -365,27 +365,27 @@ void CKHkS08Hero::ApplyEquippedArmor() {
 uint8_t CKHkS08Hero::AnimLocomotionGround(IKTime* clock, int32_t phase, uint8_t other) {
     const uint32_t* handlers = static_cast<const uint32_t*>(m_unk195c);
     if (phase == 1) {
-        const uint8_t previous = m_unk1960;
+        const uint8_t previous = m_ui8GroundAnimState;
         if (previous != 0xff) CallStateHandler(&handlers[previous * 2u], clock, 2, 0);
-        m_unk1960 = 0;
+        m_ui8GroundAnimState = 0;
         CallStateHandler(&handlers[0], clock, 1, previous);
         return other;
     }
     if (phase == 2) {
-        if (m_unk1960 != 0xff) CallStateHandler(&handlers[m_unk1960 * 2u], clock, 2, 0xff);
-        m_unk1960 = 0xff;
+        if (m_ui8GroundAnimState != 0xff) CallStateHandler(&handlers[m_ui8GroundAnimState * 2u], clock, 2, 0xff);
+        m_ui8GroundAnimState = 0xff;
         m_unk1838 = 0;
         return other;
     }
-    if (phase == 0) RunState(handlers, m_unk1960, clock);
+    if (phase == 0) RunState(handlers, m_ui8GroundAnimState, clock);
     return other;
 }
 
 // 0x0030cad0 CKHkS08Hero_ActivateAttackSphere
 void CKHkS08Hero::ActivateAttackSphere(IKSerializable* volume, int32_t enabled) {
     SetCollisionVolumeEnabled(static_cast<IKBoundingVolume*>(volume), enabled);  // 0x00352f10
-    const uint32_t count = m_unk1bac;
-    m_unk1bac = count + 1;
+    const uint32_t count = m_ui32ActiveHitSphereCount;
+    m_ui32ActiveHitSphereCount = count + 1;
     m_apActiveHitSpheres[count] = volume;
 }
 

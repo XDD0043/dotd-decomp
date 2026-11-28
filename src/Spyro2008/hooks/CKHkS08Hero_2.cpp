@@ -87,7 +87,7 @@ void CKHkS08Hero::ResetMovementFromFrame(int32_t flag) {
     m_unk1368 = frame->modelling.right.x;
     m_unk1370 = frame->modelling.right.z;
     m_unk136c = frame->modelling.right.y;
-    m_unk1808 = 0;
+    m_ui8MovementMode = 0;
     m_unkec4 &= 0xfffffffeu;
     m_unk127c = 0.0f;
     m_unk1284 = 0.0f;
@@ -113,10 +113,10 @@ void CKHkS08Hero::ResetMovementFromFrame(int32_t flag) {
     m_unk1626 = 0;
     m_unk1679 = 0;
     m_unk1677 = 0;
-    m_unk1694 = 0;
+    m_pCurrentClimbZone = 0;
     m_unk1698 = 0;
     m_unk169c = 0;
-    m_unk1690 = 0;
+    m_pHeldClimbZone = 0;
     m_unk16a0 = 0;
     m_unk16a4 = 0;
     m_unk16a8 = 0;
@@ -188,7 +188,7 @@ void CKHkS08Hero::ResetMovementFromFrame(int32_t flag) {
     m_unk1668 = 0.0f;
     m_unk1670 = 0.0f;
     m_unk166c = 0.0f;
-    m_unk1674 = 0;
+    m_bExternalDisplacementActive = 0;
     if (static_cast<IKGrpHero*>(m_pGrpHero)->m_ui8ControlledHeroCount < 2) {
         m_unkec4 = (m_unkec4 & 0xffbfffffu) | 0x400000u;
     }
@@ -201,13 +201,13 @@ void CKHkS08Hero::ResetMovementFromFrame(int32_t flag) {
     m_unk181c = frame->modelling.pos.x;
     m_unk1824 = frame->modelling.pos.z;
     m_unk1820 = frame->modelling.pos.y;
-    CSGLeaf* leaf = static_cast<CSGLeaf*>(m_unk1818);
+    CSGLeaf* leaf = static_cast<CSGLeaf*>(m_pCameraTargetNode);
     if (leaf->m_pParent != nullptr) leaf->m_pParent->RemoveChild(leaf);  // vt+0x78
     static_cast<CSGBranch*>(g_pEngine->m_dynamicSceneRoot)->AddChild(leaf);  // vt+0x70
     leaf->SetLocalMatrix(&frame->modelling);                                // 0x000d0be8
     leaf->ForceWorldMatrixUpdate();                                         // vt+0x50
     m_unk1308 = 0;
-    m_unk1809 = 0;
+    m_bTakeOffPending = 0;
     m_unk1812 = 0;
     m_unk1304 = 0;
     m_unk1305 = 0;
@@ -226,7 +226,7 @@ void CKHkS08Hero::ResetMovementFromFrame(int32_t flag) {
     m_unk19ac = 0;
     m_unk1434 = 0;
     m_unk1440 = 0;
-    m_unk354 = (m_unk354 & 0x7fffffffu) | 0x80000000u;
+    m_ui32HeroFlags354 = (m_ui32HeroFlags354 & 0x7fffffffu) | 0x80000000u;
     m_unk1228 = 4;
     m_unk1539 = 0;
     m_unk1530 = 0;
@@ -297,10 +297,10 @@ void CKHkS08Hero::ResetMovementFromFrame(int32_t flag) {
     m_unk1748 = 0;
     m_unk1198 = 0;
     m_unk11c8 = 0;
-    m_unk11fc.m_eContactStatus = 3;
-    m_unk11fc.m_i32FaceIndex = -1;
-    m_unk11fc.m_ui8SectorNumber = 0;
-    m_unk11fc.m_pGround = nullptr;
+    m_gcContact11FC.m_eContactStatus = 3;
+    m_gcContact11FC.m_i32FaceIndex = -1;
+    m_gcContact11FC.m_ui8SectorNumber = 0;
+    m_gcContact11FC.m_pGround = nullptr;
     m_unk11a8 = 0.0f;
     m_unk11b0 = 0.0f;
     m_unk11ac = 0.0f;
@@ -349,7 +349,7 @@ void CKHkS08Hero::ResetMovementFromFrame(int32_t flag) {
         static_cast<CKAnmKeyFrameController*>(blender->m_apControllers[slot->m_unk10])->SetAnim(0.0f, firstAnimation, false);  // 0x0007ab20
     }
     m_unk368 = (m_unk368 & 0xfffffdffu) | 0x200u;
-    m_unk1458 = 0;
+    m_fFlightHeight = 0;
     m_unk1460 = 0;
     m_unk145c = 1.0f;
     m_unk1468 = 0.0f;
@@ -370,11 +370,11 @@ void CKHkS08Hero::ResetMovementFromFrame(int32_t flag) {
     m_unk1760 = 0;
     m_unk1774 = 0;
     m_unk1770 = 0;
-    m_PFCharacter.m_unk0c = 2.5f;  // TOC1 +0x1f94 (m_unk3ec)
+    m_PFCharacter.m_fMaxStepRise = 2.5f;  // TOC1 +0x1f94 (m_unk3ec)
     m_PFCpnt.m_CharacterType.m_bits = m_PFCharacter.m_bits;
-    m_PFCpnt.m_CharacterType.m_unk04 = m_PFCharacter.m_unk04;
-    m_PFCpnt.m_CharacterType.m_unk08 = m_PFCharacter.m_unk08;
-    m_PFCpnt.m_CharacterType.m_unk0c = m_PFCharacter.m_unk0c;
+    m_PFCpnt.m_CharacterType.m_fRadius = m_PFCharacter.m_fRadius;
+    m_PFCpnt.m_CharacterType.m_fMaxStepHeight = m_PFCharacter.m_fMaxStepHeight;
+    m_PFCpnt.m_CharacterType.m_fMaxStepRise = m_PFCharacter.m_fMaxStepRise;
     m_unk1a08 = 0;
     // The game manager's record of this hero (+0xdf8 + hero * 0x20): the two zero vectors, two bytes and a word.
     CKS08GameManager* manager = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager);
@@ -426,11 +426,11 @@ void CKHkS08Hero::Vf178(IKTime* clock, uint8_t flag) {
         StartJumpOrFall(clock, flag);  // 0x0035e3e8 IKHkHero_StartJumpOrFall_maybe
     }
     if (m_ui8Hero == m_ui8TrackedLeader) return;
-    if ((static_cast<CKGrpS08Hero*>(m_pGrpHero)->m_unk2c8 & 0x80u) == 0) return;
+    if ((static_cast<CKGrpS08Hero*>(m_pGrpHero)->m_ui32PairStateFlags & 0x80u) == 0) return;
     if (m_unk1538 > 1) return;
     if (flag == 0) return;
-    if ((m_unk354 & 2u) == 0) return;
-    m_unk358 = (m_unk358 & 0xffefffffu) | 0x100000u;
+    if ((m_ui32HeroFlags354 & 2u) == 0) return;
+    m_ui32HeroFlags358 = (m_ui32HeroFlags358 & 0xffefffffu) | 0x100000u;
 }
 
 // 0x002f87e8 CKHkS08Hero_IsPartnerClimbFlagSet_maybe: the partner's +0x1679.
@@ -458,9 +458,9 @@ void CKHkS08Hero::UpdateSlopeAngleAndFlagEC8Bit24() {
     float gapA;
     float gapB;
     std::memcpy(&gapA, &group->m_unk2d4[16], 4);  // +0x314
-    std::memcpy(&gapB, &group->m_unk318, 4);      // +0x318
+    std::memcpy(&gapB, &group->m_fHero1ToMidDist, 4);      // +0x318
     bool start = m_unkbcc >= m_unk1378 && (m_unkec4 & 0x20000u) == 0 && !(m_unk12d0 >= m_unkbd0) &&
-                 (m_unk354 & 1u) == 0 && IsAnyComboKindActive() == 0;
+                 (m_ui32HeroFlags354 & 1u) == 0 && IsAnyComboKindActive() == 0;
     if (start && m_ui8TrackedLeader != m_ui8Hero) {
         const float radius = group->GetTetherSpringRadius();  // 0x002ce520
         start = !(gapB + gapA >= radius);
@@ -483,8 +483,8 @@ void CKHkS08Hero::UpdateSlopeAngleAndFlagEC8Bit24() {
 // lists it in front (+0x16b0) or behind (+0x16bc) the hero for the side moves.
 void CKHkS08Hero::HandleClimbZoneContact(ICollision*, IKBoundingVolume* own, IKBoundingVolume* other) {
     const int32_t key = CKHkClimbZone::ClimberKey(this);
-    if (m_unk1694 != nullptr) {
-        CKHkClimbZone* current = m_unk1694;
+    if (m_pCurrentClimbZone != nullptr) {
+        CKHkClimbZone* current = m_pCurrentClimbZone;
         if (current->m_fUnk58 >= 0.0f && current->m_fUnkC0 >= m_unk88c + current->m_fUnk58) {  // TOC +0x1f4c
             m_unk1629 = 1;
             current->RemoveClimber(key);  // 0x00457180
@@ -497,7 +497,7 @@ void CKHkS08Hero::HandleClimbZoneContact(ICollision*, IKBoundingVolume* own, IKB
     if (static_cast<IKBoundingVolume*>(m_apBoundings[1]) == own) {  // 0x0030cac0 CKHkS08Hero_GetBoundingSphere1_maybe
         m_unk1676 = 1;
         bool closer = true;
-        if (m_unk1694 != nullptr) {
+        if (m_pCurrentClimbZone != nullptr) {
             CVector3 probe{m_unk54c, m_unk550, m_unk554};
             alignas(16) CMatrix34 attach;
             zone->GetAttachMatrix(&probe, &attach, 0);  // 0x00458a88
@@ -521,10 +521,10 @@ void CKHkS08Hero::HandleClimbZoneContact(ICollision*, IKBoundingVolume* own, IKB
             const float px = attach.m_pos.x - partner->m_unk54c;
             const float pz = attach.m_pos.z - partner->m_unk554;
             const float distance = std::sqrt(ppc::fmadds(pz, pz, ppc::fmadds(px, px, py * py)));
-            if (!(distance <= static_cast<CKGrpS08Hero*>(m_pGrpHero)->m_unk108) && m_unk1690 != zone) reach = false;  // 0x002ce518
+            if (!(distance <= static_cast<CKGrpS08Hero*>(m_pGrpHero)->m_unk108) && m_pHeldClimbZone != zone) reach = false;  // 0x002ce518
         }
         if (closer && reach) {
-            m_unk1694 = zone;
+            m_pCurrentClimbZone = zone;
             m_unk16a0 = zone->m_pUnk4C;
             if (zone == nullptr) {
                 m_unk1677 = 0;
@@ -536,12 +536,12 @@ void CKHkS08Hero::HandleClimbZoneContact(ICollision*, IKBoundingVolume* own, IKB
         }
     }
     float facing = 0.0f;  // TOC +0x1f4c
-    if (m_unk1694 != nullptr) {
+    if (m_pCurrentClimbZone != nullptr) {
         const CVector3& a = zone->NodeLtm().m_at;
-        const CVector3& b = m_unk1694->NodeLtm().m_at;
+        const CVector3& b = m_pCurrentClimbZone->NodeLtm().m_at;
         facing = ppc::fmadds(a.z, b.z, ppc::fmadds(a.x, b.x, a.y * b.y));
     }
-    if (static_cast<IKBoundingVolume*>(GetCollisionVolume8()) != own || m_unk1694 == zone || (m_unkec4 & 0x20000000u) != 0 ||
+    if (static_cast<IKBoundingVolume*>(GetCollisionVolume8()) != own || m_pCurrentClimbZone == zone || (m_unkec4 & 0x20000000u) != 0 ||
         (m_unkec4 & 0x40000000u) != 0 || !(facing > 0.99f)) {  // 0x0030ce30; TOC +0x1fa4
         return;
     }
@@ -700,7 +700,7 @@ float CKHkS08Hero::GetMass() {
         }
     }
     float armor = 0.0f;  // TOC1 +0x1f4c
-    if ((m_unked4 & 1u) != 0) armor = m_unk1b2c;
+    if ((m_ui32StatusFlagsED4 & 1u) != 0) armor = m_fExtraMass;
     return armor + (mass + extra);
 }
 
@@ -1003,12 +1003,12 @@ void CKHkS08Hero::PlayFootstepSounds(IKTime* clock) {
     if (surface == 0 || surface == 4 || m_unk13d8 != 0) {
         const uint32_t marks = m_unkedc;
         const bool left = (marks & 1u) != 0 || (marks & 4u) != 0;
-        if (IsMovementMode0() != 0 && m_unk1960 <= 0xb) {  // 0x00340178; the jump table at 0x002fac2c
+        if (IsMovementMode0() != 0 && m_ui8GroundAnimState <= 0xb) {  // 0x00340178; the jump table at 0x002fac2c
             float volume = 1.0f;
             float pitch = 1.0f;
             uint32_t sound = 0x12;
             bool play = true;
-            switch (m_unk1960) {
+            switch (m_ui8GroundAnimState) {
                 case 0:
                     volume = group->m_unk208;
                     pitch = group->m_unk20c;
@@ -1035,7 +1035,7 @@ void CKHkS08Hero::PlayFootstepSounds(IKTime* clock) {
             }
         }
         if (IsFlyingMovementMode1() != 0) {
-            const uint8_t state = m_unk18d0;
+            const uint8_t state = m_ui8FlyAnimState;
             if (state == 0xb) {
                 const float pitch = Math_RemapClamped(m_unkae0, m_unkaf4, m_unk12d0, group->m_unk224, group->m_unk22c);
                 const float volume = Math_RemapClamped(m_unkad8, m_unkae4, m_unk12d0, group->m_unk220, group->m_unk228);
@@ -1049,7 +1049,7 @@ void CKHkS08Hero::PlayFootstepSounds(IKTime* clock) {
                 if ((m_unkedc & 2u) != 0 || (m_unkedc & 8u) != 0) PlaySoundIfIdleThunk(1.0f, 1.0f, 7, 1);
             }
         }
-        if (IsClimbingMovementMode2() != 0 && m_unk19a8 == 1) {  // 0x003401a0
+        if (IsClimbingMovementMode2() != 0 && m_ui8ClimbAnimState == 1) {  // 0x003401a0
             if ((m_unkedc & 1u) != 0) PlaySoundIfIdleThunk(1.0f, 1.0f, 0x1c, 1);
             if ((m_unkedc & 2u) != 0) PlaySoundIfIdleThunk(1.0f, 1.0f, 0x1d, 1);
         }

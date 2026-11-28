@@ -247,15 +247,15 @@ void CKHkS08SpawnableMushroom::ProcessDamageContacts() {
                 if (damage->IsKindOfClass(0x998c) != 0) {  // vt+0x08 CKS08HeroDamage
                     if (touched != 0) {
                         apply = true;
-                        amount = damage->m_unk0c != 0 ? dt * damage->m_unk04 : damage->m_unk04;
+                        amount = damage->m_bContinuous != 0 ? dt * damage->m_fAmount : damage->m_fAmount;
                     }
                 } else if (damage->IsKindOfClass(0x99cc) != 0 || damage->IsKindOfClass(0x970c) != 0) {
-                    if (damage->m_unk0c != 0) {
+                    if (damage->m_bContinuous != 0) {
                         apply = true;
-                        amount = dt * damage->m_unk04;
+                        amount = dt * damage->m_fAmount;
                     } else if (touched != 0) {
                         apply = true;
-                        amount = damage->m_unk04;
+                        amount = damage->m_fAmount;
                     }
                 }
                 if (apply && !(amount <= 0.0f)) {

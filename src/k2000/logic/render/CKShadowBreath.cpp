@@ -96,33 +96,33 @@ float Sqrtf(float x) { return static_cast<float>(std::sqrt(static_cast<double>(x
 int32_t CKShadowBreath::Load(IKFile* file, int32_t type) {
     CKBreathElement::Load(file, type);
     if (type != K_LEVEL_PLATEFORMS) return 1;
-    IKFile_ReadRef(file, &m_unk1a0);
-    IKFile_ReadRef(file, &m_unk1d4);
-    IKFile_ReadRef(file, &m_unk1d8);
-    IKFile_ReadRef(file, &m_unk1e0);
-    IKFile_ReadRef(file, &m_unk1a8[0]);
-    IKFile_ReadRef(file, &m_unk1a8[1]);
-    IKFile_ReadRef(file, &m_unk1a8[2]);
+    IKFile_ReadRef(file, &m_pSparkFxData);
+    IKFile_ReadRef(file, &m_pAnimFxLevel1);
+    IKFile_ReadRef(file, &m_pAnimFxLevel2);
+    IKFile_ReadRef(file, &m_pSoundDico);
+    IKFile_ReadRef(file, &m_apParticlesFxData[0]);
+    IKFile_ReadRef(file, &m_apParticlesFxData[1]);
+    IKFile_ReadRef(file, &m_apParticlesFxData[2]);
     for (uint32_t i = 0; i < 10; ++i) ReadF32LE(file, &m_unk178[i]);  // ten separate 4-byte reads
-    IKFile_ReadRef(file, &m_unk1e4);
-    IKFile_ReadRef(file, &m_unk1e8);
-    IKFile_ReadRef(file, &m_unk1ec);
-    ReadF32LE(file, &m_unk1f0);
-    ReadF32LE(file, &m_unk1f4);
-    ReadF32LE(file, &m_unk1f8);
-    ReadF32LE(file, &m_unk1fc);
-    ReadF32LE(file, &m_unk200);
-    IKFile_ReadRef(file, &m_unk1b8[0]);
-    IKFile_ReadRef(file, &m_unk1b8[1]);
-    IKFile_ReadRef(file, &m_unk1b8[2]);
-    for (uint32_t i = 0; i < 3; ++i) ReadF32LE(file, &m_unk1c8[i]);
+    IKFile_ReadRef(file, &m_pAimCamembert);
+    IKFile_ReadRef(file, &m_pLevel2Projectile);
+    IKFile_ReadRef(file, &m_pLevel2ProjectileDamage);
+    ReadF32LE(file, &m_fShotSpeedBase);
+    ReadF32LE(file, &m_fShotSpeedSpread);
+    ReadF32LE(file, &m_fShotIntervalBase);
+    ReadF32LE(file, &m_fShotIntervalSpread);
+    ReadF32LE(file, &m_fShotHeightOffset);
+    IKFile_ReadRef(file, &m_apPointLightFxData[0]);
+    IKFile_ReadRef(file, &m_apPointLightFxData[1]);
+    IKFile_ReadRef(file, &m_apPointLightFxData[2]);
+    for (uint32_t i = 0; i < 3; ++i) ReadF32LE(file, &m_afPointLightReach[i]);
     return 1;
 }
 
 // 0x003d42d0 CKShadowBreath_Start
 void CKShadowBreath::Start(CKS08AbilityHostBase* host) {
     m_pLoopSound = nullptr;
-    m_fShotTimer = m_unk1f8;
+    m_fShotTimer = m_fShotIntervalBase;
     CKBreathElement::Start(host);  // 0x00380f50
 }
 
@@ -139,27 +139,27 @@ void CKShadowBreath::End(int32_t forced) {
 void CKShadowBreath::ResetRuntime(int32_t type) {
     m_pLoopSound = nullptr;
     CKBreathElement::ResetRuntime(type);  // 0x00381ed8
-    m_unk1a4 = nullptr;
+    m_pSparkNodeFx = nullptr;
     m_unk1b4 = nullptr;
-    m_unk1dc = nullptr;
-    m_unk1c4 = nullptr;
+    m_pActiveAnimFx = nullptr;
+    m_pPointLightNodeFx = nullptr;
     m_fShotTimer = 0.0f;
-    m_unk15c = 2;
-    static_cast<CKS08ElementDamage*>(m_unk1ec)->SetAbilityId(GetAbilityId());  // vt+0x68, vt+0x50
-    m_unk15d = 0;
+    m_ui8HotspotIndex = 2;
+    static_cast<CKS08ElementDamage*>(m_pLevel2ProjectileDamage)->SetAbilityId(GetAbilityId());  // vt+0x68, vt+0x50
+    m_ui8ButtonIndex = 0;
     m_fRoll = 0.0f;
 }
 
 // 0x003d4040 CKShadowBreath_SelectSound_maybe
 CKSound* CKShadowBreath::SelectSound(int32_t which) {
-    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_unk1e0);
+    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_pSoundDico);
     if (which == 0) return sounds->GetSound(0);  // 0x00112bc0
     if (which != 1) return nullptr;
     auto playable = [sounds](uint32_t index) {
         return sounds->GetSound(index) != nullptr && sounds->GetSound(index)->GetSample() != nullptr;  // 0x00111000
     };
-    if (m_unk04 == 1 || m_unk04 == 2) {
-        if (m_unk04 == 2 && playable(3)) return sounds->GetSound(3);
+    if (m_dwLevelIndex == 1 || m_dwLevelIndex == 2) {
+        if (m_dwLevelIndex == 2 && playable(3)) return sounds->GetSound(3);
         if (playable(2)) return sounds->GetSound(2);
     }
     return sounds->GetSound(1);
@@ -192,9 +192,9 @@ CVector3 CKShadowBreath::GetEmitterPosition(uint8_t raw) {
 // constants at +0x40xx are the same values)
 void CKShadowBreath::ConfigureSparkNode(int32_t on) {
     if (on == 0) return;
-    CKSparkNodeFx* spark = static_cast<CKSparkNodeFx*>(m_unk1a4);
+    CKSparkNodeFx* spark = static_cast<CKSparkNodeFx*>(m_pSparkNodeFx);
     if (spark == nullptr) return;
-    const float ratio = m_unk44[m_unk04] / m_unk44[0];
+    const float ratio = m_afConeAngleDeg[m_dwLevelIndex] / m_afConeAngleDeg[0];
     float scaleA = ratio;  // the range 0x40's
     float scaleB = ratio;  // the range 0x50's
     float scaleC = ratio;  // the speed's
@@ -217,10 +217,10 @@ void CKShadowBreath::ConfigureSparkNode(int32_t on) {
     const float axisA[3] = {0.0f, 0.0f, mid};
     const float axisB[3] = {sine, 0.0f, 1.0f - mid};
     spark->SetParamVec2_40(rangeA);                                                 // 0x001d3f88
-    static_cast<CKSparkNodeFx*>(m_unk1a4)->SetParamVec2_50(rangeB);                 // 0x001d3fd8
-    static_cast<CKSparkNodeFx*>(m_unk1a4)->SetParamFloat_68(scaleC * m_unk178[8]);  // 0x001d4028 (+0x198)
-    static_cast<CKSparkNodeFx*>(m_unk1a4)->SetParamVec3_10(axisA);                  // 0x001d4048
-    static_cast<CKSparkNodeFx*>(m_unk1a4)->SetParamVec3_1c(axisB);                  // 0x001d40b0
+    static_cast<CKSparkNodeFx*>(m_pSparkNodeFx)->SetParamVec2_50(rangeB);                 // 0x001d3fd8
+    static_cast<CKSparkNodeFx*>(m_pSparkNodeFx)->SetParamFloat_68(scaleC * m_unk178[8]);  // 0x001d4028 (+0x198)
+    static_cast<CKSparkNodeFx*>(m_pSparkNodeFx)->SetParamVec3_10(axisA);                  // 0x001d4048
+    static_cast<CKSparkNodeFx*>(m_pSparkNodeFx)->SetParamVec3_1c(axisB);                  // 0x001d40b0
 }
 
 // 0x003d6b38 CKShadowBreath_SetFxActive (SetFireBreathEffectsActive's code, the loop sound at +0x204). The three pooled
@@ -229,23 +229,23 @@ void CKShadowBreath::SetFxActive(uint8_t on) {
     CKSrvFx* fx = FxService();
     if (on == 0) {
         ConfigureSparkNode(0);
-        if (m_unk1a4 != nullptr) {
-            StopOwnedSparkEffect(static_cast<CKSparkNodeFx*>(m_unk1a4), this);  // 0x001d4698
-            static_cast<IKFx*>(m_unk1a4)->ReleaseReservation(this);           // vt+0x54
-            m_unk1a4 = nullptr;
+        if (m_pSparkNodeFx != nullptr) {
+            StopOwnedSparkEffect(static_cast<CKSparkNodeFx*>(m_pSparkNodeFx), this);  // 0x001d4698
+            static_cast<IKFx*>(m_pSparkNodeFx)->ReleaseReservation(this);           // vt+0x54
+            m_pSparkNodeFx = nullptr;
         }
         if (m_unk1b4 != nullptr) {
             StopOwnedParticleEffect(static_cast<IKFx*>(m_unk1b4), this);  // 0x001cdde8
             static_cast<IKFx*>(m_unk1b4)->ReleaseReservation(this);
             m_unk1b4 = nullptr;
         }
-        if (m_unk1dc != nullptr) {
-            static_cast<CKAnimatedFxCollection*>(m_unk1dc)->Stop();  // TocBridge -> 0x005cc990
-            m_unk1dc = nullptr;
+        if (m_pActiveAnimFx != nullptr) {
+            static_cast<CKAnimatedFxCollection*>(m_pActiveAnimFx)->Stop();  // TocBridge -> 0x005cc990
+            m_pActiveAnimFx = nullptr;
         }
-        if (m_unk1c4 != nullptr) {
-            static_cast<IKFx*>(m_unk1c4)->StopAndRelease(this);  // vt+0x58
-            m_unk1c4 = nullptr;
+        if (m_pPointLightNodeFx != nullptr) {
+            static_cast<IKFx*>(m_pPointLightNodeFx)->StopAndRelease(this);  // vt+0x58
+            m_pPointLightNodeFx = nullptr;
         }
         if (m_pLoopSound != nullptr) {
             Sound_Stop(m_pLoopSound, 0);
@@ -253,22 +253,22 @@ void CKShadowBreath::SetFxActive(uint8_t on) {
         }
         return;
     }
-    CSGHotSpot* spot = static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_unk15c));  // vt+0xcc
+    CSGHotSpot* spot = static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_ui8HotspotIndex));  // vt+0xcc
     // The spark burst under the hot spot.
-    CKSparkFxData* sparkData = static_cast<CKSparkFxData*>(m_unk1a0);
+    CKSparkFxData* sparkData = static_cast<CKSparkFxData*>(m_pSparkFxData);
     sparkData->m_unk10 = spot;
     sparkData->m_unk0c = nullptr;
-    m_unk1a4 = fx->AcquireFx(sparkData, this);
+    m_pSparkNodeFx = fx->AcquireFx(sparkData, this);
     // The level's particle effect following the hot spot.
-    CKParticlesEffectFxData* particles = static_cast<CKParticlesEffectFxData*>(m_unk1a8[m_unk04]);
+    CKParticlesEffectFxData* particles = static_cast<CKParticlesEffectFxData*>(m_apParticlesFxData[m_dwLevelIndex]);
     particles->m_pAttachOwner = nullptr;
     particles->m_pAttachHotSpot = spot;
     m_unk1b4 = fx->AcquireFx(particles, this);
     ConfigureSparkNode(1);
     // Levels 1 and 2: the animated collection on the hero's rigs.
-    if (m_unk04 != 0) {
-        CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_unk04 == 1 ? m_unk1d4 : m_unk1d8);
-        m_unk1dc = collection;
+    if (m_dwLevelIndex != 0) {
+        CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_dwLevelIndex == 1 ? m_pAnimFxLevel1 : m_pAnimFxLevel2);
+        m_pActiveAnimFx = collection;
         // vt+0x08, its +0x1c
         CSGLeaf* heroNode = static_cast<CSGLeaf*>(static_cast<IKHook*>(m_pHost->GetOwner())->m_pKGLObject);
         // vt+0x104 (the hero host's GetHeroAttachmentSets 0x3ee6a0: the hero's +0x1070; a hero-only slot here).
@@ -279,9 +279,9 @@ void CKShadowBreath::SetFxActive(uint8_t on) {
     // The level's point light at the hot spot.
     CVector3 position;
     spot->GetWorldPosition(&position);  // 0x000ce790
-    CKPointLightFxData* light = static_cast<CKPointLightFxData*>(m_unk1b8[m_unk04]);
+    CKPointLightFxData* light = static_cast<CKPointLightFxData*>(m_apPointLightFxData[m_dwLevelIndex]);
     light->m_vPosition = position;
-    m_unk1c4 = fx->AcquireFx(light, this);
+    m_pPointLightNodeFx = fx->AcquireFx(light, this);
     // The start sound and the level's loop sound, both on the hero's node.
     CKSound* start = SelectSound(0);
     if (start != nullptr) {
@@ -311,23 +311,23 @@ void CKShadowBreath::UpdateFx(float dt) {
             if (node != nullptr) node->m_fEmissionSpeedAdjustment = m_pHost->GetHeroSpeedForAbility();  // vt+0x48
         }
     }
-    if (m_unk1a4 != nullptr) {
-        float ratio = m_unk44[m_unk04] / m_unk44[0];
+    if (m_pSparkNodeFx != nullptr) {
+        float ratio = m_afConeAngleDeg[m_dwLevelIndex] / m_afConeAngleDeg[0];
         if (!(ratio <= 1.0f)) ratio = ppc::fmadds(ratio - 1.0f, m_unk178[2] - 1.0f, 1.0f);  // TOC +0x4078 (ble skips)
         const float speed = ratio * m_unk178[8];
-        static_cast<CKSparkNodeFx*>(m_unk1a4)->SetParamFloat_68(speed + m_pHost->GetHeroSpeedForAbility());  // 0x001d4028
+        static_cast<CKSparkNodeFx*>(m_pSparkNodeFx)->SetParamFloat_68(speed + m_pHost->GetHeroSpeedForAbility());  // 0x001d4028
     }
-    if (m_unk1dc != nullptr) static_cast<CKAnimatedFxCollection*>(m_unk1dc)->Update(dt);  // TocBridge -> 0x005cccb0
-    m_pHost->ComputeAimDirection(0x1.921fb6p+1f, this, m_unk1e4);  // vt+0x58 (pi, TOC +0x407c); the result is unused
-    if (m_unk1b4 != nullptr && m_unk1a4 != nullptr) {
+    if (m_pActiveAnimFx != nullptr) static_cast<CKAnimatedFxCollection*>(m_pActiveAnimFx)->Update(dt);  // TocBridge -> 0x005cccb0
+    m_pHost->ComputeAimDirection(0x1.921fb6p+1f, this, m_pAimCamembert);  // vt+0x58 (pi, TOC +0x407c); the result is unused
+    if (m_unk1b4 != nullptr && m_pSparkNodeFx != nullptr) {
         CMatrix34 spot;
         CMatrix34 inverse;
         float roll;
         if (m_pHost->GetLockedTarget() == nullptr) {  // vt+0xd4
-            static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_unk15c))->GetWorldMatrix(&spot);  // vt+0xcc, 0x000ce970
+            static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_ui8HotspotIndex))->GetWorldMatrix(&spot);  // vt+0xcc, 0x000ce970
             Mat4_Invert(&inverse, &spot);  // 0x0023f878
             // Back to 0.
-            const float step = dt * m_unkE0;
+            const float step = dt * m_fGroundTurnA;
             roll = m_fRoll - step;
             if (!(roll >= 0.0f)) {  // cror gt|eq
                 roll = m_fRoll + step;
@@ -335,7 +335,7 @@ void CKShadowBreath::UpdateFx(float dt) {
             }
         } else {
             const CVector3 target = m_pHost->GetTargetAimPoint(1, 0);  // vt+0xdc
-            static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_unk15c))->GetWorldMatrix(&spot);  // vt+0xcc, 0x000ce970
+            static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_ui8HotspotIndex))->GetWorldMatrix(&spot);  // vt+0xcc, 0x000ce970
             Mat4_Invert(&inverse, &spot);  // 0x0023f878
             float dy = target.y - spot.m_pos.y;
             const float dx = target.x - spot.m_pos.x;
@@ -360,7 +360,7 @@ void CKShadowBreath::UpdateFx(float dt) {
             } else if (wanted >= 0x1.0c1524p+0f) {  // TOC +0x4084 (0x3f860a92)
                 wanted = 0x1.0c1524p+0f;
             }
-            const float step = dt * m_unkE0;
+            const float step = dt * m_fGroundTurnA;
             const float low = ppc::fmadds(step, -5.0f, m_fRoll);  // TOC +0x4088
             if (wanted <= low) {
                 roll = low;
@@ -374,14 +374,14 @@ void CKShadowBreath::UpdateFx(float dt) {
         CVector3 forward;
         Mat4_TransformVectors(&inverse, &forward, &spot.m_right, 1);  // 0x0023f7b0
         SetOwnedParticleEffectTransform(static_cast<CKParticlesEffectNodeFx*>(m_unk1b4), &forward, &kAxisY, this);  // 0x001cdc08
-        static_cast<CSGMovable*>(static_cast<CKSparkNodeFx*>(m_unk1a4)->m_pSparkNode)->SetOrientationFromAtUp(&forward, &kAxisY);  // 0x000d0918
-        if (m_unk1dc != nullptr) {
-            static_cast<CKAnimatedFxCollection*>(m_unk1dc)->SetOrientation(&forward, &kAxisY);  // TocBridge -> 0x005cc7f0
+        static_cast<CSGMovable*>(static_cast<CKSparkNodeFx*>(m_pSparkNodeFx)->m_pSparkNode)->SetOrientationFromAtUp(&forward, &kAxisY);  // 0x000d0918
+        if (m_pActiveAnimFx != nullptr) {
+            static_cast<CKAnimatedFxCollection*>(m_pActiveAnimFx)->SetOrientation(&forward, &kAxisY);  // TocBridge -> 0x005cc7f0
         }
-        if (m_unk1c4 != nullptr) {
+        if (m_pPointLightNodeFx != nullptr) {
             // The point light at the flame's reach.
-            float reach = m_unk138 * m_unk16c;
-            if (!(m_unk1c8[m_unk04] > reach)) reach = m_unk1c8[m_unk04];
+            float reach = m_fSphereSpeed * m_fBreathElapsedTime;
+            if (!(m_afPointLightReach[m_dwLevelIndex] > reach)) reach = m_afPointLightReach[m_dwLevelIndex];
             const float startX = ppc::fmadds(spot.m_at.x, -0.5f, spot.m_pos.x);  // TOC +0x4098
             const float startY = ppc::fmadds(spot.m_at.y, -0.5f, spot.m_pos.y);
             const float startZ = ppc::fmadds(spot.m_at.z, -0.5f, spot.m_pos.z);
@@ -400,19 +400,19 @@ void CKShadowBreath::UpdateFx(float dt) {
                 endX = ppc::fmadds(t, spot.m_at.x, startX);
                 endY = ppc::fmadds(t, spot.m_at.y, startY);
             }
-            static_cast<CKPointLightFxData*>(m_unk1b8[m_unk04])->m_vPosition = CVector3{endX, endY, endZ};
+            static_cast<CKPointLightFxData*>(m_apPointLightFxData[m_dwLevelIndex])->m_vPosition = CVector3{endX, endY, endZ};
         }
     }
-    if (m_unk04 != 2) return;
+    if (m_dwLevelIndex != 2) return;
     if (!(m_fShotTimer < 0.0f)) {  // blt
         m_fShotTimer = m_fShotTimer - dt;
         return;
     }
-    const float speedBase = m_unk1f0;
-    const float speedSpread = m_unk1f4;
+    const float speedBase = m_fShotSpeedBase;
+    const float speedSpread = m_fShotSpeedSpread;
     const float r = SB_RAND_U16();
     CMatrix34 spot;
-    static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_unk15c))->GetWorldMatrix(&spot);  // vt+0xcc, 0x000ce970
+    static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_ui8HotspotIndex))->GetWorldMatrix(&spot);  // vt+0xcc, 0x000ce970
     CVector3 dir{spot.m_at.x, 0.0f, spot.m_at.z};
     const float length = Sqrtf(ppc::fmadds(dir.z, dir.z, ppc::fmadds(dir.x, dir.x, 0.0f)));
     if (length != 0.0f) {
@@ -421,15 +421,15 @@ void CKShadowBreath::UpdateFx(float dt) {
         dir.x = dir.x * inv;
         dir.y = dir.y * inv;
     }
-    const CVector3 pos{spot.m_pos.x, spot.m_pos.y + m_unk200, spot.m_pos.z};
-    CKProjectileAccessor* accessor = static_cast<CKProjectileAccessor*>(m_unk1e8);
+    const CVector3 pos{spot.m_pos.x, spot.m_pos.y + m_fShotHeightOffset, spot.m_pos.z};
+    CKProjectileAccessor* accessor = static_cast<CKProjectileAccessor*>(m_pLevel2Projectile);
     if (accessor->m_pProjectileType != nullptr) {
         IKSerializable* owner = m_pHost->GetOwner();  // vt+0x08
         // (r / 65535) x -2 x spread + (base + spread): TOC +0x40a8 / +0x40ac.
         const float speed = ppc::fmadds((r / 65535.0f) * -2.0f, speedSpread, speedBase + speedSpread);
-        accessor->LaunchEx(&pos, &dir, speed, m_unk1ec, owner, nullptr);  // 0x001f2988
+        accessor->LaunchEx(&pos, &dir, speed, m_pLevel2ProjectileDamage, owner, nullptr);  // 0x001f2988
     }
-    const float base = m_unk1f8 + m_unk1fc;
+    const float base = m_fShotIntervalBase + m_fShotIntervalSpread;
     const float r2 = SB_RAND_U16();
-    m_fShotTimer = ppc::fmadds((r2 / 65535.0f) * -2.0f, m_unk1fc, base);
+    m_fShotTimer = ppc::fmadds((r2 / 65535.0f) * -2.0f, m_fShotIntervalSpread, base);
 }

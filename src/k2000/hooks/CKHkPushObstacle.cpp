@@ -367,7 +367,7 @@ void CKHkPushObstacle::SnapToGroundAndBlockNav() {
     Mesh(m_apGrounds[2])->SetActive(static_cast<uint16_t>(f2 & 1u));
     CPFPoint point;
     point.m_position = centre;
-    point.m_unk0c = 0xffff;
+    point.m_i16GraphNodeIndex = 0xffff;
     if (static_cast<uint8_t>(pf->FindSectorForPoint(&point)) == 0) return;  // 0x001e5ca0
     // The box shrunk by 0.1 on x / z, whichever way round its corners are (the stack's +0xa0 corner is the minimum).
     CVector3 boxMin = hi;
@@ -386,7 +386,7 @@ void CKHkPushObstacle::SnapToGroundAndBlockNav() {
         boxMin.z = hi.z + kTenth;
         boxMax.z = lo.z - kTenth;
     }
-    pf->SetBoxBlocked(point.m_unk0c, &boxMin, &boxMax, 1);  // 0x001e5f60
+    pf->SetBoxBlocked(point.m_i16GraphNodeIndex, &boxMin, &boxMax, 1);  // 0x001e5f60
 }
 
 // 0x00430c78 CKHkPushObstacle_AttachSounds
@@ -732,10 +732,10 @@ void CKHkPushObstacle::DetachPushingHeroes(uint8_t all) {
     Collision()->RemoveVolume(static_cast<IKBoundingVolume*>(m_unkac));  // 0x00192bc0
     Pusher* prev = nullptr;
     while (p != nullptr) {
-        if (static_cast<int16_t>(p->m_point.m_unk0c) >= 0) {
+        if (static_cast<int16_t>(p->m_point.m_i16GraphNodeIndex) >= 0) {
             CKSrvPathFinding* pf = PathFinding();
             if (static_cast<uint8_t>(pf->FindSectorForPoint(&p->m_point)) != 0) {  // 0x001e5ca0
-                CKPFGraphNode* node = static_cast<CKPFGraphNode*>(pf->m_Graph.m_apGraphNodes[p->m_point.m_unk0c]);
+                CKPFGraphNode* node = static_cast<CKPFGraphNode*>(pf->m_Graph.m_apGraphNodes[p->m_point.m_i16GraphNodeIndex]);
                 uint8_t cell[2];
                 node->m_Sector.WorldToCell(&p->m_point.m_position, cell);  // 0x001ea3e0
                 node->m_Sector.m_grid.SetCellBlocked(cell, 0);             // 0x001f12d8
@@ -865,7 +865,7 @@ void SetFramePosition(RwFrame* frame, const CVector3& p) {
 RwFrame* FrameOf(IKSerializable* node) { return static_cast<CSGMovable*>(node)->m_pRwFrame; }
 // The cell of a point found in a nav node (its node m_unk0c) blocked or freed (the inlined grid write).
 void SetPointCellBlocked(CKSrvPathFinding* pf, CPFPoint* point, uint8_t blocked) {
-    CKPFGraphNode* node = static_cast<CKPFGraphNode*>(pf->m_Graph.m_apGraphNodes[point->m_unk0c]);
+    CKPFGraphNode* node = static_cast<CKPFGraphNode*>(pf->m_Graph.m_apGraphNodes[point->m_i16GraphNodeIndex]);
     uint8_t cell[2];
     node->m_Sector.WorldToCell(&point->m_position, cell);  // 0x001ea3e0
     node->m_Sector.m_grid.SetCellBlocked(cell, blocked);   // 0x001f12d8
@@ -1029,7 +1029,7 @@ uint8_t CKHkPushObstacle::CanPushInDirection() {
     CKSrvPathFinding* pf = PathFinding();
     const float s = g_pfGridScale.m_cellSize;  // 0x00c4025c
     CPFPoint point;
-    point.m_unk0c = 0xffff;
+    point.m_i16GraphNodeIndex = 0xffff;
     CVector3 p;
     ComputeRestPosition(&p);
     if (m_i8Side >= 0) m_i8LastSide = m_i8Side;
@@ -1075,9 +1075,9 @@ uint8_t CKHkPushObstacle::CanPushInDirection() {
     }
     CPFCharacter character;
     character.m_bits = 0xc01;
-    character.m_unk04 = kWalkRadius;
-    character.m_unk08 = kBlendPush;  // 0.2
-    character.m_unk0c = kOne;
+    character.m_fRadius = kWalkRadius;
+    character.m_fMaxStepHeight = kBlendPush;  // 0.2
+    character.m_fMaxStepRise = kOne;
     const int32_t count = static_cast<int32_t>(static_cast<int64_t>(fAcross / s));  // fctidz
     for (int32_t i = 0; i != count;) {
         point.m_position = p;
@@ -1087,10 +1087,10 @@ uint8_t CKHkPushObstacle::CanPushInDirection() {
             if (status != 0 && status != 1) return 0;
             if (!(m_GrdContDatasInOut.m_fdH <= kHalf) && m_unk70 == nullptr) return 0;
         } else {
-            const int16_t index = static_cast<int16_t>(point.m_unk0c);
+            const int16_t index = static_cast<int16_t>(point.m_i16GraphNodeIndex);
             if (index < 0) return 0;
             if (static_cast<uint32_t>(static_cast<int32_t>(index)) >= pf->m_Graph.m_ui32GraphNodesSize) return 0;
-            const CBBox& box = static_cast<CKPFGraphNode*>(pf->m_Graph.m_apGraphNodes[point.m_unk0c])->m_Sector.m_box;
+            const CBBox& box = static_cast<CKPFGraphNode*>(pf->m_Graph.m_apGraphNodes[point.m_i16GraphNodeIndex])->m_Sector.m_box;
             if (!(box.m_inf.x <= point.m_position.x) || !(box.m_sup.x >= point.m_position.x)) return 0;
             if (!(box.m_inf.z <= point.m_position.z) || !(box.m_sup.z >= point.m_position.z)) return 0;
             if (!(box.m_inf.y <= point.m_position.y) || !(box.m_sup.y >= point.m_position.y)) return 0;
@@ -1171,7 +1171,7 @@ int8_t CKHkPushObstacle::CountActivePushers(uint8_t keep) {
             if ((m_ui16Flags1e4 & 0x10u) == 0 && keep == 0 && p->m_pHero->GetPlayerInputFloat38C() == kZero &&  // 0x003626f8
                 (m_ui8Flags & 8u) == 0 && (m_ui16Flags1e4 & 0x40u) == 0) {
                 p->m_pHero->ClearFlag358Bit21IfAttached();  // 0x003628e0
-                if (static_cast<int16_t>(p->m_point.m_unk0c) >= 0) {
+                if (static_cast<int16_t>(p->m_point.m_i16GraphNodeIndex) >= 0) {
                     CKSrvPathFinding* pf = PathFinding();
                     if (static_cast<uint8_t>(pf->FindSectorForPoint(&p->m_point)) != 0) SetPointCellBlocked(pf, &p->m_point, 0);
                 }
@@ -1293,7 +1293,7 @@ int8_t CKHkPushObstacle::SelectNextState() {
 void CKHkPushObstacle::UnblockGrabPointCells() {
     CKSrvPathFinding* pf = PathFinding();
     CPFPoint point;
-    point.m_unk0c = 0xffff;
+    point.m_i16GraphNodeIndex = 0xffff;
     for (uint32_t side = 3; side != 0xff; side = (side - 1) & 0xffu) {
         for (uint32_t i = HeroGroup()->GetHeroCount();;) {  // 0x002ca038
             i = (i - 1) & 0xffu;
@@ -1315,7 +1315,7 @@ void CKHkPushObstacle::UnblockGrabPointCells() {
 void CKHkPushObstacle::SetPusherCellsBlocked(uint8_t blocked) {
     CKSrvPathFinding* pf = PathFinding();
     for (Pusher* p = m_pPushers; p != nullptr; p = p->m_pNext) {
-        if (static_cast<int16_t>(p->m_point.m_unk0c) < 0) continue;
+        if (static_cast<int16_t>(p->m_point.m_i16GraphNodeIndex) < 0) continue;
         if (static_cast<uint8_t>(pf->FindSectorForPoint(&p->m_point)) == 0) continue;  // 0x001e5ca0
         SetPointCellBlocked(pf, &p->m_point, blocked);
     }
@@ -1536,10 +1536,10 @@ namespace {
 // The point's node (just found) holds it: a valid node index whose sector box contains the point (the inlined test of
 // CanPushInDirection, CheckGrabPointsForHero, AttachHeroesToGrabPoints and IsHeroOnMoveTrajectory; unordered fails).
 bool NodeBoxHolds(const CKSrvPathFinding* pf, const CPFPoint& point) {
-    const int16_t index = static_cast<int16_t>(point.m_unk0c);
+    const int16_t index = static_cast<int16_t>(point.m_i16GraphNodeIndex);
     if (index < 0) return false;
     if (static_cast<uint32_t>(static_cast<int32_t>(index)) >= pf->m_Graph.m_ui32GraphNodesSize) return false;
-    const CBBox& box = static_cast<const CKPFGraphNode*>(pf->m_Graph.m_apGraphNodes[point.m_unk0c])->m_Sector.m_box;
+    const CBBox& box = static_cast<const CKPFGraphNode*>(pf->m_Graph.m_apGraphNodes[point.m_i16GraphNodeIndex])->m_Sector.m_box;
     const CVector3& p = point.m_position;
     if (!(box.m_inf.x <= p.x) || !(box.m_sup.x >= p.x)) return false;
     if (!(box.m_inf.z <= p.z) || !(box.m_sup.z >= p.z)) return false;
@@ -1616,7 +1616,7 @@ namespace {
 // AttachHeroesToGrabPoints): a new pusher at the head of the list (no cell), attached, walking to the grab point.
 void AddPusher(CKHkPushObstacle* o, CKHkS08Hero* hero, int8_t index, const CMatrix34& m) {
     Pusher* p = new Pusher();  // the FreeListPool 0x00ceaa20's free list +0x74 (grown by 0x00244908) in the original
-    p->m_point.m_unk0c = 0xffff;
+    p->m_point.m_i16GraphNodeIndex = 0xffff;
     p->m_pNext = o->m_pPushers;
     o->m_pPushers = p;
     p->m_i8GrabPoint = index;
@@ -1657,7 +1657,7 @@ void CKHkPushObstacle::CheckGrabPointsForHero() {
         CMatrix34 m;
         hs->GetWorldMatrix(&m);  // 0x000ce970
         CPFPoint point;
-        point.m_unk0c = 0xffff;
+        point.m_i16GraphNodeIndex = 0xffff;
         point.m_position = m.m_pos;
         if (m_pCandidateHero->GetAttachedObject() == this) continue;  // 0x00361d50
         const float d = FlatDistance(m_pCandidateHero, m.m_pos);
@@ -1672,7 +1672,7 @@ void CKHkPushObstacle::CheckGrabPointsForHero() {
     if (chosen == -1) return;
     if (m_pCandidateHero->CanAttachTo(this, 1) == 0) return;  // vt+0xe0 (0x00361d08)
     Pusher* p = new Pusher();  // the FreeListPool 0x00ceaa20 in the original
-    p->m_point.m_unk0c = 0xffff;
+    p->m_point.m_i16GraphNodeIndex = 0xffff;
     p->m_pNext = m_pPushers;
     m_pPushers = p;
     p->m_bHandFx = 0;
@@ -1710,7 +1710,7 @@ void CKHkPushObstacle::AttachHeroesToGrabPoints() {
         CMatrix34 m;
         hs->GetWorldMatrix(&m);  // 0x000ce970
         CPFPoint point;
-        point.m_unk0c = 0xffff;
+        point.m_i16GraphNodeIndex = 0xffff;
         point.m_position = m.m_pos;
         int8_t chosen = -1;
         int8_t runnerUp = -1;
@@ -1869,7 +1869,7 @@ uint8_t CKHkPushObstacle::IsHeroOnMoveTrajectory(CKHkS08Hero* hero) {
             c.z - kTenth <= hz && c.z + kTenth >= hz) {
             CPFPoint point;
             point.m_position = {v1.x + c.x, c.y + v1.y, c.z + v1.z};
-            point.m_unk0c = 0xffff;
+            point.m_i16GraphNodeIndex = 0xffff;
             if (static_cast<uint8_t>(pf->FindSectorForPoint(&point)) == 0) return 1;  // 0x001e5ca0
             const CPFCharacter* character = hero->GetPFCharacter();  // 0x00361a30
             if (!NodeBoxHolds(pf, point)) return 1;
@@ -2336,7 +2336,7 @@ void CKHkPushObstacle::Update(IKTime* clock) {
         GrabPoint(this, m_i8Side, p->m_i8GrabPoint)->GetWorldPosition(&pos);  // 0x000ce790
         p->m_point.m_position = pos;
         if ((m_ui16Flags1e4 & 4u) == 0 || p->m_bReady == 0 || static_cast<uint8_t>(pf->FindSectorForPoint(&p->m_point)) == 0) {
-            p->m_point.m_unk0c = 0xffff;
+            p->m_point.m_i16GraphNodeIndex = 0xffff;
         }
     }
     SetPusherCellsBlocked(m_ui8State != 0xff ? 1 : 0);

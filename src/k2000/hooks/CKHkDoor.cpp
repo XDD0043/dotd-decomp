@@ -334,7 +334,7 @@ void CKHkDoor::UpdateStateFromLinkedObjects() {
     if ((m_bitArray & 0x2000u) != 0) {
         CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(g_pEngine->m_gameManager->m_unk04[1]);
         CSGMovable* heroNode = static_cast<CSGMovable*>(
-            group->m_unk66 == 0xff ? nullptr : group->m_apUnk44[static_cast<int8_t>(group->m_unk66)]);  // 0x002ca128
+            group->m_ui8FocusedDragon == 0xff ? nullptr : group->m_apCameraTargets[static_cast<int8_t>(group->m_ui8FocusedDragon)]);  // 0x002ca128
         const RwV3d& h = FrameLtm(heroNode->m_pRwFrame)->pos;
         const CVector3 hero = {h.x, h.y, h.z};
         const CVector3& camera = static_cast<CKSrvCamera*>(g_pEngine->m_srvCamera)->m_v3RealPos;
@@ -377,15 +377,15 @@ void CKHkDoor::Update(IKTime* frameClock) {
             m_bitArray &= 0xfffdffffu;
             CKParticlesEffectFxData* data = static_cast<CKParticlesEffectFxData*>(m_unk6C);
             if (data != nullptr) {
-                data->m_unk08 = static_cast<uint8_t>((data->m_unk08 & 0xefu) | 0x10u);
+                data->m_ui8Flags = static_cast<uint8_t>((data->m_ui8Flags & 0xefu) | 0x10u);
                 data->m_pAttachHotSpot = nullptr;
                 data->m_pAttachOwner = static_cast<CSGLeaf*>(m_pKGLObject);
-                RwMatrix* matrix = data->m_unk24;
+                RwMatrix* matrix = data->m_pLocalMatrix;
                 matrix->pos.x = 0.0f;  // the zero vector 0x00c50d64 (TOC +0x4c1c), y raised by +0x4c
                 matrix->pos.z = 0.0f;
                 matrix->pos.y = 0.0f + m_unk4C;
                 matrix->flags &= 0xfffdffffu;
-                data->m_unk08 = static_cast<uint8_t>((data->m_unk08 & 0xf7u) | 0x8u);
+                data->m_ui8Flags = static_cast<uint8_t>((data->m_ui8Flags & 0xf7u) | 0x8u);
                 static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->StartEffect(data, this);
             }
         }

@@ -127,7 +127,7 @@
 
 // 0x00266ea0 CKGrpS08Enemy_CountGroundedWeapons_maybe
 uint32_t CKGrpS08Enemy::CountGroundedWeapons() {
-    IKBaseGroup* weapons = static_cast<IKBaseGroup*>(m_pUnk190);
+    IKBaseGroup* weapons = static_cast<IKBaseGroup*>(m_pWeaponPool);
     uint32_t members = 0;
     for (IKHook* hook = *reinterpret_cast<IKHook**>(weapons->GetMemberListHead()); hook != nullptr;
          hook = hook->m_pNextHook) {
@@ -177,14 +177,14 @@ int32_t CKGrpS08Enemy::Load(IKFile* file, int32_t type) {
         IKFile_ReadRef(file, &dropped);
     }
     ReadU32LE(file, &m_unk194);
-    IKFile_ReadRef(file, &m_pUnk190);
+    IKFile_ReadRef(file, &m_pWeaponPool);
     if (m_vUnk19c.m_pBlock == nullptr) {
         m_vUnk19c.m_ui32NbElt = 1;
         m_vUnk19c.m_pBlock = static_cast<IKSerializable**>(Mem_AllocAligned16(sizeof(IKSerializable*)));
     }
-    IKFile_ReadRef(file, &m_pUnk198);
-    IKFile_ReadRef(file, &m_pUnk1e4);
-    IKFile_ReadRef(file, &m_pUnk1ec);
+    IKFile_ReadRef(file, &m_pShieldGroupRoot);
+    IKFile_ReadRef(file, &m_pQuakeLauncher);
+    IKFile_ReadRef(file, &m_pAccessoryManager);
     // Each list gets 1.0, 2.0, 3.0 (TOC 0x5a0..0x5a8) pushed at its count, which grows by 3.
     // BUG(original): no capacity check; with a count above 0 (a second Load) the pushes run past the three
     // floats into the count and the next list.
@@ -205,7 +205,7 @@ int32_t CKGrpS08Enemy::Load(IKFile* file, int32_t type) {
     ReadF32LE(file, &m_unk238[2]);   // +0x240
     ReadF32LE(file, &m_unk238[3]);   // +0x244
     ReadF32LE(file, &m_unk238[8]);   // +0x258
-    IKFile_ReadRef(file, &m_pUnk264);
+    IKFile_ReadRef(file, &m_pCameraEventCpnt);
     ReadF32LE(file, &m_unk268[0]);   // +0x268
     ReadF32LE(file, &m_unk268[1]);   // +0x26c
     ReadF32LE(file, &m_unk268[2]);   // +0x270
@@ -236,9 +236,9 @@ void ScriptedCameraHandle_Reset(CKCameraEventCpnt* handle) { handle->Reset(); }
 // 0x00268eb8 CKGrpS08Enemy_Start
 void CKGrpS08Enemy::Start() {
     IKGrpEnemy::Start();  // 0x2659d8
-    m_unk178 = 0;
+    m_ui32FightFlags = 0;
     m_pFightZoneCpnt170 = nullptr;
-    m_unk154 = 0;
+    m_ui32ReservedAttackSlotsTotal = 0;
     m_unk158 = 0;
     m_unk15c = 0;
     m_unk160 = 0;
@@ -247,7 +247,7 @@ void CKGrpS08Enemy::Start() {
         m_vUnk164.m_pBlock = static_cast<IKSerializable**>(Mem_AllocAligned16(sizeof(IKSerializable*)));
     }
     m_unk1dc = 0;
-    m_unk1bc = 0;
+    m_bAlerted = 0;
     m_unk1d0[0] = 0;
     m_unk1d0[1] = 0;
     m_unk1d0[2] = 0;
@@ -257,10 +257,10 @@ void CKGrpS08Enemy::Start() {
         m_vUnk1b0.m_pBlock = static_cast<IKSerializable**>(Mem_AllocAligned16(sizeof(IKSerializable*)));
     }
     m_unk1f0 = 0.3f;  // TOC 0x51c
-    static_cast<CKS08AccessoryManager*>(m_pUnk1ec)->ResetRuntime();  // vt+0x50 0x2c7b80
-    ScriptedCameraHandle_Reset(static_cast<CKCameraEventCpnt*>(m_pUnk264));
-    m_unk150 = 0.0f;
-    m_unk14c = 0.0f;
+    static_cast<CKS08AccessoryManager*>(m_pAccessoryManager)->ResetRuntime();  // vt+0x50 0x2c7b80
+    ScriptedCameraHandle_Reset(static_cast<CKCameraEventCpnt*>(m_pCameraEventCpnt));
+    m_fAttackCooldownCynder = 0.0f;
+    m_fAttackCooldownSpyro = 0.0f;
 }
 
 // 0x00268d28 CKGrpS08Enemy_Restart (vt+0x54): the base's; every active enemy (the count read once) hidden (its node's
@@ -276,8 +276,8 @@ void CKGrpS08Enemy::Restart() {
         enemy->ResetMainStateMachine();  // 0x0028aa70
     }
     m_pFightZoneCpnt170 = nullptr;
-    m_unk178 = 0;
-    m_unk154 = 0;
+    m_ui32FightFlags = 0;
+    m_ui32ReservedAttackSlotsTotal = 0;
     m_unk158 = 0;
     m_unk15c = 0;
     m_unk160 = 0;
@@ -286,7 +286,7 @@ void CKGrpS08Enemy::Restart() {
         m_vUnk164.m_pBlock = static_cast<IKSerializable**>(Mem_AllocAligned16(sizeof(IKSerializable*)));
     }
     m_unk1dc = 0;
-    m_unk1bc = 0;
+    m_bAlerted = 0;
     m_unk1d0[0] = 0;
     m_unk1d0[1] = 0;
     m_unk1d0[2] = 0;
@@ -296,9 +296,9 @@ void CKGrpS08Enemy::Restart() {
         m_vUnk1b0.m_pBlock = static_cast<IKSerializable**>(Mem_AllocAligned16(sizeof(IKSerializable*)));
     }
     m_unk1f0 = 0.3f;  // TOC 0x51c
-    static_cast<CKS08AccessoryManager*>(m_pUnk1ec)->ReinitRuntime();  // vt+0x54 0x2c7b30
-    m_unk150 = 0.0f;
-    m_unk14c = 0.0f;
+    static_cast<CKS08AccessoryManager*>(m_pAccessoryManager)->ReinitRuntime();  // vt+0x54 0x2c7b30
+    m_fAttackCooldownCynder = 0.0f;
+    m_fAttackCooldownSpyro = 0.0f;
 }
 
 namespace {
@@ -329,14 +329,14 @@ uint8_t CKGrpS08Enemy::GetNbAnimLayerSlots(uint8_t kind, uint8_t layer) { return
 void CKGrpS08Enemy::SetCurrentFightZone(CKGrpFightZone* zone) {
     IKGrpEnemy::SetCurrentFightZone(zone);  // 0x00265a20
     m_pFightZoneCpnt170 = zone->m_pFightZoneCpnt;
-    m_unk178 |= 1u;
-    m_unk150 = 0.0f;
-    m_unk14c = 0.0f;
-    m_unk154 = 0;
+    m_ui32FightFlags |= 1u;
+    m_fAttackCooldownCynder = 0.0f;
+    m_fAttackCooldownSpyro = 0.0f;
+    m_ui32ReservedAttackSlotsTotal = 0;
     m_unk158 = 0;
     m_unk15c = 0;
     m_unk160 = 0;
-    m_unk178 &= ~4u;
+    m_ui32FightFlags &= ~4u;
     m_unk174 = 0;
     static_cast<CKS08GameStructure*>(g_pEngine->m_gameManager->m_gameStructure)->SaveCheckpointSnapshot();  // 0x0050ed60
 }
@@ -346,7 +346,7 @@ void CKGrpS08Enemy::SetCurrentFightZone(CKGrpFightZone* zone) {
 // as the original); the component forgotten when it is the zone's, then +0x1bc and +0x178 cleared.
 void CKGrpS08Enemy::ClearCurrentFightZone(CKGrpFightZone* zone) {
     IKGrpEnemy::ClearCurrentFightZone(zone);  // 0x00265a38
-    IKBaseGroup* pool = static_cast<IKBaseGroup*>(m_pUnk190);
+    IKBaseGroup* pool = static_cast<IKBaseGroup*>(m_pWeaponPool);
     uint32_t count = 0;
     for (IKHook* hook = *reinterpret_cast<IKHook**>(pool->GetMemberListHead()); hook != nullptr; hook = hook->m_pNextHook) {
         ++count;
@@ -361,15 +361,15 @@ void CKGrpS08Enemy::ClearCurrentFightZone(CKGrpFightZone* zone) {
         }
     }
     if (m_pFightZoneCpnt170 == zone->m_pFightZoneCpnt) m_pFightZoneCpnt170 = nullptr;
-    m_unk1bc = 0;
-    m_unk178 = 0;
+    m_bAlerted = 0;
+    m_ui32FightFlags = 0;
 }
 
 namespace {
 // Whether an active enemy has its byte +0x239 set (CKHkS08Enemy's pending hit; the loop UpdateCKGrpS08Enemy inlines).
 bool AnyActiveEnemyPendingHit(const IKGrpEnemy* group) {
     for (uint32_t i = 0; i < group->m_ui32NbActiveEnemies; ++i) {
-        if (static_cast<const CKHkS08Enemy*>(group->m_apActiveEnemies[i])->m_unk239 != 0) return true;
+        if (static_cast<const CKHkS08Enemy*>(group->m_apActiveEnemies[i])->m_bPendingHit != 0) return true;
     }
     return false;
 }
@@ -380,26 +380,26 @@ bool AnyActiveEnemyPendingHit(const IKGrpEnemy* group) {
 // pending hits: it is set (and the zone's trigger starter +0xf4 fired) when one of them holds, cleared when none does.
 // Then +0x1e8 cleared, the accessory manager's frame, and +0x1f0 counted up to 0.3.
 void CKGrpS08Enemy::Update(IKTime* clock) {
-    if (m_unk14c > 0.0f) m_unk14c = m_unk14c - clock->m_afDeltaTime[0];
-    if (m_unk150 > 0.0f) m_unk150 = m_unk150 - clock->m_afDeltaTime[0];
+    if (m_fAttackCooldownSpyro > 0.0f) m_fAttackCooldownSpyro = m_fAttackCooldownSpyro - clock->m_afDeltaTime[0];
+    if (m_fAttackCooldownCynder > 0.0f) m_fAttackCooldownCynder = m_fAttackCooldownCynder - clock->m_afDeltaTime[0];
     CKS08FightZoneCpnt* cpnt = static_cast<CKS08FightZoneCpnt*>(m_pFightZoneCpnt170);
     if (cpnt != nullptr && cpnt->m_unk10 != 0) {
-        const uint8_t alarm = m_unk1e8;
+        const uint8_t alarm = m_bAlertedThisFrame;
         bool done = false;
-        if (alarm != 0 || m_unk154 != 0 || AnyActiveEnemyPendingHit(this) || m_unk1bc != 0) {
-            if ((m_unk178 & 2u) == 0) {
-                m_unk178 |= 2u;
+        if (alarm != 0 || m_ui32ReservedAttackSlotsTotal != 0 || AnyActiveEnemyPendingHit(this) || m_bAlerted != 0) {
+            if ((m_ui32FightFlags & 2u) == 0) {
+                m_ui32FightFlags |= 2u;
                 QueueTriggerSignals(&m_pCurrentFightZone->m_aTriggers[9]);  // +0xf4
                 done = true;
             }
         }
-        if (!done && alarm == 0 && m_unk154 == 0 && !AnyActiveEnemyPendingHit(this) && m_unk1bc == 0 &&
-            (m_unk178 & 2u) != 0) {
-            m_unk178 &= ~2u;
+        if (!done && alarm == 0 && m_ui32ReservedAttackSlotsTotal == 0 && !AnyActiveEnemyPendingHit(this) && m_bAlerted == 0 &&
+            (m_ui32FightFlags & 2u) != 0) {
+            m_ui32FightFlags &= ~2u;
         }
     }
-    m_unk1e8 = 0;
-    CKS08AccessoryManager_UpdateActiveItems(m_pUnk1ec, clock);  // vt+0x5c 0x2c78e0
+    m_bAlertedThisFrame = 0;
+    CKS08AccessoryManager_UpdateActiveItems(m_pAccessoryManager, clock);  // vt+0x5c 0x2c78e0
     if (m_unk1f0 < 0.3f) m_unk1f0 = m_unk1f0 + clock->m_afDeltaTime[0];  // TOC 0x51c
 }
 
@@ -410,7 +410,7 @@ void CKGrpS08Enemy::CompleteObjective() {
         m_pCurrentFightZone->SetCompleted(1);  // 0x26e348
         static_cast<CKS08GameStructure*>(g_pEngine->m_gameManager->m_gameStructure)->SaveCheckpointSnapshot();  // 0x0050ed60
     }
-    m_unk1bc = 0;
+    m_bAlerted = 0;
 }
 
 // 0x00268178 CKGrpS08Enemy_SignalAlert_maybe
@@ -448,17 +448,17 @@ void CKGrpS08Enemy::GetHeroMatrix(uint8_t hero, CMatrix34* out) {
 // to +0x19c.
 int32_t CKGrpS08Enemy::PostLoad(int32_t type) {
     IKGrpEnemy::PostLoad(type);  // 0x265b08
-    m_unk1bc = 0;
+    m_bAlerted = 0;
     for (uint32_t& w : m_unk1c0) w = 0;
     for (uint32_t& w : m_unk1d0) w = 0;
     m_unk1dc = 0;
     m_unk1e0 = 20.0f;  // TOC 0x518
-    IKBaseGroup* pools = static_cast<IKBaseGroup*>(m_pUnk198);
-    m_pUnk1ac = pools->m_lChilds;
+    IKBaseGroup* pools = static_cast<IKBaseGroup*>(m_pShieldGroupRoot);
+    m_pShieldPool = pools->m_lChilds;
     uint32_t count = 0;
     for (IKBaseGroup* child = pools->m_lChilds; child != nullptr; child = child->m_pNextGroup) ++count;
     for (uint32_t i = 1; i < count; ++i) {
-        IKBaseGroup* child = static_cast<IKBaseGroup*>(m_pUnk198)->m_lChilds;
+        IKBaseGroup* child = static_cast<IKBaseGroup*>(m_pShieldGroupRoot)->m_lChilds;
         for (uint32_t k = 0; k < i; ++k) child = child->m_pNextGroup;
         if (m_vUnk19c.m_ui32NbElt == m_vUnk19c.m_ui32NbUsedElt) {
             uint32_t capacity = m_vUnk19c.m_ui32NbUsedElt + 1;
@@ -481,14 +481,14 @@ uint32_t& ReservedOfCategory(CKGrpS08Enemy* group, int32_t category) {
 // 0x00267848 CKGrpS08Enemy_CanReserveAttackSlot_maybe: room in the total (unsigned compares) and in the category.
 uint8_t CKGrpS08Enemy::CanReserveAttackSlot(int32_t category) {
     const CKS08FightZoneCpnt* zone = m_pCurrentFightZone->m_pFightZoneCpnt;  // +0x30 -> +0x2c
-    if (!(m_unk154 < zone->m_unk20)) return 0;
+    if (!(m_ui32ReservedAttackSlotsTotal < zone->m_unk20)) return 0;
     return ReservedOfCategory(this, category) < zone->m_unk24[category] ? 1 : 0;
 }
 
 // 0x00267260 CKGrpS08Enemy_ReserveAttackSlot_maybe: both counts up, `enemy` appended to the holders (+0x164; a full
 // vector grows by one, Mem_ReallocAligned16).
 void CKGrpS08Enemy::ReserveAttackSlot(int32_t category, IKSerializable* enemy) {
-    m_unk154 = m_unk154 + 1;
+    m_ui32ReservedAttackSlotsTotal = m_ui32ReservedAttackSlotsTotal + 1;
     ReservedOfCategory(this, category) = ReservedOfCategory(this, category) + 1;
     TVector<IKSerializable*, 1>& holders = m_vUnk164;
     if (holders.m_ui32NbElt == holders.m_ui32NbUsedElt) {
@@ -513,7 +513,7 @@ void CKGrpS08Enemy::ReleaseAttackSlot(int32_t category, IKSerializable* enemy) {
         const uint32_t last = count - 1;
         holders.m_ui32NbUsedElt = last;
         if (i != last) holders.m_pBlock[i] = holders.m_pBlock[last];
-        m_unk154 = m_unk154 - 1;
+        m_ui32ReservedAttackSlotsTotal = m_ui32ReservedAttackSlotsTotal - 1;
         ReservedOfCategory(this, category) = ReservedOfCategory(this, category) - 1;
         return;
     }
@@ -544,10 +544,10 @@ void CKGrpS08Enemy::MoveAttackerToBack(IKSerializable* enemy) {
 // 0x00268898 CKGrpS08Enemy_StartAttackCooldownAndRequeue_maybe (vt+0x17c). Dragon 0 with its timer still running tests
 // the other dragon's timer, as the original does.
 void CKGrpS08Enemy::StartAttackCooldown(uint8_t dragon, IKSerializable* enemy) {
-    if (dragon == 0 && m_unk14c <= 0.0f) {
-        m_unk14c = m_unk14c + m_pCurrentFightZone->m_pFightZoneCpnt->m_unk18;
-    } else if (m_unk150 <= 0.0f) {
-        m_unk150 = m_unk150 + m_pCurrentFightZone->m_pFightZoneCpnt->m_unk1c;
+    if (dragon == 0 && m_fAttackCooldownSpyro <= 0.0f) {
+        m_fAttackCooldownSpyro = m_fAttackCooldownSpyro + m_pCurrentFightZone->m_pFightZoneCpnt->m_unk18;
+    } else if (m_fAttackCooldownCynder <= 0.0f) {
+        m_fAttackCooldownCynder = m_fAttackCooldownCynder + m_pCurrentFightZone->m_pFightZoneCpnt->m_unk1c;
     }
     MoveAttackerToBack(enemy);  // the same requeue, inlined
 }
@@ -556,18 +556,18 @@ void CKGrpS08Enemy::StartAttackCooldown(uint8_t dragon, IKSerializable* enemy) {
 // holder down: one with an attack (+0x73c) of that category (CKHkS08Enemy_GetAttackSlotCategoryThunk_maybe 0x289370 on
 // the attack's +0x08) clears its reservation (0x289120) and leaves the holders (the later ones move down, memmove).
 void CKGrpS08Enemy::ReleaseAttackSlotOfType(int32_t category) {
-    if (m_unk154 == 0 || ReservedOfCategory(this, category) == 0) return;
+    if (m_ui32ReservedAttackSlotsTotal == 0 || ReservedOfCategory(this, category) == 0) return;
     TVector<IKSerializable*, 1>& holders = m_vUnk164;
-    for (int32_t i = static_cast<int32_t>(m_unk154) - 1; i >= 0; --i) {
+    for (int32_t i = static_cast<int32_t>(m_ui32ReservedAttackSlotsTotal) - 1; i >= 0; --i) {
         CKHkS08Enemy* enemy = static_cast<CKHkS08Enemy*>(holders.m_pBlock[i]);
-        if (enemy == nullptr || enemy->m_unk73c == nullptr) continue;
-        if (CKHkS08Enemy::GetAttackSlotCategory(enemy->m_unk73c->m_unk08) != category) continue;
+        if (enemy == nullptr || enemy->m_pCurrentAttack == nullptr) continue;
+        if (CKHkS08Enemy::GetAttackSlotCategory(enemy->m_pCurrentAttack->m_unk08) != category) continue;
         static_cast<CKHkS08Enemy*>(holders.m_pBlock[i])->ClearAttackSlotReservation();  // 0x00289120
         const uint32_t count = holders.m_ui32NbUsedElt - 1;
         holders.m_ui32NbUsedElt = count;
         std::memmove(&holders.m_pBlock[i], &holders.m_pBlock[i + 1],
                      (count - static_cast<uint32_t>(i)) * sizeof(holders.m_pBlock[0]));  // TocBridge_memmove
-        m_unk154 = m_unk154 - 1;
+        m_ui32ReservedAttackSlotsTotal = m_ui32ReservedAttackSlotsTotal - 1;
         ReservedOfCategory(this, category) = ReservedOfCategory(this, category) - 1;
         return;
     }
@@ -576,7 +576,7 @@ void CKGrpS08Enemy::ReleaseAttackSlotOfType(int32_t category) {
 // 0x00267478 CKGrpS08Enemy_Stop (the manager is read without a test)
 void CKGrpS08Enemy::Stop() {
     IKGrpEnemy::Stop();  // 0x002659e8 IKGrpEnemy_OnLevelExit_maybe (empty)
-    static_cast<CKS08AccessoryManager*>(m_pUnk1ec)->ClearAccessories();  // vt+0x58 0x002c7818
+    static_cast<CKS08AccessoryManager*>(m_pAccessoryManager)->ClearAccessories();  // vt+0x58 0x002c7818
 }
 
 // 0x00267ff8 CKGrpS08Enemy_MessageProc (vt+0x1c): the group's own result combined with IKGrpEnemy's (3 over 2 over the
@@ -586,11 +586,11 @@ int32_t CKGrpS08Enemy::MessageProc(uint16_t message, void* data) {
     int32_t own = 1;
     switch (message) {
     case 0x1305:
-        m_unk178 = (m_unk178 & ~1u) | static_cast<uint32_t>(bytes[0]);
+        m_ui32FightFlags = (m_ui32FightFlags & ~1u) | static_cast<uint32_t>(bytes[0]);
         own = 0;
         break;
     case 0x1306:
-        m_unk178 = (m_unk178 & ~2u) | (static_cast<uint32_t>(bytes[0]) << 1);
+        m_ui32FightFlags = (m_ui32FightFlags & ~2u) | (static_cast<uint32_t>(bytes[0]) << 1);
         own = 0;
         break;
     case 0x1307:
@@ -598,7 +598,7 @@ int32_t CKGrpS08Enemy::MessageProc(uint16_t message, void* data) {
         own = 0;
         break;
     case 0x1309:
-        m_unk178 = (m_unk178 & ~8u) | (static_cast<uint32_t>(bytes[0]) << 3);
+        m_ui32FightFlags = (m_ui32FightFlags & ~8u) | (static_cast<uint32_t>(bytes[0]) << 3);
         own = 0;
         break;
     case 0x940:
@@ -618,7 +618,7 @@ int32_t CKGrpS08Enemy::MessageProc(uint16_t message, void* data) {
 // 0x002674f8 CKGrpS08Enemy_RecursiveRegistration (vt+0x24)
 void CKGrpS08Enemy::RecursiveRegistration(int32_t type) {
     IKGrpEnemy::RecursiveRegistration(type);  // 0x002661f0 (IKGroup_LevelReset 0x12a68)
-    m_pUnk1e4->RecursiveRegistration(type);
+    m_pQuakeLauncher->RecursiveRegistration(type);
 }
 
 // 0x00267f10 CKGrpS08Enemy_GetInfo (vt+0x40); found 0, else 1.

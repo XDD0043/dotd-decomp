@@ -695,9 +695,9 @@ void CKHkContextualMeca::UpdateAtRest(IKTime* frameClock, uint32_t state) {
     if ((m_bitArray & 0x400000u) != 0) {
         for (uint32_t i = 0; i < m_unk5C; ++i) {
             CKImpulsionCpnt* impulsion = static_cast<CKImpulsionCpnt*>(impulsions[i]);
-            impulsion->m_unk2c = kZero;
-            impulsion->m_unk24 = kZero;
-            impulsion->m_unk28 = kZero;
+            impulsion->m_fImpulseTimer = kZero;
+            impulsion->m_fValue = kZero;
+            impulsion->m_fSpeed = kZero;
         }
     }
     m_bitArray &= 0xfd67ffffu;
@@ -1293,12 +1293,12 @@ check20:
                     if (!pushed && (m_bitArray & 0x10000u) != 0 && pushers == 0 &&
                         !(static_cast<int32_t>(m_unk5C) > present)) {
                         pushed = true;
-                        if (impulsion->m_unk28 < impulsion->m_unk04[3] * kCrossfade) impulsion->Impulse(kCrossfade);  // 0x0024bce0
+                        if (impulsion->m_fSpeed < impulsion->m_unk04[3] * kCrossfade) impulsion->Impulse(kCrossfade);  // 0x0024bce0
                     }
                 } else if (allPressed == 0) {
                     if (!pushed && slot.m_unk2D != 0) {
                         pushed = true;
-                        if (impulsion->m_unk28 < impulsion->m_unk04[3] * kCrossfade) impulsion->Impulse(kCrossfade);
+                        if (impulsion->m_fSpeed < impulsion->m_unk04[3] * kCrossfade) impulsion->Impulse(kCrossfade);
                     }
                 } else {
                     if (!pushed) {
@@ -1309,15 +1309,15 @@ check20:
                 }
                 impulsion->Update(dt);  // 0x0024bd40
                 if (m_unkD0 == 1) {
-                    progress = m_afUnkF8[1] + rate * impulsion->m_unk24 / impulsion->m_unk04[0];
+                    progress = m_afUnkF8[1] + rate * impulsion->m_fValue / impulsion->m_unk04[0];
                 } else {
-                    progress = m_afUnkF8[1] + impulsion->m_unk24 / impulsion->m_unk04[0];
+                    progress = m_afUnkF8[1] + impulsion->m_fValue / impulsion->m_unk04[0];
                 }
                 m_afUnkF8[1] = progress;
-                m_afUnkF8[2] = m_afUnkF8[2] + impulsion->m_unk28;
+                m_afUnkF8[2] = m_afUnkF8[2] + impulsion->m_fSpeed;
                 m_afUnkF8[3] = m_afUnkF8[3] + impulsion->m_unk04[3];
-                if (impulsion->m_unk24 > kZero) ++moving;
-                if (impulsion->m_unk28 == impulsion->m_unk04[3]) ++full;
+                if (impulsion->m_fValue > kZero) ++moving;
+                if (impulsion->m_fSpeed == impulsion->m_unk04[3]) ++full;
             }
         }
         if (pushers > 1) {
@@ -1362,7 +1362,7 @@ check20:
     }
 progressCheck:
     if (!(m_afUnkF8[1] >= one)) goto animate;
-    for (uint32_t i = 0; i < m_unk5C; ++i) static_cast<CKImpulsionCpnt*>(impulsions[i])->m_unk24 = kZero;  // stw 0
+    for (uint32_t i = 0; i < m_unk5C; ++i) static_cast<CKImpulsionCpnt*>(impulsions[i])->m_fValue = kZero;  // stw 0
     flags = m_bitArray;
     goto finished;
 

@@ -182,9 +182,9 @@ using namespace enemy;
 // pair and the path-finding component set their own defaults; then the array pointers (not +0x3c) and
 // +0x164/+0x1ac are cleared.
 IKHkEnemy::IKHkEnemy() {
-    m_unk164 = nullptr;
+    m_apAnimLayerSlots = nullptr;
     m_unk1AC = 0;
-    m_unk2C = nullptr;
+    m_apBV = nullptr;
     m_aui8BoundingNumberByType = nullptr;
     m_aui8BoundingIndexByType = nullptr;
     m_unk20 = nullptr;
@@ -222,7 +222,7 @@ void IKHkEnemy::ResetMovementState() {
     m_unk140 = 0.0f;
     m_unk148 = 0.0f;
     m_unk144 = 0.0f;
-    m_unk158 = CVector3{0.0f, 0.0f, 0.0f};
+    m_v3Speed = CVector3{0.0f, 0.0f, 0.0f};
     m_avoidance.m_pNode = m_pKGLObject;
     if (m_unk60 != nullptr) {
         // the trail bytes of the kind's trail nodes go back to 0xff (the group is asked again every time)
@@ -236,14 +236,14 @@ void IKHkEnemy::AllocAnimLayerSlots() {
     IKGrpEnemy* group = static_cast<IKGrpEnemy*>(g_pEngine->m_gameManager->m_unk04[0]);
     const uint32_t layers = group->GetNbAnimLayers(m_ui8EnemyClassType);  // vt+0x108
     if (layers == 0) {
-        m_unk164 = nullptr;
+        m_apAnimLayerSlots = nullptr;
         return;
     }
-    m_unk164 = new SEnemyAnimLayerSlot*[layers];  // OperatorNewArray(layers << 2)
+    m_apAnimLayerSlots = new SEnemyAnimLayerSlot*[layers];  // OperatorNewArray(layers << 2)
     for (uint32_t layer = 0; layer < layers; ++layer) {
         const uint32_t count = group->GetNbAnimLayerSlots(m_ui8EnemyClassType, static_cast<uint8_t>(layer));  // vt+0x130
         if (count == 0) {
-            m_unk164[layer] = nullptr;
+            m_apAnimLayerSlots[layer] = nullptr;
         } else {
             // OperatorNewArray(count * 0x2c + 4): the count cookie, then the slots: the layer object's vtable word
             // (0xb22068), the embedded AnimBlendSlot's vtable (0xb16530: the native one here) and no controller yet.
@@ -252,7 +252,7 @@ void IKHkEnemy::AllocAnimLayerSlots() {
                 slots[i].m_unk00 = 0x00b22068u;
                 slots[i].m_blendSlot.m_pController = nullptr;
             }
-            m_unk164[layer] = slots;
+            m_apAnimLayerSlots[layer] = slots;
         }
     }
 }
@@ -263,12 +263,12 @@ int32_t IKHkEnemy::PostLoad(int32_t type) {
     PostLoadLife(type);
     if (type == K_LEVEL_PLATEFORMS) {
         ResetRuntimeState();
-        m_unk150 = reinterpret_cast<CMatrix34*>(RwMatrixCreate());  // RwMatrixCreate_Thunk 0x0023fa68
-        m_unk150->m_ui32Flags = 0x20003u;
-        m_unk150->m_right = CVector3{1.0f, 0.0f, 0.0f};
-        m_unk150->m_pos = CVector3{0.0f, 0.0f, 0.0f};
-        m_unk150->m_at = CVector3{0.0f, 0.0f, 1.0f};
-        m_unk150->m_up = CVector3{0.0f, 1.0f, 0.0f};
+        m_pDynGroundInvMatrix = reinterpret_cast<CMatrix34*>(RwMatrixCreate());  // RwMatrixCreate_Thunk 0x0023fa68
+        m_pDynGroundInvMatrix->m_ui32Flags = 0x20003u;
+        m_pDynGroundInvMatrix->m_right = CVector3{1.0f, 0.0f, 0.0f};
+        m_pDynGroundInvMatrix->m_pos = CVector3{0.0f, 0.0f, 0.0f};
+        m_pDynGroundInvMatrix->m_at = CVector3{0.0f, 0.0f, 1.0f};
+        m_pDynGroundInvMatrix->m_up = CVector3{0.0f, 1.0f, 0.0f};
         AllocAnimLayerSlots();
     }
     return 1;
@@ -293,17 +293,17 @@ int32_t IKHkEnemy::Load(IKFile* file, int32_t type) {
     uint8_t count = 0;
     ReadU8(file, &count);
     if (count != 0) {
-        m_unk18C = static_cast<CKEnemySectorCpnt**>(
+        m_apEnemySectorCpnt = static_cast<CKEnemySectorCpnt**>(
             Mem_CallocAligned16(static_cast<uint32_t>(sizeof(IKSerializable*)), count));
-        IKFile_ReadObjectRefArray(file, reinterpret_cast<IKSerializable**>(m_unk18C), count);
+        IKFile_ReadObjectRefArray(file, reinterpret_cast<IKSerializable**>(m_apEnemySectorCpnt), count);
     }
     ReadRawU16Array(file, &m_unk20);
     ReadRawU16Array(file, &m_unk24);
     ReadRawU16Array(file, &m_unk28);
     ReadU8(file, &count);
     if (count != 0) {
-        m_unk2C = static_cast<IKSerializable**>(Mem_AllocAligned16(count * static_cast<uint32_t>(sizeof(IKSerializable*))));
-        IKFile_ReadObjectRefArray(file, m_unk2C, count);
+        m_apBV = static_cast<IKSerializable**>(Mem_AllocAligned16(count * static_cast<uint32_t>(sizeof(IKSerializable*))));
+        IKFile_ReadObjectRefArray(file, m_apBV, count);
     }
     ReadU8(file, &m_ui8NumberOfBoundingTypes);
     m_aui8BoundingNumberByType = static_cast<uint8_t*>(Mem_AllocAligned16(m_ui8NumberOfBoundingTypes));
@@ -364,12 +364,12 @@ int32_t IKHkEnemy::Load(IKFile* file, int32_t type) {
     uint32_t position[3];
     ReadU32LEWords(file, position, 3);
     std::memcpy(&m_v3Position, position, sizeof(position));
-    m_unk158 = CVector3{0.0f, 0.0f, 0.0f};  // the zero vector 0xc50d64
+    m_v3Speed = CVector3{0.0f, 0.0f, 0.0f};  // the zero vector 0xc50d64
     m_PFCpnt.Load(file, K_LEVEL_PLATEFORMS);
     ReadF32LE(file, &m_avoidance.m_fRadius);
     ReadF32LE(file, &m_avoidance.m_unk04);
     m_avoidance.m_pNode = nullptr;
-    IKFile_ReadRef(file, reinterpret_cast<IKSerializable**>(&m_unk188));
+    IKFile_ReadRef(file, reinterpret_cast<IKSerializable**>(&m_pEnemyCpnt));
     IKFile_ReadRef(file, &m_pShadowCpnt);
     ReadU8(file, &count);
     if (count != 0) {
@@ -421,7 +421,7 @@ void FreeAndClear(T*& block) {
 // cleared in the original's order, the animation-layer slots deleted per layer (the group's vt+0x108 count; the slots'
 // destructors are vtable-only), their table deleted, the sector components' table freed and the matrix destroyed.
 void IKHkEnemy::FreeBuffers() {
-    FreeAndClear(m_unk2C);
+    FreeAndClear(m_apBV);
     FreeAndClear(m_aui8BoundingNumberByType);
     FreeAndClear(m_aui8BoundingIndexByType);
     FreeAndClear(m_unk20);
@@ -442,17 +442,17 @@ void IKHkEnemy::FreeBuffers() {
     IKGrpEnemy* group = static_cast<IKGrpEnemy*>(g_pEngine->m_gameManager->m_unk04[0]);
     const uint8_t layers = group->GetNbAnimLayers(m_ui8EnemyClassType);  // vt+0x108
     for (uint32_t layer = 0; layer != layers; ++layer) {
-        if (m_unk164[layer] == nullptr) continue;
-        delete[] m_unk164[layer];  // the slots' vt+0 last first, then OperatorDeleteArray
-        m_unk164[layer] = nullptr;
+        if (m_apAnimLayerSlots[layer] == nullptr) continue;
+        delete[] m_apAnimLayerSlots[layer];  // the slots' vt+0 last first, then OperatorDeleteArray
+        m_apAnimLayerSlots[layer] = nullptr;
     }
-    if (m_unk164 != nullptr) {
-        delete[] m_unk164;  // TocBridge_OperatorDeleteArray
-        m_unk164 = nullptr;
+    if (m_apAnimLayerSlots != nullptr) {
+        delete[] m_apAnimLayerSlots;  // TocBridge_OperatorDeleteArray
+        m_apAnimLayerSlots = nullptr;
     }
-    FreeAndClear(m_unk18C);
-    RwMatrixDestroy_Thunk(m_unk150);  // 0x0023f968
-    m_unk150 = nullptr;
+    FreeAndClear(m_apEnemySectorCpnt);
+    RwMatrixDestroy_Thunk(m_pDynGroundInvMatrix);  // 0x0023f968
+    m_pDynGroundInvMatrix = nullptr;
 }
 
 // 0x0027b590 CKHkS08Enemy_RegisterActive (IKHkEnemy's vt+0xcc): the sector nodes attached, the enemy listed by its group,
@@ -469,31 +469,31 @@ void IKHkEnemy::Activate() {
     m_bitArray = m_bitArray & 0xffffff47u;  // rlwinm 24/8 clear 0x80, rlwinm 26/6 clear 0x38
     const float half = g_pfGridScale.m_halfCellSize;  // 0x00c40260 (TOC1 +0xab4)
     const float margin = 0.05f;                      // TOC1 +0xac0 0x3d4ccccd
-    float radius = m_unk188->m_MoveCpnt.m_afParams[0];
+    float radius = m_pEnemyCpnt->m_MoveCpnt.m_afParams[0];
     const float cap = half - margin;
     if (!(radius < cap)) radius = cap;
-    m_PFCpnt.m_CharacterType.m_unk04 = radius;
+    m_PFCpnt.m_CharacterType.m_fRadius = radius;
     const float half2 = g_pfGridScale.m_halfCellSize;
     const float cap2 = half2 - margin;
-    float distance = m_unk188->m_MoveCpnt.m_afParams[0];
+    float distance = m_pEnemyCpnt->m_MoveCpnt.m_afParams[0];
     if (!(distance < cap2)) distance = cap2;
     if (!(distance < half2)) distance = half2;
     m_PFCpnt.m_fPointValidationDistanceSquared = distance * distance;
     m_unk1ad = 0;
     if (m_pShadowCpnt != nullptr) {
         static_cast<CKSrvShadow*>(g_pEngine->m_srvShadow)
-            ->RegisterCaster(m_pShadowCpnt, m_pKGLObject, reinterpret_cast<CKShadowGround*>(&m_unk190), 0, nullptr, 0);  // 0x001fb6f8
-        m_unk190.x = m_v3Position.x;
-        m_unk190.z = m_v3Position.z;
-        m_unk190.y = m_v3Position.y;
-        m_unk19C = kAxisY;  // 0x00c50d40 (TOC1 +0xa84)
+            ->RegisterCaster(m_pShadowCpnt, m_pKGLObject, reinterpret_cast<CKShadowGround*>(&m_v3ShadowGroundPosition), 0, nullptr, 0);  // 0x001fb6f8
+        m_v3ShadowGroundPosition.x = m_v3Position.x;
+        m_v3ShadowGroundPosition.z = m_v3Position.z;
+        m_v3ShadowGroundPosition.y = m_v3Position.y;
+        m_v3ShadowGroundNormal = kAxisY;  // 0x00c50d40 (TOC1 +0xa84)
         m_unk1a8 = 0.0f;
     }
-    m_avoidance.m_fRadius = m_unk188->m_MoveCpnt.m_afParams[1];
+    m_avoidance.m_fRadius = m_pEnemyCpnt->m_MoveCpnt.m_afParams[1];
     const uint32_t variant = GroupKindFlag104(m_ui8EnemyClassType) == 0 ? SquadFightZoneIndex(m_pGroupSquad) : 0u;
-    CKEnemySectorCpnt* sector = m_unk18C[variant];
+    CKEnemySectorCpnt* sector = m_apEnemySectorCpnt[variant];
     for (uint32_t layer = 0; layer < GroupNbAnimLayers(m_ui8EnemyClassType); ++layer) {
-        SEnemyAnimLayerSlot* slots = m_unk164[layer];
+        SEnemyAnimLayerSlot* slots = m_apAnimLayerSlots[layer];
         for (uint32_t slot = 0; slot < GroupNbAnimLayerSlots(m_ui8EnemyClassType, static_cast<uint8_t>(layer)); ++slot) {
             self->InitAnimLayerSlot(&slots[slot], sector->GetChainedEntry(layer, slot));  // 0x002b3140, then 0x00079ff0
         }
@@ -507,7 +507,7 @@ void IKHkEnemy::Deactivate() {
     CKHkS08Enemy* self = static_cast<CKHkS08Enemy*>(this);
     self->DetachSectorNodesFromBones();  // 0x0027a1b0
     const uint32_t variant = GroupKindFlag104(m_ui8EnemyClassType) == 0 ? SquadFightZoneIndex(m_pGroupSquad) : 0u;
-    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_unk18C[variant]->m_pUnk1c);
+    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_apEnemySectorCpnt[variant]->m_pUnk1c);
     for (uint32_t i = sounds->m_ui32NbKSound; i != 0;) {
         --i;
         CKSound* sound = sounds->GetSound(i);  // 0x00112bc0
@@ -517,7 +517,7 @@ void IKHkEnemy::Deactivate() {
     static_cast<CKSrvAvoidance*>(g_pEngine->m_srvAvoidance)->RemoveAgent(&m_avoidance);  // 0x00122bb0
     if (m_pShadowCpnt != nullptr && m_unk1ad != 0) {
         static_cast<CKSrvShadow*>(g_pEngine->m_srvShadow)
-            ->UnregisterCaster(reinterpret_cast<CKShadowGround*>(&m_unk190), m_pShadowCpnt);  // 0x001fd6f0
+            ->UnregisterCaster(reinterpret_cast<CKShadowGround*>(&m_v3ShadowGroundPosition), m_pShadowCpnt);  // 0x001fd6f0
     }
     m_PFCpnt.CancelPathRequest();  // 0x001e2820
     for (uint32_t i = 0; i < GroupNbFogBoxes(m_ui8EnemyClassType); ++i) {
@@ -574,21 +574,21 @@ uint32_t IKHkEnemy::ConstrainToGroundAndNavMesh() {
         {
             CVector3 local;
             CVector3 world;
-            Mat4_TransformPoints(m_unk150, &local, &pos, 1);  // 0x0023f7e8
+            Mat4_TransformPoints(m_pDynGroundInvMatrix, &local, &pos, 1);  // 0x0023f7e8
             Mat4_TransformPoints(static_cast<ICollisionMesh*>(contact.m_pGround)->GetWorldMatrix(), &world, &local, 1);  // vt+0x50
             pos.x = world.x;
             pos.z = world.z;
             pos.y = world.y + 0.1f;  // TOC1 +0xac4 0x3dcccccd
-            CopyMatrix(m_unk150, static_cast<ICollisionMesh*>(contact.m_pGround)->GetInvertedWorldMatrix());  // vt+0x54
+            CopyMatrix(m_pDynGroundInvMatrix, static_cast<ICollisionMesh*>(contact.m_pGround)->GetInvertedWorldMatrix());  // vt+0x54
         }
         if (m_unk14c == 0) goto checkMoved;
-        if ((m_PFCpnt.m_unk3c & 0x40) != 0) goto checkActions;
+        if ((m_PFCpnt.m_eState & 0x40) != 0) goto checkActions;
         goto navMesh;
     }
     // 0x0027842c: no move, nothing to do.
     if (pos.x == prevVec.x && pos.y == prevVec.y && pos.z == prevVec.z) return 1;
 checkMoved:  // 0x0027843c
-    if ((m_PFCpnt.m_unk3c & 0x40) == 0) goto navMesh;
+    if ((m_PFCpnt.m_eState & 0x40) == 0) goto navMesh;
 checkActions:  // 0x00278450
     if ((m_PFCpnt.m_bits70 & 0x400) != 0) goto navMesh;
 ground:  // 0x00278460
@@ -604,7 +604,7 @@ ground:  // 0x00278460
         }
         collision->GroundProbePoints(&m_GrdContDatasIn, &contact, &pos.x, 1);  // 0x00196540
         if (contact.m_pGround != nullptr && static_cast<ICollisionMesh*>(contact.m_pGround)->GetClassID() == 0x13) {
-            CopyMatrix(m_unk150, static_cast<ICollisionMesh*>(contact.m_pGround)->GetInvertedWorldMatrix());  // vt+0x54
+            CopyMatrix(m_pDynGroundInvMatrix, static_cast<ICollisionMesh*>(contact.m_pGround)->GetInvertedWorldMatrix());  // vt+0x54
             m_unk14c = 1;
         } else {
             m_unk14c = 0;
@@ -696,7 +696,7 @@ offDynamic:  // 0x00278eec: the line starts on the moving ground's rim (its box'
         line.m_VectDir.y = pos.y - m_unk144;
         line.m_VectDir.x = pos.x - sx;
         line.m_VectDir.z = pos.z - sz;
-        result = collision->ResolveSweptCylinderWalls(&line, m_unk188->m_MoveCpnt.m_afParams[0], ComponentHeight(),
+        result = collision->ResolveSweptCylinderWalls(&line, m_pEnemyCpnt->m_MoveCpnt.m_afParams[0], ComponentHeight(),
                                                        &slide, nullptr, nullptr, 1);  // 0x0019aa68
         if (result == 1) {
             pos.z = prevVec.z;
@@ -725,17 +725,17 @@ offDynamic:  // 0x00278eec: the line starts on the moving ground's rim (its box'
     }
 navMesh:  // 0x00278748
     pathFinding = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);
-    oldHint = static_cast<int16_t>(m_PFCpnt.m_Destination.m_unk0c);
+    oldHint = static_cast<int16_t>(m_PFCpnt.m_Destination.m_i16GraphNodeIndex);
     point.m_position = pos;
-    point.m_unk0c = static_cast<uint16_t>(oldHint);
+    point.m_i16GraphNodeIndex = static_cast<uint16_t>(oldHint);
     if ((pathFinding->FindSectorForPoint(&point) & 0xffu) == 0) {  // 0x001e5ca0
         point.m_position = prevVec;
         if ((pathFinding->FindSectorForPoint(&point) & 0xffu) != 0) goto backToPrevious;
         m_bitArray = (m_bitArray & 0xffffffefu) | 0x10u;
         return 0;
     }
-    newHint = point.m_unk0c;
-    if (static_cast<int16_t>(newHint) != static_cast<int16_t>(oldHint) && (m_PFCpnt.m_unk3c & 0x40) == 0) {
+    newHint = point.m_i16GraphNodeIndex;
+    if (static_cast<int16_t>(newHint) != static_cast<int16_t>(oldHint) && (m_PFCpnt.m_eState & 0x40) == 0) {
         CKPFGraphTransition* transition =
             pathFinding->GetTransitionBetween(newHint, static_cast<uint16_t>(oldHint));  // 0x001e3e28
         if (transition == nullptr) goto backToPrevious;
@@ -747,14 +747,14 @@ navMesh:  // 0x00278748
         (pathFinding->IsPointWalkable(&point, &m_PFCpnt.m_CharacterType) & 0xffu) == 0) {  // 0x001e42d0
         // 0x00278ad4: the previous point in its own node still walkable: back there.
         point.m_position = prevVec;
-        point.m_unk0c = static_cast<uint16_t>(oldHint);
+        point.m_i16GraphNodeIndex = static_cast<uint16_t>(oldHint);
         if (PointInNodeBox(pathFinding, &point) &&
             (pathFinding->IsPointWalkable(&point, &m_PFCpnt.m_CharacterType) & 0xffu) != 0) {
             goto backToPrevious;
         }
         point.m_position = pos;
-        point.m_unk0c = newHint;
-        m_PFCpnt.m_CharacterType.m_unk04 = 0.0f;
+        point.m_i16GraphNodeIndex = newHint;
+        m_PFCpnt.m_CharacterType.m_fRadius = 0.0f;
         if (!PointInNodeBox(pathFinding, &point) ||
             (pathFinding->IsPointWalkable(&point, &m_PFCpnt.m_CharacterType) & 0xffu) == 0) {
             pos.x = prevVec.x;
@@ -762,10 +762,10 @@ navMesh:  // 0x00278748
             pos.z = prevVec.z;
         }
         const float cap = g_pfGridScale.m_halfCellSize - 0.05f;  // TOC1 +0xab4 / +0xac0
-        const float radius = m_unk188->m_MoveCpnt.m_afParams[0];
-        m_PFCpnt.m_CharacterType.m_unk04 = radius >= cap ? cap : radius;
+        const float radius = m_pEnemyCpnt->m_MoveCpnt.m_afParams[0];
+        m_PFCpnt.m_CharacterType.m_fRadius = radius >= cap ? cap : radius;
     }
-    if ((m_PFCpnt.m_unk3c & 0x40) == 0) m_PFCpnt.m_Destination.m_unk0c = point.m_unk0c;
+    if ((m_PFCpnt.m_eState & 0x40) == 0) m_PFCpnt.m_Destination.m_i16GraphNodeIndex = point.m_i16GraphNodeIndex;
     goto ground;
 }
 
@@ -777,7 +777,7 @@ navMesh:  // 0x00278748
 void IKHkEnemy::UpdateShadowCaster() {
     CKSrvCollision* collision = static_cast<CKSrvCollision*>(g_pEngine->m_srvCollision);
     collision->GroundProbePoints(&m_GrdContDatasIn, &m_GrdContDatasInOut, &m_v3Position.x, 1);  // 0x00196540
-    CKShadowGround* caster = reinterpret_cast<CKShadowGround*>(&m_unk190);
+    CKShadowGround* caster = reinterpret_cast<CKShadowGround*>(&m_v3ShadowGroundPosition);
     bool keep = m_GrdContDatasInOut.m_pGround != nullptr;
     if (keep) {
         const CKS08GameManager* manager = static_cast<const CKS08GameManager*>(g_pEngine->m_gameManager);
@@ -792,15 +792,15 @@ void IKHkEnemy::UpdateShadowCaster() {
     if (m_pShadowCpnt != nullptr && m_unk1ad == 0) {
         static_cast<CKSrvShadow*>(g_pEngine->m_srvShadow)
             ->RegisterCaster(m_pShadowCpnt, m_pKGLObject, caster, 0, nullptr, 0);  // 0x001fb6f8
-        m_unk190.x = m_v3Position.x;
-        m_unk190.z = m_v3Position.z;
-        m_unk190.y = m_v3Position.y;
-        m_unk19C = kAxisY;  // TOC1 +0xa84
+        m_v3ShadowGroundPosition.x = m_v3Position.x;
+        m_v3ShadowGroundPosition.z = m_v3Position.z;
+        m_v3ShadowGroundPosition.y = m_v3Position.y;
+        m_v3ShadowGroundNormal = kAxisY;  // TOC1 +0xa84
         m_unk1a8 = 0.0f;
     }
     if (m_GrdContDatasInOut.m_eContactStatus == 3) return;
-    GroundContact_GetWorldPoint(&m_GrdContDatasInOut, &m_unk190);   // 0x001a70e0
-    GroundContact_GetWorldNormal(&m_GrdContDatasInOut, &m_unk19C);  // 0x001a71d8
+    GroundContact_GetWorldPoint(&m_GrdContDatasInOut, &m_v3ShadowGroundPosition);   // 0x001a70e0
+    GroundContact_GetWorldNormal(&m_GrdContDatasInOut, &m_v3ShadowGroundNormal);  // 0x001a71d8
     m_unk1a8 = m_GrdContDatasInOut.m_fdH;
     const ICollisionMesh* ground = static_cast<const ICollisionMesh*>(m_GrdContDatasInOut.m_pGround);
     if (((ground->m_ba16EngineFlags >> 6) & 1u) != 0) {
@@ -812,14 +812,14 @@ void IKHkEnemy::UpdateShadowCaster() {
 
 // 0x00277850 CKHkS08Enemy_EnableVolume (vt+0xf0): volume `index` of +0x2c switched on in the collision service.
 void IKHkEnemy::EnableVolume(int32_t index) {
-    IKSerializable* volume = m_unk2C[index];
+    IKSerializable* volume = m_apBV[index];
     if (volume == nullptr) return;
     static_cast<CKSrvCollision*>(g_pEngine->m_srvCollision)->EnableVolume(static_cast<IKBoundingVolume*>(volume));  // 0x00192090
 }
 
 // 0x00277800 CKHkS08Enemy_DisableVolume (vt+0xf4)
 void IKHkEnemy::DisableVolume(int32_t index) {
-    IKSerializable* volume = m_unk2C[index];
+    IKSerializable* volume = m_apBV[index];
     if (volume == nullptr) return;
     static_cast<CKSrvCollision*>(g_pEngine->m_srvCollision)->DisableVolume(static_cast<IKBoundingVolume*>(volume));  // 0x001920e8
 }
@@ -828,7 +828,7 @@ void IKHkEnemy::DisableVolume(int32_t index) {
 // m_aui8BoundingIndexByType[group] switched on (the count is read again after each volume).
 void IKHkEnemy::EnableVolumeGroup(int32_t group) {
     for (uint32_t i = 0; m_aui8BoundingNumberByType[group] > i; ++i) {
-        IKSerializable* volume = m_unk2C[m_aui8BoundingIndexByType[group] + i];
+        IKSerializable* volume = m_apBV[m_aui8BoundingIndexByType[group] + i];
         if (volume == nullptr) continue;
         static_cast<CKSrvCollision*>(g_pEngine->m_srvCollision)->EnableVolume(static_cast<IKBoundingVolume*>(volume));  // 0x00192090
     }
@@ -837,7 +837,7 @@ void IKHkEnemy::EnableVolumeGroup(int32_t group) {
 // 0x00277670 CKHkS08Enemy_DisableVolumeGroup (vt+0xfc)
 void IKHkEnemy::DisableVolumeGroup(int32_t group) {
     for (uint32_t i = 0; m_aui8BoundingNumberByType[group] > i; ++i) {
-        IKSerializable* volume = m_unk2C[m_aui8BoundingIndexByType[group] + i];
+        IKSerializable* volume = m_apBV[m_aui8BoundingIndexByType[group] + i];
         if (volume == nullptr) continue;
         static_cast<CKSrvCollision*>(g_pEngine->m_srvCollision)->DisableVolume(static_cast<IKBoundingVolume*>(volume));  // 0x001920e8
     }
@@ -846,7 +846,7 @@ void IKHkEnemy::DisableVolumeGroup(int32_t group) {
 // 0x00276f88 CKHkS08Enemy_ClearVolumeGroupFlags (vt+0x100): `flags` cleared in the properties of the group's volumes.
 void IKHkEnemy::ClearVolumeGroupFlags(int32_t group, uint16_t flags) {
     for (uint32_t i = 0; m_aui8BoundingNumberByType[group] > i; ++i) {
-        IKBoundingVolume* volume = static_cast<IKBoundingVolume*>(m_unk2C[m_aui8BoundingIndexByType[group] + i]);
+        IKBoundingVolume* volume = static_cast<IKBoundingVolume*>(m_apBV[m_aui8BoundingIndexByType[group] + i]);
         if (volume == nullptr) continue;
         volume->m_ui16PropertiesFlags = static_cast<uint16_t>(~flags & volume->m_ui16PropertiesFlags);
     }
@@ -855,7 +855,7 @@ void IKHkEnemy::ClearVolumeGroupFlags(int32_t group, uint16_t flags) {
 // 0x00277008 CKHkS08Enemy_SetVolumeGroupFlags (vt+0x104)
 void IKHkEnemy::SetVolumeGroupFlags(int32_t group, uint16_t flags) {
     for (uint32_t i = 0; m_aui8BoundingNumberByType[group] > i; ++i) {
-        IKBoundingVolume* volume = static_cast<IKBoundingVolume*>(m_unk2C[m_aui8BoundingIndexByType[group] + i]);
+        IKBoundingVolume* volume = static_cast<IKBoundingVolume*>(m_apBV[m_aui8BoundingIndexByType[group] + i]);
         if (volume == nullptr) continue;
         volume->m_ui16PropertiesFlags = static_cast<uint16_t>(flags | volume->m_ui16PropertiesFlags);
     }
@@ -878,7 +878,7 @@ void IKHkEnemy::EnableCollisionSphere(uint32_t index) {
     // The original reads the variant (GetSectorIndex's logic, inlined) before the attach and again before the position.
     auto sector = [this]() -> CKEnemySectorCpnt* {
         const uint32_t i = enemy::GroupKindFlag104(m_ui8EnemyClassType) != 0 ? 0u : enemy::SquadFightZoneIndex(m_pGroupSquad);
-        return m_unk18C[i];
+        return m_apEnemySectorCpnt[i];
     };
     CVector3 base{0.0f, 0.0f, 0.0f};  // DOTD: a parent kind above 4 leaves the original's stack copy uninitialised
     switch (static_cast<uint8_t>(props.m_i8ParentIndex)) {
@@ -1070,7 +1070,7 @@ void CKHkS08Enemy::ProcessContacts(IKTime* /*clock*/) {
     for (uint32_t type = 0; type < m_ui8NumberOfBoundingTypes; ++type) {
         for (uint32_t index = m_aui8BoundingIndexByType[type];
              index < static_cast<uint32_t>(m_aui8BoundingIndexByType[type]) + m_aui8BoundingNumberByType[type]; ++index) {
-            IKBoundingVolume* own = static_cast<IKBoundingVolume*>(m_unk2C[index]);
+            IKBoundingVolume* own = static_cast<IKBoundingVolume*>(m_apBV[index]);
             if (own == nullptr) continue;
             for (ICollision* contact = static_cast<ICollision*>(own->m_CollisionResList); contact != nullptr;
                  contact = contact->m_pNext) {
@@ -1081,9 +1081,9 @@ void CKHkS08Enemy::ProcessContacts(IKTime* /*clock*/) {
                 } else if (type == 3) {
                     m_unk23a = 1;
                     const CVector3* point = contact->GetWorldContactPoint();  // vt+0x20
-                    m_unk23c[0] = point->x;
-                    m_unk23c[2] = point->z;
-                    m_unk23c[1] = point->y;
+                    m_vLastHitPos[0] = point->x;
+                    m_vLastHitPos[2] = point->z;
+                    m_vLastHitPos[1] = point->y;
                 } else if (type == 1) {
                     if (other->m_ui8OwnerType != 3 || (other->m_ui16PropertiesFlags & 0x10u) == 0) continue;
                     if ((other->m_ui16PropertiesFlags & 0x2000u) == 0 && (own->m_ui16PropertiesFlags & 0x2000u) != 0) continue;
@@ -1101,7 +1101,7 @@ void CKHkS08Enemy::ProcessContacts(IKTime* /*clock*/) {
         }
     }
     // The projectile spheres' contacts: Contact_GetOtherVolume for each, the result dropped.
-    const uint8_t spheres = GroupNbDynSpheres(static_cast<uint8_t>(m_unk884->m_unkb8));  // vt+0x11c, the kind +0xbb
+    const uint8_t spheres = GroupNbDynSpheres(static_cast<uint8_t>(m_pActiveEnemyCpnt->m_unkb8));  // vt+0x11c, the kind +0xbb
     for (uint32_t i = 0; i < spheres; ++i) {
         IKBoundingVolume* sphere = static_cast<IKBoundingVolume*>(m_apBVProj[i]);
         if (sphere == nullptr) continue;
@@ -1131,7 +1131,7 @@ void CKHkS08Enemy::ProcessContacts(IKTime* /*clock*/) {
 // held byte ends the hits of this frame.
 void CKHkS08Enemy::ProcessDamageContact(ICollision* contact, IKBoundingVolume* other, uint8_t* canBeHit) {
     if (m_unk7cd == 0 || *canBeHit == 0) return;
-    if ((m_PFCpnt.m_unk3c & 0x40) != 0 && (m_PFCpnt.m_bits70 & 0x400u) == 0) return;
+    if ((m_PFCpnt.m_eState & 0x40) != 0 && (m_PFCpnt.m_bits70 & 0x400u) == 0) return;
     if ((other->m_ui16PropertiesFlags & 0x20u) == 0) return;
     if (other->m_pOwner == this) return;
     CKS08Damage* damage = nullptr;
@@ -1142,37 +1142,37 @@ void CKHkS08Enemy::ProcessDamageContact(ICollision* contact, IKBoundingVolume* o
         } else {
             const CKDamage* source = static_cast<const CKDamage*>(other->m_unk1c);
             const CKS08Damage fresh;  // 0x004ebc70; CKS08Damage_Assign 0x4eba18, the destructor 0x4ebb00
-            m_damage8BC.m_unk0c = fresh.m_unk0c;
-            m_damage8BC.m_unk04 = fresh.m_unk04;
-            m_damage8BC.m_unk08 = fresh.m_unk08;
+            m_damage8BC.m_bContinuous = fresh.m_bContinuous;
+            m_damage8BC.m_fAmount = fresh.m_fAmount;
+            m_damage8BC.m_i32DamageKind = fresh.m_i32DamageKind;
             m_damage8BC.m_unk26 = fresh.m_unk26;
-            m_damage8BC.m_unk10 = fresh.m_unk10;
-            m_damage8BC.m_unk14 = fresh.m_unk14;
+            m_damage8BC.m_fKnockbackForce = fresh.m_fKnockbackForce;
+            m_damage8BC.m_fKnockbackTime = fresh.m_fKnockbackTime;
             m_damage8BC.m_unk18 = fresh.m_unk18;
             m_damage8BC.m_unk1c = fresh.m_unk1c;
-            m_damage8BC.m_unk20 = fresh.m_unk20;
+            m_damage8BC.m_ui32DamageType = fresh.m_ui32DamageType;
             m_damage8BC.m_unk24 = fresh.m_unk24;
             m_damage8BC.m_unk25 = fresh.m_unk25;
-            m_damage8BC.m_unk08 = source->m_unk08;
-            m_damage8BC.m_unk04 = source->m_unk04;
-            m_damage8BC.m_unk0c = source->m_unk0c;
+            m_damage8BC.m_i32DamageKind = source->m_i32DamageKind;
+            m_damage8BC.m_fAmount = source->m_fAmount;
+            m_damage8BC.m_bContinuous = source->m_bContinuous;
             m_damage8BC.m_unk26 = 1;  // +0x8e2
             damage = &m_damage8BC;
         }
-        if (damage != nullptr && damage->m_unk0c != 0) hasDamage = 1;
+        if (damage != nullptr && damage->m_bContinuous != 0) hasDamage = 1;
     }
     auto element = [](CKS08Damage* d) -> CKS08ElementDamage* {
         return d != nullptr && d->IsKindOfClass(0x99cc) != 0 ? static_cast<CKS08ElementDamage*>(d) : nullptr;
     };
-    if (m_mainState == 0x1d && element(damage) != nullptr && damage->m_unk20 == 7) m_unk899 = 1;
-    const uint8_t listed = m_unk238;
+    if (m_mainState == 0x1d && element(damage) != nullptr && damage->m_ui32DamageType == 7) m_unk899 = 1;
+    const uint8_t listed = m_ui8HitByCount;
     if (listed > 3) return;
     if (listed != 0) {
         uint8_t skip = 0;
-        for (uint32_t i = 0; i < m_unk238; ++i) {
-            SEnemyHitAttacker& entry = m_unk208[i];
+        for (uint32_t i = 0; i < m_ui8HitByCount; ++i) {
+            SEnemyHitAttacker& entry = m_aRecentAttackers[i];
             if (entry.m_pAttacker == other->m_pOwner) {
-                if (m_unk27c != nullptr && m_unk27c->m_unk26 != 0) {
+                if (m_pPendingDamage != nullptr && m_pPendingDamage->m_unk26 != 0) {
                     if (m_unk8a0 == other) {
                         skip = 1;
                     } else {
@@ -1182,12 +1182,12 @@ void CKHkS08Enemy::ProcessDamageContact(ICollision* contact, IKBoundingVolume* o
                 } else if (hasDamage == 0) {
                     skip = 1;
                 }
-                if (element(damage) != nullptr && damage->m_unk20 == 7 && damage->m_unk0c == 0) skip = 0;
+                if (element(damage) != nullptr && damage->m_ui32DamageType == 7 && damage->m_bContinuous == 0) skip = 0;
             }
             if (entry.m_pAttacker == nullptr) continue;
             const CKS08ElementDamage* elemental = element(damage);
             if (elemental != nullptr &&
-                (elemental->m_unk38 == 0 || elemental->m_unk38 == 10 || elemental->m_unk38 == 14)) {
+                (elemental->m_i32AbilityId == 0 || elemental->m_i32AbilityId == 10 || elemental->m_i32AbilityId == 14)) {
                 entry.m_bTouching = 0;
             } else {
                 entry.m_bTouching = 1;
@@ -1199,34 +1199,34 @@ void CKHkS08Enemy::ProcessDamageContact(ICollision* contact, IKBoundingVolume* o
     IKSerializable* attacker = other->m_pOwner;
     if (attacker->IsKindOfClass(2) == 0) return;  // a hook
     // (the distance to the volume's LTM position is computed twice, Math_Sqrtf, and dropped)
-    const uint32_t moveAnim = m_unk884->m_MoveCpnt.m_eMvtAnim;  // +0x84
-    m_unk694 = attacker;
-    SEnemyHitAttacker& added = m_unk208[m_unk238];
+    const uint32_t moveAnim = m_pActiveEnemyCpnt->m_MoveCpnt.m_eMvtAnim;  // +0x84
+    m_pLastAttacker = attacker;
+    SEnemyHitAttacker& added = m_aRecentAttackers[m_ui8HitByCount];
     added.m_pAttacker = attacker;
     added.m_bTouching = 1;
     if (damage != nullptr) {
         const CKS08ElementDamage* elemental = element(damage);
         CKGrpS08Enemy* group = static_cast<CKGrpS08Enemy*>(EnemyGroup());  // 0x00276f58
-        if (elemental != nullptr && elemental->m_unk38 == 0) {
+        if (elemental != nullptr && elemental->m_i32AbilityId == 0) {
             added.m_fCooldown = group->m_unk238[8];   // +0x258
-        } else if (elemental != nullptr && elemental->m_unk38 == 10) {
+        } else if (elemental != nullptr && elemental->m_i32AbilityId == 10) {
             added.m_fCooldown = group->m_unk238[9];   // +0x25c
-        } else if (elemental != nullptr && elemental->m_unk38 == 14) {
+        } else if (elemental != nullptr && elemental->m_i32AbilityId == 14) {
             added.m_fCooldown = group->m_unk238[10];  // +0x260
         } else {
             added.m_fCooldown = 0.2f;  // TOC +0xbb8
         }
     }
-    m_unk238 = static_cast<uint8_t>(m_unk238 + 1);
+    m_ui8HitByCount = static_cast<uint8_t>(m_ui8HitByCount + 1);
     const CVector3* point = contact->GetWorldContactPoint();  // vt+0x20
-    m_unk23c[0] = point->x;
-    m_unk23c[1] = point->y;
-    m_unk23c[2] = point->z;
-    m_unk27c = damage;
-    const CKS08EnemyCpnt* cfg = m_unk884;
+    m_vLastHitPos[0] = point->x;
+    m_vLastHitPos[1] = point->y;
+    m_vLastHitPos[2] = point->z;
+    m_pPendingDamage = damage;
+    const CKS08EnemyCpnt* cfg = m_pActiveEnemyCpnt;
     bool pending = true;
     bool blockChecked = false;
-    if (cfg->m_unke8 != 0 && damage != nullptr && damage->m_unk08 != 2 && m_unk354 == 0 && m_unk718 >= cfg->m_unkf4 &&
+    if (cfg->m_unke8 != 0 && damage != nullptr && damage->m_i32DamageKind != 2 && m_unk354 == 0 && m_unk718 >= cfg->m_unkf4 &&
         m_mainState == 1 && (moveAnim <= 2 || moveAnim == 5 || moveAnim == 6 || moveAnim == 7)) {
         const RwFrame* frame = static_cast<CSGMovable*>(m_pKGLObject)->m_pRwFrame;
         const float angle = ClampedAngle(m_unk388, m_unk38c, m_unk390, frame->ltm.at.x, frame->ltm.at.y,
@@ -1235,18 +1235,18 @@ void CKHkS08Enemy::ProcessDamageContact(ICollision* contact, IKBoundingVolume* o
             const uint8_t kind = m_ui8EnemyClassType;
             bool block = false;
             if (kind == 2) {
-                block = m_unk524 != nullptr;
-            } else if (kind == 5 && m_unk524 != nullptr) {
+                block = m_pHeldShield != nullptr;
+            } else if (kind == 5 && m_pHeldShield != nullptr) {
                 block = true;
             } else if (kind == 4 || kind == 5) {
-                block = m_unk520 != nullptr && m_unk27c != nullptr && element(m_unk27c) == nullptr;
+                block = m_pHeldWeapon != nullptr && m_pPendingDamage != nullptr && element(m_pPendingDamage) == nullptr;
             }
             if (block && m_mainState != 0x22 && m_mainState != 5) {
                 blockChecked = true;
                 pending = false;
-                if (m_unk72c + 1u < static_cast<uint32_t>(m_unk884->m_unk33c) || m_unk27c == nullptr) {
+                if (m_unk72c + 1u < static_cast<uint32_t>(m_pActiveEnemyCpnt->m_unk33c) || m_pPendingDamage == nullptr) {
                     SwitchMainState(5, nullptr);
-                } else if (element(m_unk27c) == nullptr) {
+                } else if (element(m_pPendingDamage) == nullptr) {
                     SwitchMainState(0x22, nullptr);
                 } else {
                     m_unk7dd = 1;
@@ -1260,10 +1260,10 @@ void CKHkS08Enemy::ProcessDamageContact(ICollision* contact, IKBoundingVolume* o
         }
     }
     (void)blockChecked;
-    if (pending) m_unk239 = 1;
+    if (pending) m_bPendingHit = 1;
     // 0x002830f0: the dodge.
-    cfg = m_unk884;
-    IKSerializable* hitter = static_cast<IKSerializable*>(m_unk694);
+    cfg = m_pActiveEnemyCpnt;
+    IKSerializable* hitter = static_cast<IKSerializable*>(m_pLastAttacker);
     if ((cfg->m_unk1f8 != 0 || cfg->m_unk1f9 != 0) && m_unk6b0 >= cfg->m_unk220 && hitter != nullptr &&
         hitter->IsKindOfClass(0x25c2) != 0) {
         CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(hitter);
@@ -1273,38 +1273,38 @@ void CKHkS08Enemy::ProcessDamageContact(ICollision* contact, IKBoundingVolume* o
             const float angle = ClampedAngle(aim.x, aim.y, aim.z, frame->modelling.at.x, frame->modelling.at.y,
                                              frame->modelling.at.z, false);
             if (cfg->m_unk200 >= angle && m_mainState == 1) {
-                uint32_t count = hero->m_unk1bac;  // CKHkS08Hero_GetActiveHitSpheres 0x329de0
+                uint32_t count = hero->m_ui32ActiveHitSphereCount;  // CKHkS08Hero_GetActiveHitSpheres 0x329de0
                 if (count > 4) count = 4;
                 for (uint32_t i = 0; i < count; ++i) {
                     const RwFrame* sphere = static_cast<CSGMovable*>(hero->m_apActiveHitSpheres[i])->m_pRwFrame;
                     const float dz = sphere->ltm.pos.z - m_v3Position.z;
                     const float dx = sphere->ltm.pos.x - m_v3Position.x;
-                    if (ppc::fmadds(dx, dx, dz * dz) <= m_unk884->m_unk204) {
+                    if (ppc::fmadds(dx, dx, dz * dz) <= m_pActiveEnemyCpnt->m_unk204) {
                         SwitchMainState(6, nullptr);
-                        m_unk239 = 0;
+                        m_bPendingHit = 0;
                     }
                 }
             }
         }
     }
     // 0x00283158
-    if (m_unk239 != 0) {
-        if (m_unk27c == nullptr) {
-            m_unk239 = 0;
+    if (m_bPendingHit != 0) {
+        if (m_pPendingDamage == nullptr) {
+            m_bPendingHit = 0;
             return;
         }
-        if (m_unk694 == nullptr) return;
+        if (m_pLastAttacker == nullptr) return;
         ApplyHitToArmourParts(other);
 
     }
     // 0x00283440
-    if (m_unk27c == nullptr) {
-        m_unk239 = 0;
+    if (m_pPendingDamage == nullptr) {
+        m_bPendingHit = 0;
         return;
     }
     if (hitter == nullptr || hitter->IsKindOfClass(0x25c2) == 0) return;
     static_cast<CKHkS08Hero*>(hitter)->SetHitConfirmed(1);  // 0x00329f00
-    if (m_unk27c->m_unk0c == 0) *canBeHit = 0;
+    if (m_pPendingDamage->m_bContinuous == 0) *canBeHit = 0;
 }
 
 namespace {
@@ -1321,17 +1321,17 @@ void ApplyArmourPartDamage(float dt, CKS08EnemyElement* part, const CKS08Damage*
     if (pool == nullptr) return;
     bool scaled = ElementalPart(pool->m_unk14);
     if (scaled && const_cast<CKS08Damage*>(damage)->IsKindOfClass(0x99cc) != 0 &&  // vt+0x08
-        pool->m_unk14 == static_cast<int32_t>(damage->m_unk20)) {
+        pool->m_unk14 == static_cast<int32_t>(damage->m_ui32DamageType)) {
         scaled = false;
     }
     if (!scaled) {
-        part->m_unk44 = damage->m_unk0c != 0 ? part->m_unk44 - dt * damage->m_unk04 : part->m_unk44 - damage->m_unk04;
+        part->m_unk44 = damage->m_bContinuous != 0 ? part->m_unk44 - dt * damage->m_fAmount : part->m_unk44 - damage->m_fAmount;
         return;
     }
-    if (damage->m_unk0c != 0) {
-        part->m_unk44 = part->m_unk44 - dt * (damage->m_unk04 * pool->m_unk1c);
+    if (damage->m_bContinuous != 0) {
+        part->m_unk44 = part->m_unk44 - dt * (damage->m_fAmount * pool->m_unk1c);
     } else {
-        part->m_unk44 = part->m_unk44 - damage->m_unk04 * pool->m_unk1c;
+        part->m_unk44 = part->m_unk44 - damage->m_fAmount * pool->m_unk1c;
     }
 }
 }  // namespace
@@ -1346,8 +1346,8 @@ void ApplyArmourPartDamage(float dt, CKS08EnemyElement* part, const CKS08Damage*
 void CKHkS08Enemy::ApplyHitToArmourParts(IKBoundingVolume* other) {
     const uint32_t count = m_unk514.m_ui32NbUsedElt;
     CVector3 point;
-    if (m_unk27c->IsKindOfClass(0xad4c) != 0) {  // CKS08GolemDamage
-        const auto* golem = static_cast<const CKS08GolemDamage*>(m_unk27c);
+    if (m_pPendingDamage->IsKindOfClass(0xad4c) != 0) {  // CKS08GolemDamage
+        const auto* golem = static_cast<const CKS08GolemDamage*>(m_pPendingDamage);
         const CVector3* at;
         if (golem->m_unk28 == nullptr) {
             m_unk89c = other;
@@ -1358,7 +1358,7 @@ void CKHkS08Enemy::ApplyHitToArmourParts(IKBoundingVolume* other) {
         point = *at;
     } else {
         point = *reinterpret_cast<const CVector3*>(
-            &static_cast<CSGMovable*>(static_cast<IKHook*>(m_unk694)->m_pKGLObject)->m_pRwFrame->ltm.pos);
+            &static_cast<CSGMovable*>(static_cast<IKHook*>(m_pLastAttacker)->m_pKGLObject)->m_pRwFrame->ltm.pos);
     }
     if (count == 0) return;
     auto* parts = reinterpret_cast<CKS08EnemyElement**>(m_unk514.m_pBlock);
@@ -1368,9 +1368,9 @@ void CKHkS08Enemy::ApplyHitToArmourParts(IKBoundingVolume* other) {
         const CKS08EnemyElement* part = parts[i];
         if (part == nullptr || PartPool(part) == nullptr || PartPool(part)->m_unk10 == 0) continue;
         const RwV3d& at = static_cast<CSGMovable*>(part->m_pNode)->m_pRwFrame->ltm.pos;
-        const float dy = at.y - m_unk23c[1];
-        const float dx = at.x - m_unk23c[0];
-        const float dz = at.z - m_unk23c[2];
+        const float dy = at.y - m_vLastHitPos[1];
+        const float dx = at.x - m_vLastHitPos[0];
+        const float dz = at.z - m_vLastHitPos[2];
         const float distance = ppc::fmadds(dz, dz, ppc::fmadds(dx, dx, dy * dy));
         if (!(distance >= best)) {  // bge
             best = distance;
@@ -1382,19 +1382,19 @@ void CKHkS08Enemy::ApplyHitToArmourParts(IKBoundingVolume* other) {
         if (part == nullptr || PartPool(part) == nullptr) continue;
         const int32_t type = PartPool(part)->m_unk14;
         if (!ElementalPart(type)) continue;
-        const bool matching = m_unk27c->IsKindOfClass(0x99cc) != 0 && static_cast<int32_t>(m_unk27c->m_unk20) == type;
+        const bool matching = m_pPendingDamage->IsKindOfClass(0x99cc) != 0 && static_cast<int32_t>(m_pPendingDamage->m_ui32DamageType) == type;
         if (!matching) {
-            if (m_unk27c->m_unk0c == 0 || m_unk8b8 <= 0.0f) {  // cror lt / eq
+            if (m_pPendingDamage->m_bContinuous == 0 || m_unk8b8 <= 0.0f) {  // cror lt / eq
                 // STUB(C2.8: armour): CKS08GameManager_SpawnExplosionFx 0x4fbd70 (this, 0, the contact point).
                 DOTD_STUB_ONCE("CKHkS08Enemy_ProcessContacts: the armour explosion (C2.8)");
                 m_unk8b8 = static_cast<CKGrpS08Enemy*>(enemy::EnemyGroup())->m_unk268[4];  // +0x278
             }
-            m_unk239 = 0;
+            m_bPendingHit = 0;
         }
         target = static_cast<int32_t>(i);
         break;
     }
-    if (target >= 0) ApplyArmourPartDamage(m_unk1fc, parts[target], m_unk27c);  // 0x0026b9a8
+    if (target >= 0) ApplyArmourPartDamage(m_fScaledDt, parts[target], m_pPendingDamage);  // 0x0026b9a8
     for (uint32_t i = 0; i < count; ++i) {
         CKS08EnemyElement* part = parts[i];
         if (part == nullptr || PartPool(part) == nullptr) continue;
@@ -1411,17 +1411,17 @@ void CKHkS08Enemy::ApplyHitToArmourParts(IKBoundingVolume* other) {
 // lasting byte or meets an expired cooldown; then every active part without health that breaks (pool +0x10;
 // BreakArmourPart) leaves +0x514.
 void CKHkS08Enemy::ReceiveDamage(IKSerializable* damage, IKSerializable* source) {
-    m_unk694 = source;
-    m_unk239 = 1;
-    m_unk27c = static_cast<CKS08Damage*>(damage);
+    m_pLastAttacker = source;
+    m_bPendingHit = 1;
+    m_pPendingDamage = static_cast<CKS08Damage*>(damage);
     CVector3 hit;
-    static_cast<CSGHotSpot*>(m_unk18C[GetSectorIndex()]->GetHotSpot(0))->GetWorldPosition(&hit);  // 0x002b31e0, 0x000ce790
-    m_unk23c[0] = hit.x;
-    m_unk23c[1] = hit.y;
-    m_unk23c[2] = hit.z;
+    static_cast<CSGHotSpot*>(m_apEnemySectorCpnt[GetSectorIndex()]->GetHotSpot(0))->GetWorldPosition(&hit);  // 0x002b31e0, 0x000ce790
+    m_vLastHitPos[0] = hit.x;
+    m_vLastHitPos[1] = hit.y;
+    m_vLastHitPos[2] = hit.z;
     CVector3 point;
     const CKS08GolemDamage* golem =
-        m_unk27c->IsKindOfClass(0xad4c) != 0 ? static_cast<const CKS08GolemDamage*>(static_cast<CKDamage*>(m_unk27c)) : nullptr;
+        m_pPendingDamage->IsKindOfClass(0xad4c) != 0 ? static_cast<const CKS08GolemDamage*>(static_cast<CKDamage*>(m_pPendingDamage)) : nullptr;
     if (golem != nullptr && golem->m_unk28 != nullptr) {
         point = *reinterpret_cast<const CVector3*>(reinterpret_cast<const uint8_t*>(golem->m_unk28) + 4);
     } else {
@@ -1436,14 +1436,14 @@ void CKHkS08Enemy::ReceiveDamage(IKSerializable* damage, IKSerializable* source)
         if (part == nullptr || PartPool(part) == nullptr) continue;
         const int32_t type = PartPool(part)->m_unk14;
         if (!ElementalPart(type)) continue;
-        const bool matching = m_unk27c->IsKindOfClass(0x99cc) != 0 && m_unk27c->IsKindOfClass(0x99cc) != 0 &&
-                              static_cast<int32_t>(m_unk27c->m_unk20) == type;  // the original tests the class twice
-        if (!matching && (m_unk27c->m_unk0c == 0 || m_unk8b8 <= 0.0f)) {  // cror lt / eq
+        const bool matching = m_pPendingDamage->IsKindOfClass(0x99cc) != 0 && m_pPendingDamage->IsKindOfClass(0x99cc) != 0 &&
+                              static_cast<int32_t>(m_pPendingDamage->m_ui32DamageType) == type;  // the original tests the class twice
+        if (!matching && (m_pPendingDamage->m_bContinuous == 0 || m_unk8b8 <= 0.0f)) {  // cror lt / eq
             static_cast<CKS08GameManager*>(g_pEngine->m_gameManager)
-                ->SpawnExplosionFx(this, 0, reinterpret_cast<const CVector3*>(m_unk23c));  // 0x004fbd70, the hit position
+                ->SpawnExplosionFx(this, 0, reinterpret_cast<const CVector3*>(m_vLastHitPos));  // 0x004fbd70, the hit position
             m_unk8b8 = static_cast<CKGrpS08Enemy*>(enemy::EnemyGroup())->m_unk268[4];  // +0x278
         }
-        ApplyArmourPartDamage(m_unk1fc, parts[i], m_unk27c);  // 0x0026b9a8
+        ApplyArmourPartDamage(m_fScaledDt, parts[i], m_pPendingDamage);  // 0x0026b9a8
         break;
     }
     for (uint32_t i = 0; i < count; ++i) {
@@ -1465,9 +1465,9 @@ void CKHkS08Enemy::BreakArmourPart(CKS08EnemyElement* part, uint32_t /*index*/, 
         node->SetLocalMatrix(&node->m_pRwFrame->ltm);  // 0x000d0be8
         node->m_pParent->RemoveChild(node);            // vt+0x78
         static_cast<CSGBranch*>(g_pEngine->m_dynamicSceneRoot)->AddChild(node);  // vt+0x70
-        part->LaunchFromHit(m_unk27c, hitPoint, m_unk884->m_vUnk128.m_pBlock[0x1b]);  // 0x0026c408
+        part->LaunchFromHit(m_pPendingDamage, hitPoint, m_pActiveEnemyCpnt->m_vUnk128.m_pBlock[0x1b]);  // 0x0026c408
     }
-    static_cast<CKS08AccessoryManager*>(static_cast<CKGrpS08Enemy*>(enemy::EnemyGroup())->m_pUnk1ec)
+    static_cast<CKS08AccessoryManager*>(static_cast<CKGrpS08Enemy*>(enemy::EnemyGroup())->m_pAccessoryManager)
         ->AddActiveItem(part);  // 0x002c75f0
     const int32_t type = PartPool(part)->m_unk14;
     const auto at = [part]() {
@@ -1487,22 +1487,22 @@ void CKHkS08Enemy::BreakArmourPart(CKS08EnemyElement* part, uint32_t /*index*/, 
 // counts down while no held damage is pending (the pending damage's +0x0c); an expired one (or any while the damage is
 // held) clears its "touching" byte, and an attacker no longer touching is taken out of the list.
 void CKHkS08Enemy::UpdateAttackerHitCooldowns(IKTime* clock) {
-    uint8_t i = static_cast<uint8_t>(m_unk238 - 1);
+    uint8_t i = static_cast<uint8_t>(m_ui8HitByCount - 1);
     while (i != 0xff) {
-        SEnemyHitAttacker& entry = m_unk208[i];
+        SEnemyHitAttacker& entry = m_aRecentAttackers[i];
         const float cooldown = entry.m_fCooldown;
-        if (!(cooldown <= 0.0f) && (m_unk27c == nullptr || m_unk27c->m_unk0c == 0)) {
+        if (!(cooldown <= 0.0f) && (m_pPendingDamage == nullptr || m_pPendingDamage->m_bContinuous == 0)) {
             entry.m_fCooldown = cooldown - clock->m_afDeltaTime[0];
-        } else if (entry.m_bTouching != 0 && (m_unk27c == nullptr || m_unk27c->m_unk0c == 0)) {
+        } else if (entry.m_bTouching != 0 && (m_pPendingDamage == nullptr || m_pPendingDamage->m_bContinuous == 0)) {
             entry.m_bTouching = 0;
         } else {
-            const uint8_t count = m_unk238;
+            const uint8_t count = m_ui8HitByCount;
             for (uint32_t j = static_cast<uint32_t>(i) + 1; j < count; ++j) {
-                m_unk208[j - 1].m_pAttacker = m_unk208[j].m_pAttacker;
-                m_unk208[j - 1].m_bTouching = m_unk208[j].m_bTouching;
-                m_unk208[j - 1].m_fCooldown = m_unk208[j].m_fCooldown;
+                m_aRecentAttackers[j - 1].m_pAttacker = m_aRecentAttackers[j].m_pAttacker;
+                m_aRecentAttackers[j - 1].m_bTouching = m_aRecentAttackers[j].m_bTouching;
+                m_aRecentAttackers[j - 1].m_fCooldown = m_aRecentAttackers[j].m_fCooldown;
             }
-            m_unk238 = static_cast<uint8_t>(count - 1);
+            m_ui8HitByCount = static_cast<uint8_t>(count - 1);
         }
         i = static_cast<uint8_t>(i - 1);
     }
@@ -1518,7 +1518,7 @@ CKGrpFightZone* SquadZone(IKSerializable* squad) {
 // DOTD: the inlined test of ResolveGroundAndApplyTransform: a hero holds the enemy with the wind beam (+0x294 a hero,
 // CKHkS08Hero_IsUsingWindBeam 0x32a7a8, its grab target this one).
 bool CKHkS08Enemy::IsHeldByWindBeam() {
-    IKSerializable* holder = m_unk294;
+    IKSerializable* holder = m_pGrabbingHero;
     if (holder == nullptr || holder->IsKindOfClass(0x25c2) == 0) return false;  // vt+0x08
     CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(holder);
     if (hero->IsUsingWindBeam() == 0) return false;
@@ -1543,11 +1543,11 @@ void CKHkS08Enemy::RememberSafePoint(const CVector3& point) {
     CKSrvPathFinding* pathFinding = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);
     CPFPoint at;
     at.m_position = point;
-    at.m_unk0c = m_PFCpnt.m_Destination.m_unk0c;
+    at.m_i16GraphNodeIndex = m_PFCpnt.m_Destination.m_i16GraphNodeIndex;
     pathFinding->FindSectorForPoint(&at);  // 0x001e5ca0 (the result is not used)
     if (!PointInNodeBox(pathFinding, &at)) return;
     if ((pathFinding->IsPointWalkable(&at, &m_PFCpnt.m_CharacterType) & 0xffu) == 0) return;  // 0x001e42d0
-    if ((m_PFCpnt.m_unk3c & 0x40) != 0) return;
+    if ((m_PFCpnt.m_eState & 0x40) != 0) return;
     m_unk8e4 = point.x;
     m_unk8ec = point.z;
     m_unk8e8 = point.y;
@@ -1568,7 +1568,7 @@ CVector3 CKHkS08Enemy::PickAttackSpotNearHero() {
     float viewZ = camera->m_v3RealAxisZ.z;
     float viewX = camera->m_v3RealAxisZ.x;
     if (detectors->IsTriggered(&m_v3Position.x) == 0) return CVector3{m_unk1c4, m_unk1c8, m_unk1cc};  // vt+0xc4
-    const CKS08EnemyCpnt* kind = m_unk884;
+    const CKS08EnemyCpnt* kind = m_pActiveEnemyCpnt;
     if (!(kind->m_vUnk11c.m_ui32NbUsedElt > m_unk32c)) return kNull;
     const float zero = 0.0f;  // TOC +0xaf4
     const float reach = kind->m_unk1bc;
@@ -1584,9 +1584,9 @@ CVector3 CKHkS08Enemy::PickAttackSpotNearHero() {
     float angle;
     const float side = static_cast<float>(static_cast<uint32_t>(Rand_Int()) & 0xffffu) / 65535.0f;  // 0x00011500, TOC +0xb64
     if (side <= 0.5f) {  // TOC +0xb68
-        angle = static_cast<float>(static_cast<uint32_t>(Rand_Int()) & 0xffffu) / -65535.0f * m_unk884->m_unk1c4;  // +0xb70
+        angle = static_cast<float>(static_cast<uint32_t>(Rand_Int()) & 0xffffu) / -65535.0f * m_pActiveEnemyCpnt->m_unk1c4;  // +0xb70
     } else {
-        angle = static_cast<float>(static_cast<uint32_t>(Rand_Int()) & 0xffffu) / 65535.0f * m_unk884->m_unk1c4;
+        angle = static_cast<float>(static_cast<uint32_t>(Rand_Int()) & 0xffffu) / 65535.0f * m_pActiveEnemyCpnt->m_unk1c4;
     }
     CMatrix34 turn;
     std::memset(&turn, 0, sizeof(turn));
@@ -1612,14 +1612,14 @@ CVector3 CKHkS08Enemy::PickAttackSpotNearHero() {
     if ((static_cast<const ICollisionMesh*>(m_GrdContDatasInOut.m_pGround)->m_ui16PropertiesFlags & 0x400u) != 0) return kNull;
     CKSrvPathFinding* pathFinding = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);
     CPFPoint own;
-    own.m_unk0c = 0xffff;
+    own.m_i16GraphNodeIndex = 0xffff;
     own.m_position = m_v3Position;
-    own.m_unk0c = m_PFCpnt.m_Destination.m_unk0c;
+    own.m_i16GraphNodeIndex = m_PFCpnt.m_Destination.m_i16GraphNodeIndex;
     pathFinding->FindSectorForPoint(&own);  // 0x001e5ca0
     CPFPoint target;
-    target.m_unk0c = 0xffff;
+    target.m_i16GraphNodeIndex = 0xffff;
     target.m_position = spot;
-    target.m_unk0c = m_PFCpnt.m_Destination.m_unk0c;
+    target.m_i16GraphNodeIndex = m_PFCpnt.m_Destination.m_i16GraphNodeIndex;
     pathFinding->FindSectorForPoint(&target);
     if (!PointInNodeBox(pathFinding, &target)) return kNull;
     if ((pathFinding->IsPointWalkable(&target, &m_PFCpnt.m_CharacterType) & 0xffu) == 0) return kNull;  // 0x001e42d0
@@ -1632,12 +1632,12 @@ CVector3 CKHkS08Enemy::PickAttackSpotNearHero() {
     if (ground != nullptr && (ground->m_ui16PropertiesFlags & 0x200u) != 0) return kNull;
     const IKGrpEnemy* group = static_cast<const IKGrpEnemy*>(enemy::EnemyGroup());  // 0x00276f58
     const uint32_t active = group->m_ui32NbActiveEnemies;
-    const float radius = m_unk884->m_MoveCpnt.m_afParams[0];  // +0x0c
+    const float radius = m_pActiveEnemyCpnt->m_MoveCpnt.m_afParams[0];  // +0x0c
     for (uint32_t i = 0; i < active; ++i) {
         const CKHkS08Enemy* other = static_cast<const CKHkS08Enemy*>(group->m_apActiveEnemies[i]);
         const float dx = spot.x - other->m_v3Position.x;
         const float dz = spot.z - other->m_v3Position.z;
-        const float both = radius + other->m_unk188->m_MoveCpnt.m_afParams[0];
+        const float both = radius + other->m_pEnemyCpnt->m_MoveCpnt.m_afParams[0];
         const float limit = both * both;
         if (i == 0) {
             if (limit > ppc::fmadds(dz, dz, dx * dx)) return kNull;  // bgt
@@ -1657,7 +1657,7 @@ CVector3 CKHkS08Enemy::ChooseMoveTarget() {
     const CVector3 kNull = {0.0f, 0.0f, 0.0f};  // 0x00c50d64 (TOC +0xb7c)
     auto isNull = [&](const CVector3& v) { return v.x == kNull.x && v.y == kNull.y && v.z == kNull.z; };
     const CVector3 spawn = {m_unk1c4, m_unk1c8, m_unk1cc};
-    if ((m_PFCpnt.m_unk3c & 0x40) != 0 && (m_PFCpnt.m_bits70 & 0x400u) == 0 && (m_PFCpnt.m_unk34 & 1u) == 0) {
+    if ((m_PFCpnt.m_eState & 0x40) != 0 && (m_PFCpnt.m_bits70 & 0x400u) == 0 && (m_PFCpnt.m_ui32Action & 1u) == 0) {
         return m_PFCpnt.m_vCurrentTarget;
     }
     if (m_unk7f9 != 0) {
@@ -1676,7 +1676,7 @@ CVector3 CKHkS08Enemy::ChooseMoveTarget() {
     const CVector3 spot = PickAttackSpotNearHero();
     const float dz = spot.z - m_v3Position.z;
     const float dx = spot.x - m_v3Position.x;
-    if (ppc::fmadds(dx, dx, dz * dz) <= m_unk884->m_unk54c &&
+    if (ppc::fmadds(dx, dx, dz * dz) <= m_pActiveEnemyCpnt->m_unk54c &&
         static_cast<const CKHkDetectorGroup*>(SquadZone(m_pGroupSquad)->m_pUnk30)->IsTriggered(&m_v3Position.x) != 0) {  // vt+0xc4
         return kNull;
     }
@@ -1687,11 +1687,11 @@ CVector3 CKHkS08Enemy::ChooseMoveTarget() {
 // aim direction from its position: back by the current attack's distance (+0x73c +0x0c), or 5 ahead without an attack
 // (TOC +0xb0c, -5.0f); the enemy's own position (+0x134) when there is no hero target or no sector route joins the two.
 CVector3 CKHkS08Enemy::PickSpotAlongTargetAim() {
-    if (m_unk330 == nullptr || m_unk330->IsKindOfClass(0x25c2) == 0) return m_v3Position;  // vt+0x08
-    const CKHkS08Hero* hero = static_cast<const CKHkS08Hero*>(m_unk330);
+    if (m_pTarget == nullptr || m_pTarget->IsKindOfClass(0x25c2) == 0) return m_v3Position;  // vt+0x08
+    const CKHkS08Hero* hero = static_cast<const CKHkS08Hero*>(m_pTarget);
     const float* at = hero->GetPositionPtr();  // 0x00361968
     CVector3 spot;
-    if (m_unk73c == nullptr) {
+    if (m_pCurrentAttack == nullptr) {
         const CVector3 aim = hero->GetAimDirection();  // 0x0032a708
         const float k = -5.0f;                          // TOC +0xb0c
         spot.x = ppc::fmadds(aim.x, k, at[0]);
@@ -1699,21 +1699,21 @@ CVector3 CKHkS08Enemy::PickSpotAlongTargetAim() {
         spot.y = ppc::fmadds(aim.y, k, at[1]);
     } else {
         const CVector3 aim = hero->GetAimDirection();
-        const float k = -m_unk73c->m_unk0c;
+        const float k = -m_pCurrentAttack->m_unk0c;
         spot.z = ppc::fmadds(k, aim.z, at[2]);
         spot.x = ppc::fmadds(k, aim.x, at[0]);
         spot.y = ppc::fmadds(k, aim.y, at[1]);
     }
     CKSrvPathFinding* pathFinding = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);  // TOC +0xb08 -> +0x6c
     CPFPoint own;
-    own.m_unk0c = 0xffff;
+    own.m_i16GraphNodeIndex = 0xffff;
     own.m_position = m_v3Position;
-    own.m_unk0c = m_PFCpnt.m_Destination.m_unk0c;
+    own.m_i16GraphNodeIndex = m_PFCpnt.m_Destination.m_i16GraphNodeIndex;
     pathFinding->FindSectorForPoint(&own);  // 0x001e5ca0
     CPFPoint target;
     target.m_position = spot;
-    target.m_unk0c = 0xffff;
-    target.m_unk0c = m_PFCpnt.m_Destination.m_unk0c;
+    target.m_i16GraphNodeIndex = 0xffff;
+    target.m_i16GraphNodeIndex = m_PFCpnt.m_Destination.m_i16GraphNodeIndex;
     pathFinding->FindSectorForPoint(&target);
     if (pathFinding->HasSectorRoute(&own, &target, &m_PFCpnt.m_CharacterType, nullptr) == 0) return m_v3Position;  // 0x001e9198
     return spot;
@@ -1729,7 +1729,7 @@ CVector3 CKHkS08Enemy::PickAttackSpotNearHeroAnyAngle() {
     if (static_cast<const CKHkDetectorGroup*>(SquadZone(m_pGroupSquad)->m_pUnk30)->IsTriggered(&m_v3Position.x) == 0) {  // vt+0xc4
         return CVector3{m_unk1c4, m_unk1c8, m_unk1cc};
     }
-    const CKS08EnemyCpnt* kind = m_unk884;
+    const CKS08EnemyCpnt* kind = m_pActiveEnemyCpnt;
     if (!(kind->m_vUnk11c.m_ui32NbUsedElt > m_unk32c)) return kNull;
     const float reach = kind->m_unk1bc;
     const float distance = static_cast<const CKS08EnemyAttack*>(kind->m_vUnk11c.m_pBlock[m_unk32c])->m_unk0c;
@@ -1763,26 +1763,26 @@ CVector3 CKHkS08Enemy::PickAttackSpotNearHeroAnyAngle() {
     if ((static_cast<const ICollisionMesh*>(m_GrdContDatasInOut.m_pGround)->m_ui16PropertiesFlags & 0x400u) != 0) return kNull;
     CKSrvPathFinding* pathFinding = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);
     CPFPoint own;
-    own.m_unk0c = 0xffff;
+    own.m_i16GraphNodeIndex = 0xffff;
     own.m_position = m_v3Position;
-    own.m_unk0c = m_PFCpnt.m_Destination.m_unk0c;
+    own.m_i16GraphNodeIndex = m_PFCpnt.m_Destination.m_i16GraphNodeIndex;
     pathFinding->FindSectorForPoint(&own);  // 0x001e5ca0
     CPFPoint target;
-    target.m_unk0c = 0xffff;
+    target.m_i16GraphNodeIndex = 0xffff;
     target.m_position = spot;
-    target.m_unk0c = m_PFCpnt.m_Destination.m_unk0c;
+    target.m_i16GraphNodeIndex = m_PFCpnt.m_Destination.m_i16GraphNodeIndex;
     pathFinding->FindSectorForPoint(&target);
     if (pathFinding->HasSectorRoute(&own, &target, &m_PFCpnt.m_CharacterType, nullptr) == 0) return kNull;  // 0x001e9198
     const ICollisionMesh* ground = static_cast<const ICollisionMesh*>(m_GrdContDatasInOut.m_pGround);
     if (ground == nullptr || (ground->m_ui16PropertiesFlags & 0x200u) != 0) return kNull;
     const IKGrpEnemy* group = static_cast<const IKGrpEnemy*>(enemy::EnemyGroup());  // 0x00276f58
     const uint32_t active = group->m_ui32NbActiveEnemies;
-    const float radius = m_unk884->m_MoveCpnt.m_afParams[0];  // +0x0c
+    const float radius = m_pActiveEnemyCpnt->m_MoveCpnt.m_afParams[0];  // +0x0c
     for (uint32_t i = 0; i < active; ++i) {
         const CKHkS08Enemy* other = static_cast<const CKHkS08Enemy*>(group->m_apActiveEnemies[i]);
         const float dx = spot.x - other->m_v3Position.x;
         const float dz = spot.z - other->m_v3Position.z;
-        const float both = radius + other->m_unk188->m_MoveCpnt.m_afParams[0];
+        const float both = radius + other->m_pEnemyCpnt->m_MoveCpnt.m_afParams[0];
         const float limit = both * both;
         if (i == 0) {
             if (limit > ppc::fmadds(dz, dz, dx * dx)) return kNull;  // bgt
@@ -1802,14 +1802,14 @@ CVector3 CKHkS08Enemy::PickAttackSpotNearHeroAnyAngle() {
 // mode 0x40). Then the ground probe's reach: the height fallen since +0x144 (if above 0) plus 0.2 down and 2 up; 1.
 uint8_t CKHkS08Enemy::ClampToNavSectors() {
     CKPathFindingCpnt& pf = m_PFCpnt;
-    const bool quick = (pf.m_unk3c & 0x40) != 0 && (pf.m_bits70 & 0x400u) == 0;
+    const bool quick = (pf.m_eState & 0x40) != 0 && (pf.m_bits70 & 0x400u) == 0;
     if (!quick) {
         CKSrvPathFinding* pathFinding = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);
-        const int16_t oldHint = static_cast<int16_t>(pf.m_Destination.m_unk0c);
+        const int16_t oldHint = static_cast<int16_t>(pf.m_Destination.m_i16GraphNodeIndex);
         const CVector3 previous = {m_unk140, m_unk144, m_unk148};
         CPFPoint point;
         point.m_position = m_v3Position;
-        point.m_unk0c = static_cast<uint16_t>(oldHint);
+        point.m_i16GraphNodeIndex = static_cast<uint16_t>(oldHint);
         if ((pathFinding->FindSectorForPoint(&point) & 0xffu) == 0) {  // 0x001e5ca0
             point.m_position = previous;
             if ((pathFinding->FindSectorForPoint(&point) & 0xffu) == 0) {
@@ -1819,8 +1819,8 @@ uint8_t CKHkS08Enemy::ClampToNavSectors() {
             m_v3Position = previous;
             return 0;
         }
-        const uint16_t newHint = point.m_unk0c;
-        if (static_cast<int16_t>(newHint) != oldHint && (pf.m_unk3c & 0x40) == 0) {
+        const uint16_t newHint = point.m_i16GraphNodeIndex;
+        if (static_cast<int16_t>(newHint) != oldHint && (pf.m_eState & 0x40) == 0) {
             CKPFGraphTransition* transition =
                 pathFinding->GetTransitionBetween(newHint, static_cast<uint16_t>(oldHint));  // 0x001e3e28
             if (transition == nullptr || (transition->m_baFlags & 1u) != 0 ||
@@ -1834,25 +1834,25 @@ uint8_t CKHkS08Enemy::ClampToNavSectors() {
             !(PointInNodeBox(pathFinding, &point) &&
               (pathFinding->IsPointWalkable(&point, &pf.m_CharacterType) & 0xffu) != 0)) {  // 0x001e42d0
             point.m_position = previous;
-            point.m_unk0c = static_cast<uint16_t>(oldHint);
+            point.m_i16GraphNodeIndex = static_cast<uint16_t>(oldHint);
             if (PointInNodeBox(pathFinding, &point) &&
                 (pathFinding->IsPointWalkable(&point, &pf.m_CharacterType) & 0xffu) != 0) {
                 m_v3Position = previous;
                 return 0;
             }
             point.m_position = m_v3Position;
-            point.m_unk0c = newHint;
-            pf.m_CharacterType.m_unk04 = 0.0f;
+            point.m_i16GraphNodeIndex = newHint;
+            pf.m_CharacterType.m_fRadius = 0.0f;
             if (!PointInNodeBox(pathFinding, &point) ||
                 (pathFinding->IsPointWalkable(&point, &pf.m_CharacterType) & 0xffu) == 0) {
                 m_v3Position = previous;
             }
             const float cap = g_pfGridScale.m_halfCellSize - 0.05f;  // TOC +0xbb0 / +0xbb4
-            const float radius = m_unk188->m_MoveCpnt.m_afParams[0];
-            pf.m_CharacterType.m_unk04 = radius < cap ? radius : cap;
+            const float radius = m_pEnemyCpnt->m_MoveCpnt.m_afParams[0];
+            pf.m_CharacterType.m_fRadius = radius < cap ? radius : cap;
         }
-        if ((pf.m_unk3c & 0x40) == 0) {
-            pf.m_Destination.m_unk0c = point.m_unk0c;
+        if ((pf.m_eState & 0x40) == 0) {
+            pf.m_Destination.m_i16GraphNodeIndex = point.m_i16GraphNodeIndex;
             const float fallen = m_unk144 - m_v3Position.y;
             if (fallen > 0.0f) {
                 m_GrdContDatasIn.m_fDeltaMax = fallen + 0.2f;      // TOC +0xbb8
@@ -1887,21 +1887,21 @@ bool CKHkS08Enemy::IsReachablePoint(const CVector3* point) {
     if ((detectors->EvaluateConditions(&point->x, 0) & 0xff) == 0) return false;  // TocBridge 0x0098f2f0
     CKSrvPathFinding* pathFinding = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);  // TOC +0xb08 -> +0x6c
     CPFPoint last;
-    last.m_unk0c = 0xffff;
+    last.m_i16GraphNodeIndex = 0xffff;
     last.m_position = CVector3{m_unk140, m_unk144, m_unk148};
-    last.m_unk0c = m_PFCpnt.m_Destination.m_unk0c;
+    last.m_i16GraphNodeIndex = m_PFCpnt.m_Destination.m_i16GraphNodeIndex;
     pathFinding->FindSectorForPoint(&last);  // 0x001e5ca0 (the result is not used)
     if (PointInNodeBox(pathFinding, &last) &&
         (pathFinding->IsPointWalkable(&last, &m_PFCpnt.m_CharacterType) & 0xffu) != 0) {  // 0x001e42d0
         CPFPoint own;
-        own.m_unk0c = 0xffff;
+        own.m_i16GraphNodeIndex = 0xffff;
         CPFPoint target;
-        target.m_unk0c = 0xffff;
+        target.m_i16GraphNodeIndex = 0xffff;
         own.m_position = m_v3Position;
-        own.m_unk0c = m_PFCpnt.m_Destination.m_unk0c;
+        own.m_i16GraphNodeIndex = m_PFCpnt.m_Destination.m_i16GraphNodeIndex;
         pathFinding->FindSectorForPoint(&own);
         target.m_position = *point;
-        target.m_unk0c = m_PFCpnt.m_Destination.m_unk0c;
+        target.m_i16GraphNodeIndex = m_PFCpnt.m_Destination.m_i16GraphNodeIndex;
         pathFinding->FindSectorForPoint(&target);
         if (!(PointInNodeBox(pathFinding, &own) &&
               (pathFinding->IsPointWalkable(&own, &m_PFCpnt.m_CharacterType) & 0xffu) != 0) &&
@@ -1915,7 +1915,7 @@ bool CKHkS08Enemy::IsReachablePoint(const CVector3* point) {
     line.m_start = m_v3Position;
     line.m_VectDir = CVector3{point->x - m_v3Position.x, point->y - m_v3Position.y, point->z - m_v3Position.z};
     CSlideGroundEdgeDatasOut slide;
-    const uint8_t result = collision->ResolveSweptCylinderWalls(&line, m_unk884->m_MoveCpnt.m_afParams[0],
+    const uint8_t result = collision->ResolveSweptCylinderWalls(&line, m_pActiveEnemyCpnt->m_MoveCpnt.m_afParams[0],
                                                                 ComponentHeight(), &slide, nullptr, nullptr, 1);  // 0x0019aa68
     return !(static_cast<uint32_t>(result) - 1u <= 2u);
 }
@@ -1938,20 +1938,20 @@ CVector3 CKHkS08Enemy::PickRandomReachablePoint() {
         return turn.m_at;
     };
     auto shrink = [&](float distance) {
-        const CKS08EnemyCpnt* kind = m_unk884;
+        const CKS08EnemyCpnt* kind = m_pActiveEnemyCpnt;
         const uint32_t tries = static_cast<uint32_t>(kind->m_unk30c);
         return distance - (kind->m_unk304 - kind->m_unk300) / static_cast<float>(static_cast<double>(tries));
     };
     CVector3 spot;
-    float distance = m_unk884->m_unk304;
+    float distance = m_pActiveEnemyCpnt->m_unk304;
     const float r0 = static_cast<float>(static_cast<double>(static_cast<uint32_t>(Rand_Int()) & 0xffffu));  // 0x00011500
-    const float range = m_unk884->m_unk308;
+    const float range = m_pActiveEnemyCpnt->m_unk308;
     const float half = r0 / 65535.0f;  // TOC +0xb64
     const float offset = ppc::fmadds(half + half, range * 0.017453290f, range * -0.017453290f);  // TOC +0xb78 / +0xbc0
     uint32_t i = 0;
-    if (m_unk884->m_unk30c != 0) {
+    if (m_pActiveEnemyCpnt->m_unk30c != 0) {
         for (;;) {
-            const float degrees = (offset + m_unk154) * 57.29578f;  // TOC +0xb14
+            const float degrees = (offset + m_fYaw) * 57.29578f;  // TOC +0xb14
             ++i;
             const CVector3 at = direction(degrees);
             spot = CVector3{ppc::fmadds(distance, at.x, m_v3Position.x), ppc::fmadds(distance, at.y, m_v3Position.y),
@@ -1960,15 +1960,15 @@ CVector3 CKHkS08Enemy::PickRandomReachablePoint() {
             spot = CVector3{ppc::fmadds(at.x, kAhead, m_v3Position.x), ppc::fmadds(at.y, kAhead, m_v3Position.y),
                             ppc::fmadds(at.z, kAhead, m_v3Position.z)};
             if (IsReachablePoint(&spot)) return spot;
-            if (!(static_cast<uint32_t>(m_unk884->m_unk30c) > i)) break;
+            if (!(static_cast<uint32_t>(m_pActiveEnemyCpnt->m_unk30c) > i)) break;
             distance = shrink(distance);
         }
     }
     // 0x0027ffa0
     const uint32_t r1 = static_cast<uint32_t>(Rand_Int()) & 0xffffu;
-    if (m_unk884->m_unk30c == 0) return kNull;
+    if (m_pActiveEnemyCpnt->m_unk30c == 0) return kNull;
     {
-        const CKS08EnemyCpnt* kind = m_unk884;
+        const CKS08EnemyCpnt* kind = m_pActiveEnemyCpnt;
         distance = ppc::fmadds(static_cast<float>(static_cast<double>(r1)) / 65535.0f, kind->m_unk304 - kind->m_unk300,
                                kind->m_unk300);
     }
@@ -1984,7 +1984,7 @@ CVector3 CKHkS08Enemy::PickRandomReachablePoint() {
         spot = CVector3{ppc::fmadds(at.x, kAhead, m_v3Position.x), ppc::fmadds(at.y, kAhead, m_v3Position.y),
                         ppc::fmadds(at.z, kAhead, m_v3Position.z)};
         if (IsReachablePoint(&spot)) return spot;
-        if (!(static_cast<uint32_t>(m_unk884->m_unk30c) > i)) return kNull;
+        if (!(static_cast<uint32_t>(m_pActiveEnemyCpnt->m_unk30c) > i)) return kNull;
         distance = shrink(distance);
     }
 }
@@ -2009,7 +2009,7 @@ void CKHkS08Enemy::ResolveGroundAndApplyTransform(IKTime* /*clock*/) {
     CKSrvPathFinding* pathFinding = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);
     CKSrvCollision* collision = static_cast<CKSrvCollision*>(g_pEngine->m_srvCollision);
     CVector3& pos = m_v3Position;
-    if (m_unk294 == nullptr || IsHeldByWindBeam()) {
+    if (m_pGrabbingHero == nullptr || IsHeldByWindBeam()) {
         // 0x00284028
         if (m_mainState != 0x17 && m_mainState != 0x18) {
             CLine line;
@@ -2017,13 +2017,13 @@ void CKHkS08Enemy::ResolveGroundAndApplyTransform(IKTime* /*clock*/) {
             line.m_VectDir = CVector3{pos.x - m_unk140, pos.y - m_unk144, pos.z - m_unk148};
             CSlideGroundEdgeDatasOut slide;
             const uint8_t result = collision->ResolveSweptCylinderWalls(
-                &line, m_unk884->m_MoveCpnt.m_afParams[0] + 0.1f, ComponentHeight(), &slide, nullptr, nullptr,
+                &line, m_pActiveEnemyCpnt->m_MoveCpnt.m_afParams[0] + 0.1f, ComponentHeight(), &slide, nullptr, nullptr,
                 1);  // 0x0019aa68, TOC +0xbe8
             if (result == 1) {
                 pos.x = m_unk140;
                 pos.z = m_unk148;
-                m_unk158.z = 0.0f;
-                m_unk158.x = 0.0f;
+                m_v3Speed.z = 0.0f;
+                m_v3Speed.x = 0.0f;
             } else if (result >= 2 && result <= 3) {
                 pos.x = slide.m_v3BouncingVector.x + pos.x;
                 pos.y = slide.m_v3BouncingVector.y + pos.y;
@@ -2031,7 +2031,7 @@ void CKHkS08Enemy::ResolveGroundAndApplyTransform(IKTime* /*clock*/) {
             }
         }
         // 0x002840e8
-        if (m_unk294 != nullptr && IsHeldByWindBeam()) {
+        if (m_pGrabbingHero != nullptr && IsHeldByWindBeam()) {
             if (SquadZone(m_pGroupSquad)->m_pFightZoneCpnt->m_unk04 != 4) return;
             RememberSafePoint(CVector3{pos.x, pos.y, pos.z});
             return;
@@ -2039,7 +2039,7 @@ void CKHkS08Enemy::ResolveGroundAndApplyTransform(IKTime* /*clock*/) {
         // 0x0028412c
         CPFPoint point;
         point.m_position = pos;
-        point.m_unk0c = m_PFCpnt.m_Destination.m_unk0c;
+        point.m_i16GraphNodeIndex = m_PFCpnt.m_Destination.m_i16GraphNodeIndex;
         pathFinding->FindSectorForPoint(&point);  // 0x001e5ca0 (the result is not used)
         const float radius = g_pfGridScale.m_halfCellSize * 0.2f;  // TOC +0xbb0 / +0xbb8
         const CPFCharacter wide = {0x404u, radius, 0.2f, 1.0f};
@@ -2069,7 +2069,7 @@ void CKHkS08Enemy::ResolveGroundAndApplyTransform(IKTime* /*clock*/) {
         if (state == 2 && (react == 8 || react == 2 || react == 6)) {
             falling = true;
         } else if (m_unk7b4 != 0) {
-            if (state == 1 && (m_PFCpnt.m_unk3c & 0x40) == 0) ClampToNavSectors();  // 0x0027f2d8
+            if (state == 1 && (m_PFCpnt.m_eState & 0x40) == 0) ClampToNavSectors();  // 0x0027f2d8
             falling = true;
         } else if (state == 0x1d || state == 0x27) {
             falling = true;
@@ -2079,7 +2079,7 @@ void CKHkS08Enemy::ResolveGroundAndApplyTransform(IKTime* /*clock*/) {
             if (m_mainState == 0xd || m_mainState == 0xe || m_mainState == 0xf) {
                 CPFPoint at;
                 at.m_position = pos;
-                at.m_unk0c = m_PFCpnt.m_Destination.m_unk0c;
+                at.m_i16GraphNodeIndex = m_PFCpnt.m_Destination.m_i16GraphNodeIndex;
                 pathFinding->FindSectorForPoint(&at);
                 if (!(PointInNodeBox(pathFinding, &at) &&
                       (pathFinding->IsPointWalkable(&at, &m_PFCpnt.m_CharacterType) & 0xffu) != 0)) {
@@ -2111,7 +2111,7 @@ void CKHkS08Enemy::ResolveGroundAndApplyTransform(IKTime* /*clock*/) {
                 line.m_VectDir = CVector3{pos.x - m_unk140, pos.y - m_unk144, pos.z - m_unk148};
                 CSlideGroundEdgeDatasOut slide;
                 const uint8_t result = collision->ResolveSweptCylinderWalls(
-                    &line, m_unk884->m_MoveCpnt.m_afParams[0], ComponentHeight(), &slide, nullptr, nullptr, 1);
+                    &line, m_pActiveEnemyCpnt->m_MoveCpnt.m_afParams[0], ComponentHeight(), &slide, nullptr, nullptr, 1);
                 if (result == 1) {
                     pos = CVector3{m_unk140, m_unk144, m_unk148};
                     SwitchMainState(0x15, nullptr);
@@ -2121,14 +2121,14 @@ void CKHkS08Enemy::ResolveGroundAndApplyTransform(IKTime* /*clock*/) {
                     if (m_GrdContDatasInOut.m_eContactStatus != 3) pos.y = m_unk144;
                     pos.x = m_unk140;
                     pos.z = m_unk148;
-                    m_unk158.z = 0.0f;
-                    m_unk158.x = 0.0f;
+                    m_v3Speed.z = 0.0f;
+                    m_v3Speed.x = 0.0f;
                 } else if (result <= 3) {
                     pos.x = slide.m_v3BouncingVector.x + pos.x;
-                    m_unk158.x = 0.0f;
+                    m_v3Speed.x = 0.0f;
                     pos.z = slide.m_v3BouncingVector.z + pos.z;
                     pos.y = slide.m_v3BouncingVector.y + pos.y;
-                    m_unk158.z = 0.0f;
+                    m_v3Speed.z = 0.0f;
                 }
             } else {
                 SnapToGround();  // 0x00286ee0
@@ -2163,9 +2163,9 @@ void CKHkS08Enemy::ResolveGroundAndApplyTransform(IKTime* /*clock*/) {
         frame->modelling.flags &= 0xfffdffffu;
         RwFrame_MarkDirty(frame);  // 0x00010698
         const uint8_t now = m_mainState;
-        if (!(now == 0xd || now == 0xe || now == 0xf) || m_unk73c == nullptr || m_unk73c->m_unk64 != 3) {
+        if (!(now == 0xd || now == 0xe || now == 0xf) || m_pCurrentAttack == nullptr || m_pCurrentAttack->m_unk64 != 3) {
             RwFrame* turned = static_cast<CSGMovable*>(m_pKGLObject)->m_pRwFrame;
-            Mat4_SetRotationAboutAxis(m_unk154, reinterpret_cast<CMatrix34*>(&turned->modelling), 1);  // 0x00241688
+            Mat4_SetRotationAboutAxis(m_fYaw, reinterpret_cast<CMatrix34*>(&turned->modelling), 1);  // 0x00241688
             RwFrame_MarkDirty(turned);
         }
         if (SquadZone(m_pGroupSquad)->m_pFightZoneCpnt->m_unk04 == 4) RememberSafePoint(CVector3{pos.x, pos.y, pos.z});
@@ -2173,15 +2173,15 @@ void CKHkS08Enemy::ResolveGroundAndApplyTransform(IKTime* /*clock*/) {
     // 0x00283bac: the nav check.
     CPFPoint point;
     point.m_position = pos;
-    point.m_unk0c = m_PFCpnt.m_Destination.m_unk0c;
+    point.m_i16GraphNodeIndex = m_PFCpnt.m_Destination.m_i16GraphNodeIndex;
     pathFinding->FindSectorForPoint(&point);  // 0x001e5ca0 (the result is not used)
     bool chooseTarget = false;
     if (m_mainState == 1 && !(PointInNodeBox(pathFinding, &point) &&
                               (pathFinding->IsPointWalkable(&point, &m_PFCpnt.m_CharacterType) & 0xffu) != 0)) {
-        chooseTarget = (m_PFCpnt.m_unk3c & 0x40) == 0;
+        chooseTarget = (m_PFCpnt.m_eState & 0x40) == 0;
     }
-    if (!chooseTarget && (m_PFCpnt.m_unk3c & 0x40) != 0 && m_mainState == 1 && m_unk7b4 == 0 &&
-        (m_PFCpnt.m_bits70 & 0x400u) == 0 && (m_PFCpnt.m_unk34 & 1u) == 0) {
+    if (!chooseTarget && (m_PFCpnt.m_eState & 0x40) != 0 && m_mainState == 1 && m_unk7b4 == 0 &&
+        (m_PFCpnt.m_bits70 & 0x400u) == 0 && (m_PFCpnt.m_ui32Action & 1u) == 0) {
         chooseTarget = true;
     }
     if (chooseTarget) {
@@ -2216,9 +2216,9 @@ void CKHkS08Enemy::ResolveGroundAndApplyTransform(IKTime* /*clock*/) {
 void CKHkS08Enemy::UpdateFlyingHeight() {
     CKSrvCollision* collision = static_cast<CKSrvCollision*>(g_pEngine->m_srvCollision);
     CVector3& pos = m_v3Position;
-    if (!(m_unk6c8 <= 0.0f) && m_unk7b4 != 0) {  // ble
+    if (!(m_fIceGauge <= 0.0f) && m_unk7b4 != 0) {  // ble
         // 0x00285088
-        pos.y = ppc::fmadds(m_unk1fc, -2.0f, m_unk144);  // TOC +0xbec
+        pos.y = ppc::fmadds(m_fScaledDt, -2.0f, m_unk144);  // TOC +0xbec
         collision->GroundProbePoints(&m_GrdContDatasIn, &m_GrdContDatasInOut, &pos.x, 1);
         if (m_GrdContDatasInOut.m_eContactStatus - 1u <= 1u) pos.y = pos.y + m_GrdContDatasInOut.m_fdH;
         return;
@@ -2234,24 +2234,24 @@ void CKHkS08Enemy::UpdateFlyingHeight() {
     }
     collision->GroundProbePoints(&m_GrdContDatasIn, &m_GrdContDatasInOut, &pos.x, 1);
     const float over = m_GrdContDatasInOut.m_fdH;
-    const float limit = m_unk884->m_unk494;
+    const float limit = m_pActiveEnemyCpnt->m_unk494;
     if (!(over <= limit) && m_unk7b4 != 0) {
         if (m_GrdContDatasInOut.m_eContactStatus != 0) return;
         if (over + 0.1f <= limit) {  // TOC +0xbe8
-            pos.y = ppc::fmadds(m_unk1fc, -2.0f, m_unk144);
+            pos.y = ppc::fmadds(m_fScaledDt, -2.0f, m_unk144);
         } else {
             pos.y = m_unk144;
         }
         return;
     }
     // 0x00284f48
-    IKHook* target = m_unk330;
+    IKHook* target = m_pTarget;
     if (target == nullptr || target->IsKindOfClass(0x25c2) == 0) return;  // vt+0x08
     const RwV3d& at = static_cast<CSGMovable*>(target->m_pKGLObject)->m_pRwFrame->modelling.pos;
     collision->GroundProbePoints(&m_GrdContDatasIn, &m_GrdContDatasInOut, &at.x, 1);
     if (m_GrdContDatasInOut.m_eContactStatus != 0) return;
     if (!(m_GrdContDatasInOut.m_fdH >= 0.2f)) return;  // TOC +0xbb8
-    const CKS08EnemyCpnt* config = m_unk884;
+    const CKS08EnemyCpnt* config = m_pActiveEnemyCpnt;
     float height;
     if (config->m_unk490 <= m_unk344) {
         height = groundHeight;
@@ -2267,7 +2267,7 @@ void CKHkS08Enemy::UpdateFlyingHeight() {
     const float previous = m_unk144;
     if (height < previous && groundHeight < previous && m_unk7b4 != 0) {
         // 0x002852d8
-        pos.y = ppc::fmadds(m_unk1fc, -2.0f, previous);
+        pos.y = ppc::fmadds(m_fScaledDt, -2.0f, previous);
         collision->GroundProbePoints(&m_GrdContDatasIn, &m_GrdContDatasInOut, &pos.x, 1);
         if (m_GrdContDatasInOut.m_eContactStatus - 1u <= 1u) {
             pos.y = pos.y + m_GrdContDatasInOut.m_fdH;
@@ -2281,11 +2281,11 @@ void CKHkS08Enemy::UpdateFlyingHeight() {
 // 0x0027d138 CKHkS08Enemy_vf148 (vt+0x148): the timer +0x2ac and the first n timers of +0x2b0 (n: the used count of the
 // component's +0x11c vector; from the last down) count down by +0x1fc while not below 0.
 void CKHkS08Enemy::TickAttackCooldowns() {
-    if (m_unk2ac >= 0.0f) m_unk2ac = m_unk2ac - m_unk1fc;  // TOC1 +0xaf4 0.0
-    const uint32_t count = m_unk884->m_vUnk11c.m_ui32NbUsedElt;  // +0x124
+    if (m_unk2ac >= 0.0f) m_unk2ac = m_unk2ac - m_fScaledDt;  // TOC1 +0xaf4 0.0
+    const uint32_t count = m_pActiveEnemyCpnt->m_vUnk11c.m_ui32NbUsedElt;  // +0x124
     for (uint32_t i = count; i != 0; --i) {
-        float& timer = m_unk2b0[i - 1];
-        if (timer >= 0.0f) timer = timer - m_unk1fc;
+        float& timer = m_afAttackCooldowns[i - 1];
+        if (timer >= 0.0f) timer = timer - m_fScaledDt;
     }
 }
 
@@ -2305,7 +2305,7 @@ int32_t CKHkS08Enemy::GetSectorIndex() {
 
 // DOTD: the sector component of the enemy's variant (the original inlines GetSectorIndex and the index each time).
 CKEnemySectorCpnt* CKHkS08Enemy::GetSectorCpnt() {
-    return m_unk18C[GetSectorIndex()];
+    return m_apEnemySectorCpnt[GetSectorIndex()];
 }
 
 // 0x00279268 CKHkS08Enemy_DetachSectorNode_maybe: the node leaves its parent and goes back under the sector root of the
@@ -2415,22 +2415,22 @@ void CKHkS08Enemy::AttachSectorNodesToBones() {
     const uint8_t* modes68 = reinterpret_cast<const uint8_t*>(m_unk68);
     uint32_t count = GroupNbAnimLayers(kind);  // vt+0x108
     for (uint32_t i = 0; i != count; ++i) {
-        AttachSectorNode(m_unk18C[variant]->GetAnimatedNode(i), modes20[i * 2], modes20[i * 2 + 1]);
+        AttachSectorNode(m_apEnemySectorCpnt[variant]->GetAnimatedNode(i), modes20[i * 2], modes20[i * 2 + 1]);
     }
     count = GroupNbSectorVolumes(kind);  // vt+0x10c
     for (uint32_t i = 0; i != count; ++i) {
-        AttachSectorNode(m_unk18C[variant]->GetCollisionVolume(i), modes24[i * 2], modes24[i * 2 + 1]);
+        AttachSectorNode(m_apEnemySectorCpnt[variant]->GetCollisionVolume(i), modes24[i * 2], modes24[i * 2 + 1]);
     }
     count = GroupNbAttachments(kind);  // vt+0x120
     for (uint32_t i = 0; i != count; ++i) {
-        BindAttachmentToNode(m_unk18C[variant]->GetArray18Entry(i), modes28[i * 2], modes28[i * 2 + 1]);
+        BindAttachmentToNode(m_apEnemySectorCpnt[variant]->GetArray18Entry(i), modes28[i * 2], modes28[i * 2 + 1]);
     }
     count = GroupNbVolumes(kind);  // vt+0x118
     for (uint32_t i = 0; i != count; ++i) {
-        IKSerializable* volume = m_unk2C[i];
+        IKSerializable* volume = m_apBV[i];
         if (volume == nullptr) continue;
         AttachSectorNode(volume, modes40[i * 2], modes40[i * 2 + 1]);
-        RwFrame* frame = static_cast<CSGMovable*>(m_unk2C[i])->m_pRwFrame;
+        RwFrame* frame = static_cast<CSGMovable*>(m_apBV[i])->m_pRwFrame;
         const CVector3& offset = m_unk3C[i];
         frame->modelling.pos.x = frame->modelling.pos.x + offset.x;
         frame->modelling.pos.y = frame->modelling.pos.y + offset.y;
@@ -2459,14 +2459,14 @@ void CKHkS08Enemy::DetachSectorNodesFromBones() {
     const uint32_t variant = GroupKindFlag104(kind) == 0 ? SquadFightZoneIndex(m_pGroupSquad) : 0u;
     uint32_t count = GroupNbAnimLayers(kind);  // vt+0x108
     for (uint32_t i = 0; i != count; ++i) {
-        DetachSectorNode(m_unk18C[variant]->GetAnimatedNode(i));  // 0x00279268
-        if (m_unk18C[variant]->GetAnimatedNode(i) != nullptr) {
-            CAnimatedNode* node = static_cast<CAnimatedNode*>(m_unk18C[variant]->GetAnimatedNode(i));
+        DetachSectorNode(m_apEnemySectorCpnt[variant]->GetAnimatedNode(i));  // 0x00279268
+        if (m_apEnemySectorCpnt[variant]->GetAnimatedNode(i) != nullptr) {
+            CAnimatedNode* node = static_cast<CAnimatedNode*>(m_apEnemySectorCpnt[variant]->GetAnimatedNode(i));
             static_cast<KBase98D*>(node->m_pController)->Reset();  // vt+0x60
         }
     }
     count = GroupNbSectorVolumes(kind);  // vt+0x10c
-    for (uint32_t i = 0; i != count; ++i) DetachSectorNode(m_unk18C[variant]->GetCollisionVolume(i));
+    for (uint32_t i = 0; i != count; ++i) DetachSectorNode(m_apEnemySectorCpnt[variant]->GetCollisionVolume(i));
     count = GroupNbAttachments(kind);  // vt+0x120
     for (uint32_t i = 0; i != count; ++i) {
         // STUB(C2.9: unreachable, 0 attachments for every kind): the attachment's target cleared and its matrix the identity (0 attachments in DotD).
@@ -2478,7 +2478,7 @@ void CKHkS08Enemy::DetachSectorNodesFromBones() {
         if (leaf->m_pParent != nullptr) leaf->m_pParent->RemoveChild(leaf);  // vt+0x78
     };
     count = GroupNbVolumes(kind);  // vt+0x118
-    for (uint32_t i = 0; i != count; ++i) leave(m_unk2C[i]);
+    for (uint32_t i = 0; i != count; ++i) leave(m_apBV[i]);
     count = GroupNbDynSpheres(kind);  // vt+0x11c
     for (uint32_t i = 0; i != count; ++i) leave(m_apBVProj[i]);
     count = GroupNbParticles(kind);  // vt+0x124
@@ -2518,7 +2518,7 @@ void CKHkS08Enemy::PlaySound(uint8_t sound, uint8_t loop, IKSerializable* node) 
 // 0x0027ce18 CKHkS08Enemy_ResetAttackCooldowns_maybe: +0x2ac and the thirty timers of +0x2b0 cleared.
 void CKHkS08Enemy::ResetAttackCooldowns() {
     m_unk2ac = 0.0f;
-    for (uint32_t i = 0; i < 30; ++i) m_unk2b0[i] = 0.0f;
+    for (uint32_t i = 0; i < 30; ++i) m_afAttackCooldowns[i] = 0.0f;
 }
 
 // 0x0027ce50 IsEnemyInDeathStates_maybe
@@ -2528,30 +2528,30 @@ uint8_t CKHkS08Enemy::IsInDeathStates() const {
 
 // 0x0027ce90 CKHkS08Enemy_AddBurnGauge: the burn gauge +0x6b8 grows by amount * the component's +0x264, up to its +0x244.
 void CKHkS08Enemy::AddBurnGauge(float amount) {
-    const float value = ppc::fmadds(amount, m_unk884->m_unk264, m_unk6b8);
-    m_unk6b8 = value;
-    if (!(value <= m_unk884->m_unk244)) m_unk6b8 = m_unk884->m_unk244;
+    const float value = ppc::fmadds(amount, m_pActiveEnemyCpnt->m_unk264, m_fFireGauge);
+    m_fFireGauge = value;
+    if (!(value <= m_pActiveEnemyCpnt->m_unk244)) m_fFireGauge = m_pActiveEnemyCpnt->m_unk244;
 }
 
 // 0x0027ceb8 CKHkS08Enemy_AddPoisonGauge: +0x6c0 by the component's +0x290, up to its +0x24c.
 void CKHkS08Enemy::AddPoisonGauge(float amount) {
-    const float value = ppc::fmadds(amount, m_unk884->m_unk290, m_unk6c0);
-    m_unk6c0 = value;
-    if (!(value <= m_unk884->m_unk24c)) m_unk6c0 = m_unk884->m_unk24c;
+    const float value = ppc::fmadds(amount, m_pActiveEnemyCpnt->m_unk290, m_fPoisonGauge);
+    m_fPoisonGauge = value;
+    if (!(value <= m_pActiveEnemyCpnt->m_unk24c)) m_fPoisonGauge = m_pActiveEnemyCpnt->m_unk24c;
 }
 
 // 0x0027cee0 CKHkS08Enemy_AddStunGauge: +0x6d4 by the component's +0x320, up to its +0x260.
 void CKHkS08Enemy::AddStunGauge(float amount) {
-    const float value = ppc::fmadds(amount, m_unk884->m_unk320, m_unk6d4);
-    m_unk6d4 = value;
-    if (!(value <= m_unk884->m_unk260)) m_unk6d4 = m_unk884->m_unk260;
+    const float value = ppc::fmadds(amount, m_pActiveEnemyCpnt->m_unk320, m_fElectricGauge);
+    m_fElectricGauge = value;
+    if (!(value <= m_pActiveEnemyCpnt->m_unk260)) m_fElectricGauge = m_pActiveEnemyCpnt->m_unk260;
 }
 
 // 0x0027cf08 CKHkS08Enemy_AddWindGauge_maybe: +0x6d0 by the component's +0x2e4, up to its +0x25c.
 void CKHkS08Enemy::AddWindGauge(float amount) {
-    const float value = ppc::fmadds(amount, m_unk884->m_unk2e4, m_unk6d0);
-    m_unk6d0 = value;
-    if (!(value <= m_unk884->m_unk25c)) m_unk6d0 = m_unk884->m_unk25c;
+    const float value = ppc::fmadds(amount, m_pActiveEnemyCpnt->m_unk2e4, m_fWindGauge);
+    m_fWindGauge = value;
+    if (!(value <= m_pActiveEnemyCpnt->m_unk25c)) m_fWindGauge = m_pActiveEnemyCpnt->m_unk25c;
 }
 
 // 0x0027d100 CKHkS08Enemy_GetAttackSlotCategory_maybe
@@ -2562,7 +2562,7 @@ int32_t CKHkS08Enemy::GetAttackSlotCategory(int32_t kind) {
 
 // 0x00282228 CKHkS08Enemy_ForceAlerted_maybe: the group's alert byte (+0x1bc) set and the awareness machine to state 2.
 void CKHkS08Enemy::ForceAlerted(IKTime* clock) {
-    static_cast<CKGrpS08Enemy*>(EnemyGroup())->m_unk1bc = 1;
+    static_cast<CKGrpS08Enemy*>(EnemyGroup())->m_bAlerted = 1;
     const uint8_t old = m_awareState;
     if (old != 0xff) CallAwareState(old, clock, 2, 2);
     m_awareState = 2;
@@ -2578,20 +2578,20 @@ uint8_t IKHkEnemy::SweepFromPrevious(CKSrvCollision* collision, CLine* line, CSl
     line->m_VectDir.x = m_v3Position.x - m_unk140;
     line->m_VectDir.y = m_v3Position.y - m_unk144;
     line->m_VectDir.z = m_v3Position.z - m_unk148;
-    return collision->ResolveSweptCylinderWalls(line, m_unk188->m_MoveCpnt.m_afParams[0], ComponentHeight(), slide, nullptr,
+    return collision->ResolveSweptCylinderWalls(line, m_pEnemyCpnt->m_MoveCpnt.m_afParams[0], ComponentHeight(), slide, nullptr,
                                                 nullptr, 1);  // 0x0019aa68
 }
 
 // DOTD: the component's +0xb4 read as a float (lfs), the wall sweep's height.
 float IKHkEnemy::ComponentHeight() const {
     float height;
-    std::memcpy(&height, &m_unk188->m_unkb4, sizeof(height));
+    std::memcpy(&height, &m_pEnemyCpnt->m_unkb4, sizeof(height));
     return height;
 }
 
 // DOTD: the inlined test of ConstrainToGroundAndNavMesh: the point's hint names a graph node whose box holds it.
 bool IKHkEnemy::PointInNodeBox(CKSrvPathFinding* pathFinding, const CPFPoint* point) {
-    const int32_t hint = static_cast<int16_t>(point->m_unk0c);
+    const int32_t hint = static_cast<int16_t>(point->m_i16GraphNodeIndex);
     if (hint < 0 || static_cast<uint32_t>(hint) >= pathFinding->m_Graph.m_ui32GraphNodesSize) return false;
     const CBBox& box = static_cast<CKPFGraphNode*>(pathFinding->m_Graph.m_apGraphNodes[hint])->m_Sector.m_box;
     const CVector3& p = point->m_position;
@@ -2618,7 +2618,7 @@ void CKHkS08Enemy::UpdateOffNavFlag() {
     CKSrvPathFinding* pathFinding = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);
     CPFPoint point;
     point.m_position = m_v3Position;
-    point.m_unk0c = m_PFCpnt.m_Destination.m_unk0c;
+    point.m_i16GraphNodeIndex = m_PFCpnt.m_Destination.m_i16GraphNodeIndex;
     if ((pathFinding->FindSectorForPoint(&point) & 0xffu) == 0) return;  // 0x001e5ca0
     if (!PointInNodeBox(pathFinding, &point)) return;
     if ((pathFinding->IsPointWalkable(&point, &m_PFCpnt.m_CharacterType) & 0xffu) == 0) return;  // 0x001e42d0
@@ -2727,7 +2727,7 @@ CVector3 GetActiveEnemyCentroid() {
 // 0x0027d1b8 CKHkS08Enemy_SpawnBonusDrop_maybe
 void CKHkS08Enemy::SpawnBonusDrop(const CVector3* pos, const CVector3* dir, int32_t onlyMode1) {
     static_cast<KBase201*>(g_pEngine->m_srvBonus)
-        ->SpawnBonuses(static_cast<CKBonusData*>(m_unk884->m_pUnk4b4), pos, dir, pos, onlyMode1);  // 0x00126278
+        ->SpawnBonuses(static_cast<CKBonusData*>(m_pActiveEnemyCpnt->m_pUnk4b4), pos, dir, pos, onlyMode1);  // 0x00126278
 }
 
 // 0x00278028 CKHkS08Enemy_EmitParticleAt: particle node `fx` (+0x54; none: nothing) gets an emission point (at most 64:

@@ -43,15 +43,15 @@ public:
     // the actor base's; for the level type +0x28 = 0 and the two trigger lists' PostLoad (return 1).
     int32_t PostLoad(int32_t type) override {
         CKHkActorBase::PostLoad(type);
-        if (type == K_LEVEL_PLATEFORMS) m_unk28 = 0;
+        if (type == K_LEVEL_PLATEFORMS) m_ui32CurrentState = 0;
         return 1;
     }
     // vt+0x38 0x00411150 CKHkCrumblyZoneMultiState_SetDefaultState: the current state (+0x28) = the default one (+0x20).
-    void SetDefaultState(int32_t /*flag*/) override { m_unk28 = m_unk20; }
+    void SetDefaultState(int32_t /*flag*/) override { m_ui32CurrentState = m_ui32DefaultState; }
     // vt+0x3c 0x00411160 CKHkCrumblyZoneMultiState_SetGameState: game state 0 picks +0x20, any other +0x24 (the info id is
     // not tested); returns 1.
     int32_t SetGameState(const SApplyGameState* state) override {
-        m_unk28 = state->m_ui32GameStateId == 0 ? m_unk20 : m_unk24;
+        m_ui32CurrentState = state->m_ui32GameStateId == 0 ? m_ui32DefaultState : m_ui32DoneState;
         return 1;
     }
     void Start() override;  // vt+0x50 0x004122b8 CKHkCrumblyZoneMultiState_Start
@@ -109,40 +109,40 @@ public:
     // sound (CrumblyZoneState_SetEnabled), and the meca group's +0x32 (2 becomes 3, else 1).
     void SetVisible(int32_t visible) override;
 
-    uint32_t m_unk20;                          // +0x20
-    uint32_t m_unk24;                          // +0x24
-    uint32_t m_unk28;                          // +0x28 not set by Create or Load
+    uint32_t m_ui32DefaultState;                          // +0x20
+    uint32_t m_ui32DoneState;                          // _maybe: +0x24
+    uint32_t m_ui32CurrentState;                          // +0x28 not set by Create or Load
     TVector<IKSerializable*, 1> m_vUnk2C;      // +0x2c references (the states_maybe)
     TVector<IKSerializable*, 1> m_vUnk38;      // +0x38 references
-    IKSerializable* m_pUnk44;                  // +0x44
-    IKSerializable* m_pUnk48;                  // +0x48
-    IKSerializable* m_pUnk4C;                  // +0x4c
-    float m_afUnk50[3];                        // +0x50 a vector (Read 12 + three lwbrx)
-    float m_afUnk5C[3];                        // +0x5c a vector
+    IKSerializable* m_pCrumbleFx;                  // +0x44
+    IKSerializable* m_pBreakFx;                  // +0x48
+    IKSerializable* m_pHitFx;                  // +0x4c
+    float m_v3CrumbleFxOffset[3];                        // +0x50 a vector (Read 12 + three lwbrx)
+    float m_v3BreakFxOffset[3];                        // +0x5c a vector
     IKSerializable* m_pUnk68;                  // +0x68
-    IKSerializable* m_pUnk6C;                  // +0x6c
+    IKSerializable* m_pHitQuake;                  // +0x6c
     IKSerializable* m_pUnk70;                  // +0x70
-    IKSerializable* m_pUnk74;                  // +0x74
-    uint16_t m_unk78;                          // +0x78 lhbrx (a pathfinding node index_maybe, as XXL2
+    IKSerializable* m_pStateChangeQuake;                  // +0x74
+    uint16_t m_i16PathFindingNodeIndex;                          // +0x78 lhbrx (a pathfinding node index_maybe, as XXL2
                                                // CKHkCrumblyZone::m_i16PathFindingNodeIndex)
     uint8_t m_pad7A[2];
     CTriggerStarter m_tsUnk7C;                 // +0x7c
-    CTriggerStarter m_tsUnk84;                 // +0x84
+    CTriggerStarter m_tsOnStateChange;                 // +0x84
 };
 DOTD_ASSERT_SIZE(CKHkCrumblyZoneMultiState, 0x8c);
-DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_unk20, 0x20);
-DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_unk24, 0x24);
+DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_ui32DefaultState, 0x20);
+DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_ui32DoneState, 0x24);
 DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_vUnk2C, 0x2c);
 DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_vUnk38, 0x38);
-DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_pUnk44, 0x44);
-DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_pUnk48, 0x48);
-DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_pUnk4C, 0x4c);
-DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_afUnk50, 0x50);
-DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_afUnk5C, 0x5c);
+DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_pCrumbleFx, 0x44);
+DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_pBreakFx, 0x48);
+DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_pHitFx, 0x4c);
+DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_v3CrumbleFxOffset, 0x50);
+DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_v3BreakFxOffset, 0x5c);
 DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_pUnk68, 0x68);
-DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_pUnk6C, 0x6c);
+DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_pHitQuake, 0x6c);
 DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_pUnk70, 0x70);
-DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_pUnk74, 0x74);
-DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_unk78, 0x78);
+DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_pStateChangeQuake, 0x74);
+DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_i16PathFindingNodeIndex, 0x78);
 DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_tsUnk7C, 0x7c);
-DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_tsUnk84, 0x84);
+DOTD_ASSERT_OFFSET(CKHkCrumblyZoneMultiState, m_tsOnStateChange, 0x84);

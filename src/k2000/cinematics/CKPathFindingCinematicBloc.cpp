@@ -75,11 +75,11 @@ CKPathFindingCinematicBloc::CKPathFindingCinematicBloc() {
     m_baFinalPos[2] = 0xffff;
     m_SrvPFCharacter.m_bits = 0;
     m_SrvPFCharacter.m_bits = (((m_SrvPFCharacter.m_bits & ~7u) | 7u) & ~0x7f8u) | 0x400u;  // 0x407
-    m_SrvPFCharacter.m_unk0c = 1.0f;
-    m_SrvPFCharacter.m_unk08 = 0x1.99999ap-3f;  // 0.2 (TOC 0xc12a3c)
-    m_SrvPFCharacter.m_unk04 = g_pfGridScale.m_halfCellSize * 0x1.99999ap-3f;
-    m_StartPos.m_unk0c = 0xffff;
-    m_Target.m_unk0c = 0xffff;
+    m_SrvPFCharacter.m_fMaxStepRise = 1.0f;
+    m_SrvPFCharacter.m_fMaxStepHeight = 0x1.99999ap-3f;  // 0.2 (TOC 0xc12a3c)
+    m_SrvPFCharacter.m_fRadius = g_pfGridScale.m_halfCellSize * 0x1.99999ap-3f;
+    m_StartPos.m_i16GraphNodeIndex = 0xffff;
+    m_Target.m_i16GraphNodeIndex = 0xffff;
     m_DatasIn.m_MasksOfGrdForTest[0] = 1;
     m_DatasIn.m_MasksOfGrdForTest[1] = 8;
     m_DatasInOut.m_ui8SectorNumber = 0;
@@ -103,7 +103,7 @@ void CKPathFindingCinematicBloc::ResetRuntime() {
     m_v3Speed.x = kVectorZero.x;
     m_v3Speed.z = kVectorZero.z;
     m_v3Speed.y = kVectorZero.y;
-    m_SrvPFCharacter.m_unk04 = 0x1.99999ap-4f;  // 0.1 (TOC 0xc12a20)
+    m_SrvPFCharacter.m_fRadius = 0x1.99999ap-4f;  // 0.1 (TOC 0xc12a20)
     m_SrvPFCharacter.m_bits = (((m_SrvPFCharacter.m_bits & ~7u) | 1u) & ~0x7f8u) | 8u;
     m_StartPos.m_position.x = kVectorZero.x;
     m_StartPos.m_position.z = kVectorZero.z;
@@ -120,7 +120,7 @@ void CKPathFindingCinematicBloc::ResetRuntime() {
     const float half = g_pfGridScale.m_halfCellSize;  // 0x00c40260
     // fcmpu half > 0.1: the squared distance capped at 0.01.
     const float squared = half > 0x1.99999ap-4f ? 0x1.47ae16p-7f /* 0x3c23d70b */ : half * half;
-    m_PathFindingCpnt.m_CharacterType.m_unk04 = 0x1.99999ap-4f;  // 0.1 (+0x108)
+    m_PathFindingCpnt.m_CharacterType.m_fRadius = 0x1.99999ap-4f;  // 0.1 (+0x108)
     m_PathFindingCpnt.m_fPointValidationDistanceSquared = squared;
     m_aUnk80[0] = 0;
     m_aUnk80[1] = 0;
@@ -307,7 +307,7 @@ void CKPathFindingCinematicBloc::MoveActorAlongPath(IKTime* time) {
     const float dt = time->m_afDeltaTime[0];
     if ((m_bitarray & 4) == 0) {
         m_PathFindingCpnt.Update(&m_v3CurrentPos);  // 0x001e2b28
-        m_CurrentPFState = static_cast<uint32_t>(m_PathFindingCpnt.m_unk3c);
+        m_CurrentPFState = static_cast<uint32_t>(m_PathFindingCpnt.m_eState);
         if ((m_CurrentPFState & 2) == 0) return;
         CSGMovable* node = NodeOf(this);
         RwFrame* frame = node->m_pRwFrame;

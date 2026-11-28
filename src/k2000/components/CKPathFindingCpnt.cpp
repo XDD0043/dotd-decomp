@@ -65,9 +65,9 @@ inline float FlatDistanceSquared(const CVector3& a, const CVector3& b) {
 
 // The query slot in use released (the original's inlined CKPathFindingCpnt_ReleasePathQuery_maybe).
 inline void ReleaseQuery(CKPathFindingCpnt* component) {
-    if (component->m_unk76 != 0xff) {
-        PathFindingService()->m_aPathStock[component->m_unk76].Release();
-        component->m_unk76 = 0xff;
+    if (component->m_i8PFSlot != 0xff) {
+        PathFindingService()->m_aPathStock[component->m_i8PFSlot].Release();
+        component->m_i8PFSlot = 0xff;
     }
 }
 
@@ -80,7 +80,7 @@ inline void TakeTargetAsWaypoint(CKPathFindingCpnt* component) {
     component->m_ptOriginalTargetPosition.m_position.x = target.m_position.x;
     component->m_ptOriginalTargetPosition.m_position.y = target.m_position.y;
     component->m_ptOriginalTargetPosition.m_position.z = target.m_position.z;
-    component->m_ptOriginalTargetPosition.m_unk0c = target.m_unk0c;
+    component->m_ptOriginalTargetPosition.m_i16GraphNodeIndex = target.m_i16GraphNodeIndex;
 }
 
 // The request mode (bits 4-6) and the phase (bits 7-9) of m_bits70.
@@ -91,9 +91,9 @@ inline uint32_t WithPhase(uint32_t bits, uint32_t phase) { return (bits & 0xffff
 void PathFindingParams_Load(CPFCharacter* params, IKFile* file, int32_t type) {
     if (type != K_LEVEL_PLATEFORMS) return;
     ReadU32LE(file, &params->m_bits);
-    ReadF32LE(file, &params->m_unk04);
-    ReadF32LE(file, &params->m_unk08);
-    ReadF32LE(file, &params->m_unk0c);
+    ReadF32LE(file, &params->m_fRadius);
+    ReadF32LE(file, &params->m_fMaxStepHeight);
+    ReadF32LE(file, &params->m_fMaxStepRise);
 }
 
 // The inlined CPFCharacter constructor (twice in CKPathFindingCpnt_Create): bits 0..2 set, 3..10 cleared,
@@ -102,9 +102,9 @@ void InitParams(CPFCharacter& p) {
     p.m_bits = 0;
     p.m_bits = ((p.m_bits & ~7u) | 7u) & 0xfffff807u;
     p.m_bits |= 0x400u;
-    p.m_unk04 = g_pfGridScale.m_halfCellSize * 0x1.99999ap-3f;  // 0.2f
-    p.m_unk08 = 0x1.99999ap-3f;                                 // 0x3e4ccccd
-    p.m_unk0c = 1.0f;
+    p.m_fRadius = g_pfGridScale.m_halfCellSize * 0x1.99999ap-3f;  // 0.2f
+    p.m_fMaxStepHeight = 0x1.99999ap-3f;                                 // 0x3e4ccccd
+    p.m_fMaxStepRise = 1.0f;
 }
 }  // namespace
 
@@ -113,7 +113,7 @@ void InitParams(CPFCharacter& p) {
 // original does: the old one zero-extended, the new one sign-extended.
 uint8_t CKPathFindingCpnt::SnapToGround(CGroundContactDatasInOut* contact, CPFPoint* point) {
     CKSrvPathFinding* const service = PathFindingService();
-    const CKPFGraphNode* const node = GraphNode(service, point->m_unk0c);
+    const CKPFGraphNode* const node = GraphNode(service, point->m_i16GraphNodeIndex);
     CVector3 probe;
     probe.x = point->m_position.x;
     probe.z = point->m_position.z;
@@ -128,9 +128,9 @@ uint8_t CKPathFindingCpnt::SnapToGround(CGroundContactDatasInOut* contact, CPFPo
     point->m_position.x = probe.x;
     point->m_position.z = probe.z;
     point->m_position.y = y;
-    const uint32_t before = point->m_unk0c;
+    const uint32_t before = point->m_i16GraphNodeIndex;
     service->FindSectorForPoint(point);
-    const int32_t after = static_cast<int16_t>(point->m_unk0c);
+    const int32_t after = static_cast<int16_t>(point->m_i16GraphNodeIndex);
     if (after == -1) return 0;
     return before == static_cast<uint32_t>(after) ? 1 : 0;
 }
@@ -143,25 +143,25 @@ uint8_t CKPathFindingCpnt::RequestPathTo(const CVector3* target, int16_t hint) {
     point.m_position.y = target->y;
     point.m_position.z = target->z;
     if (hint == -1) {
-        point.m_unk0c = m_Destination.m_unk0c;
+        point.m_i16GraphNodeIndex = m_Destination.m_i16GraphNodeIndex;
         if (service->FindSectorForPoint(&point) == 0) {
             const CPFPoint nearest = service->ClampToNearestSector(&point);
             point.m_position.x = nearest.m_position.x;
             point.m_position.y = nearest.m_position.y;
             point.m_position.z = nearest.m_position.z;
-            point.m_unk0c = nearest.m_unk0c;
+            point.m_i16GraphNodeIndex = nearest.m_i16GraphNodeIndex;
         }
     } else {
-        point.m_unk0c = static_cast<uint16_t>(hint);
+        point.m_i16GraphNodeIndex = static_cast<uint16_t>(hint);
         service->ClampPointToSector(&point);
     }
     if (service->IsPointWalkable(&point, &m_CharacterType) == 0) {
-        CKPFGraphNode* const node = GraphNode(service, point.m_unk0c);
+        CKPFGraphNode* const node = GraphNode(service, point.m_i16GraphNodeIndex);
         PathFinding_SetWalkabilityMode(m_CharacterType.m_bits & 7);
         node->m_Sector.m_grid.m_ui8DynamicMask = (m_CharacterType.m_bits & 0x800) == 0 ? 0xf7 : 0xff;
         CVector3 clamped;
-        if (node->m_Sector.ClampPointWithClearance(m_CharacterType.m_unk04, &point.m_position, &clamped) == 0) {
-            m_unk3c = 0x11;
+        if (node->m_Sector.ClampPointWithClearance(m_CharacterType.m_fRadius, &point.m_position, &clamped) == 0) {
+            m_eState = 0x11;
             m_bits70 = WithMode(m_bits70, 0);
             return 0;
         }
@@ -173,21 +173,21 @@ uint8_t CKPathFindingCpnt::RequestPathTo(const CVector3* target, int16_t hint) {
         m_ptOriginalTargetPosition.m_position.x = point.m_position.x;
         m_ptOriginalTargetPosition.m_position.y = point.m_position.y;
         m_ptOriginalTargetPosition.m_position.z = point.m_position.z;
-        m_ptOriginalTargetPosition.m_unk0c = point.m_unk0c;
+        m_ptOriginalTargetPosition.m_i16GraphNodeIndex = point.m_i16GraphNodeIndex;
     };
     const uint32_t mode = (m_bits70 >> 4) & 7;
     if (mode == 5 || mode == 1 || mode == 0 ||
-        static_cast<int16_t>(m_ptOriginalTargetPosition.m_unk0c) != static_cast<int16_t>(point.m_unk0c)) {
+        static_cast<int16_t>(m_ptOriginalTargetPosition.m_i16GraphNodeIndex) != static_cast<int16_t>(point.m_i16GraphNodeIndex)) {
         m_bits70 = WithMode(m_bits70, 5);
         remember();
         return 1;
     }
-    if (static_cast<int16_t>(m_ptOriginalTargetPosition.m_unk0c) == -1) {
+    if (static_cast<int16_t>(m_ptOriginalTargetPosition.m_i16GraphNodeIndex) == -1) {
         m_bits70 = WithMode(m_bits70, 4);
         remember();
         return 1;
     }
-    const CPFSector& sector = GraphNode(service, m_ptOriginalTargetPosition.m_unk0c)->m_Sector;
+    const CPFSector& sector = GraphNode(service, m_ptOriginalTargetPosition.m_i16GraphNodeIndex)->m_Sector;
     uint8_t before[2];
     uint8_t after[2];
     sector.WorldToCell(&m_ptOriginalTargetPosition.m_position, before);
@@ -209,9 +209,9 @@ uint8_t CKPathFindingCpnt::RequestPathTo(const CVector3* target, int16_t hint) {
 
 // 0x001e1be8 PathQuery_ClassifyReachability_maybe
 uint32_t CKPathFindingCpnt::ClassifyReachability(const CGroundContactDatasIn* groundIn) {
-    if (m_unk38 != 0x40) return m_unk38;
+    if (m_ui32ReachabilityClass != 0x40) return m_ui32ReachabilityClass;
     if ((m_bits70 & 0x400) != 0) {
-        m_unk38 = 1;
+        m_ui32ReachabilityClass = 1;
         return 1;
     }
     CKSrvPathFinding* const service = PathFindingService();
@@ -219,14 +219,14 @@ uint32_t CKPathFindingCpnt::ClassifyReachability(const CGroundContactDatasIn* gr
     from.m_position.x = m_Destination.m_position.x;
     from.m_position.y = m_Destination.m_position.y;
     from.m_position.z = m_Destination.m_position.z;
-    from.m_unk0c = m_Destination.m_unk0c;
+    from.m_i16GraphNodeIndex = m_Destination.m_i16GraphNodeIndex;
     CPFPoint to;
     to.m_position.x = m_vCurrentTarget.x;
     to.m_position.y = m_vCurrentTarget.y;
     to.m_position.z = m_vCurrentTarget.z;
-    to.m_unk0c = m_Destination.m_unk0c;
+    to.m_i16GraphNodeIndex = m_Destination.m_i16GraphNodeIndex;
     service->FindSectorForPoint(&to);
-    if (m_unk34 != 0x80) return m_unk34;
+    if (m_ui32Action != 0x80) return m_ui32Action;
     CGroundContactDatasInOut contact;  // ground 0, face -1, status 3, sector 0
     SnapToGround(&contact, &from);
     contact.m_i32FaceIndex = -1;
@@ -238,13 +238,13 @@ uint32_t CKPathFindingCpnt::ClassifyReachability(const CGroundContactDatasIn* gr
     const float toY = to.m_position.y;
     const float dy = toY - fromY;
     const float height = std::fabs(dy);
-    if (!(m_CharacterType.m_unk08 >= height)) {
+    if (!(m_CharacterType.m_fMaxStepHeight >= height)) {
         if (dy >= 0.0f) {
-            m_unk38 = m_CharacterType.m_unk0c < dy ? 4u : 2u;
+            m_ui32ReachabilityClass = m_CharacterType.m_fMaxStepRise < dy ? 4u : 2u;
         } else {
-            m_unk38 = 0x10;
+            m_ui32ReachabilityClass = 0x10;
         }
-        return m_unk38;
+        return m_ui32ReachabilityClass;
     }
     // A small step: a wall across the segment (from the waypoint back) half a unit below, then above.
     CKSrvCollision* const collision = static_cast<CKSrvCollision*>(g_pEngine->m_srvCollision);
@@ -264,7 +264,7 @@ uint32_t CKPathFindingCpnt::ClassifyReachability(const CGroundContactDatasIn* gr
         const uint32_t hit = collision->ResolveWallSegmentMovement(&line, groundIn->m_fObjectHeight, &slide, nullptr,
                                                                    nullptr, 1);  // 0x001996b0
         if (hit - 1 <= 2) {
-            m_unk38 = 4;
+            m_ui32ReachabilityClass = 4;
             return 4;
         }
     }
@@ -279,11 +279,11 @@ uint32_t CKPathFindingCpnt::ClassifyReachability(const CGroundContactDatasIn* gr
         const uint32_t hit = collision->ResolveWallSegmentMovement(&line, groundIn->m_fObjectHeight, &slide, nullptr,
                                                                    nullptr, 1);  // 0x001996b0
         if (hit - 1 <= 2) {
-            m_unk38 = 4;
+            m_ui32ReachabilityClass = 4;
             return 4;
         }
     }
-    m_unk38 = 0x20;
+    m_ui32ReachabilityClass = 0x20;
     return 0x20;
 }
 
@@ -291,9 +291,9 @@ uint32_t CKPathFindingCpnt::ClassifyReachability(const CGroundContactDatasIn* gr
 CKPathFindingCpnt::CKPathFindingCpnt() {
     InitParams(m_CharacterType);
     InitParams(m_InstantaneousCharacterType);
-    m_ptTargetPosition.m_unk0c = 0xffff;
-    m_Destination.m_unk0c = 0xffff;
-    m_ptOriginalTargetPosition.m_unk0c = 0xffff;
+    m_ptTargetPosition.m_i16GraphNodeIndex = 0xffff;
+    m_Destination.m_i16GraphNodeIndex = 0xffff;
+    m_ptOriginalTargetPosition.m_i16GraphNodeIndex = 0xffff;
 }
 
 // 0x001e2040 CKPathFindingCpnt_Load
@@ -303,17 +303,17 @@ int32_t CKPathFindingCpnt::Load(IKFile* file, int32_t type) {
     PathFindingParams_Load(&m_CharacterType, file, K_LEVEL_PLATEFORMS);
     m_InstantaneousCharacterType = m_CharacterType;  // the word and the three floats copied
     ReadU32LE(file, &m_bits70);
-    m_unk76 = 0xff;
-    m_unk34 = 0x40;
-    m_unk3c = type;
-    m_unk74 = 0xffff;
+    m_i8PFSlot = 0xff;
+    m_ui32Action = 0x40;
+    m_eState = type;
+    m_i16NextGrid = 0xffff;
     // rlwinm 25,3,31 / rlwinm 7,0,31 / ori 0x10: bits 0..6 replaced by 0x10.
     m_bits70 = (m_bits70 & ~0x7fu) | 0x10u;
     // rlwinm 22,3,31 / rlwinm 10,0,31 / ori 0x80: bits 7..9 cleared; bits 0..6 survive the rotation pair.
     m_bits70 = (m_bits70 & ~0x380u) | 0x80u;
-    m_Destination.m_unk0c = 0xffff;
-    m_ptOriginalTargetPosition.m_unk0c = 0xffff;
-    m_ptTargetPosition.m_unk0c = 0xffff;
+    m_Destination.m_i16GraphNodeIndex = 0xffff;
+    m_ptOriginalTargetPosition.m_i16GraphNodeIndex = 0xffff;
+    m_ptTargetPosition.m_i16GraphNodeIndex = 0xffff;
     m_bits70 &= ~0xeu;                        // bits 1..3 cleared
     return 1;
 }
@@ -326,18 +326,18 @@ uint8_t CKPathFindingCpnt::StartPathQuery() {
     m_ptOriginalTargetPosition.m_position.x = m_ptTargetPosition.m_position.x;
     m_ptOriginalTargetPosition.m_position.y = m_ptTargetPosition.m_position.y;
     m_ptOriginalTargetPosition.m_position.z = m_ptTargetPosition.m_position.z;
-    m_ptOriginalTargetPosition.m_unk0c = m_ptTargetPosition.m_unk0c;
+    m_ptOriginalTargetPosition.m_i16GraphNodeIndex = m_ptTargetPosition.m_i16GraphNodeIndex;
     const int8_t slot = service->AcquirePathQuery(&m_Destination, &m_ptTargetPosition, &m_CharacterType);
-    m_unk76 = static_cast<uint8_t>(slot);
+    m_i8PFSlot = static_cast<uint8_t>(slot);
     if (slot == -1) {
         m_bits70 = WithPhase(m_bits70, 0);
-        m_unk3c = 0x21;
+        m_eState = 0x21;
         return 0;
     }
-    const int32_t previous = m_unk3c;
-    const uint32_t result = service->GetNextQueryWaypoint(static_cast<uint8_t>(slot), &m_unk74, &m_vCurrentTarget);
-    m_unk3c = static_cast<int32_t>(result);
-    if ((previous & 1) != 0) m_unk3c = static_cast<int32_t>(result | 1);
+    const int32_t previous = m_eState;
+    const uint32_t result = service->GetNextQueryWaypoint(static_cast<uint8_t>(slot), &m_i16NextGrid, &m_vCurrentTarget);
+    m_eState = static_cast<int32_t>(result);
+    if ((previous & 1) != 0) m_eState = static_cast<int32_t>(result | 1);
     uint32_t bits = WithMode(m_bits70, 2);
     bits = WithPhase(bits, 5);
     m_bits70 = bits & 0xfffffbf1u;  // bits 1-3 and 10 cleared
@@ -352,14 +352,14 @@ void GoStraightToTarget(CKPathFindingCpnt* component, bool acrossDoor) {
     TakeTargetAsWaypoint(component);
     uint32_t bits;
     if (acrossDoor) {
-        component->m_unk3c = 0xc2;
-        component->m_unk34 = 1;
-        component->m_unk38 = 0x40;
+        component->m_eState = 0xc2;
+        component->m_ui32Action = 1;
+        component->m_ui32ReachabilityClass = 0x40;
         bits = WithPhase(WithMode(component->m_bits70, 2), 4);
         bits &= 0xfffffbffu;
         bits = (bits & 0xfffffff3u) | 0x400u;
     } else {
-        component->m_unk3c = 0x82;
+        component->m_eState = 0x82;
         bits = WithPhase(WithMode(component->m_bits70, 2), 4);
         bits &= 0xfffffff3u;
     }
@@ -372,8 +372,8 @@ void GoStraightToTarget(CKPathFindingCpnt* component, bool acrossDoor) {
 // the door between the two nodes. 0 no, 1 in the node, 2 across a door.
 int32_t StraightLineTo(CKPathFindingCpnt* component) {
     CKSrvPathFinding* const service = PathFindingService();
-    if (static_cast<int16_t>(component->m_Destination.m_unk0c) ==
-        static_cast<int16_t>(component->m_ptTargetPosition.m_unk0c)) {
+    if (static_cast<int16_t>(component->m_Destination.m_i16GraphNodeIndex) ==
+        static_cast<int16_t>(component->m_ptTargetPosition.m_i16GraphNodeIndex)) {
         return service->IsDirectPathWalkable(&component->m_Destination, &component->m_ptTargetPosition,
                                              &component->m_CharacterType, 0) != 0
                    ? 1
@@ -400,12 +400,12 @@ uint8_t CKPathFindingCpnt::TryDirectPathElseQuery() {
 // 0x001e2820 CKPathFindingCpnt_CancelPathRequest_maybe
 void CKPathFindingCpnt::CancelPathRequest() {
     CKSrvPathFinding* service = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);
-    if (m_unk76 != 0xff) {
-        service->m_aPathStock[m_unk76].Release();
-        m_unk76 = 0xff;
+    if (m_i8PFSlot != 0xff) {
+        service->m_aPathStock[m_i8PFSlot].Release();
+        m_i8PFSlot = 0xff;
     }
     m_bits70 = (m_bits70 & 0xfffffc00u) | (m_bits70 & 0xdu) | 0x10u | 0x100u;
-    m_unk3c = 0;
+    m_eState = 0;
 }
 
 // 0x001e28c0 CKPathFindingCpnt_TryStraightElseContinue
@@ -427,19 +427,19 @@ uint32_t CKPathFindingCpnt::Update(const CVector3* position) {
     current.m_position.x = position->x;
     current.m_position.y = position->y;
     current.m_position.z = position->z;
-    const uint16_t previousNode = current.m_unk0c;
+    const uint16_t previousNode = current.m_i16GraphNodeIndex;
     service->FindSectorForPoint(&current);
     const uint32_t phase = (m_bits70 >> 7) & 7;
     const uint32_t mode = (m_bits70 >> 4) & 7;
     bool test = true;
     if (phase == 5) {
-        if (static_cast<int16_t>(previousNode) != static_cast<int16_t>(current.m_unk0c)) {
+        if (static_cast<int16_t>(previousNode) != static_cast<int16_t>(current.m_i16GraphNodeIndex)) {
             m_bits70 = WithPhase(m_bits70, 0);
         }
     } else if (phase == 6) {
         test = false;
     }
-    if (test && (static_cast<int16_t>(current.m_unk0c) == -1 ||
+    if (test && (static_cast<int16_t>(current.m_i16GraphNodeIndex) == -1 ||
                  service->IsPointWalkable(&current, &m_CharacterType) == 0)) {
         // Not walkable: blocked (phase 7), the waypoint the nearest open point with clearance.
         m_bits70 = WithPhase(m_bits70, 7);
@@ -447,34 +447,34 @@ uint32_t CKPathFindingCpnt::Update(const CVector3* position) {
         m_bits70 &= ~2u;
         if (mode > 1) m_bits70 = WithMode(m_bits70, 5);
         CPFPoint local;
-        local.m_unk0c = 0xffff;
-        if (static_cast<int16_t>(current.m_unk0c) == -1) {
+        local.m_i16GraphNodeIndex = 0xffff;
+        if (static_cast<int16_t>(current.m_i16GraphNodeIndex) == -1) {
             const CPFPoint nearest = service->ClampToNearestSector(&current);
             local.m_position.x = nearest.m_position.x;
             local.m_position.y = nearest.m_position.y;
             local.m_position.z = nearest.m_position.z;
-            local.m_unk0c = nearest.m_unk0c;
+            local.m_i16GraphNodeIndex = nearest.m_i16GraphNodeIndex;
         } else {
             local.m_position.x = current.m_position.x;
             local.m_position.y = current.m_position.y;
             local.m_position.z = current.m_position.z;
-            local.m_unk0c = current.m_unk0c;
+            local.m_i16GraphNodeIndex = current.m_i16GraphNodeIndex;
         }
-        CKPFGraphNode* const node = GraphNode(service, local.m_unk0c);
+        CKPFGraphNode* const node = GraphNode(service, local.m_i16GraphNodeIndex);
         PathFinding_SetWalkabilityMode(m_CharacterType.m_bits & 7);
         node->m_Sector.m_grid.m_ui8DynamicMask = (m_CharacterType.m_bits & 0x800) == 0 ? 0xf7 : 0xff;
-        if (node->m_Sector.ClampPointWithClearance(m_CharacterType.m_unk04, &local.m_position, &m_vCurrentTarget) != 0) {
-            m_unk3c = 10;
+        if (node->m_Sector.ClampPointWithClearance(m_CharacterType.m_fRadius, &local.m_position, &m_vCurrentTarget) != 0) {
+            m_eState = 10;
             return 10;
         }
-        m_unk3c = 9;
+        m_eState = 9;
         return 9;
     }
     if (mode <= 1) {
         // No request.
         ReleaseQuery(this);
         m_bits70 = (m_bits70 & 0xfffffc7du) | 0x180u;
-        m_unk3c = 0x11;
+        m_eState = 0x11;
         return 0x11;
     }
     // The request, by the phase on entry.
@@ -485,7 +485,7 @@ uint32_t CKPathFindingCpnt::Update(const CVector3* position) {
                     TryDirectPathElseQuery();
                 } else {
                     TakeTargetAsWaypoint(this);
-                    m_unk3c = 0x82;
+                    m_eState = 0x82;
                     m_bits70 = WithPhase(WithMode(m_bits70, 2), 4) & 0xfffffffbu;
                 }
             } else if (mode == 4 || mode == 5) {
@@ -495,7 +495,7 @@ uint32_t CKPathFindingCpnt::Update(const CVector3* position) {
         case 4:
             if (mode == 3) {
                 if (TryDirectPath() == 0) {
-                    m_unk3c = 2;
+                    m_eState = 2;
                     m_bits70 = (m_bits70 & 0xfffffff7u) | 8u;
                 }
             } else if (mode == 4 || mode == 5) {
@@ -504,19 +504,19 @@ uint32_t CKPathFindingCpnt::Update(const CVector3* position) {
             break;
         case 5:
             if (mode == 4) {
-                if (static_cast<int16_t>(current.m_unk0c) == static_cast<int16_t>(m_ptTargetPosition.m_unk0c)) {
+                if (static_cast<int16_t>(current.m_i16GraphNodeIndex) == static_cast<int16_t>(m_ptTargetPosition.m_i16GraphNodeIndex)) {
                     TryDirectPathElseQuery();
                 }
             } else if (mode == 5) {
                 TryDirectPathElseQuery();
             } else if (mode == 3) {
-                if (static_cast<int16_t>(current.m_unk0c) == static_cast<int16_t>(m_ptTargetPosition.m_unk0c) &&
+                if (static_cast<int16_t>(current.m_i16GraphNodeIndex) == static_cast<int16_t>(m_ptTargetPosition.m_i16GraphNodeIndex) &&
                     TryDirectPath() == 0) {
                     const uint32_t bits = (m_bits70 & 0xfffffffbu) | 4u;
                     m_bits70 = bits;
-                    if ((m_unk3c & 0x80) != 0) {
+                    if ((m_eState & 0x80) != 0) {
                         m_bits70 = (bits & 0xfffffff3u) | 8u;
-                        m_unk3c = static_cast<int32_t>(static_cast<uint32_t>(m_unk3c) & 0xffffff7fu);
+                        m_eState = static_cast<int32_t>(static_cast<uint32_t>(m_eState) & 0xffffff7fu);
                     }
                 }
             }
@@ -528,7 +528,7 @@ uint32_t CKPathFindingCpnt::Update(const CVector3* position) {
             break;
     }
     // The waypoint, by the phase now.
-    const uint32_t result = static_cast<uint32_t>(m_unk3c);
+    const uint32_t result = static_cast<uint32_t>(m_eState);
     if ((result & 0x20) != 0) return result;
     const uint32_t bits = m_bits70;
     const float reach = m_fPointValidationDistanceSquared;
@@ -536,22 +536,22 @@ uint32_t CKPathFindingCpnt::Update(const CVector3* position) {
     auto recheckStraight = [&]() -> uint32_t {
         if ((bits & 1) == 0 || (result & 0x40) != 0) return result;
         CPFPoint waypoint;
-        waypoint.m_unk0c = 0xffff;
+        waypoint.m_i16GraphNodeIndex = 0xffff;
         waypoint.m_position.x = m_vCurrentTarget.x;
         waypoint.m_position.y = m_vCurrentTarget.y;
         waypoint.m_position.z = m_vCurrentTarget.z;
-        waypoint.m_unk0c = current.m_unk0c;
+        waypoint.m_i16GraphNodeIndex = current.m_i16GraphNodeIndex;
         if (PathFindingService()->IsDirectPathWalkable(&current, &waypoint, &m_CharacterType, 1) != 0) {
-            return static_cast<uint32_t>(m_unk3c);
+            return static_cast<uint32_t>(m_eState);
         }
         StartPathQuery();
-        return static_cast<uint32_t>(m_unk3c);
+        return static_cast<uint32_t>(m_eState);
     };
     // The target reached: the waypoint and the remembered target are the target, result 0x82.
     auto arrive = [&](uint32_t newBits) -> uint32_t {
         m_bits70 = newBits;
         TakeTargetAsWaypoint(this);
-        m_unk3c = 0x82;
+        m_eState = 0x82;
         return 0x82;
     };
     // A query result 1 (no path): a new query with bit 12 (closed doors allowed) set during it.
@@ -560,21 +560,21 @@ uint32_t CKPathFindingCpnt::Update(const CVector3* position) {
         m_CharacterType.m_bits = (m_CharacterType.m_bits & 0xffffefffu) | 0x1000u;
         StartPathQuery();
         m_CharacterType.m_bits &= 0xffffefffu;
-        return static_cast<uint32_t>(m_unk3c);
+        return static_cast<uint32_t>(m_eState);
     };
     // Waiting (bit 1): result 2.
     auto wait = [&]() -> uint32_t {
         m_bits70 = (m_bits70 & 0xfffffffdu) | 2u;
-        m_unk3c = 2;
+        m_eState = 2;
         return 2;
     };
     // The next waypoint of the query; at the target with a pending straight attempt (bit 2): result 2, bit 3 set,
     // bit 2 cleared.
     auto nextWaypoint = [&]() -> uint32_t {
-        const uint32_t code = service->GetNextQueryWaypoint(m_unk76, &m_unk74, &m_vCurrentTarget);
-        m_unk3c = static_cast<int32_t>(code);
+        const uint32_t code = service->GetNextQueryWaypoint(m_i8PFSlot, &m_i16NextGrid, &m_vCurrentTarget);
+        m_eState = static_cast<int32_t>(code);
         if ((code & 0x80) != 0 && (m_bits70 & 4) != 0) {
-            m_unk3c = 2;
+            m_eState = 2;
             m_bits70 = (((m_bits70 & 0xfffffff7u) | 8u) & 0xfffffffbu);
         }
         return code;
@@ -584,7 +584,7 @@ uint32_t CKPathFindingCpnt::Update(const CVector3* position) {
         if ((bits & 1) == 0) return result;
         if (FlatDistanceSquared(current.m_position, m_vCurrentTarget) > reach) {
             StartPathQuery();
-            return static_cast<uint32_t>(m_unk3c);
+            return static_cast<uint32_t>(m_eState);
         }
         return result;
     }
@@ -600,35 +600,35 @@ uint32_t CKPathFindingCpnt::Update(const CVector3* position) {
             // The query was busy: its waypoint now.
             const uint32_t code = nextWaypoint();
             if ((code & 4) != 0 && (result & 1) != 0) {
-                m_unk3c = static_cast<int32_t>(code | 1);
+                m_eState = static_cast<int32_t>(code | 1);
                 return code | 1;
             }
-            const uint32_t latest = static_cast<uint32_t>(m_unk3c);
+            const uint32_t latest = static_cast<uint32_t>(m_eState);
             if ((latest & 0x40) == 0) return replanThroughDoors(latest);
             if (!(FlatDistanceSquared(current.m_position, m_vCurrentTarget) <= reach)) return wait();
-            if (static_cast<int16_t>(current.m_unk0c) != static_cast<int16_t>(m_unk74)) {
-                const CKPFGraphTransition* const transition = service->GetTransitionBetween(current.m_unk0c, m_unk74);
+            if (static_cast<int16_t>(current.m_i16GraphNodeIndex) != static_cast<int16_t>(m_i16NextGrid)) {
+                const CKPFGraphTransition* const transition = service->GetTransitionBetween(current.m_i16GraphNodeIndex, m_i16NextGrid);
                 // BUG(original): a missing transition is read (address 4); treated as a closed one here.
                 if (transition != nullptr && (transition->m_baFlags & 4) != 0) return wait();
             }
             StartPathQuery();
-            return static_cast<uint32_t>(m_unk3c);
+            return static_cast<uint32_t>(m_eState);
         }
         if (!(FlatDistanceSquared(current.m_position, m_vCurrentTarget) <= reach)) return recheckStraight();
         if ((bits & 2) != 0) {
             // Waiting at the portal to the next node.
-            if (static_cast<int16_t>(current.m_unk0c) == static_cast<int16_t>(m_unk74)) {
+            if (static_cast<int16_t>(current.m_i16GraphNodeIndex) == static_cast<int16_t>(m_i16NextGrid)) {
                 StartPathQuery();
-                return static_cast<uint32_t>(m_unk3c);
+                return static_cast<uint32_t>(m_eState);
             }
-            const CKPFGraphTransition* const transition = service->GetTransitionBetween(current.m_unk0c, m_unk74);
+            const CKPFGraphTransition* const transition = service->GetTransitionBetween(current.m_i16GraphNodeIndex, m_i16NextGrid);
             // BUG(original): a missing transition is read (address 4); treated as a closed one here.
             if (transition == nullptr || (transition->m_baFlags & 4) == 0) {
                 StartPathQuery();
-                return static_cast<uint32_t>(m_unk3c);
+                return static_cast<uint32_t>(m_eState);
             }
             if (m_CharacterType.m_bits != m_InstantaneousCharacterType.m_bits ||
-                m_InstantaneousCharacterType.m_unk04 != m_CharacterType.m_unk04) {
+                m_InstantaneousCharacterType.m_fRadius != m_CharacterType.m_fRadius) {
                 // The portal holding the position (else the last one) must allow the instantaneous type.
                 const uint32_t count = transition->m_ui32NbPortals;
                 const CPFPortal* portal = nullptr;
@@ -648,22 +648,22 @@ uint32_t CKPathFindingCpnt::Update(const CVector3* position) {
                 // BUG(original): with no portal the byte at address 0x37 is read; never in the data.
                 const uint32_t allowed = portal != nullptr ? (portal->m_baTypesAndFlags & 0xff) : 0;
                 const uint32_t types = (m_InstantaneousCharacterType.m_bits >> 3) & 0xff;
-                if ((allowed & types) != allowed) return static_cast<uint32_t>(m_unk3c);
+                if ((allowed & types) != allowed) return static_cast<uint32_t>(m_eState);
             }
             // Cross the portal: phase 6, the waypoint the arrival point, the portal's action; the query advanced.
             m_bits70 &= ~2u;
-            const CPFPathSlot& slot = service->m_aPathStock[m_unk76];
+            const CPFPathSlot& slot = service->m_aPathStock[m_i8PFSlot];
             m_vCurrentTarget.z = slot.m_vPortalArrival.z;
             m_vCurrentTarget.x = slot.m_vPortalArrival.x;
             m_vCurrentTarget.y = slot.m_vPortalArrival.y;
-            m_unk34 = slot.m_ui32PortalAction;
+            m_ui32Action = slot.m_ui32PortalAction;
             uint32_t crossing = (m_bits70 & 0xfffffbffu) | (((transition->m_baFlags ^ 1u) & 1u) << 10);
             m_bits70 = WithPhase(crossing, 6);
             uint16_t ignoredNode;
             CVector3 ignoredPoint;
-            service->GetNextQueryWaypoint(m_unk76, &ignoredNode, &ignoredPoint);
-            m_unk3c = 0x42;
-            m_unk38 = 0x40;
+            service->GetNextQueryWaypoint(m_i8PFSlot, &ignoredNode, &ignoredPoint);
+            m_eState = 0x42;
+            m_ui32ReachabilityClass = 0x40;
             return 0x42;
         }
         if ((bits & 8) != 0) {
@@ -675,31 +675,31 @@ uint32_t CKPathFindingCpnt::Update(const CVector3* position) {
             return arrive((m_bits70 & 0xfffffc7du) | 0x180u);
         }
         nextWaypoint();
-        const uint32_t latest = static_cast<uint32_t>(m_unk3c);
+        const uint32_t latest = static_cast<uint32_t>(m_eState);
         if ((latest & 0x40) != 0) return wait();
         return replanThroughDoors(latest);
     }
     if (now == 6) {
         // Crossing a portal: on the next node and near its arrival point.
-        if (static_cast<int16_t>(m_unk74) != static_cast<int16_t>(current.m_unk0c)) return result;
+        if (static_cast<int16_t>(m_i16NextGrid) != static_cast<int16_t>(current.m_i16GraphNodeIndex)) return result;
         if (!(FlatDistanceSquared(current.m_position, m_vCurrentTarget) <= reach)) return result;
-        const bool sameTargetNode = static_cast<int16_t>(m_unk74) == static_cast<int16_t>(m_ptTargetPosition.m_unk0c);
+        const bool sameTargetNode = static_cast<int16_t>(m_i16NextGrid) == static_cast<int16_t>(m_ptTargetPosition.m_i16GraphNodeIndex);
         if (mode == 5 || (mode == 4 && sameTargetNode)) {
             TryDirectPathElseQuery();
-            return static_cast<uint32_t>(m_unk3c);
+            return static_cast<uint32_t>(m_eState);
         }
         if (mode == 3 && sameTargetNode) {
-            if (TryDirectPath() != 0) return static_cast<uint32_t>(m_unk3c);
+            if (TryDirectPath() != 0) return static_cast<uint32_t>(m_eState);
             const uint32_t failed = (m_bits70 & 0xfffffffbu) | 4u;
             m_bits70 = failed;
-            if ((m_unk3c & 0x80) != 0) {
+            if ((m_eState & 0x80) != 0) {
                 m_bits70 = (failed & 0xfffffff3u) | 8u;
-                m_unk3c = 2;
+                m_eState = 2;
             }
         }
         m_bits70 = WithPhase(m_bits70, 5);
         nextWaypoint();
-        const uint32_t latest = static_cast<uint32_t>(m_unk3c);
+        const uint32_t latest = static_cast<uint32_t>(m_eState);
         if ((latest & 0x40) != 0) return wait();
         return replanThroughDoors(latest);
     }
@@ -709,9 +709,9 @@ uint32_t CKPathFindingCpnt::Update(const CVector3* position) {
 // 0x001e3a40 CKPathFindingCpnt_ResetCurrentPosition
 uint32_t CKPathFindingCpnt::SetDestination(const CVector3* destination) {
     CKSrvPathFinding* service = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);
-    if (m_unk76 != 0xff) {
-        service->m_aPathStock[m_unk76].Release();
-        m_unk76 = 0xff;
+    if (m_i8PFSlot != 0xff) {
+        service->m_aPathStock[m_i8PFSlot].Release();
+        m_i8PFSlot = 0xff;
     }
     m_bits70 = (m_bits70 & 0xffffff8du) | 0x10u;
     m_InstantaneousCharacterType = m_CharacterType;
@@ -719,10 +719,10 @@ uint32_t CKPathFindingCpnt::SetDestination(const CVector3* destination) {
     if (service->FindSectorForPoint(&m_Destination) != 0 &&
         service->IsPointWalkable(&m_Destination, &m_CharacterType) != 0) {
         m_bits70 = (m_bits70 & 0xfffffc7fu) | 0x100u;
-        m_unk3c = 0;
+        m_eState = 0;
         return 1;
     }
-    m_unk3c = 9;
+    m_eState = 9;
     m_bits70 = (m_bits70 & 0xfffffc7fu) | 0x380u;
     return 0;
 }

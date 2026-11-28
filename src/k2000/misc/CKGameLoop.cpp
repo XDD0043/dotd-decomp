@@ -131,7 +131,7 @@ void* g_pScratchBuffer16k = nullptr;  // 0x00c50d30 (InitializeCKGameLoopSubsyst
 
 // 0x0001e2e0 CKGameLoop_IsRequestedLevelWithGmFlag294_maybe
 uint8_t CKGameLoop::IsRequestedLevelWithGmFlag294() const {
-    if (g_bootLocLoaded == 0 || m_gameManager->m_requestedLevel == -1 || g_pEngine->m_gameManager->m_unk294 == 0) return 0;
+    if (g_bootLocLoaded == 0 || m_gameManager->m_requestedLevel == -1 || g_pEngine->m_gameManager->m_bLevelChangePending == 0) return 0;
     return MessageBox_GetJobMessageCount() == 0 ? 1 : 0;
 }
 
@@ -631,7 +631,7 @@ uint32_t CKGameLoop::RunFrame() {
     }
     if (mode != kModeBoot) {
         if (m_gameManager->Vf108() != 0 && m_stopReason != 3) m_stopReason = 3;
-        if (m_gameManager->m_unk290 != -1 && m_stopReason != 4) m_stopReason = 4;
+        if (m_gameManager->m_i32RequestedLanguage != -1 && m_stopReason != 4) m_stopReason = 4;
     }
     if (m_exitAllowed != 0 && m_exitRequested != 0 && m_stopReason != 2) m_stopReason = 2;
 
@@ -677,7 +677,7 @@ uint32_t CKGameLoop::RunFrame() {
             check = false;
         }
         if (check && g_bootLocLoaded != 0 && m_gameManager->m_requestedLevel != -1 &&
-            g_pEngine->m_gameManager->m_unk294 != 0 &&
+            g_pEngine->m_gameManager->m_bLevelChangePending != 0 &&
             MessageBox_GetJobMessageCount() == 0) {
             check = false;  // loading screen while a level is requested
         }

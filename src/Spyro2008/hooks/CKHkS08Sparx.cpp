@@ -123,7 +123,7 @@ float Sqrtf(float x) { return std::sqrt(x); }
 CKHkS08Hero* FocusedHero() {
     const IKGrpHero* group =
         static_cast<const IKGrpHero*>(static_cast<CKS08GameManager*>(g_pEngine->m_gameManager)->m_unk04[1]);
-    const int8_t index = static_cast<int8_t>(group->m_unk66);
+    const int8_t index = static_cast<int8_t>(group->m_ui8FocusedDragon);
     if (index == -1) return nullptr;
     return static_cast<CKHkS08Hero*>(group->m_apHeros[index]);
 }
@@ -549,10 +549,10 @@ void CKHkS08Sparx::SteerTowardTarget(float dt, CVector3* position, CVector3* dir
     }
     CKHkS08Hero* hero = FocusedHero();
     if (m_pTargetB8 == nullptr) {
-        if ((hero->m_bitArray & 2u) == 0) wantedSpeed = wantedSpeed + hero->m_unk530;  // 0x00361c10
+        if ((hero->m_bitArray & 2u) == 0) wantedSpeed = wantedSpeed + hero->m_fCurHSpeed;  // 0x00361c10
         if ((m_ui32Flags & 2u) != 0 &&
             static_cast<CSGLeaf*>(m_pKGLObject)->m_ui16LastRenderedFrame != g_ui16RenderFrameCounter) {
-            wantedSpeed = m_fl30 + hero->m_unk530;
+            wantedSpeed = m_fl30 + hero->m_fCurHSpeed;
         }
     }
     const float current = m_fSpeed;

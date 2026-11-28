@@ -209,8 +209,8 @@ void ReleaseFx(IKFx*& slot, CKHkS08Fire* owner) {
 // fire's position, then a free effect of it (CKSrvFx::AcquireFx inlined).
 IKFx* AcquireStageFx(CKHkS08Fire* fire, IKSerializable* object) {
     CKParticlesEffectFxData* data = static_cast<CKParticlesEffectFxData*>(object);
-    data->m_unk08 = static_cast<uint8_t>((data->m_unk08 & 0xe0u) | (data->m_unk08 & 0x0fu));
-    RwMatrix* start = data->m_unk24;
+    data->m_ui8Flags = static_cast<uint8_t>((data->m_ui8Flags & 0xe0u) | (data->m_ui8Flags & 0x0fu));
+    RwMatrix* start = data->m_pLocalMatrix;
     const CMatrix34* matrix = fire->m_pMatrix64;
     start->pos.x = matrix->m_pos.x;
     start->pos.y = matrix->m_pos.y;

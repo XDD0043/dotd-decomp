@@ -84,7 +84,7 @@ uint8_t OptionByte(const CDefaultGameManager* manager, uint32_t offset) {
     const SGameOptions& o = manager->m_editedOptions;
     switch (offset) {
     case 0xf0: return o.m_bSubtitles;
-    case 0xf1: return o.m_unk05;
+    case 0xf1: return o.m_bTutorialInfoPopups;
     case 0x108: return o.m_abVibration[0];
     case 0x109: return o.m_abVibration[1];
     case 0x10a: return o.m_abUnk1E[0];

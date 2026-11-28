@@ -105,7 +105,7 @@ void CKS08MenuPauseInfo::SetTitleText(IKSerializable* text) {
     CText2d* title = static_cast<CText2d*>(m_aWidgetSlots[0].m_pElement);
     if (title == nullptr) return;
     title->SetTextById(text);  // vt+0x88
-    m_unk91 = 1;
+    m_bTitleShown = 1;
 }
 
 // 0x0055fc60 CKS08MenuPauseInfo_ShowNextPage_maybe
@@ -117,7 +117,7 @@ void CKS08MenuPauseInfo::ShowNextPage() {
         ++m_ui32Page;
         return;
     }
-    m_unk91 = 0;
+    m_bTitleShown = 0;
     m_ui32Page = 0;
     if (CText2d* title = static_cast<CText2d*>(m_aWidgetSlots[0].m_pElement)) {
         ClearTextState(title);
@@ -170,7 +170,7 @@ uint8_t CKS08MenuPauseInfo::OnMenuState(int32_t phase, uint8_t /*other*/) {
             if (m_apButtons.m_ui32NbUsedElt != 0) button = static_cast<CKInterfaceButtonBase*>(m_apButtons.m_pBlock[0]);
             button->Hide();  // vt+0x70
         }
-        if (m_unk91 == 0) {
+        if (m_bTitleShown == 0) {
             if (m_aWidgetSlots[1].m_pElement != nullptr) SetBillboardAlpha(m_aWidgetSlots[1].m_pElement, 0);
             if (CText2d* title = static_cast<CText2d*>(m_aWidgetSlots[0].m_pElement)) {
                 ClearTextState(title);

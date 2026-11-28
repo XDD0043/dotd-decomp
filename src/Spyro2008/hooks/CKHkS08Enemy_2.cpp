@@ -59,7 +59,7 @@ CKAnmKeyFrameController* CKHkS08Enemy::ActiveTrack(SEnemyAnimLayerSlot& slot) {
 
 // DOTD: CKEnemySectorCpnt_GetAnimDictionary 0x2b3128 of the sector component `sector` (+0x18c): its +0x08 entry `layer`.
 CAnimationDictionary* CKHkS08Enemy::AnimDictionary(uint32_t sector, uint32_t layer) const {
-    CKEnemySectorCpnt* cpnt = static_cast<CKEnemySectorCpnt*>(m_unk18C[sector]);
+    CKEnemySectorCpnt* cpnt = static_cast<CKEnemySectorCpnt*>(m_apEnemySectorCpnt[sector]);
     return static_cast<CAnimationDictionary*>(cpnt->m_apUnk08[layer]);
 }
 
@@ -73,18 +73,18 @@ float CKHkS08Enemy::AnimEntryDuration(uint32_t sector, uint32_t layer, uint32_t 
 // layer 0 slot 0 playing row 0x37, 0x38 or 0x3a scales by that row's duration (layer 0's dictionary of the current
 // sector) times the kind's anim scale ratio (+0x88 of the config), any other row by the ratio alone.
 float CKHkS08Enemy::ScaleRateInState1(float rate) {
-    const uint8_t row = m_unk164[0][0].m_unk24;
+    const uint8_t row = m_apAnimLayerSlots[0][0].m_unk24;
     if (static_cast<uint8_t>(row - 0x37) <= 1 || row == 0x3a) {
         const float duration = AnimEntryDuration(GetSectorIndex(), 0, row);
-        return rate * (duration * m_unk884->m_MoveCpnt.m_fAnimScaleRatio);
+        return rate * (duration * m_pActiveEnemyCpnt->m_MoveCpnt.m_fAnimScaleRatio);
     }
-    return rate * m_unk884->m_MoveCpnt.m_fAnimScaleRatio;
+    return rate * m_pActiveEnemyCpnt->m_MoveCpnt.m_fAnimScaleRatio;
 }
 
 // 0x00285340 CKHkS08Enemy_RequestAnim (the original passes two unused registers r5 / r6): the slot's next animation,
 // crossfade length and start time (the layer update applies them); +0x350 / +0x34c cleared, +0x794 = the height.
 void CKHkS08Enemy::RequestAnim(uint8_t anim, uint8_t restart, uint32_t layer, uint32_t slot, float blend, float start) {
-    SEnemyAnimLayerSlot& s = m_unk164[layer][slot];
+    SEnemyAnimLayerSlot& s = m_apAnimLayerSlots[layer][slot];
     s.m_unk27 = restart;
     s.m_unk25 = anim;
     s.m_unk20 = blend;
@@ -96,23 +96,23 @@ void CKHkS08Enemy::RequestAnim(uint8_t anim, uint8_t restart, uint32_t layer, ui
 
 // 0x00285388 CKHkS08Enemy_GetAnimLayerTime_maybe: the active track's time (+0x50).
 float CKHkS08Enemy::GetAnimLayerTime(uint32_t layer, uint32_t slot) {
-    return ActiveTrack(m_unk164[layer][slot])->m_unk50;
+    return ActiveTrack(m_apAnimLayerSlots[layer][slot])->m_unk50;
 }
 
 // 0x00285408 CKHkS08Enemy_GetCurrentAnim
 uint8_t CKHkS08Enemy::GetCurrentAnim(uint32_t layer, uint32_t slot) {
-    return m_unk164[layer][slot].m_unk24;
+    return m_apAnimLayerSlots[layer][slot].m_unk24;
 }
 
 // 0x002854f8 CKHkS08Enemy_GetLayerSlotAnimDuration_maybe: Anim_GetDuration of the active track.
 float CKHkS08Enemy::GetLayerSlotAnimDuration(uint32_t layer, uint32_t slot) {
-    return ActiveTrack(m_unk164[layer][slot])->GetDuration();
+    return ActiveTrack(m_apAnimLayerSlots[layer][slot])->GetDuration();
 }
 
 // 0x00285558 CKHkS08Enemy_IsAnimEndReached_maybe (r4 unused): the active track has an animation and its time wrapped
 // into the duration plus `dt` reaches the duration (float throughout: fdivs, fctiwz, fmuls, fsubs, fadds).
 bool CKHkS08Enemy::IsAnimEndReached(float dt, uint32_t layer, uint32_t slot) {
-    return ActiveTrack(m_unk164[layer][slot])->HasEnded(dt);
+    return ActiveTrack(m_apAnimLayerSlots[layer][slot])->HasEnded(dt);
 }
 
 // 0x00285638 CKHkS08Enemy_GetAnimDuration_maybe: the duration of row `anim`, column `slot` of the current sector's
@@ -127,8 +127,8 @@ float CKHkS08Enemy::GetAnimDuration(uint8_t anim, uint32_t layer, uint32_t slot)
 // row chosen by the kind's movement mode (the config's CKHkMoveCpnt +0x7c): modes 0..7 rows 0/1, 3, 3/4, 7, 8, 2, 5, 6
 // with the update flag 0x100 set; modes 8..11 rows 0x37..0x3a (0x3a with a 0.02 crossfade); else row 0.
 void CKHkS08Enemy::ResetLayer0Slot0StateByMode() {
-    SEnemyAnimLayerSlot& s = m_unk164[0][0];
-    const uint32_t mode = m_unk884->m_MoveCpnt.m_eMvtAnim;
+    SEnemyAnimLayerSlot& s = m_apAnimLayerSlots[0][0];
+    const uint32_t mode = m_pActiveEnemyCpnt->m_MoveCpnt.m_eMvtAnim;
     s.m_unk26 = 0;
     s.m_unk1c = 0.0f;
     s.m_unk27 = 0;
@@ -146,7 +146,7 @@ void CKHkS08Enemy::ResetLayer0Slot0StateByMode() {
     case 1: m_bitArray |= 0x100u; row = 3; break;
     case 2:
         m_bitArray |= 0x100u;
-        if (m_unk884->m_unk4bd == 0) {
+        if (m_pActiveEnemyCpnt->m_unk4bd == 0) {
             s.m_unk26 = 1;
             row = 3;
         } else {
@@ -173,9 +173,9 @@ void CKHkS08Enemy::ResetLayer0Slot0StateByMode() {
 // 0x00285b98 CKHkS08Enemy_ForceAnimSlot_maybe: slot (`layer`, `slot`) marked playing `anim` and forced; layer 0 slot 0
 // requests `request` from 0 with no crossfade (+0x350 / +0x34c cleared, +0x794 = the height).
 void CKHkS08Enemy::ForceAnimSlot(uint8_t anim, uint8_t request, uint32_t layer, uint32_t slot) {
-    m_unk164[layer][slot].m_unk24 = anim;
-    m_unk164[layer][slot].m_unk28 = 1;
-    SEnemyAnimLayerSlot& s = m_unk164[0][0];
+    m_apAnimLayerSlots[layer][slot].m_unk24 = anim;
+    m_apAnimLayerSlots[layer][slot].m_unk28 = 1;
+    SEnemyAnimLayerSlot& s = m_apAnimLayerSlots[0][0];
     s.m_unk27 = 0;
     s.m_unk25 = request;
     s.m_unk20 = 0.0f;
@@ -189,7 +189,7 @@ void CKHkS08Enemy::ForceAnimSlot(uint8_t anim, uint8_t request, uint32_t layer, 
 // on a stack copy of layer 0 slot 0's blend slot (only its controller keeps the result), both tracks at `start`:
 // (`b`, `a`) weighted `weight` when it is above 0 (TOC 0xc28 0.0f), else (`b`, `c`) weighted |weight|.
 void CKHkS08Enemy::SetSignedBlendAnimPair(float start, float weight, uint32_t a, uint32_t b, uint32_t c) {
-    AnimBlendSlot copy = m_unk164[0][0].m_blendSlot;
+    AnimBlendSlot copy = m_apAnimLayerSlots[0][0].m_blendSlot;
     if (weight > 0.0f) {
         copy.SetAnimPairAndWeight(b, a, start, start, weight);
     } else {
@@ -201,22 +201,22 @@ void CKHkS08Enemy::SetSignedBlendAnimPair(float start, float weight, uint32_t a,
 // slot 0's row in (`layer`, column `slot`) of the current sector's dictionary times the anim scale ratio (+0x88);
 // otherwise the ratio.
 float CKHkS08Enemy::GetAnimSpeedScale(uint32_t layer, uint32_t slot) {
-    const uint8_t row = m_unk164[layer][slot].m_unk24;
-    if (static_cast<uint8_t>(row - 0x37) > 1 && row != 0x3a) return m_unk884->m_MoveCpnt.m_fAnimScaleRatio;
-    const uint8_t row0 = m_unk164[0][0].m_unk24;
+    const uint8_t row = m_apAnimLayerSlots[layer][slot].m_unk24;
+    if (static_cast<uint8_t>(row - 0x37) > 1 && row != 0x3a) return m_pActiveEnemyCpnt->m_MoveCpnt.m_fAnimScaleRatio;
+    const uint8_t row0 = m_apAnimLayerSlots[0][0].m_unk24;
     CAnimationDictionary* dictionary = AnimDictionary(GetSectorIndex(), layer);
     const float duration = CKAnmKeyFrameController::GetDurationOf(
         static_cast<uint32_t>(dictionary->m_apAnimations[row0 + slot * dictionary->m_ui32NbAnimations]));
-    return duration * m_unk884->m_MoveCpnt.m_fAnimScaleRatio;
+    return duration * m_pActiveEnemyCpnt->m_MoveCpnt.m_fAnimScaleRatio;
 }
 
 // 0x00285ec8 CKHkS08Enemy_AdvanceTrackTime_maybe (r4 unused): the active track's time advanced by dt x +0x774 (scaled in
 // the main state 1, negated while layer 0 slot 0's +0x26 is set).
 void CKHkS08Enemy::AdvanceTrackTime(uint32_t layer, uint32_t slot) {
-    float rate = m_unk1fc * m_unk774;
+    float rate = m_fScaledDt * m_unk774;
     if (m_mainState == 1) rate = ScaleRateInState1(rate);
-    if (m_unk164[0][0].m_unk26 != 0) rate = -rate;
-    CKAnmKeyFrameController* track = ActiveTrack(m_unk164[layer][slot]);
+    if (m_apAnimLayerSlots[0][0].m_unk26 != 0) rate = -rate;
+    CKAnmKeyFrameController* track = ActiveTrack(m_apAnimLayerSlots[layer][slot]);
     track->m_unk50 = rate + track->m_unk50;
 }
 
@@ -224,7 +224,7 @@ void CKHkS08Enemy::AdvanceTrackTime(uint32_t layer, uint32_t slot) {
 // by dt x +0x774 (AnimBlendSlot_AdvanceInactiveTrack_maybe).
 void CKHkS08Enemy::AdvanceBlendSlotTime(uint32_t layer, uint32_t slot) {
     AdvanceTrackTime(layer, slot);
-    m_unk164[layer][slot].m_blendSlot.AdvanceInactiveTrack(static_cast<double>(m_unk1fc * m_unk774));
+    m_apAnimLayerSlots[layer][slot].m_blendSlot.AdvanceInactiveTrack(static_cast<double>(m_fScaledDt * m_unk774));
 }
 
 // 0x00286220 CKHkS08Enemy_AdvanceAnimLayer_maybe (r6 unused): one layer slot per frame. A new request (another row, the
@@ -234,8 +234,8 @@ void CKHkS08Enemy::AdvanceBlendSlotTime(uint32_t layer, uint32_t slot) {
 // active track's time advances like AdvanceTrackTime (that test reads the enemy's main state, not `state`). Then the
 // request flags clear and the crossfade steps (dt x +0x774).
 void CKHkS08Enemy::AdvanceAnimLayer(uint8_t state, uint32_t sector, uint32_t layer, uint32_t slot) {
-    SEnemyAnimLayerSlot& s = m_unk164[layer][slot];
-    float rate = m_unk1fc * m_unk774;
+    SEnemyAnimLayerSlot& s = m_apAnimLayerSlots[layer][slot];
+    float rate = m_fScaledDt * m_unk774;
     const float blend = s.m_unk20;
     float start = s.m_unk1c;
     if (s.m_unk24 != s.m_unk25 || s.m_unk27 != 0 || s.m_unk28 != 0) {
@@ -243,18 +243,18 @@ void CKHkS08Enemy::AdvanceAnimLayer(uint8_t state, uint32_t sector, uint32_t lay
         const uint32_t oldWord = static_cast<uint32_t>(AnimDictionary(sector, layer)->m_apAnimations[s.m_unk24]);
         const uint32_t newWord = static_cast<uint32_t>(AnimDictionary(sector, layer)->m_apAnimations[s.m_unk25]);
         if (s.m_unk26 != 0) {
-            const float time = AbsBits(ActiveTrack(m_unk164[0][0])->m_unk50);
+            const float time = AbsBits(ActiveTrack(m_apAnimLayerSlots[0][0])->m_unk50);
             // BUG(original): the two entries are dereferenced without a null test (a missing row reads address 0x10);
             // dotd's word lookup gives 1.0 for none.
             start = (time / CKAnmKeyFrameController::GetDurationOf(oldWord)) * CKAnmKeyFrameController::GetDurationOf(newWord);
             if (state == 1) {
-                const uint8_t row = m_unk164[0][0].m_unk24;
+                const uint8_t row = m_apAnimLayerSlots[0][0].m_unk24;
                 if (static_cast<uint8_t>(row - 0x37) <= 1 || row == 0x3a) {
                     const float duration = AnimEntryDuration(GetSectorIndex(), 0, row);
-                    const float scale = duration * m_unk884->m_MoveCpnt.m_fAnimScaleRatio;
+                    const float scale = duration * m_pActiveEnemyCpnt->m_MoveCpnt.m_fAnimScaleRatio;
                     start = ppc::fmadds(scale, rate, start);
                 } else {
-                    start = ppc::fmadds(m_unk884->m_MoveCpnt.m_fAnimScaleRatio, rate, start);
+                    start = ppc::fmadds(m_pActiveEnemyCpnt->m_MoveCpnt.m_fAnimScaleRatio, rate, start);
                 }
             } else {
                 start = rate + start;
@@ -267,12 +267,12 @@ void CKHkS08Enemy::AdvanceAnimLayer(uint8_t state, uint32_t sector, uint32_t lay
         s.m_unk24 = s.m_unk25;
     } else {
         if (m_mainState == 1) rate = ScaleRateInState1(rate);
-        if (m_unk164[0][0].m_unk26 != 0) rate = -rate;
+        if (m_apAnimLayerSlots[0][0].m_unk26 != 0) rate = -rate;
         CKAnmKeyFrameController* track = ActiveTrack(s);
         track->m_unk50 = rate + track->m_unk50;
     }
     s.m_unk26 = 0;
     s.m_unk27 = 0;
     s.m_unk28 = 0;
-    m_unk164[layer][slot].m_blendSlot.AdvanceInactiveTrack(static_cast<double>(m_unk1fc * m_unk774));
+    m_apAnimLayerSlots[layer][slot].m_blendSlot.AdvanceInactiveTrack(static_cast<double>(m_fScaledDt * m_unk774));
 }

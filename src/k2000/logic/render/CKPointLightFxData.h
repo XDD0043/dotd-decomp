@@ -30,19 +30,19 @@ public:
     int32_t MessageProc(uint16_t message, void* /*data*/) override { return (message == 0x1b00 || message == 0x1b02) ? 0 : 1; }
 
     // The looped curves at time `t` (the time wrapped into the period +0x1c, see the .cpp): 0x001cf430
-    // CKPointLightNodeFx_EvaluateColorLooped_maybe (the colour keys +0x10), 0x001cf810 .._EvaluateRadiusLooped_maybe
-    // (the curve +0x0c), 0x001cf898 .._EvaluateIntensityLooped_maybe (the curve +0x08).
+    // CKPointLightNodeFx_EvaluateColorLooped_maybe (the colour keys +0x10), 0x001cf810 .._EvaluateIntensityLooped_maybe
+    // (the curve +0x0c), 0x001cf898 .._EvaluateRadiusLooped (the curve +0x08).
     void EvaluateColorLooped(float t, uint8_t out[4]) const;
-    float EvaluateRadiusLooped(float t) const;
     float EvaluateIntensityLooped(float t) const;
+    float EvaluateRadiusLooped(float t) const;
     uint32_t GetAssociatedFxClassIdentifier() override { return 0xaa4c; }  // vt+0x54 0x1cf360
 
     // +0x08/+0x0c object references (Ghidra draft: CKCurve2DCpnt*; LVL010 references class 0x5ac6).
-    // EvaluateRadiusLooped / EvaluateIntensityLooped (0x1cf810/0x1cf898) _maybe read them.
-    IKSerializable* m_unk08;
-    IKSerializable* m_unk0c;
+    // EvaluateIntensityLooped / EvaluateRadiusLooped (0x1cf810/0x1cf898) _maybe read them.
+    IKSerializable* m_pRadiusCurve;
+    IKSerializable* m_pIntensityCurve;  // _maybe
     TVector<CurveKey, 20> m_colorKeys;  // +0x10 (CurveKeys_Load); the constructor allocates 20 keys
-    float m_unk1c;                      // +0x1c
+    float m_fLoopPeriod;                      // +0x1c
     float m_unk20;                      // +0x20
     // +0x24..+0x34 the run-time placement (PostLoad; the effect's owner sets them before the start): the node the light
     // hangs under, else the hot spot, and the position (relative to it).
@@ -52,8 +52,8 @@ public:
 };
 static_assert(CKPointLightFxData::kClassKey == 0xaa8c, "key");
 DOTD_ASSERT_SIZE(CKPointLightFxData, 0x38);
-DOTD_ASSERT_OFFSET(CKPointLightFxData, m_unk08, 0x08);
-DOTD_ASSERT_OFFSET(CKPointLightFxData, m_unk0c, 0x0c);
+DOTD_ASSERT_OFFSET(CKPointLightFxData, m_pRadiusCurve, 0x08);
+DOTD_ASSERT_OFFSET(CKPointLightFxData, m_pIntensityCurve, 0x0c);
 DOTD_ASSERT_OFFSET(CKPointLightFxData, m_colorKeys, 0x10);
-DOTD_ASSERT_OFFSET(CKPointLightFxData, m_unk1c, 0x1c);
+DOTD_ASSERT_OFFSET(CKPointLightFxData, m_fLoopPeriod, 0x1c);
 DOTD_ASSERT_OFFSET(CKPointLightFxData, m_unk20, 0x20);

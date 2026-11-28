@@ -25,22 +25,22 @@ public:
 
     // All words byte-swapped; the read order is +0x4c, +0x50, +0x14..+0x20, +0x2c..+0x44, +0x24, +0x28,
     // +0x54..+0x60, then the byte at +0x10.
-    uint8_t m_unk10;     // +0x10 read last
+    uint8_t m_bFloatingOrbMode;     // _maybe: +0x10 read last
     uint8_t m_pad11[3];
     float m_unk14[4];    // +0x14..+0x20
     float m_unk24;       // +0x24
     float m_unk28;       // +0x28
     uint32_t m_unk2c;    // +0x2c (LVL010: 3, 1) an integer
     float m_unk30[6];    // +0x30..+0x44
-    IKSerializable* m_pUnk48;  // +0x48 reference (type 0 only)
+    IKSerializable* m_pProjectileAccessor;  // +0x48 reference (type 0 only)
     float m_unk4c;       // +0x4c
     float m_unk50;       // +0x50
     float m_unk54[4];    // +0x54..+0x60
 };
 DOTD_ASSERT_SIZE(CKS08BonusCpnt, 0x64);
-DOTD_ASSERT_OFFSET(CKS08BonusCpnt, m_unk10, 0x10);
+DOTD_ASSERT_OFFSET(CKS08BonusCpnt, m_bFloatingOrbMode, 0x10);
 DOTD_ASSERT_OFFSET(CKS08BonusCpnt, m_unk14, 0x14);
 DOTD_ASSERT_OFFSET(CKS08BonusCpnt, m_unk2c, 0x2c);
 DOTD_ASSERT_OFFSET(CKS08BonusCpnt, m_unk30, 0x30);
-DOTD_ASSERT_OFFSET(CKS08BonusCpnt, m_pUnk48, 0x48);
+DOTD_ASSERT_OFFSET(CKS08BonusCpnt, m_pProjectileAccessor, 0x48);
 DOTD_ASSERT_OFFSET(CKS08BonusCpnt, m_unk54, 0x54);

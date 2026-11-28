@@ -71,41 +71,41 @@ public:
     // (3). A level's own sound only when it is there and has a sample.
     CKSound* GetFxSound(uint32_t which);
 
-    float m_unk154[3];                  // +0x154 per level: the first attack sphere's radius (host vt+0xfc)
-    int32_t m_unk160[3];                // +0x160 per level: node 0's full alpha
-    int32_t m_unk16c[3];                // +0x16c per level: node 0's start alpha (Start: its low byte)
-    int32_t m_unk178[3];                // +0x178 per level: node 0's end alpha
-    float m_unk184[3];                  // +0x184 per level: node 0's spin (degrees per second)
-    float m_unk190;                     // +0x190 node 0's scale wobble
-    float m_unk194;                     // +0x194 node 0's fade-in time
-    float m_unk198;                     // +0x198 node 0's fade-out time (0: hidden at the stop)
-    float m_unk19c[3];                  // +0x19c per level: node 0's scale
-    int32_t m_unk1a8[3];                // +0x1a8 per level: node 1's full alpha
-    int32_t m_unk1b4[3];                // +0x1b4 per level: node 1's start alpha
-    int32_t m_unk1c0[3];                // +0x1c0 per level: node 1's end alpha
-    float m_unk1cc[3];                  // +0x1cc per level: node 1's spin
-    float m_unk1d8;                     // +0x1d8 node 1's scale wobble
-    float m_unk1dc;                     // +0x1dc node 1's fade-in time
-    float m_unk1e0;                     // +0x1e0 node 1's fade-out time
-    float m_unk1e4[3];                  // +0x1e4 per level: node 1's scale
-    float m_unk1f0[3];                  // +0x1f0 per level: node 1's height where it starts to fade
-    float m_unk1fc[3];                  // +0x1fc per level: node 1's height where it is gone
-    int32_t m_unk208[3];                // +0x208 per level: node 2's full alpha
-    int32_t m_unk214[3];                // +0x214 per level: node 2's start alpha
-    int32_t m_unk220[3];                // +0x220 per level: node 2's end alpha
-    float m_unk22c[3];                  // +0x22c per level: node 2's spin
-    float m_unk238;                     // +0x238 node 2's scale wobble
-    float m_unk23c;                     // +0x23c node 2's fade-in time
-    float m_unk240;                     // +0x240 node 2's fade-out time
-    float m_unk244[3];                  // +0x244 per level: node 2's scale
-    float m_unk250[3];                  // +0x250 per level: node 2's height where it starts to fade
-    float m_unk25c[3];                  // +0x25c per level: node 2's height where it is gone
-    float m_unk268[3];                  // +0x268 per level: the second attack sphere's radius
-    float m_unk274[3];                  // +0x274 per level: the second damage's +0x10 (times the time scale)
-    IKSerializable* m_unk280;           // +0x280 (reference; CKS08ElementDamage): the second sphere's damage
-    IKSerializable* m_unk284;           // +0x284 (reference; CKImpulsionCpnt): the dash
-    IKSerializable* m_unk288;           // +0x288 (reference; CKMeshPopFxData): the ground mesh pop under the user
-    IKSerializable* m_unk28c;           // +0x28c runtime: the mesh pop effect (ResetRuntime 0)
+    float m_afPrimarySphereRadius[3];                  // +0x154 per level: the first attack sphere's radius (host vt+0xfc)
+    int32_t m_ai32Cone0FullAlpha[3];                // +0x160 per level: node 0's full alpha
+    int32_t m_ai32Cone0StartAlpha[3];                // +0x16c per level: node 0's start alpha (Start: its low byte)
+    int32_t m_ai32Cone0EndAlpha[3];                // +0x178 per level: node 0's end alpha
+    float m_afCone0SpinDegPerSec[3];                  // +0x184 per level: node 0's spin (degrees per second)
+    float m_fCone0ScaleWobble;                     // +0x190 node 0's scale wobble
+    float m_fCone0FadeInTime;                     // +0x194 node 0's fade-in time
+    float m_fCone0FadeOutTime;                     // +0x198 node 0's fade-out time (0: hidden at the stop)
+    float m_afCone0Scale[3];                  // +0x19c per level: node 0's scale
+    int32_t m_ai32Cone1FullAlpha[3];                // +0x1a8 per level: node 1's full alpha
+    int32_t m_ai32Cone1StartAlpha[3];                // +0x1b4 per level: node 1's start alpha
+    int32_t m_ai32Cone1EndAlpha[3];                // +0x1c0 per level: node 1's end alpha
+    float m_afCone1SpinDegPerSec[3];                  // +0x1cc per level: node 1's spin
+    float m_fCone1ScaleWobble;                     // +0x1d8 node 1's scale wobble
+    float m_fCone1FadeInTime;                     // +0x1dc node 1's fade-in time
+    float m_fCone1FadeOutTime;                     // +0x1e0 node 1's fade-out time
+    float m_afCone1Scale[3];                  // +0x1e4 per level: node 1's scale
+    float m_afCone1FadeHeightStart[3];                  // +0x1f0 per level: node 1's height where it starts to fade
+    float m_afCone1FadeHeightEnd[3];                  // +0x1fc per level: node 1's height where it is gone
+    int32_t m_ai32Cone2FullAlpha[3];                // +0x208 per level: node 2's full alpha
+    int32_t m_ai32Cone2StartAlpha[3];                // +0x214 per level: node 2's start alpha
+    int32_t m_ai32Cone2EndAlpha[3];                // +0x220 per level: node 2's end alpha
+    float m_afCone2SpinDegPerSec[3];                  // +0x22c per level: node 2's spin
+    float m_fCone2ScaleWobble;                     // +0x238 node 2's scale wobble
+    float m_fCone2FadeInTime;                     // +0x23c node 2's fade-in time
+    float m_fCone2FadeOutTime;                     // +0x240 node 2's fade-out time
+    float m_afCone2Scale[3];                  // +0x244 per level: node 2's scale
+    float m_afCone2FadeHeightStart[3];                  // +0x250 per level: node 2's height where it starts to fade
+    float m_afCone2FadeHeightEnd[3];                  // +0x25c per level: node 2's height where it is gone
+    float m_afSecondarySphereRadius[3];                  // +0x268 per level: the second attack sphere's radius
+    float m_afSecondaryKnockbackSpeed[3];                  // +0x274 per level: the second damage's +0x10 (times the time scale)
+    IKSerializable* m_pSecondaryDamage;           // +0x280 (reference; CKS08ElementDamage): the second sphere's damage
+    IKSerializable* m_pDashImpulsion;           // +0x284 (reference; CKImpulsionCpnt): the dash
+    IKSerializable* m_pGroundMeshPopFxData;           // +0x288 (reference; CKMeshPopFxData): the ground mesh pop under the user
+    IKSerializable* m_pActiveMeshPop;           // +0x28c runtime: the mesh pop effect (ResetRuntime 0)
     float m_unk290;                     // +0x290
     float m_unk294;                     // +0x294
     float m_unk298;                     // +0x298
@@ -114,79 +114,79 @@ public:
     float m_unk2a4;                     // +0x2a4
     int32_t m_unk2a8;                   // +0x2a8
     uint32_t m_unk2ac;                  // +0x2ac (type unknown)
-    IKSerializable* m_unk2b0;           // +0x2b0 (reference; CKSparkFxData): the dash spark (UpdateAttack)
-    IKSerializable* m_unk2b4;           // +0x2b4 runtime: its effect (ResetRuntime 0)
-    IKSerializable* m_unk2b8;           // +0x2b8 (reference; CKSparkFxData): the dash kick's spark (started, not kept)
-    IKSerializable* m_unk2bc;           // +0x2bc (reference; CKParticlesEffectFxData): the loop particles
-    IKSerializable* m_unk2c0;           // +0x2c0 runtime: their effect (ResetRuntime 0)
-    IKSerializable* m_unk2c4;           // +0x2c4 (reference; CKParticlesEffectFxData): the dash particles
-    IKSerializable* m_unk2c8;           // +0x2c8 runtime: their effect (ResetRuntime 0)
-    IKSerializable* m_unk2cc;           // +0x2cc (reference; CNode): cone node 0
-    IKSerializable* m_unk2d0;           // +0x2d0 (reference; CNode): cone node 1
-    IKSerializable* m_unk2d4;           // +0x2d4 (reference; CNode): cone node 2 (level 2)
-    IKSerializable* m_unk2d8;           // +0x2d8 (reference; CTrailNodeFx): the trail (under node 0)
-    IKSerializable* m_unk2dc;           // +0x2dc (reference; CKAnimatedFxCollection): level 1's collection
-    IKSerializable* m_unk2e0;           // +0x2e0 (reference; CKAnimatedFxCollection): level 2's collection
-    IKSerializable* m_unk2e4;           // +0x2e4 runtime: the playing collection (ResetRuntime 0)
-    IKSerializable* m_unk2e8;           // +0x2e8 (reference; CKProjectileAccessor): the dash projectile (draw >= 0)
-    IKSerializable* m_unk2ec;           // +0x2ec (reference; CKProjectileAccessor): the other one (draw < 0)
-    IKSerializable* m_unk2f0;           // +0x2f0 (reference; CKS08ElementDamage): the projectiles' damage
-    float m_unk2f4;                     // +0x2f4 the projectile speed at the dash's low value
-    float m_unk2f8;                     // +0x2f8 the projectile speed at its top value
-    float m_unk2fc;                     // +0x2fc the time between projectiles
-    float m_unk300;                     // +0x300 its spread
-    float m_unk304;                     // +0x304 the launch height above the hot spot
-    float m_unk308;                     // +0x308 the launch direction's y
-    IKSerializable* m_unk30c;           // +0x30c (reference; CKSoundDictionaryID)
-    float m_unk310;                     // +0x310 the dash sound's top pitch
-    float m_unk314;                     // +0x314 runtime: the effect timer (scaled; Start 0)
-    float m_unk318;                     // +0x318 runtime: the timer at the stop (StopFx)
-    float m_unk31c;                     // +0x31c runtime: a second timer (scaled; Start 0; not read here)
-    float m_unk320;                     // +0x320 runtime: the time scale, the dash's value (ResetRuntime 1.0f)
-    uint32_t m_unk324[3];               // +0x324 runtime: each node's alpha at the stop (StopFx; not ResetRuntime)
-    uint8_t m_unk330[3];                // +0x330 runtime: each node at full alpha / fading out (ResetRuntime 0)
+    IKSerializable* m_pDashSparkFxData;           // +0x2b0 (reference; CKSparkFxData): the dash spark (UpdateAttack)
+    IKSerializable* m_pActiveDashSparks;           // +0x2b4 runtime: its effect (ResetRuntime 0)
+    IKSerializable* m_pDashKickSparkFxData;           // +0x2b8 (reference; CKSparkFxData): the dash kick's spark (started, not kept)
+    IKSerializable* m_pLoopParticlesData;           // +0x2bc (reference; CKParticlesEffectFxData): the loop particles
+    IKSerializable* m_pActiveLoopParticles;           // +0x2c0 runtime: their effect (ResetRuntime 0)
+    IKSerializable* m_pDashParticlesData;           // +0x2c4 (reference; CKParticlesEffectFxData): the dash particles
+    IKSerializable* m_pActiveDashParticles;           // +0x2c8 runtime: their effect (ResetRuntime 0)
+    IKSerializable* m_pConeMesh0;           // +0x2cc (reference; CNode): cone node 0
+    IKSerializable* m_pConeMesh1;           // +0x2d0 (reference; CNode): cone node 1
+    IKSerializable* m_pConeMesh2;           // +0x2d4 (reference; CNode): cone node 2 (level 2)
+    IKSerializable* m_pTrailNode;           // +0x2d8 (reference; CTrailNodeFx): the trail (under node 0)
+    IKSerializable* m_pAnimFxLevel1;           // +0x2dc (reference; CKAnimatedFxCollection): level 1's collection
+    IKSerializable* m_pAnimFxLevel2;           // +0x2e0 (reference; CKAnimatedFxCollection): level 2's collection
+    IKSerializable* m_pActiveAnimFx;           // +0x2e4 runtime: the playing collection (ResetRuntime 0)
+    IKSerializable* m_pProjectileAccessorA;           // +0x2e8 (reference; CKProjectileAccessor): the dash projectile (draw >= 0)
+    IKSerializable* m_pProjectileAccessorB;           // +0x2ec (reference; CKProjectileAccessor): the other one (draw < 0)
+    IKSerializable* m_pProjectileDamage;           // +0x2f0 (reference; CKS08ElementDamage): the projectiles' damage
+    float m_fProjSpeedMin;                     // +0x2f4 the projectile speed at the dash's low value
+    float m_fProjSpeedMax;                     // +0x2f8 the projectile speed at its top value
+    float m_fProjInterval;                     // +0x2fc the time between projectiles
+    float m_fProjIntervalSpread;                     // +0x300 its spread
+    float m_fProjHeightOffset;                     // +0x304 the launch height above the hot spot
+    float m_fProjDirY;                     // +0x308 the launch direction's y
+    IKSerializable* m_pSoundDico;           // +0x30c (reference; CKSoundDictionaryID)
+    float m_fDashSoundTopPitch;                     // +0x310 the dash sound's top pitch
+    float m_fEffectTimer;                     // +0x314 runtime: the effect timer (scaled; Start 0)
+    float m_fStopFxTime;                     // +0x318 runtime: the timer at the stop (StopFx)
+    float m_fUnusedTimer2;                     // +0x31c runtime: a second timer (scaled; Start 0; not read here)
+    float m_fDashTimeScale;                     // +0x320 runtime: the time scale, the dash's value (ResetRuntime 1.0f)
+    uint32_t m_aui32FadeOutStartAlpha[3];               // +0x324 runtime: each node's alpha at the stop (StopFx; not ResetRuntime)
+    uint8_t m_abConeFadeState[3];                // +0x330 runtime: each node at full alpha / fading out (ResetRuntime 0)
     uint8_t m_pad333;
-    float m_unk334;                     // +0x334 runtime: the time to the next projectile (ResetRuntime 0)
+    float m_fNextProjTimer;                     // +0x334 runtime: the time to the next projectile (ResetRuntime 0)
     uint32_t m_unk338;                  // +0x338 runtime (ResetRuntime / Start 0; not read here)
-    CKSound* m_unk33c;                  // +0x33c runtime: the loop sound (ResetRuntime 0)
-    CKSound* m_unk340;                  // +0x340 runtime: the dash sound (ResetRuntime 0)
+    CKSound* m_pLoopSound;                  // +0x33c runtime: the loop sound (ResetRuntime 0)
+    CKSound* m_pDashSound;                  // +0x340 runtime: the dash sound (ResetRuntime 0)
 };
 DOTD_ASSERT_SIZE(CKWindTwister, 0x344);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk154, 0x154);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk160, 0x160);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk16c, 0x16c);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk178, 0x178);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk184, 0x184);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk190, 0x190);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk194, 0x194);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk198, 0x198);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk19c, 0x19c);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk1a8, 0x1a8);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk1b4, 0x1b4);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk1c0, 0x1c0);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk1cc, 0x1cc);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk1d8, 0x1d8);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk1dc, 0x1dc);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk1e0, 0x1e0);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk1e4, 0x1e4);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk1f0, 0x1f0);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk1fc, 0x1fc);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk208, 0x208);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk214, 0x214);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk220, 0x220);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk22c, 0x22c);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk238, 0x238);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk23c, 0x23c);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk240, 0x240);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk244, 0x244);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk250, 0x250);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk25c, 0x25c);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk268, 0x268);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk274, 0x274);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk280, 0x280);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk284, 0x284);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk288, 0x288);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk28c, 0x28c);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_afPrimarySphereRadius, 0x154);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_ai32Cone0FullAlpha, 0x160);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_ai32Cone0StartAlpha, 0x16c);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_ai32Cone0EndAlpha, 0x178);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_afCone0SpinDegPerSec, 0x184);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_fCone0ScaleWobble, 0x190);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_fCone0FadeInTime, 0x194);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_fCone0FadeOutTime, 0x198);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_afCone0Scale, 0x19c);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_ai32Cone1FullAlpha, 0x1a8);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_ai32Cone1StartAlpha, 0x1b4);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_ai32Cone1EndAlpha, 0x1c0);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_afCone1SpinDegPerSec, 0x1cc);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_fCone1ScaleWobble, 0x1d8);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_fCone1FadeInTime, 0x1dc);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_fCone1FadeOutTime, 0x1e0);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_afCone1Scale, 0x1e4);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_afCone1FadeHeightStart, 0x1f0);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_afCone1FadeHeightEnd, 0x1fc);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_ai32Cone2FullAlpha, 0x208);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_ai32Cone2StartAlpha, 0x214);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_ai32Cone2EndAlpha, 0x220);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_afCone2SpinDegPerSec, 0x22c);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_fCone2ScaleWobble, 0x238);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_fCone2FadeInTime, 0x23c);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_fCone2FadeOutTime, 0x240);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_afCone2Scale, 0x244);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_afCone2FadeHeightStart, 0x250);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_afCone2FadeHeightEnd, 0x25c);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_afSecondarySphereRadius, 0x268);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_afSecondaryKnockbackSpeed, 0x274);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pSecondaryDamage, 0x280);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pDashImpulsion, 0x284);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pGroundMeshPopFxData, 0x288);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pActiveMeshPop, 0x28c);
 DOTD_ASSERT_OFFSET(CKWindTwister, m_unk290, 0x290);
 DOTD_ASSERT_OFFSET(CKWindTwister, m_unk294, 0x294);
 DOTD_ASSERT_OFFSET(CKWindTwister, m_unk298, 0x298);
@@ -195,38 +195,38 @@ DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2a0, 0x2a0);
 DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2a4, 0x2a4);
 DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2a8, 0x2a8);
 DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2ac, 0x2ac);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2b0, 0x2b0);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2b4, 0x2b4);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2b8, 0x2b8);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2bc, 0x2bc);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2c0, 0x2c0);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2c4, 0x2c4);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2c8, 0x2c8);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2cc, 0x2cc);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2d0, 0x2d0);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2d4, 0x2d4);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2d8, 0x2d8);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2dc, 0x2dc);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2e0, 0x2e0);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2e4, 0x2e4);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2e8, 0x2e8);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2ec, 0x2ec);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2f0, 0x2f0);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2f4, 0x2f4);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2f8, 0x2f8);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk2fc, 0x2fc);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk300, 0x300);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk304, 0x304);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk308, 0x308);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk30c, 0x30c);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk310, 0x310);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk314, 0x314);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk318, 0x318);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk31c, 0x31c);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk320, 0x320);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk324, 0x324);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk330, 0x330);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk334, 0x334);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pDashSparkFxData, 0x2b0);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pActiveDashSparks, 0x2b4);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pDashKickSparkFxData, 0x2b8);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pLoopParticlesData, 0x2bc);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pActiveLoopParticles, 0x2c0);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pDashParticlesData, 0x2c4);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pActiveDashParticles, 0x2c8);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pConeMesh0, 0x2cc);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pConeMesh1, 0x2d0);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pConeMesh2, 0x2d4);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pTrailNode, 0x2d8);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pAnimFxLevel1, 0x2dc);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pAnimFxLevel2, 0x2e0);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pActiveAnimFx, 0x2e4);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pProjectileAccessorA, 0x2e8);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pProjectileAccessorB, 0x2ec);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pProjectileDamage, 0x2f0);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_fProjSpeedMin, 0x2f4);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_fProjSpeedMax, 0x2f8);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_fProjInterval, 0x2fc);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_fProjIntervalSpread, 0x300);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_fProjHeightOffset, 0x304);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_fProjDirY, 0x308);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pSoundDico, 0x30c);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_fDashSoundTopPitch, 0x310);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_fEffectTimer, 0x314);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_fStopFxTime, 0x318);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_fUnusedTimer2, 0x31c);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_fDashTimeScale, 0x320);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_aui32FadeOutStartAlpha, 0x324);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_abConeFadeState, 0x330);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_fNextProjTimer, 0x334);
 DOTD_ASSERT_OFFSET(CKWindTwister, m_unk338, 0x338);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk33c, 0x33c);
-DOTD_ASSERT_OFFSET(CKWindTwister, m_unk340, 0x340);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pLoopSound, 0x33c);
+DOTD_ASSERT_OFFSET(CKWindTwister, m_pDashSound, 0x340);

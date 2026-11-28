@@ -71,96 +71,96 @@ public:
     // level: index 1 by default, 2 at level index 1 and 2, 3 at level index 2, each only when it has a sample.
     CKSound* GetFxSound(int32_t which);
 
-    float m_unk140[3];            // +0x140 (file and live: 0) the knock angle in degrees (ApplyDamageParams)
-    int32_t m_unk14c[3];          // +0x14c the beam mesh's alpha at full pull (Vf84), else at release
-    int32_t m_unk158[3];          // +0x158 the beam mesh's alpha when grabbed (GrabTarget, Vf84)
-    int32_t m_unk164[3];          // +0x164 (live: 0) the beam mesh's alpha at the end of its fade
-    float m_unk170[3];            // +0x170 the beam mesh's spin, degrees per second
-    float m_unk17c[3][3];         // +0x17c three vectors, each one 12-byte read: the beam mesh's scale
-    float m_unk1a0;               // +0x1a0 the beam mesh's fade time (0: hidden at release)
-    IKSerializable* m_unk1a4;     // +0x1a4 reference (live: CNode): the beam mesh
-    int32_t m_unk1a8[3];          // +0x1a8 the tip mesh's alpha once shown
-    int32_t m_unk1b4[3];          // +0x1b4 (live: 0) the tip mesh's alpha at SetFxActive
-    int32_t m_unk1c0[3];          // +0x1c0 (live: 0) the tip mesh's alpha at the end of its fade
-    float m_unk1cc[3][3];         // +0x1cc three vectors, each one 12-byte read: the tip mesh's scale
-    float m_unk1f0;               // +0x1f0 (live: 0) the tip mesh's fade-in time
-    float m_unk1f4;               // +0x1f4 (live: 0) the tip mesh's fade-out time (0: hidden at release)
-    IKSerializable* m_unk1f8;     // +0x1f8 reference (live: CNode): the tip mesh
-    IKSerializable* m_unk1fc[3];  // +0x1fc references (live: CKParticlesEffectFxData): the effect on the hot spot
+    float m_afKnockAngleDeg[3];            // +0x140 (file and live: 0) the knock angle in degrees (ApplyDamageParams)
+    int32_t m_ai32BeamMeshFullAlpha[3];          // +0x14c the beam mesh's alpha at full pull (Vf84), else at release
+    int32_t m_ai32BeamMeshGrabAlpha[3];          // +0x158 the beam mesh's alpha when grabbed (GrabTarget, Vf84)
+    int32_t m_ai32BeamMeshEndAlpha[3];          // +0x164 (live: 0) the beam mesh's alpha at the end of its fade
+    float m_afBeamMeshSpinDegPerSec[3];            // +0x170 the beam mesh's spin, degrees per second
+    float m_avBeamMeshScale[3][3];         // +0x17c three vectors, each one 12-byte read: the beam mesh's scale
+    float m_fBeamMeshFadeTime;               // +0x1a0 the beam mesh's fade time (0: hidden at release)
+    IKSerializable* m_pBeamMesh;     // +0x1a4 reference (live: CNode): the beam mesh
+    int32_t m_ai32TipMeshFullAlpha[3];          // +0x1a8 the tip mesh's alpha once shown
+    int32_t m_ai32TipMeshStartAlpha[3];          // +0x1b4 (live: 0) the tip mesh's alpha at SetFxActive
+    int32_t m_ai32TipMeshEndAlpha[3];          // +0x1c0 (live: 0) the tip mesh's alpha at the end of its fade
+    float m_avTipMeshScale[3][3];         // +0x1cc three vectors, each one 12-byte read: the tip mesh's scale
+    float m_fTipMeshFadeInTime;               // +0x1f0 (live: 0) the tip mesh's fade-in time
+    float m_fTipMeshFadeOutTime;               // +0x1f4 (live: 0) the tip mesh's fade-out time (0: hidden at release)
+    IKSerializable* m_pTipMesh;     // +0x1f8 reference (live: CNode): the tip mesh
+    IKSerializable* m_apHotSpotParticles[3];  // +0x1fc references (live: CKParticlesEffectFxData): the effect on the hot spot
     IKSerializable* m_pFx208;     // +0x208 (not loaded) runtime: +0x1fc's effect (CKParticlesEffectNodeFx)
-    IKSerializable* m_unk20c[3];  // +0x20c references (live: CKParticlesEffectFxData): the effect on the beam mesh
+    IKSerializable* m_apBeamMeshParticles[3];  // +0x20c references (live: CKParticlesEffectFxData): the effect on the beam mesh
     IKSerializable* m_pFx218;     // +0x218 (not loaded) runtime: +0x20c's effect (CKParticlesEffectNodeFx)
-    IKSerializable* m_unk21c[3];  // +0x21c references (live: CParticlesNodeFx): the beam's particles
-    IKSerializable* m_unk228[3];  // +0x228 references (live: CParticlesNodeFx): the beam's second particles
-    uint32_t m_unk234;            // +0x234 the beam's point count (the Bezier samples)
+    IKSerializable* m_apBeamStreamParticlesA[3];  // +0x21c references (live: CParticlesNodeFx): the beam's particles
+    IKSerializable* m_apBeamStreamParticlesB[3];  // +0x228 references (live: CParticlesNodeFx): the beam's second particles
+    uint32_t m_ui32BezierSampleCount;            // +0x234 the beam's point count (the Bezier samples)
     // +0x238..+0x288 (index = (offset - 0x238) / 4): [0] the beam's growth speed, [1..3] the end point's top speed
     // per level, [4..6] its acceleration per level, then the inner control points' random ranges (base, spread):
     // [7, 8] +0x2c4's length rate, [9] its cone (degrees), [10, 11] its length, [12, 13] its turn rates; [14, 15]
     // +0x2d0's length rate, [16] its cone, [17, 18] its length, [19, 20] its turn rates.
-    float m_unk238[21];
-    IKSerializable* m_unk28c;     // +0x28c reference (live: CKSoundDictionaryID)
-    IKSerializable* m_unk290[3];  // +0x290 references (live: CKS08StunDamage): the throw's damage per level
+    float m_afBezierDynamics[21];
+    IKSerializable* m_pSoundDico;     // +0x28c reference (live: CKSoundDictionaryID)
+    IKSerializable* m_apThrowDamages[3];  // +0x290 references (live: CKS08StunDamage): the throw's damage per level
     // Runtime (not loaded).
     uint32_t m_unk29c;            // +0x29c cleared by GrabTarget and ResetRuntime (not read here)
-    float m_unk2a0;               // +0x2a0 the time since Start
-    float m_unk2a4;               // +0x2a4 +0x2a0 at the release
-    uint8_t m_unk2a8;             // +0x2a8 the beam mesh fades out
+    float m_fElapsedTime;               // +0x2a0 the time since Start
+    float m_fReleaseTime;               // +0x2a4 +0x2a0 at the release
+    uint8_t m_bBeamMeshFadingOut;             // +0x2a8 the beam mesh fades out
     uint8_t m_pad2a9[3];
-    uint32_t m_unk2ac;            // +0x2ac the beam mesh's alpha at the release
-    uint8_t m_unk2b0;             // +0x2b0 the tip mesh is shown (fades out once released)
+    uint32_t m_ui32BeamReleaseAlpha;            // +0x2ac the beam mesh's alpha at the release
+    uint8_t m_bTipMeshShown;             // +0x2b0 the tip mesh is shown (fades out once released)
     uint8_t m_pad2b1[3];
-    uint32_t m_unk2b4;            // +0x2b4 the tip mesh's alpha at the release
+    uint32_t m_ui32TipReleaseAlpha;            // +0x2b4 the tip mesh's alpha at the release
     CKSound* m_pLoopSound;        // +0x2b8 the loop sound playing
-    uint32_t m_unk2bc;            // +0x2bc the beam's points grown so far (up to +0x234)
-    float m_unk2c0;               // +0x2c0 the emission phase (the fraction of a point)
-    CVector3 m_unk2c4;            // +0x2c4 the first inner control point (from the hot spot)
-    CVector3 m_unk2d0;            // +0x2d0 the second inner control point (from the end point)
+    uint32_t m_ui32GrownPoints;            // +0x2bc the beam's points grown so far (up to +0x234)
+    float m_fEmitPhase;               // +0x2c0 the emission phase (the fraction of a point)
+    CVector3 m_vCtrlPoint1;            // +0x2c4 the first inner control point (from the hot spot)
+    CVector3 m_vCtrlPoint2;            // +0x2d0 the second inner control point (from the end point)
     // +0x2dc the six random rates: +0x2c4's length, z turn, x turn; +0x2d0's length, z turn, x turn.
-    float m_unk2dc[6];
-    CVector3 m_unk2f4;            // +0x2f4 the end point
-    CVector3 m_unk300;            // +0x300 the end point's velocity
-    float m_unk30c;               // +0x30c the time in pull state 2
-    uint32_t m_unk310;            // +0x310 the pull state (0 aim, 1 damage set, 2 pulling, 3 thrown)
-    uint8_t m_unk314;             // +0x314 the target could not be held at the beam's end (CanGrabTarget)
+    float m_afCtrlWanderRates[6];
+    CVector3 m_vEndPoint;            // +0x2f4 the end point
+    CVector3 m_vEndVelocity;            // +0x300 the end point's velocity
+    float m_fPullStateTime;               // +0x30c the time in pull state 2
+    uint32_t m_ui32PullState;            // +0x310 the pull state (0 aim, 1 damage set, 2 pulling, 3 thrown)
+    uint8_t m_bTargetUncatchable;             // +0x314 the target could not be held at the beam's end (CanGrabTarget)
     uint8_t m_pad315[3];
 };
 DOTD_ASSERT_SIZE(CKWindBeam, 0x318);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk140, 0x140);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk14c, 0x14c);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk158, 0x158);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk164, 0x164);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk170, 0x170);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk17c, 0x17c);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk1a0, 0x1a0);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk1a4, 0x1a4);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk1a8, 0x1a8);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk1b4, 0x1b4);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk1c0, 0x1c0);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk1cc, 0x1cc);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk1f0, 0x1f0);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk1f4, 0x1f4);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk1f8, 0x1f8);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk1fc, 0x1fc);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_afKnockAngleDeg, 0x140);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_ai32BeamMeshFullAlpha, 0x14c);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_ai32BeamMeshGrabAlpha, 0x158);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_ai32BeamMeshEndAlpha, 0x164);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_afBeamMeshSpinDegPerSec, 0x170);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_avBeamMeshScale, 0x17c);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_fBeamMeshFadeTime, 0x1a0);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_pBeamMesh, 0x1a4);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_ai32TipMeshFullAlpha, 0x1a8);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_ai32TipMeshStartAlpha, 0x1b4);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_ai32TipMeshEndAlpha, 0x1c0);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_avTipMeshScale, 0x1cc);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_fTipMeshFadeInTime, 0x1f0);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_fTipMeshFadeOutTime, 0x1f4);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_pTipMesh, 0x1f8);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_apHotSpotParticles, 0x1fc);
 DOTD_ASSERT_OFFSET(CKWindBeam, m_pFx208, 0x208);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk20c, 0x20c);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_apBeamMeshParticles, 0x20c);
 DOTD_ASSERT_OFFSET(CKWindBeam, m_pFx218, 0x218);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk21c, 0x21c);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk228, 0x228);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk234, 0x234);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk238, 0x238);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk28c, 0x28c);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk290, 0x290);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_apBeamStreamParticlesA, 0x21c);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_apBeamStreamParticlesB, 0x228);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_ui32BezierSampleCount, 0x234);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_afBezierDynamics, 0x238);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_pSoundDico, 0x28c);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_apThrowDamages, 0x290);
 DOTD_ASSERT_OFFSET(CKWindBeam, m_unk29c, 0x29c);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk2a0, 0x2a0);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk2a8, 0x2a8);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk2b0, 0x2b0);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_fElapsedTime, 0x2a0);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_bBeamMeshFadingOut, 0x2a8);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_bTipMeshShown, 0x2b0);
 DOTD_ASSERT_OFFSET(CKWindBeam, m_pLoopSound, 0x2b8);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk2bc, 0x2bc);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk2c4, 0x2c4);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk2d0, 0x2d0);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk2dc, 0x2dc);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk2f4, 0x2f4);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk300, 0x300);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk30c, 0x30c);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk310, 0x310);
-DOTD_ASSERT_OFFSET(CKWindBeam, m_unk314, 0x314);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_ui32GrownPoints, 0x2bc);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_vCtrlPoint1, 0x2c4);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_vCtrlPoint2, 0x2d0);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_afCtrlWanderRates, 0x2dc);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_vEndPoint, 0x2f4);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_vEndVelocity, 0x300);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_fPullStateTime, 0x30c);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_ui32PullState, 0x310);
+DOTD_ASSERT_OFFSET(CKWindBeam, m_bTargetUncatchable, 0x314);

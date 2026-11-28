@@ -423,23 +423,23 @@ public:
     uint8_t m_unk1f9;  // +0x1f9 b5
     uint8_t m_unk1fa;  // +0x1fa
     uint8_t m_unk1fb;  // +0x1fb
-    float m_unk1fc;  // +0x1fc Ghidra flFl_1fc: the frame dt (clock +0x1c) x the time scale +0x200 (Update)
-    float m_unk200;  // +0x200 Ghidra dwDw_200; f7w4
+    float m_fScaledDt;  // +0x1fc Ghidra flFl_1fc: the frame dt (clock +0x1c) x the time scale +0x200 (Update)
+    float m_fTimeScale;  // +0x200 Ghidra dwDw_200; f7w4
     float m_unk204;  // +0x204 f13w1
     // +0x208 the recent attackers (m_unk238 of them, newest last): the attacker, a "still touching" byte and a
     // cooldown counted down by UpdateAttackerHitCooldowns 0x27d9b8 while the attacker no longer touches.
-    SEnemyHitAttacker m_unk208[4];  // +0x208
-    uint8_t m_unk238;  // +0x238 Ghidra bHitByCount; b15
-    uint8_t m_unk239;  // +0x239 Ghidra bPendingHit; b41
+    SEnemyHitAttacker m_aRecentAttackers[4];  // +0x208
+    uint8_t m_ui8HitByCount;  // +0x238 Ghidra bHitByCount; b15
+    uint8_t m_bPendingHit;  // +0x239 Ghidra bPendingHit; b41
     uint8_t m_unk23a;  // +0x23a b1
     uint8_t m_unk23b;  // +0x23b
-    float m_unk23c[3];  // +0x23c Ghidra aHitPos; f7
+    float m_vLastHitPos[3];  // +0x23c Ghidra aHitPos; f7
     float m_unk248;  // +0x248 f11
     float m_unk24c;  // +0x24c f7
     float m_unk250;  // +0x250 f2
     float m_unk254;  // +0x254 Ghidra flFl_254; f21w1
-    float m_unk258;  // +0x258 Ghidra flHealth; f51w2
-    float m_unk25c;  // +0x25c Ghidra dwStunGauge; f24w1
+    float m_fHealth;  // +0x258 Ghidra flHealth; f51w2
+    float m_fStunGauge;  // +0x25c Ghidra dwStunGauge; f24w1
     float m_unk260;  // +0x260 Ghidra flFl_260; f10w1
     uint8_t m_unk264;  // +0x264 Ghidra bB_264; b1f2w2
     uint8_t m_unk265;  // +0x265
@@ -447,10 +447,10 @@ public:
     uint8_t m_unk267;  // +0x267
     float m_unk268;  // +0x268 f2
     float m_unk26c;  // +0x26c f1
-    float m_unk270;  // +0x270 Ghidra flKnockbackSpeed; f5
-    float m_unk274;  // +0x274 Ghidra flKnockbackLift; f10w1
-    float m_unk278;  // +0x278 Ghidra flGauge2; f27w2
-    CKS08Damage* m_unk27c;  // +0x27c Ghidra dwPendingDamage: the damage taken this frame (a CKS08ElementDamage 0x99cc for the statuses)
+    float m_fKnockbackForce;  // _maybe: +0x270 Ghidra flKnockbackSpeed; f5
+    float m_fKnockbackTime;  // +0x274 Ghidra flKnockbackTime; counted down while pushed; f10w1
+    float m_fDisarmGauge;  // +0x278 Ghidra flDisarmGauge; GuardEjectWeapon at the cap; f27w2
+    CKS08Damage* m_pPendingDamage;  // +0x27c Ghidra dwPendingDamage: the damage taken this frame (a CKS08ElementDamage 0x99cc for the statuses)
     float m_unk280;  // +0x280 f1
     float m_unk284;  // +0x284 f2
     float m_unk288;  // +0x288 f2
@@ -462,20 +462,20 @@ public:
     uint8_t m_unk291;  // +0x291
     uint8_t m_unk292;  // +0x292
     uint8_t m_unk293;  // +0x293
-    IKSerializable* m_unk294;  // +0x294 Ghidra dwGrabbingHero: the hero holding the enemy (SetGrabbedBy)
-    IKSerializable* m_unk298;  // +0x298 the last hero that grabbed the enemy (SetGrabbedBy)
+    IKSerializable* m_pGrabbingHero;  // +0x294 Ghidra dwGrabbingHero: the hero holding the enemy (SetGrabbedBy)
+    IKSerializable* m_pLastGrabbingHero;  // +0x298 the last hero that grabbed the enemy (SetGrabbedBy)
     uint32_t m_unk29c;  // +0x29c
     float m_unk2a0;  // +0x2a0 f2
     float m_unk2a4;  // +0x2a4 Ghidra dwDw_2a4; f2w2 (State0D: the attack animation's length)
     float m_unk2a8;  // +0x2a8 Ghidra dwDw_2a8; f2w1
     float m_unk2ac;  // +0x2ac Ghidra flFl_2ac; f6w2
-    float m_unk2b0[30];                     // +0x2b0 timers counted down by TickAttackCooldowns (vt+0x148: the first +0x884 +0x124 of them); ResetRuntimeState clears all thirty
+    float m_afAttackCooldowns[30];                     // +0x2b0 timers counted down by TickAttackCooldowns (vt+0x148: the first +0x884 +0x124 of them); ResetRuntimeState clears all thirty
     uint8_t m_unk328;  // +0x328 Ghidra bB_328; b7
     uint8_t m_unk329;  // +0x329
     uint8_t m_unk32a;  // +0x32a
     uint8_t m_unk32b;  // +0x32b
     uint32_t m_unk32c;  // +0x32c Ghidra dwDw_32c; w14
-    IKHook* m_unk330;  // +0x330 Ghidra dwDw_330: the target (a hero; node +0x1c)
+    IKHook* m_pTarget;  // +0x330 Ghidra dwDw_330: the target (a hero; node +0x1c)
     uint32_t m_unk334;  // +0x334
     CVector3 m_unk338;  // +0x338 the position kept when the enemy stands facing its target (UpdateMoveDestination)
     float m_unk344;  // +0x344 Ghidra flFl_344; f19w2
@@ -526,8 +526,8 @@ public:
     TVector<IKSerializable*, 1> m_unk4FC;   // +0x4fc
     TVector<IKSerializable*, 1> m_unk508;   // +0x508
     TVector<void*, 1> m_unk514;             // +0x514 (Ghidra dwArmorParts, +0x51c dwArmorPartCount: unverified)
-    class CKHkS08Weapon* m_unk520;  // +0x520 Ghidra dwDw_520: the held weapon
-    IKSerializable* m_unk524;  // +0x524 w17 (the shield, AttachRandomShield)
+    class CKHkS08Weapon* m_pHeldWeapon;  // +0x520 Ghidra dwDw_520: the held weapon
+    IKSerializable* m_pHeldShield;  // +0x524 w17 (the shield, AttachRandomShield)
     uint32_t m_unk528;  // +0x528 w11
     uint32_t m_unk52c;  // +0x52c w5
     float m_unk530;  // +0x530 Ghidra flFl_530; f3w2
@@ -570,13 +570,13 @@ public:
     uint32_t m_unk668;  // +0x668
     uint32_t m_unk66c;  // +0x66c
     uint32_t m_unk670;  // +0x670
-    class CKHkS08Weapon* m_unk674;  // +0x674 Ghidra dwDw_674: the free weapon claimed (AuxSM01 / 02; its +0xb4 = this)
+    class CKHkS08Weapon* m_pClaimedWeapon;  // +0x674 Ghidra dwDw_674: the free weapon claimed (AuxSM01 / 02; its +0xb4 = this)
     uint8_t m_unk678;  // +0x678 the claimed weapon picked up (AuxSM04's mark 0x15)
     uint8_t m_unk679;  // +0x679
     uint8_t m_unk67a;  // +0x67a
     uint8_t m_unk67b;  // +0x67b
     float m_unk67c;  // +0x67c Ghidra flFl_67c; f5w2
-    IKSerializable* m_unk680;  // +0x680 w7 (the egg the enemy hatches from, CKHkS08Egg_AssignEnemy)
+    IKSerializable* m_pSpawnEgg;  // +0x680 w7 (the egg the enemy hatches from, CKHkS08Egg_AssignEnemy)
     float m_unk684;  // +0x684 f4w1
     uint32_t m_unk688;  // +0x688 w1
     uint8_t m_unk68c;  // +0x68c b3
@@ -584,7 +584,7 @@ public:
     uint8_t m_unk68e;  // +0x68e
     uint8_t m_unk68f;  // +0x68f
     uint32_t m_unk690;  // +0x690
-    void* m_unk694;  // +0x694 Ghidra pLastAttacker; w33
+    void* m_pLastAttacker;  // +0x694 Ghidra pLastAttacker; w33
     float m_unk698;  // +0x698 f2
     float m_unk69c;  // +0x69c f1
     uint32_t m_unk6a0;  // +0x6a0
@@ -596,14 +596,14 @@ public:
     uint8_t m_unk6af;  // +0x6af
     float m_unk6b0;  // +0x6b0 f4w2
     uint32_t m_unk6b4;  // +0x6b4
-    float m_unk6b8;  // +0x6b8 Ghidra flStatus0Gauge; f36w3
+    float m_fFireGauge;  // +0x6b8 Ghidra flStatus0Gauge; f36w3
     float m_unk6bc;  // +0x6bc f1w1 (ReactSM08_Launched compares it with the kind's +0x2d4)
-    float m_unk6c0;  // +0x6c0 Ghidra flStatus4Gauge; f30w1
-    float m_unk6c4;  // +0x6c4 Ghidra flStatus5Gauge; f18w1
-    float m_unk6c8;  // +0x6c8 Ghidra flStatus1Gauge; f30w1
-    float m_unk6cc;  // +0x6cc Ghidra flStatus6Gauge; f20w1
-    float m_unk6d0;  // +0x6d0 Ghidra flStatus7Gauge; f27w6
-    float m_unk6d4;  // +0x6d4 Ghidra flStatus3Gauge; f25w3
+    float m_fPoisonGauge;  // +0x6c0 Ghidra flStatus4Gauge; f30w1
+    float m_fShadowGauge;  // +0x6c4 Ghidra flStatus5Gauge; f18w1
+    float m_fIceGauge;  // +0x6c8 Ghidra flStatus1Gauge; f30w1
+    float m_fFearGauge;  // +0x6cc Ghidra flStatus6Gauge; f20w1
+    float m_fWindGauge;  // +0x6d0 Ghidra flStatus7Gauge; f27w6
+    float m_fElectricGauge;  // +0x6d4 Ghidra flStatus3Gauge; f25w3
     float m_unk6d8;  // +0x6d8 f8w4: the burning run's timer (State26_Burning: a new point past the kind's +0x27c)
     CVector3 m_unk6dc;  // +0x6dc the burning run's point (State26_Burning, PickRandomReachablePoint)
     CVector3 m_unk6e8;  // +0x6e8 the burning run's flat direction toward it
@@ -638,9 +638,9 @@ public:
     uint8_t m_unk731;                       // +0x731
     uint8_t m_unk732;                       // +0x732
     uint8_t m_unk733;                       // +0x733
-    IKSerializable* m_unk734;               // +0x734 reference (live: a CKS08CarrierEnemy; Ghidra pCarrierEnemy)
+    IKSerializable* m_pCarrierEnemy;               // +0x734 reference (live: a CKS08CarrierEnemy; Ghidra pCarrierEnemy)
     IKSerializable* m_unk738;  // +0x738 w18 (the carried transportable given at spawn: MainState00_Spawn)
-    class CKS08EnemyAttack* m_unk73c;  // +0x73c Ghidra dwDw_73c: the current attack
+    class CKS08EnemyAttack* m_pCurrentAttack;  // +0x73c Ghidra dwDw_73c: the current attack
     float m_unk740;  // +0x740 f4
     uint8_t m_unk744;  // +0x744 b4
     uint8_t m_unk745;  // +0x745
@@ -663,8 +663,8 @@ public:
     float m_unk774;  // +0x774 Ghidra flFl_774; f55w4
     float m_unk778;  // +0x778 f5
     uint32_t m_unk77c;  // +0x77c w3
-    class CKS08EnemyAbilityHost* m_unk780;  // +0x780 Ghidra dwDw_780: the ability host while +0x784 runs (OperatorNew(8))
-    IKSerializable* m_unk784;               // +0x784 reference: the ability of the kind's last attack (LVL010: a CKElectricalGrapple for all ten enemies, census lvl010_ingame)
+    class CKS08EnemyAbilityHost* m_pAbilityHost;  // +0x780 Ghidra dwDw_780: the ability host while +0x784 runs (OperatorNew(8))
+    IKSerializable* m_pSpecialAbility;               // +0x784 reference: the ability of the kind's last attack (LVL010: a CKElectricalGrapple for all ten enemies, census lvl010_ingame)
     uint32_t m_unk788;  // +0x788
     float m_unk78c;  // +0x78c f3w1
     uint32_t m_unk790;  // +0x790
@@ -685,7 +685,7 @@ public:
     uint8_t m_unk7ba;  // +0x7ba
     uint8_t m_unk7bb;  // +0x7bb
     uint32_t m_unk7bc;  // +0x7bc w1
-    float m_unk7c0;  // +0x7c0 f2w2: the time held (State07_Grabbed)
+    float m_fGrabbedTime;  // +0x7c0 f2w2: the time held (State07_Grabbed)
     uint8_t m_unk7c4;  // +0x7c4 b8
     uint8_t m_unk7c5;  // +0x7c5
     uint8_t m_unk7c6;  // +0x7c6
@@ -727,9 +727,9 @@ public:
     uint8_t m_unk819;  // +0x819 Ghidra bB_819; b7
     uint8_t m_unk81a;  // +0x81a b4
     uint8_t m_unk81b;  // +0x81b
-    float m_unk81c;  // +0x81c Ghidra flFl_81c; f3: the wind's height above the ground (State1D_WindCaught)
-    float m_unk820;  // +0x820 Ghidra flFl_820; f5: the wind's angle about +0x824 (State1D_WindCaught)
-    CVector3 m_unk824;  // +0x824 the point the wind whirls the enemy about (State1D_WindCaught)
+    float m_fWindCaughtHeight;  // +0x81c Ghidra flFl_81c; f3: the wind's height above the ground (State1D_WindCaught)
+    float m_fWindCaughtAngle;  // +0x820 Ghidra flFl_820; f5: the wind's angle about +0x824 (State1D_WindCaught)
+    CVector3 m_vWindCaughtCenter;  // +0x824 the point the wind whirls the enemy about (State1D_WindCaught)
     IKSerializable* m_unk830;  // +0x830 the previous target (SelectTarget)
     uint8_t m_unk834;  // +0x834 b4
     uint8_t m_unk835;  // +0x835
@@ -757,15 +757,15 @@ public:
     uint8_t m_unk875;  // +0x875
     uint8_t m_unk876;  // +0x876
     uint8_t m_unk877;  // +0x877
-    class CKMeshPopNodeFx* m_unk878;  // +0x878 the freeze FX pop (SetFreezeFxActive)
-    class CKMeshPopNodeFx* m_unk87c;  // +0x87c the burrow's mesh pop (SetMeshPopFxActive)
-    class CKParticlesEffectNodeFx* m_unk880;  // +0x880 the burrow's dust trail (State17)
-    class CKS08EnemyCpnt* m_unk884;  // +0x884 Ghidra dwTypeConfig: the kind config (Activate copies IKHkEnemy +0x188)
+    class CKMeshPopNodeFx* m_pFreezeMeshPopFx;  // +0x878 the freeze FX pop (SetFreezeFxActive)
+    class CKMeshPopNodeFx* m_pBurrowMeshPopFx;  // +0x87c the burrow's mesh pop (SetMeshPopFxActive)
+    class CKParticlesEffectNodeFx* m_pBurrowDustFx;  // +0x880 the burrow's dust trail (State17)
+    class CKS08EnemyCpnt* m_pActiveEnemyCpnt;  // +0x884 Ghidra dwTypeConfig: the kind config (Activate copies IKHkEnemy +0x188)
     uint8_t m_unk888;  // +0x888 b8
     uint8_t m_unk889;  // +0x889
     uint8_t m_unk88a;  // +0x88a
     uint8_t m_unk88b;  // +0x88b
-    IKSerializable* m_unk88C;               // +0x88c reference (live: a CGlowNodeFx)
+    IKSerializable* m_pGlowNode;               // +0x88c reference (live: a CGlowNodeFx)
     uint8_t m_unk890;  // +0x890 b4
     uint8_t m_unk891;  // +0x891 b16
     uint8_t m_unk892;  // +0x892
@@ -816,9 +816,9 @@ DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_aReactStates, 0x55c);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_pAuxStates, 0x5e4);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_aAuxStates, 0x5ec);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk730, 0x730);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk734, 0x734);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk784, 0x784);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk88C, 0x88c);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_pCarrierEnemy, 0x734);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_pSpecialAbility, 0x784);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_pGlowNode, 0x88c);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_damage8BC, 0x8bc);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk1b4, 0x1b4);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk1b8, 0x1b8);
@@ -849,21 +849,21 @@ DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk1f8, 0x1f8);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk1f9, 0x1f9);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk1fa, 0x1fa);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk1fb, 0x1fb);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk1fc, 0x1fc);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk200, 0x200);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_fScaledDt, 0x1fc);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_fTimeScale, 0x200);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk204, 0x204);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk208, 0x208);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk238, 0x238);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk239, 0x239);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_aRecentAttackers, 0x208);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_ui8HitByCount, 0x238);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_bPendingHit, 0x239);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk23a, 0x23a);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk23b, 0x23b);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk23c, 0x23c);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_vLastHitPos, 0x23c);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk248, 0x248);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk24c, 0x24c);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk250, 0x250);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk254, 0x254);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk258, 0x258);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk25c, 0x25c);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_fHealth, 0x258);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_fStunGauge, 0x25c);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk260, 0x260);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk264, 0x264);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk265, 0x265);
@@ -871,10 +871,10 @@ DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk266, 0x266);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk267, 0x267);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk268, 0x268);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk26c, 0x26c);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk270, 0x270);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk274, 0x274);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk278, 0x278);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk27c, 0x27c);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_fKnockbackForce, 0x270);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_fKnockbackTime, 0x274);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_fDisarmGauge, 0x278);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_pPendingDamage, 0x27c);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk280, 0x280);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk284, 0x284);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk288, 0x288);
@@ -886,8 +886,8 @@ DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk290, 0x290);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk291, 0x291);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk292, 0x292);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk293, 0x293);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk294, 0x294);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk298, 0x298);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_pGrabbingHero, 0x294);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_pLastGrabbingHero, 0x298);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk29c, 0x29c);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk2a0, 0x2a0);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk2a4, 0x2a4);
@@ -898,7 +898,7 @@ DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk329, 0x329);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk32a, 0x32a);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk32b, 0x32b);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk32c, 0x32c);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk330, 0x330);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_pTarget, 0x330);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk334, 0x334);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk338, 0x338);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk344, 0x344);
@@ -935,8 +935,8 @@ DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk398, 0x398);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk399, 0x399);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk39a, 0x39a);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk39b, 0x39b);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk520, 0x520);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk524, 0x524);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_pHeldWeapon, 0x520);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_pHeldShield, 0x524);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk528, 0x528);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk52c, 0x52c);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk530, 0x530);
@@ -964,13 +964,13 @@ DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk664, 0x664);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk668, 0x668);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk66c, 0x66c);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk670, 0x670);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk674, 0x674);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_pClaimedWeapon, 0x674);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk678, 0x678);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk679, 0x679);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk67a, 0x67a);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk67b, 0x67b);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk67c, 0x67c);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk680, 0x680);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_pSpawnEgg, 0x680);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk684, 0x684);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk688, 0x688);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk68c, 0x68c);
@@ -978,7 +978,7 @@ DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk68d, 0x68d);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk68e, 0x68e);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk68f, 0x68f);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk690, 0x690);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk694, 0x694);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_pLastAttacker, 0x694);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk698, 0x698);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk69c, 0x69c);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk6a0, 0x6a0);
@@ -990,14 +990,14 @@ DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk6ae, 0x6ae);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk6af, 0x6af);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk6b0, 0x6b0);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk6b4, 0x6b4);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk6b8, 0x6b8);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_fFireGauge, 0x6b8);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk6bc, 0x6bc);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk6c0, 0x6c0);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk6c4, 0x6c4);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk6c8, 0x6c8);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk6cc, 0x6cc);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk6d0, 0x6d0);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk6d4, 0x6d4);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_fPoisonGauge, 0x6c0);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_fShadowGauge, 0x6c4);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_fIceGauge, 0x6c8);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_fFearGauge, 0x6cc);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_fWindGauge, 0x6d0);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_fElectricGauge, 0x6d4);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk6d8, 0x6d8);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk6dc, 0x6dc);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk6e8, 0x6e8);
@@ -1029,7 +1029,7 @@ DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk727, 0x727);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk728, 0x728);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk72c, 0x72c);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk738, 0x738);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk73c, 0x73c);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_pCurrentAttack, 0x73c);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk740, 0x740);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk744, 0x744);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk745, 0x745);
@@ -1052,7 +1052,7 @@ DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk770, 0x770);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk774, 0x774);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk778, 0x778);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk77c, 0x77c);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk780, 0x780);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_pAbilityHost, 0x780);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk788, 0x788);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk78c, 0x78c);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk790, 0x790);
@@ -1073,7 +1073,7 @@ DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk7b9, 0x7b9);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk7ba, 0x7ba);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk7bb, 0x7bb);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk7bc, 0x7bc);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk7c0, 0x7c0);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_fGrabbedTime, 0x7c0);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk7c4, 0x7c4);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk7c5, 0x7c5);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk7c6, 0x7c6);
@@ -1114,9 +1114,9 @@ DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk818, 0x818);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk819, 0x819);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk81a, 0x81a);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk81b, 0x81b);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk81c, 0x81c);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk820, 0x820);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk824, 0x824);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_fWindCaughtHeight, 0x81c);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_fWindCaughtAngle, 0x820);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_vWindCaughtCenter, 0x824);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk830, 0x830);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk834, 0x834);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk835, 0x835);
@@ -1144,10 +1144,10 @@ DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk874, 0x874);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk875, 0x875);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk876, 0x876);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk877, 0x877);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk878, 0x878);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk87c, 0x87c);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk880, 0x880);
-DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk884, 0x884);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_pFreezeMeshPopFx, 0x878);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_pBurrowMeshPopFx, 0x87c);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_pBurrowDustFx, 0x880);
+DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_pActiveEnemyCpnt, 0x884);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk888, 0x888);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk889, 0x889);
 DOTD_ASSERT_OFFSET(CKHkS08Enemy, m_unk88a, 0x88a);

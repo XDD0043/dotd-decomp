@@ -33,7 +33,7 @@
 // 0x003d1980 CKS08StunDamage_Load: CKS08Damage's data, then two words.
 int32_t CKS08StunDamage::Load(IKFile* file, int32_t type) {
     CKS08Damage::Load(file, type);
-    ReadU32LE(file, &m_unk28);
-    ReadF32LE(file, &m_unk2c);
+    ReadU32LE(file, &m_fStunAmount);
+    ReadF32LE(file, &m_fDisarmAmount);
     return 1;
 }

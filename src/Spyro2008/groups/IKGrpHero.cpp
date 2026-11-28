@@ -92,9 +92,9 @@ void IKGrpHero::AllocRuntimeArrays() {
     m_apCompanionHeroes = static_cast<IKSerializable**>(Mem_CallocAligned16(sizeof(IKSerializable*), heroes + 1));
     m_apHeroesCopy = static_cast<IKSerializable**>(Mem_CallocAligned16(sizeof(IKSerializable*), heroes + 1));
     const uint32_t slots = (maxPlayers * m_sProperties.m_ui8Value) & 0xffu;
-    m_pUnk74 = Mem_CallocAligned16(0x18, slots);
-    m_pUnk78 = Mem_CallocAligned16(0x18, heroes);
-    m_pUnk7c = static_cast<uint8_t*>(Mem_CallocAligned16(1, heroes));
+    m_asPosAroundLead = Mem_CallocAligned16(0x18, slots);
+    m_asAltPosAroundLead = Mem_CallocAligned16(0x18, heroes);
+    m_ai8WantedPos = static_cast<uint8_t*>(Mem_CallocAligned16(1, heroes));
     // OperatorNewArray(slots * 0x2c + 4): the count cookie, then the entries (left unset on the PS3 except the
     // four fields below; zeroed here so that runs are deterministic).
     // PORT: the cookie takes the entries' alignment (4 on the PS3, 8 on x64: the ground pointer).
@@ -109,7 +109,7 @@ void IKGrpHero::AllocRuntimeArrays() {
         entries[i].m_eContactStatus = 3;
     }
     m_pPlayerSlots = entries;
-    m_unk66 = 0xff;
+    m_ui8FocusedDragon = 0xff;
     // vt+0xec: CKGrpS08Hero 0x2ce310, empty.
 }
 
@@ -118,21 +118,21 @@ void CKGrpS08Hero::ResetRuntimeState() {
     const uint32_t heroes = GetHeroCount();  // vt+0xf4
     std::memcpy(m_apHeroesCopy, m_apHeros, (heroes & 0xffu) * sizeof(IKSerializable*));  // PS3: (heroes << 2) & 0x3fc
     m_apHeroesCopy[heroes] = nullptr;
-    m_unk66 = 0xff;
-    m_unk65 = 0;
+    m_ui8FocusedDragon = 0xff;
+    m_ui8RequestedDragon = 0;
     m_unk70 = 0;
     std::memcpy(&m_unk5c, &m_sProperties.m_aui32Words[0], sizeof(float));
     m_unk6c = -1000.0f;  // TOC 0x1ab0
     m_ui8ControlledHeroCount = 0;
     m_ui8CompanionHeroCount = 0;
     m_unk54 = 0;
-    m_unk64 = 0;
+    m_ui8SelectedDragon = 0;
     m_unk60 = -1000.0f;
     m_unk68 = -1000.0f;
-    for (uint32_t i = 0; i < heroes; ++i) m_pUnk7c[i] = 0xff;
+    for (uint32_t i = 0; i < heroes; ++i) m_ai8WantedPos[i] = 0xff;
     std::memcpy(&m_unk84, &m_sProperties.m_aui32Words[4], sizeof(float));
     m_vUnk88 = CVector3{0.0f, 0.0f, 0.0f};  // the zero vector 0xc50d64
-    m_unkf8 = 0;
+    m_baWorkFlags = 0;
     m_unk95 = 0;
     m_unk94 = 0;
     const uint32_t slots = (GetMaxPlayers() * m_sProperties.m_ui8Value) & 0xffu;
@@ -150,13 +150,13 @@ void CKGrpS08Hero::ResetRuntimeState() {
 void CKGrpS08Hero::UpdateHeroGroup(IKTime* clock) {
     IKSerializable* enemies = g_pEngine->m_gameManager->m_unk04[0];  // +0x04
     if (enemies == nullptr) {
-        m_unkf8 &= 0xfffffbffu;
+        m_baWorkFlags &= 0xfffffbffu;
     } else {
         const uint32_t fighting = static_cast<CKGrpS08Enemy*>(enemies)->IsFightOn();  // vt+0xf0 0x9bb668
-        m_unkf8 = (m_unkf8 & 0xfffffbffu) | ((fighting & 0xffu) << 10);
+        m_baWorkFlags = (m_baWorkFlags & 0xfffffbffu) | ((fighting & 0xffu) << 10);
     }
     RebuildControlledAndCompanionHeroArrays();  // 0x002cb528
-    if ((m_unkf8 & 0x800u) == 0) {
+    if ((m_baWorkFlags & 0x800u) == 0) {
         CKSrvDetect* detect = static_cast<CKSrvDetect*>(g_pEngine->m_srvDetect);
         for (uint32_t i = 0; i < GetHeroCount(); ++i) {  // vt+0xf4
             IKSerializable* node = static_cast<IKHook*>(m_apHeros[i])->m_pKGLObject;
@@ -169,7 +169,7 @@ void CKGrpS08Hero::UpdateHeroGroup(IKTime* clock) {
     UpdateCatchUpPoints();              // 0x002ccbe0
     UpdatePartnerInteraction(clock);    // 0x002cbf10
     UpdateHeroSpeechAnims(clock);       // 0x002cb280
-    m_unkf8 = ((m_unkf8 & 0xfffff7ffu) | 0x800u) & 0xffff7fffu;
+    m_baWorkFlags = ((m_baWorkFlags & 0xfffff7ffu) | 0x800u) & 0xffff7fffu;
 }
 
 // 0x002c82a8 IKGrpHero_FreeArrays_maybe
@@ -178,12 +178,12 @@ void IKGrpHero::FreeArrays() {
     Mem_FreeAligned16(m_apControlledHeroes);
     Mem_FreeAligned16(m_apCompanionHeroes);
     Mem_FreeAligned16(m_apHeroesCopy);
-    Mem_FreeAligned16(m_apUnk44);
+    Mem_FreeAligned16(m_apCameraTargets);
     Mem_FreeAligned16(m_apUnk48);
     Mem_FreeAligned16(m_apUnk4c);
-    Mem_FreeAligned16(m_pUnk74);
-    Mem_FreeAligned16(m_pUnk78);
-    Mem_FreeAligned16(m_pUnk7c);
+    Mem_FreeAligned16(m_asPosAroundLead);
+    Mem_FreeAligned16(m_asAltPosAroundLead);
+    Mem_FreeAligned16(m_ai8WantedPos);
     if (m_pPlayerSlots != nullptr) {
         // OperatorDeleteArray of the cookie (the allocation in AllocRuntimeArrays above: calloc with the cookie)
         const size_t cookie = alignof(SPlayerSlot) > 4 ? alignof(SPlayerSlot) : 4;
@@ -205,11 +205,11 @@ void IKGrpHero::RecursiveRegistration(int32_t type) {
     if (static_cast<uint32_t>(type - 4) <= 3u) return;
     g_pEngine->m_pSavingManager->RegisterSerializableObject(this, nullptr);  // vt+0x24
     for (uint32_t i = 0; i < GetHeroCount(); ++i) {  // vt+0xf4
-        m_apUnk44[i]->RecursiveRegistration(type);
+        m_apCameraTargets[i]->RecursiveRegistration(type);
         m_apUnk48[i]->RecursiveRegistration(type);
         m_apUnk4c[i]->RecursiveRegistration(type);
     }
-    m_pUnk58->RecursiveRegistration(type);
+    m_pLocTextAccessor->RecursiveRegistration(type);
     // +0x98..+0xb8: the five trigger starters' (KStub_Return1_2361b0: nothing).
 }
 
@@ -233,8 +233,8 @@ void IKGrpHero::OnUnlock() {
 // the blend -1 (TOC: 0xbf800000).
 void IKGrpHero::PushFocusedCameraTarget() {
     CKSrvCamera* camera = static_cast<CKSrvCamera*>(g_pEngine->m_srvCamera);
-    if (static_cast<int8_t>(m_unk66) == -1) return;
-    IKSerializable* target = m_apUnk44[static_cast<int8_t>(m_unk66)];
+    if (static_cast<int8_t>(m_ui8FocusedDragon) == -1) return;
+    IKSerializable* target = m_apCameraTargets[static_cast<int8_t>(m_ui8FocusedDragon)];
     if (target == nullptr) return;
     camera->PushStackTarget(target, -1.0f);
 }

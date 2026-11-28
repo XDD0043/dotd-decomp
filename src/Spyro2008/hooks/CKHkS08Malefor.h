@@ -34,7 +34,7 @@ public:
     DOTD_DECLARE_FACTORIES(CKHkS08Malefor)
 
     // 0x004e2860 CKHkS08Malefor_Construct (inlined in CKHkS08Malefor_Create 0x4e3070): +0xc0 = 0.
-    CKHkS08Malefor() { m_unkC0 = nullptr; }
+    CKHkS08Malefor() { m_pPerVolumeContactHistory = nullptr; }
     // 0x004e2e60 CKHkS08Malefor_Destructor (0x004e2dd8 the deleting one): the contacts (+0xc0) back to their pool
     // (ContactHistory_FreeNode), the list cleared, then CKHkGolem's.
     ~CKHkS08Malefor() override;
@@ -90,65 +90,65 @@ public:
     // 0x004e6fd8 CKHkS08Malefor_ApplyPendingDamage_maybe: the dragons' continuous damages of this frame.
     void ApplyPendingDamage(IKTime* clock);
 
-    struct ContactHistoryNode* m_unkC0;  // +0xc0 constructor 0: the contacts of the damages with +0x26 set
-    CKS08Damage* m_apUnkC4[2];          // +0xc4 runtime: each dragon's continuous damage this frame
-    float m_afUnkCC[2];                 // +0xcc runtime: each dragon's pending damage (below one point)
-    uint8_t m_abUnkD4[2];               // +0xd4 runtime: each dragon's continuous damage runs
+    struct ContactHistoryNode* m_pPerVolumeContactHistory;  // +0xc0 constructor 0: the contacts of the damages with +0x26 set
+    CKS08Damage* m_apActiveContinuousDamage[2];          // +0xc4 runtime: each dragon's continuous damage this frame
+    float m_afPendingFractionalDamage[2];                 // +0xcc runtime: each dragon's pending damage (below one point)
+    uint8_t m_abContinuousDamageActive[2];               // +0xd4 runtime: each dragon's continuous damage runs
     uint8_t m_padD6[2];
-    float m_afUnkD8[2];                 // +0xd8 runtime: each dragon's time since its last hit count
-    float m_unkE0;                      // +0xe0 (0.5) the hit count interval of a continuous damage
-    CParticlesNodeFx* m_unkE4;          // +0xe4 reference (read first): emits from the +0xf0 hot spots
-    CParticlesNodeFx* m_unkE8;          // +0xe8 reference: emits from the +0xf4 hot spots
-    uint8_t m_unkEC;                    // +0xec the +0xf0 count (12)
+    float m_afTimeSinceHitCount[2];                 // +0xd8 runtime: each dragon's time since its last hit count
+    float m_fContinuousHitCountInterval;                      // +0xe0 (0.5) the hit count interval of a continuous damage
+    CParticlesNodeFx* m_pLowHealthParticlesA;          // +0xe4 reference (read first): emits from the +0xf0 hot spots
+    CParticlesNodeFx* m_pLowHealthParticlesB;          // +0xe8 reference: emits from the +0xf4 hot spots
+    uint8_t m_ui8NbEmitHotSpotsA;                    // +0xec the +0xf0 count (12)
     uint8_t m_padED[3];
-    IKSerializable** m_apUnkF0;         // +0xf0 m_unkEC references (Mem_AllocAligned16): CSGHotSpot
-    IKSerializable* m_apUnkF4[2];       // +0xf4 two references (one array read): CSGHotSpot
+    IKSerializable** m_apEmitHotSpotsA;         // +0xf0 m_unkEC references (Mem_AllocAligned16): CSGHotSpot
+    IKSerializable* m_apEmitHotSpotsB[2];       // +0xf4 two references (one array read): CSGHotSpot
     // +0xfc (0, 1, 10, 1, 10): [0] the health at or below which the particle nodes emit (a signed word); the particles
     // per point of +0xe4 from [1] (full health) to [2] (none), of +0xe8 from [3] to [4].
-    uint32_t m_unkFC[5];
-    IKSerializable* m_apUnk110[9];      // +0x110 references: the impact explosions by element kind (8 / 9: [8])
+    uint32_t m_aui32LowHealthEmitParams[5];
+    IKSerializable* m_apImpactExplosions[9];      // +0x110 references: the impact explosions by element kind (8 / 9: [8])
     // +0x134 never written (BUG(original): Load skips it; the fresh heap's value): the hit effect interval;
     // +0x138 / +0x13c runtime: each dragon's time toward it.
     float m_afUnk134[3];
-    IKSerializable* m_apUnk140[9];      // +0x140 references: the hit explosions by element kind (8 / 9: [8])
-    IKBoundingVolume* m_unk164;         // +0x164 reference: the weak state's collision volume (PostLoad configures it)
-    uint8_t m_unk168;                   // +0x168 runtime: weak
+    IKSerializable* m_apHitExplosions[9];      // +0x140 references: the hit explosions by element kind (8 / 9: [8])
+    IKBoundingVolume* m_pWeakVolume;         // +0x164 reference: the weak state's collision volume (PostLoad configures it)
+    uint8_t m_bWeakState;                   // +0x168 runtime: weak
     uint8_t m_pad169[3];
-    uint32_t m_unk16C;                  // +0x16c (75) the fury of a one-shot hit while weak
-    uint32_t m_unk170;                  // +0x170 (50) the fury of a continuous damage's hit count while weak
-    IKSerializable* m_unk174;           // +0x174 reference: the explosion when weak starts
-    CNode* m_pUnk178;                   // +0x178 reference: the node shown while weak, scaled by the health
-    IKSerializable* m_unk17C;           // +0x17c reference: the explosion when weak ends
-    IKSerializable* m_unk180;           // +0x180 reference: the explosion of a one-shot hit on the weak volume
-    IKSerializable* m_unk184;           // +0x184 reference: the hit explosion while weak
-    IKSerializable* m_unk188;           // +0x188 reference: the hit explosion while weak (element kinds 8 / 9)
-    CTrailNodeFx* m_unk18C;             // +0x18c reference: a trail (ribbons 0 / 1 across the hot spot 12)
-    CTrailNodeFx* m_unk190;             // +0x190 reference: a trail (ribbons 0 / 1 across the hot spot 13)
+    uint32_t m_ui32WeakOneShotFury;                  // +0x16c (75) the fury of a one-shot hit while weak
+    uint32_t m_ui32WeakContinuousFury;                  // +0x170 (50) the fury of a continuous damage's hit count while weak
+    IKSerializable* m_pWeakStartExplosion;           // +0x174 reference: the explosion when weak starts
+    CNode* m_pWeakNode;                   // +0x178 reference: the node shown while weak, scaled by the health
+    IKSerializable* m_pWeakEndExplosion;           // +0x17c reference: the explosion when weak ends
+    IKSerializable* m_pWeakOneShotHitExplosion;           // +0x180 reference: the explosion of a one-shot hit on the weak volume
+    IKSerializable* m_pWeakHitExplosion;           // +0x184 reference: the hit explosion while weak
+    IKSerializable* m_pWeakFuryHitExplosion;           // +0x188 reference: the hit explosion while weak (element kinds 8 / 9)
+    CTrailNodeFx* m_pTrailA;             // +0x18c reference: a trail (ribbons 0 / 1 across the hot spot 12)
+    CTrailNodeFx* m_pTrailB;             // +0x190 reference: a trail (ribbons 0 / 1 across the hot spot 13)
     // +0x194 floats: [0] / [1] the ribbons' widths; [2..10] the weak damage factors (element kinds 0..7, then a hero
     // damage); [11] / [12] the health percentages between which the node +0x178 scales from [13] to [14]; [15] the
     // volume's radius per unit of scale.
     float m_afUnk194[16];
 };
 DOTD_ASSERT_SIZE(CKHkS08Malefor, 0x1d4);
-DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_unkC0, 0xc0);
-DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_apUnkC4, 0xc4);
-DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_afUnkCC, 0xcc);
-DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_abUnkD4, 0xd4);
-DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_afUnkD8, 0xd8);
-DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_unkE0, 0xe0);
-DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_unkEC, 0xec);
-DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_apUnkF0, 0xf0);
-DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_apUnkF4, 0xf4);
-DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_unkFC, 0xfc);
-DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_apUnk110, 0x110);
+DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_pPerVolumeContactHistory, 0xc0);
+DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_apActiveContinuousDamage, 0xc4);
+DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_afPendingFractionalDamage, 0xcc);
+DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_abContinuousDamageActive, 0xd4);
+DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_afTimeSinceHitCount, 0xd8);
+DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_fContinuousHitCountInterval, 0xe0);
+DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_ui8NbEmitHotSpotsA, 0xec);
+DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_apEmitHotSpotsA, 0xf0);
+DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_apEmitHotSpotsB, 0xf4);
+DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_aui32LowHealthEmitParams, 0xfc);
+DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_apImpactExplosions, 0x110);
 DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_afUnk134, 0x134);
-DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_apUnk140, 0x140);
-DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_unk164, 0x164);
-DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_unk168, 0x168);
-DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_unk16C, 0x16c);
-DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_unk174, 0x174);
-DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_pUnk178, 0x178);
-DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_unk184, 0x184);
-DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_unk188, 0x188);
-DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_unk190, 0x190);
+DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_apHitExplosions, 0x140);
+DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_pWeakVolume, 0x164);
+DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_bWeakState, 0x168);
+DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_ui32WeakOneShotFury, 0x16c);
+DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_pWeakStartExplosion, 0x174);
+DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_pWeakNode, 0x178);
+DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_pWeakHitExplosion, 0x184);
+DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_pWeakFuryHitExplosion, 0x188);
+DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_pTrailB, 0x190);
 DOTD_ASSERT_OFFSET(CKHkS08Malefor, m_afUnk194, 0x194);

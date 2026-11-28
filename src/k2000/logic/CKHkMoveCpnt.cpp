@@ -148,7 +148,7 @@ void CKHkMoveCpnt::Move3D(CVector3* position, float* yaw, CVector3* speed, const
     const float speedLength =
         std::sqrt(ppc::fmadds(speed->z, speed->z, ppc::fmadds(speed->x, speed->x, speed->y * speed->y)));
     CVector3 wall;
-    if ((pathFinding->m_unk3c & 0x40) == 0 || (pathFinding->m_bits70 & 0x400u) != 0) {
+    if ((pathFinding->m_eState & 0x40) == 0 || (pathFinding->m_bits70 & 0x400u) != 0) {
         ComputeStaticAvoidForce3D(position, &wall, pathFinding);  // 0x002bf0d0
     } else {
         wall = kNull;  // 0x2c1498
@@ -158,7 +158,7 @@ void CKHkMoveCpnt::Move3D(CVector3* position, float* yaw, CVector3* speed, const
     float avoidZ = avoidance->m_v0c.z;
     if (jump != nullptr) {
         bool special = false;
-        if ((pathFinding->m_unk3c & 0x40) != 0) {
+        if ((pathFinding->m_eState & 0x40) != 0) {
             const uint32_t reach = pathFinding->ClassifyReachability(groundIn);  // 0x001e1be8
             special = reach != 1 && reach != 0x40;
         }
@@ -173,7 +173,7 @@ void CKHkMoveCpnt::Move3D(CVector3* position, float* yaw, CVector3* speed, const
     float dx;
     float dy;
     float dz;
-    if (FollowsWaypoint(pathFinding->m_unk3c)) {
+    if (FollowsWaypoint(pathFinding->m_eState)) {
         dx = pathFinding->m_vCurrentTarget.x - position->x;
         dy = target->y - position->y;
         dz = pathFinding->m_vCurrentTarget.z - position->z;
@@ -192,7 +192,7 @@ void CKHkMoveCpnt::Move3D(CVector3* position, float* yaw, CVector3* speed, const
         tx = kNull.x;
         ty = kNull.y;
         tz = kNull.z;
-    } else if (arrival < distance || FollowsWaypoint(pathFinding->m_unk3c)) {  // 0x2c1af8
+    } else if (arrival < distance || FollowsWaypoint(pathFinding->m_eState)) {  // 0x2c1af8
         const float k = 1.0f / distance;
         tz = dz * k;
         tx = dx * k;
@@ -212,7 +212,7 @@ void CKHkMoveCpnt::Move3D(CVector3* position, float* yaw, CVector3* speed, const
             ty = ty * k;
         }
     }
-    if (FollowsWaypoint(pathFinding->m_unk3c)) {  // 0x2c1b58: no avoidance along the path
+    if (FollowsWaypoint(pathFinding->m_eState)) {  // 0x2c1b58: no avoidance along the path
         avoidX = kNull.x;
         avoidY = kNull.y;
         avoidZ = kNull.z;
@@ -250,7 +250,7 @@ void CKHkMoveCpnt::Move3D(CVector3* position, float* yaw, CVector3* speed, const
     }
 
     // 0x2c15d8: the path request (as Move's).
-    const int32_t requestBits = pathFinding->m_unk3c;
+    const int32_t requestBits = pathFinding->m_eState;
     bool request = true;
     if ((requestBits & 0x80) != 0 && (requestBits & 0x40) == 0) {
         const bool noWall = wall.x == kNull.x && wall.y == kNull.y && wall.z == kNull.z;
@@ -259,7 +259,7 @@ void CKHkMoveCpnt::Move3D(CVector3* position, float* yaw, CVector3* speed, const
             request = false;
             if (noWall) {
                 pathFinding->RequestPathTo(position, -1);                            // 0x001e1520
-                if (pathFinding->m_unk76 != 0xff) pathFinding->CancelPathRequest();  // 0x001e2820
+                if (pathFinding->m_i8PFSlot != 0xff) pathFinding->CancelPathRequest();  // 0x001e2820
             }
         }
     }
@@ -352,7 +352,7 @@ void CKHkMoveCpnt::Move3D(CVector3* position, float* yaw, CVector3* speed, const
         how = speedLength > 0.0f ? 1 : 2;
     }
     // 0x2c1680: once arrived (and not following the waypoint) the goal is `direction`'s heading.
-    if (!(FollowsWaypoint(pathFinding->m_unk3c) && (pathFinding->m_unk3c & 4) == 0) && !(arrival < distance)) {
+    if (!(FollowsWaypoint(pathFinding->m_eState) && (pathFinding->m_eState & 4) == 0) && !(arrival < distance)) {
         heading = HeadingOf(direction->x, direction->z);
     }
 
@@ -378,7 +378,7 @@ void CKHkMoveCpnt::Move3D(CVector3* position, float* yaw, CVector3* speed, const
         m_eMvtAnim = !(Param(0x1c) < speedLength) ? 3 : 4;  // bge
     } else if (how == 1) {  // 0x2c1f28: toward the force
         float goal = heading;
-        if (!(FollowsWaypoint(pathFinding->m_unk3c) && (pathFinding->m_unk3c & 4) == 0) && !(Param(0x4c) < distance)) {
+        if (!(FollowsWaypoint(pathFinding->m_eState) && (pathFinding->m_eState & 4) == 0) && !(Param(0x4c) < distance)) {
             goal = HeadingOf(direction->x, direction->z);
         }
         const float y0 = *yaw;
@@ -413,7 +413,7 @@ void CKHkMoveCpnt::Move3D(CVector3* position, float* yaw, CVector3* speed, const
         heading = goal;
         m_eMvtAnim = anim;
     } else {  // 0x2c1c68: standing: `direction`'s heading (the force's while the waypoint is followed)
-        if (!(FollowsWaypoint(pathFinding->m_unk3c) && (pathFinding->m_unk3c & 4) == 0)) {
+        if (!(FollowsWaypoint(pathFinding->m_eState) && (pathFinding->m_eState & 4) == 0)) {
             heading = HeadingOf(direction->x, direction->z);
         }
         outX = rx;
@@ -541,7 +541,7 @@ void CKHkMoveCpnt::MoveNoTurnSmoothing(CVector3* position, float* yaw, CVector3*
                                        SJumpMoveCpnt* jump, uint8_t keepPath) {
     const CVector3 kNull{0.0f, 0.0f, 0.0f};  // TOC 0x1938: g_nullVector 0x00c50d64
     CVector3 wall;
-    if ((pathFinding->m_unk3c & 0x40) == 0 || (pathFinding->m_bits70 & 0x400u) != 0) {
+    if ((pathFinding->m_eState & 0x40) == 0 || (pathFinding->m_bits70 & 0x400u) != 0) {
         ComputeStaticAvoidForce(position, &wall, pathFinding);  // 0x002c2390
     } else {
         wall = kNull;  // 0x2c4888
@@ -550,7 +550,7 @@ void CKHkMoveCpnt::MoveNoTurnSmoothing(CVector3* position, float* yaw, CVector3*
     float avoidZ = avoidance->m_v0c.z;
     if (jump != nullptr) {
         bool special = false;
-        if ((pathFinding->m_unk3c & 0x40) != 0) {
+        if ((pathFinding->m_eState & 0x40) != 0) {
             const uint32_t reach = pathFinding->ClassifyReachability(groundIn);  // 0x001e1be8
             special = reach != 1 && reach != 0x40;
         }
@@ -564,7 +564,7 @@ void CKHkMoveCpnt::MoveNoTurnSmoothing(CVector3* position, float* yaw, CVector3*
     // 0x2c4628: the way to the target (or the path finding's waypoint).
     float dx;
     float dz;
-    if (FollowsWaypoint(pathFinding->m_unk3c)) {
+    if (FollowsWaypoint(pathFinding->m_eState)) {
         dz = pathFinding->m_vCurrentTarget.z - position->z;
         dx = pathFinding->m_vCurrentTarget.x - position->x;
     } else {
@@ -580,12 +580,12 @@ void CKHkMoveCpnt::MoveNoTurnSmoothing(CVector3* position, float* yaw, CVector3*
     if (distance == 0.0f) {  // 0x2c48f0
         tx = kNull.x;
         tz = kNull.z;
-        dropAvoidance = arrival > distance && FollowsWaypoint(pathFinding->m_unk3c);
-    } else if (distance > arrival || FollowsWaypoint(pathFinding->m_unk3c)) {  // 0x2c4bb8
+        dropAvoidance = arrival > distance && FollowsWaypoint(pathFinding->m_eState);
+    } else if (distance > arrival || FollowsWaypoint(pathFinding->m_eState)) {  // 0x2c4bb8
         const float k = 1.0f / distance;
         tz = k * dz;
         tx = k * dx;
-        dropAvoidance = arrival > distance && FollowsWaypoint(pathFinding->m_unk3c);
+        dropAvoidance = arrival > distance && FollowsWaypoint(pathFinding->m_eState);
     } else {  // 0x2c46a8: inside the arrival distance the target force shrinks with it
         const float k = 1.0f / arrival;
         tz = k * dz;
@@ -618,7 +618,7 @@ void CKHkMoveCpnt::MoveNoTurnSmoothing(CVector3* position, float* yaw, CVector3*
     }
 
     // 0x2c4748: the path request (as Move's).
-    const int32_t requestBits = pathFinding->m_unk3c;
+    const int32_t requestBits = pathFinding->m_eState;
     bool request = true;
     if ((requestBits & 0x80) != 0 && (requestBits & 0x40) == 0) {
         const bool noWall = wall.x == kNull.x && wall.y == kNull.y && wall.z == kNull.z;
@@ -627,7 +627,7 @@ void CKHkMoveCpnt::MoveNoTurnSmoothing(CVector3* position, float* yaw, CVector3*
             request = false;
             if (noWall) {
                 pathFinding->RequestPathTo(position, -1);                            // 0x001e1520
-                if (pathFinding->m_unk76 != 0xff) pathFinding->CancelPathRequest();  // 0x001e2820
+                if (pathFinding->m_i8PFSlot != 0xff) pathFinding->CancelPathRequest();  // 0x001e2820
             }
         }
     }
@@ -654,7 +654,7 @@ void CKHkMoveCpnt::MoveNoTurnSmoothing(CVector3* position, float* yaw, CVector3*
     // `direction`'s.
     float goal = heading;
     const float rotation = Param(0x38);
-    if (!(FollowsWaypoint(pathFinding->m_unk3c) && (pathFinding->m_unk3c & 4) == 0) && !(arrival < distance)) {
+    if (!(FollowsWaypoint(pathFinding->m_eState) && (pathFinding->m_eState & 4) == 0) && !(arrival < distance)) {
         goal = HeadingOf(direction->x, direction->z);
     }
     // 0x2c4964: the turn animation from the force's heading.
@@ -747,7 +747,7 @@ void CKHkMoveCpnt::Move(CVector3* position, float* yaw, CVector3* speed, const C
         std::sqrt(ppc::fmadds(speed->z, speed->z, ppc::fmadds(speed->x, speed->x, speed->y * speed->y)));
     float ax = kNull.x, ay = kNull.y, az = kNull.z;  // the forces' sum
     CVector3 wall;
-    if ((pathFinding->m_unk3c & 0x40) == 0 || (pathFinding->m_bits70 & 0x400u) != 0) {
+    if ((pathFinding->m_eState & 0x40) == 0 || (pathFinding->m_bits70 & 0x400u) != 0) {
         ComputeStaticAvoidForce(position, &wall, pathFinding);  // 0x002c2390
     } else {
         wall = kNull;
@@ -757,7 +757,7 @@ void CKHkMoveCpnt::Move(CVector3* position, float* yaw, CVector3* speed, const C
     float avoidZ = avoidance->m_v0c.z;
     if (jump != nullptr) {
         bool special = false;
-        if ((pathFinding->m_unk3c & 0x40) != 0) {
+        if ((pathFinding->m_eState & 0x40) != 0) {
             const uint32_t reach = pathFinding->ClassifyReachability(groundIn);  // 0x001e1be8
             special = reach != 1 && reach != 0x40;
         }
@@ -770,7 +770,7 @@ void CKHkMoveCpnt::Move(CVector3* position, float* yaw, CVector3* speed, const C
 
     // 0x2c4f88: the way to the target (or the path finding's waypoint), the arrival distance +0x4c (+0x50 above the
     // speed +0x20 + 0.05).
-    const int32_t bits = pathFinding->m_unk3c;
+    const int32_t bits = pathFinding->m_eState;
     float dx;
     float dz;
     if (FollowsWaypoint(bits)) {
@@ -843,7 +843,7 @@ void CKHkMoveCpnt::Move(CVector3* position, float* yaw, CVector3* speed, const C
     }
 
     // 0x2c50d0: the path request.
-    const int32_t requestBits = pathFinding->m_unk3c;
+    const int32_t requestBits = pathFinding->m_eState;
     bool request = true;
     if ((requestBits & 0x80) != 0 && (requestBits & 0x40) == 0) {
         const bool noWall = wall.x == kNull.x && wall.y == kNull.y && wall.z == kNull.z;
@@ -852,7 +852,7 @@ void CKHkMoveCpnt::Move(CVector3* position, float* yaw, CVector3* speed, const C
             request = false;
             if (noWall) {
                 pathFinding->RequestPathTo(position, -1);                       // 0x001e1520
-                if (pathFinding->m_unk76 != 0xff) pathFinding->CancelPathRequest();  // 0x001e2820
+                if (pathFinding->m_i8PFSlot != 0xff) pathFinding->CancelPathRequest();  // 0x001e2820
             }
         }
     }
@@ -944,7 +944,7 @@ L518c:
 L5194: {
     // Turn toward the force's heading (or `direction`'s once arrived and not following the waypoint).
     float goal = heading;
-    if (!(FollowsWaypoint(pathFinding->m_unk3c) && (pathFinding->m_unk3c & 4) == 0) && !(arrival < distance)) {
+    if (!(FollowsWaypoint(pathFinding->m_eState) && (pathFinding->m_eState & 4) == 0) && !(arrival < distance)) {
         goal = HeadingOf(direction->x, direction->z);
     }
     const float y0 = *yaw;
@@ -972,7 +972,7 @@ L5b10:
     rotation = Param(0x38);
 L5b18:
     // Standing: face `direction` (or the force's heading while the waypoint is followed).
-    if (!(FollowsWaypoint(pathFinding->m_unk3c) && (pathFinding->m_unk3c & 4) == 0)) {
+    if (!(FollowsWaypoint(pathFinding->m_eState) && (pathFinding->m_eState & 4) == 0)) {
         heading = HeadingOf(direction->x, direction->z);
     }
     if (!(length <= 0.0f)) {
@@ -1255,10 +1255,10 @@ void CKHkMoveCpnt::StaticAvoidForce(const CVector3* position, CVector3* force, C
     *force = CVector3{0.0f, 0.0f, 0.0f};  // 0x00c50d64 (TOC +0x1938)
     CKSrvPathFinding* service = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);  // TOC +0x18dc, +0x6c
     CPFPoint point;
-    point.m_unk0c = pathFinding->m_Destination.m_unk0c;  // +0x4c
+    point.m_i16GraphNodeIndex = pathFinding->m_Destination.m_i16GraphNodeIndex;  // +0x4c
     point.m_position = *position;
     service->FindSectorForPoint(&point);  // 0x001e5ca0
-    const uint16_t hint = point.m_unk0c;
+    const uint16_t hint = point.m_i16GraphNodeIndex;
     if (static_cast<int16_t>(hint) == -1) return;
     float fracX = 0.0f;
     float fracZ = 0.0f;
@@ -1356,7 +1356,7 @@ void CKHkMoveCpnt::StaticAvoidForce(const CVector3* position, CVector3* force, C
         put(!curHiX, curHiZ, xSide);
         put(!curHiX, !curHiZ, diagonal);
     }
-    if (TestCellEdgeByNeighborFlags(hiHi, loHi, hiLo, loLo, corner, character->m_unk04, fracZ, half, fracX, half, force) != 0) {
+    if (TestCellEdgeByNeighborFlags(hiHi, loHi, hiLo, loLo, corner, character->m_fRadius, fracZ, half, fracX, half, force) != 0) {
         return;  // 0x002bea90
     }
     // Every cell around closed: toward the nearest open cell.
@@ -1424,7 +1424,7 @@ void CKHkMoveCpnt::JumpMove(CVector3* position, float* yaw, const CVector3* targ
         probe.x = pathFinding->m_vCurrentTarget.x;
         probe.y = pathFinding->m_vCurrentTarget.y;
         probe.z = pathFinding->m_vCurrentTarget.z;
-        probe.y = static_cast<const CKPFGraphNode*>(service->m_Graph.m_apGraphNodes[pathFinding->m_unk74])->m_Sector.m_box.m_sup.y;
+        probe.y = static_cast<const CKPFGraphNode*>(service->m_Graph.m_apGraphNodes[pathFinding->m_i16NextGrid])->m_Sector.m_box.m_sup.y;
         static_cast<CKSrvCollision*>(g_pEngine->m_srvCollision)->GroundProbePoints(&in, &inOut, &probe.x, 1);  // 0x196540
         if (inOut.m_eContactStatus != 3) GroundContact_GetWorldPoint(&inOut, &jump->m_v3JumpEndPos);  // 0x1a70e0
         const CVector3& s = jump->m_v3JumpStartPos;
@@ -1595,12 +1595,12 @@ void CKHkMoveCpnt::JumpMove(CVector3* position, float* yaw, const CVector3* targ
 uint8_t NavSector_ContainsWalkablePoint(const CVector3* point, CKPathFindingCpnt* pathFinding) {
     CPFPoint query;
     query.m_position = *point;
-    query.m_unk0c = pathFinding->m_Destination.m_unk0c;
+    query.m_i16GraphNodeIndex = pathFinding->m_Destination.m_i16GraphNodeIndex;
     CKSrvPathFinding* service = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);
     service->FindSectorForPoint(&query);  // 0x001e5ca0
-    const int16_t index = static_cast<int16_t>(query.m_unk0c);
+    const int16_t index = static_cast<int16_t>(query.m_i16GraphNodeIndex);
     if (index < 0 || static_cast<uint32_t>(index) >= service->m_Graph.m_ui32GraphNodesSize) return 0;
-    const CBBox& box = static_cast<CKPFGraphNode*>(service->m_Graph.m_apGraphNodes[query.m_unk0c])->m_Sector.m_box;
+    const CBBox& box = static_cast<CKPFGraphNode*>(service->m_Graph.m_apGraphNodes[query.m_i16GraphNodeIndex])->m_Sector.m_box;
     const CVector3& p = query.m_position;
     if (!(box.m_inf.x <= p.x) || !(box.m_sup.x >= p.x)) return 0;
     if (!(box.m_inf.z <= p.z) || !(box.m_sup.z >= p.z)) return 0;

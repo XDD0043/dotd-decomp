@@ -207,7 +207,7 @@ int main() {
     // 4:3, volumes 1.0, vibration on, no screen offset, autosave on, brightness 5.
     {
         const SGameOptions& o = manager->m_currentOptions;
-        C15_CHECK(o.m_ui32Language == 0 && o.m_bSubtitles == 0 && o.m_unk05 == 1 && o.m_ui32SoundOutput == 4 &&
+        C15_CHECK(o.m_ui32Language == 0 && o.m_bSubtitles == 0 && o.m_bTutorialInfoPopups == 1 && o.m_ui32SoundOutput == 4 &&
                   o.m_ui32AspectRatio == 0);
         C15_CHECK(o.m_afVolumes[0] == 1.0f && o.m_afVolumes[1] == 1.0f && o.m_afVolumes[2] == 1.0f);
         C15_CHECK(o.m_abVibration[0] == 1 && o.m_abVibration[1] == 1 && o.m_i32ScreenOffsetX == 0 &&
@@ -226,11 +226,11 @@ int main() {
     g_modes.push_back(g_pCKGameLoop->m_mode);
     const uint32_t switchFrame = g_frame;
     manager->CycleLanguageOption(0);
-    C15_CHECK(manager->m_unk290 == 1);
+    C15_CHECK(manager->m_i32RequestedLanguage == 1);
     uint32_t back = 0;
     while (g_frame < switchFrame + 1200) {
         Step();
-        if (g_pCKGameLoop->m_mode == CKGameLoop::kModeLevel && manager->m_unk290 == -1) {
+        if (g_pCKGameLoop->m_mode == CKGameLoop::kModeLevel && manager->m_i32RequestedLanguage == -1) {
             back = g_frame;
             break;
         }
@@ -250,7 +250,7 @@ int main() {
     // Back to language 0.
     manager->CycleLanguageOption(1);
     const uint32_t switchBack = g_frame;
-    while (g_frame < switchBack + 1200 && !(g_pCKGameLoop->m_mode == CKGameLoop::kModeLevel && manager->m_unk290 == -1)) Step();
+    while (g_frame < switchBack + 1200 && !(g_pCKGameLoop->m_mode == CKGameLoop::kModeLevel && manager->m_i32RequestedLanguage == -1)) Step();
     C15_CHECK(loc->m_languageIndex == 0 && TextAt(probe) == before && CountChanged(beforeTexts) == 0);
     manager->CommitEditedOptions();
     for (int i = 0; i < 30; ++i) Step();
@@ -288,7 +288,7 @@ int main() {
         if (structure->m_pCurrentSpawnPoint != nullptr) manager->RequestSpawnPointLevel();
         else manager->RequestLevelChange(10, 1);
         std::printf("gm_c16: new game: level %d sector %d requested\n", manager->m_requestedLevel, manager->m_requestedSector);
-        C15_CHECK(manager->m_requestedLevel == 10 && manager->m_unk2FC == 2);
+        C15_CHECK(manager->m_requestedLevel == 10 && manager->m_i32FrontEndEntryMenu == 2);
         for (int i = 0; i < 120 && g_pCKGameLoop->m_mode != CKGameLoop::kModeInit; ++i) Step();
         C15_CHECK(Contains(g_modes, {CKGameLoop::kModeLevel, CKGameLoop::kModeLevelExit, CKGameLoop::kModeInit}));
     }

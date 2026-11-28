@@ -68,7 +68,7 @@ public:
     void SpawnGemReward(uint32_t gems, const CVector3* pos, const CVector3* dir);
     // 0x004f6b10 CKS08GameManager_GetBonusValue_maybe: a bonus type's value (types 1..6: the words +0xea8..+0xebc;
     // anything else 1).
-    uint32_t GetBonusValue(uint32_t type) const { return type - 1u <= 5u ? m_unkEA8[type - 1u] : 1u; }
+    uint32_t GetBonusValue(uint32_t type) const { return type - 1u <= 5u ? m_aui32BonusValues[type - 1u] : 1u; }
     void Stop() override;                     // vt+0x68 0x004f22e8 CKS08GameManager_Stop (leaving the level or the front end)
     // vt+0x8c 0x004eeab8 CKS08GameManager_SectorUnload: the HUD screens whose flash interface belongs to the
     // sector closed (vt+0xa8).
@@ -302,8 +302,8 @@ public:
     virtual uint8_t Vf2FC() { return MenuId(6); }                     // vt+0x2fc 0x9c6e28 (vt+0x304(6))
     virtual uint8_t Vf300() { return 0; }                             // vt+0x300 0x9c6e70
     virtual uint8_t MenuId(uint8_t menu) { return menu; }             // vt+0x304 0x9c6f68
-    virtual void SetInterfaceSegment(CKVideoSegment* segment) { m_unk464 = segment; }  // vt+0x308 0x9c6a80
-    virtual CKVideoSegment* GetInterfaceSegment() { return m_unk464; }                 // vt+0x30c 0x9c6a88
+    virtual void SetInterfaceSegment(CKVideoSegment* segment) { m_pInterfaceVideoSegment = segment; }  // vt+0x308 0x9c6a80
+    virtual CKVideoSegment* GetInterfaceSegment() { return m_pInterfaceVideoSegment; }                 // vt+0x30c 0x9c6a88
     // vt+0x310 0x9c6b68 / +0x314 0x9c6aa0: flags +0x64 bit 12 (player 0) or 13 (player 1).
     virtual uint8_t Vf310(int32_t player);
     virtual void Vf314(int32_t player, uint8_t value);
@@ -321,14 +321,14 @@ public:
     virtual uint8_t MenuStateCount() { return 0x25; }                 // vt+0x33c 0x9c6e98
     // The reference tables IKCommonGameManager_Load reads through virtual accessors.
     virtual uint8_t Vf340() { return 0x24; }                          // vt+0x340 0x9c6e78 (the menu count)
-    virtual IKSerializable** Vf344() { return m_unkB08; }             // vt+0x344 0x9c6e80
+    virtual IKSerializable** Vf344() { return m_apMenuScreens; }             // vt+0x344 0x9c6e80
     virtual uint8_t Vf348() { return 5; }                             // vt+0x348 0x9c6ea0
     // 0x004ff2d8 / 0x00500b38 Notify{Spyro,Cynder}MovementModeChanged_Stub (CKS08GameManager_5.cpp).
     void NotifySpyroMovementModeChanged(uint8_t mode);
     void NotifyCynderMovementModeChanged(uint8_t mode);
     virtual IKSerializable** GetHudInterfaces() { return m_apHudInterfaces; }  // vt+0x34c 0x9c6ea8
     virtual uint8_t Vf350() { return 0x32; }                          // vt+0x350 0x9c6eb8
-    virtual uint32_t* GetCounterTextVarTable() { return m_unkCC0; }   // vt+0x354 0x9c6ec0 _maybe
+    virtual uint32_t* GetCounterTextVarTable() { return m_aui32CounterTextVars; }   // vt+0x354 0x9c6ec0 _maybe
     virtual uint8_t Vf358() { return 1; }                             // vt+0x358 0x9c6d30
     // vt+0x35c 0x9c6fe0 CKS08GameManager_IsInterfaceStateNot10_maybe: the interface state (+0x30d) is not 0x10.
     virtual uint8_t Vf35C() { return m_interfaceState.m_ui8Current != 0x10 ? 1 : 0; }
@@ -365,7 +365,7 @@ public:
         IKSerializable* m_pHero;  // +0x00
         uint8_t m_ui8Flag;        // +0x04
     };
-    PlayerHudSlot* PlayerHudSlots() { return static_cast<PlayerHudSlot*>(m_unk2C8); }
+    PlayerHudSlot* PlayerHudSlots() { return static_cast<PlayerHudSlot*>(m_psCurrentHeroControlInfos); }
     // 0x004ee770 SetHeroInteractionTarget (C2.8 meca-hero): `target` (with its byte `arg`) becomes the interaction target
     // of player `player` (its slot above; message 0x2666 asks it for the prompt text) unless the target held has the
     // same class id, or comes first in the priority list +0x2bc; the hero must hold or be the target, be the group, or
@@ -556,16 +556,16 @@ public:
     };
 
     // ---- IKCommonGameManager (+0x298) ----
-    float m_afUnk298[4];                      // +0x298 a 2D position per player (vt+0x31c sets -1, -1); State6 places the +0x2a8 billboard there
+    float m_afPointerPos[4];                      // +0x298 a 2D position per player (vt+0x31c sets -1, -1); State6 places the +0x2a8 billboard there
     IKSerializable* m_unk2A8[2];              // +0x2a8 mode 0
     IKSerializable* m_unk2B0[2];              // +0x2b0 mode 0
     uint32_t m_unk2B8;                        // +0x2b8
-    TVector<uint32_t, 10> m_unk2BC;           // +0x2bc mode 1 (words)
-    void* m_unk2C8;                           // +0x2c8 PostLoad (mode 0): new[GetMaxPlayers() * 8], one {word, byte} per player
-    IKSerializable* m_unk2CC;                 // +0x2cc mode 1
+    TVector<uint32_t, 10> m_tvClassPriorityList;           // +0x2bc mode 1 (words)
+    void* m_psCurrentHeroControlInfos;                           // +0x2c8 PostLoad (mode 0): new[GetMaxPlayers() * 8], one {word, byte} per player
+    IKSerializable* m_pFrontEndLevel;                 // +0x2cc mode 1
     TVector<IKSerializable*, 8> m_unk2D0;     // +0x2d0 mode 1: the logo videos (PS3_CKVideo references), State3 plays them
     int32_t m_i32CurrentLogo;                 // +0x2dc State3: the logo video playing (index into m_unk2D0), -1 none
-    IKSerializable* m_unk2E0;                 // +0x2e0 mode 1
+    IKSerializable* m_pDemoVideo;                 // +0x2e0 mode 1
     IKSerializable* m_unk2E4;                 // +0x2e4 mode 1
     // +0x2e8 the "IKCommonGameManager" input project's configurations (CKInput::m_aaInputDico[project];
     // IKGameManager_ResetRuntimeImpl); states 2, 3 and 5 enable its first configuration's entry 0 (skip).
@@ -578,7 +578,7 @@ public:
     uint8_t m_ui8UpdatedState;                // +0x2f9 the state after the frame's update
     uint8_t m_ui8RequestedState;              // +0x2fa a switch request, 0xff none (vfAC sets 0xff)
     uint8_t m_pad2FB;
-    int32_t m_unk2FC;                         // +0x2fc Init: 1; State6 enter: 1 = the main menu, 2 = the chapter menu (vt+0xc4) or 6
+    int32_t m_i32FrontEndEntryMenu;                         // _maybe: +0x2fc Init: 1; State6 enter: 1 = the main menu, 2 = the chapter menu (vt+0xc4) or 6
     uint32_t m_unk300;                        // +0x300
     // +0x304 the interface state machine (owner +0x304, table +0x308, count +0x30c, menu +0x30d): the
     // menu shown, NoMenuId (0x24) for none. The constructor sets the menu 0xff.
@@ -593,11 +593,11 @@ public:
     CKSoundOutputEffect* m_unk324;
     uint32_t m_unk328;                        // +0x328 Init: 0xffff
     uint32_t m_unk32C[0x4d];                  // +0x32c
-    IKSerializable* m_unk460;                 // +0x460 mode 1
-    CKVideoSegment* m_unk464;                 // +0x464 the interface video's segment (vt+0x308 / +0x30c); PostLoad: 0
+    IKSerializable* m_pInterfaceVideo;                 // +0x460 mode 1
+    CKVideoSegment* m_pInterfaceVideoSegment;                 // +0x464 the interface video's segment (vt+0x308 / +0x30c); PostLoad: 0
     // +0x468 the interface video's fade (FloatApproach: target, speed, current; 0 .. 255); the constructor
     // sets 0.0 (TOC +0x6ff8), the none interface state 255, 0, 255.
-    float m_unk468[3];
+    float m_afInterfaceVideoFade[3];
     TVector<IKSerializable*, 8> m_unk474;     // +0x474 mode 1 (references): the new-game CKS08GameStates (GAME.KP3: one), vt+0x2f0
     uint8_t m_aUnk480[8];                     // +0x480 per-frame bytes (UpdateCommon moves them to +0x488, then clears them)
     uint8_t m_aUnk488[8];                     // +0x488
@@ -625,42 +625,42 @@ public:
     IKSerializable* m_unk4E0;                 // +0x4e0 mode 0
     uint8_t m_unk4E4[0x200];                  // +0x4e4 cleared
     uint8_t m_unk6E4[0x400];                  // +0x6e4 cleared
-    uint8_t* m_unkAE4;                        // +0xae4 0; the tips shown so far (one flag per tip pair, PickRandomTipText)
+    uint8_t* m_pbShownTips;                        // +0xae4 0; the tips shown so far (one flag per tip pair, PickRandomTipText)
     // ---- CKS08GameManager (+0xae8) ----
     uint8_t m_unkAE8;                         // +0xae8
     uint8_t m_unkAE9;                         // +0xae9 0
     uint16_t m_padAEA;
-    IKSerializable* m_unkAEC;                 // +0xaec mode 0
+    IKSerializable* m_pFuryComboCurve;                 // +0xaec mode 0
     IKSerializable* m_unkAF0;                 // +0xaf0 mode 0
     uint8_t m_unkAF4[6];                      // +0xaf4 mode 1: six bytes
     uint16_t m_padAFA;
     uint32_t m_unkAFC;                        // +0xafc flags (VfC4: bit 5)
     CTriggerStarter m_unkB00;                 // +0xb00 mode 0
-    IKSerializable* m_unkB08[0x24];           // +0xb08 mode 0 (Vf344)
+    IKSerializable* m_apMenuScreens[0x24];           // +0xb08 mode 0 (Vf344)
     IKSerializable* m_apHudInterfaces[5];     // +0xb98 mode 0 (GetHudInterfaces)
-    float m_afUnkBAC[2];                      // +0xbac boss gauge: the zones' health total, their maximum total
+    float m_afBossGaugeTotals[2];                      // +0xbac boss gauge: the zones' health total, their maximum total
     TVector<IKSerializable*, 5> m_unkBB4;     // +0xbb4 a 5-element block: the boss zones (CKHkS08CrumblyZoneMultiState)
-    float m_afUnkBC0[2];                      // +0xbc0 the second boss gauge's totals
+    float m_afSecondBossGaugeTotals[2];                      // +0xbc0 the second boss gauge's totals
     TVector<IKSerializable*, 5> m_unkBC8;     // +0xbc8 a 5-element block: the second boss's zones
-    float m_unkBD4;                           // +0xbd4 a HUD countdown (UpdateInGameHud)
+    float m_fHudCountdown;                           // +0xbd4 a HUD countdown (UpdateInGameHud)
     uint32_t m_unkBD8;                        // +0xbd8 mode 0 (HUD)
     IKSerializable* m_unkBDC;                 // +0xbdc mode 0
     uint32_t m_unkBE0;                        // +0xbe0 mode 0 (HUD)
     void* m_apHudTextures[16];                // +0xbe4 mode 0: textures (IKFile_ReadTextureRef, resolved), read in a fixed order
     // The two dragons' combo timers (UpdateComboTimers): Spyro's elapsed time and timer, Cynder's, then the two
     // hit counts (Spyro's, Cynder's).
-    float m_fUnkC24;                          // +0xc24 Spyro's combo: elapsed time
-    float m_fUnkC28;                          // +0xc28 Cynder's combo: elapsed time
-    float m_fUnkC2C;                          // +0xc2c Spyro's combo: timer
-    float m_fUnkC30;                          // +0xc30 Cynder's combo: timer
-    uint32_t m_unkC34;                        // +0xc34 Spyro's combo: hits
-    uint32_t m_unkC38;                        // +0xc38 Cynder's combo: hits
+    float m_fSpyroComboElapsed;                          // +0xc24 Spyro's combo: elapsed time
+    float m_fCynderComboElapsed;                          // +0xc28 Cynder's combo: elapsed time
+    float m_fSpyroComboTimer;                          // +0xc2c Spyro's combo: timer
+    float m_fCynderComboTimer;                          // +0xc30 Cynder's combo: timer
+    uint32_t m_ui32SpyroComboHits;                        // +0xc34 Spyro's combo: hits
+    uint32_t m_ui32CynderComboHits;                        // +0xc38 Cynder's combo: hits
     uint32_t m_unkC3C;                        // +0xc3c mode 0 (HUD)
-    float m_fUnkC40;                          // +0xc40 mode 0 (HUD): the combo timer's acceleration
+    float m_fComboTimerAccel;                          // +0xc40 mode 0 (HUD): the combo timer's acceleration
     IKSerializable* m_unkC44;                 // +0xc44 mode 0 (HUD)
-    SRecord m_aUnkC48[5];                     // +0xc48 mode 0, read from the last
-    SRecord m_aUnkC84[5];                     // +0xc84 mode 0, read from the last
-    uint32_t m_unkCC0[0x32];                  // +0xcc0 mode 1 (GetCounterTextVarTable)
+    SRecord m_aSpyroUpgradeCosts[5];                     // +0xc48 mode 0, read from the last
+    SRecord m_aCynderUpgradeCosts[5];                     // +0xc84 mode 0, read from the last
+    uint32_t m_aui32CounterTextVars[0x32];                  // +0xcc0 mode 1 (GetCounterTextVarTable)
     IKSerializable* m_unkD88;                 // +0xd88
     // ---- the hero death (game state 9, StateHeroDeath; the level's mode-0 part). Names ours. ----
     uint8_t m_ui8DeathMode;                   // +0xd8c StartDeathSequence: 0 none, 1 the camera rises, 2 the hero sinks
@@ -668,10 +668,10 @@ public:
     uint8_t m_padD8E[2];
     float m_fDeathTime;                       // +0xd90 the state's elapsed time
     float m_fDeathSkipDelay;                  // +0xd94 a menu button ends the state after this long (LVL010: 5)
-    IKSerializable* m_unkD98;                 // +0xd98 CKMusicPlayList: the death music
-    IKSerializable* m_unkD9C[2];              // +0xd9c CAnimationDictionary per dragon: the death animation (mode 2)
+    IKSerializable* m_pDeathMusic;                 // +0xd98 CKMusicPlayList: the death music
+    IKSerializable* m_apDeathAnimDico[2];              // +0xd9c CAnimationDictionary per dragon: the death animation (mode 2)
     float m_fDeathDuration1;                  // +0xda4 mode 1's length (LVL010: 9.5)
-    IKSerializable* m_unkDA8;                 // +0xda8 CKCamera of mode 1
+    IKSerializable* m_pDeathCamera1;                 // +0xda8 CKCamera of mode 1
     // +0xdac / +0xdb0 CKFilterFxData, +0xdb4 CKHDRFxData: the three effects the state starts (+0xdcc..+0xdd4).
     IKSerializable* m_unkDAC;                 // +0xdac
     IKSerializable* m_unkDB0;                 // +0xdb0
@@ -683,7 +683,7 @@ public:
     float m_fDeathCameraRollSpeed;            // +0xdc8 the camera's vt+0x88 value grows by this per second
     IKSerializable* m_apDeathFx[3];           // +0xdcc the effects of +0xdac / +0xdb0 / +0xdb4 (AcquireFx)
     uint32_t m_unkDD8;                        // +0xdd8
-    IKSerializable* m_unkDDC;                 // +0xddc CKCamera of mode 2
+    IKSerializable* m_pDeathCamera2;                 // +0xddc CKCamera of mode 2
     IKSerializable* m_unkDE0;                 // +0xde0 CColorizedScreenFx (mode 2's screen tint)
     IKSerializable* m_unkDE4;                 // +0xde4 CColorizedScreenData
     float m_fDeathSinkHeight;                 // +0xde8 mode 2: the hero sinks while higher than this above the ground
@@ -700,12 +700,12 @@ public:
     uint32_t m_unkE94[3];                     // +0xe94
     float m_unkEA0;                           // +0xea0 Start: -1.0 (TOC1 +0x7204); CKS08GameManager_Update counts it down
     uint32_t m_unkEA4;                        // +0xea4 its high byte: a sector notification is pending (Update)
-    uint32_t m_unkEA8[6];                     // +0xea8
-    IKSerializable* m_unkEC0;                 // +0xec0
-    IKSerializable* m_unkEC4;                 // +0xec4
+    uint32_t m_aui32BonusValues[6];                     // +0xea8
+    IKSerializable* m_pGemRewardTable;                 // +0xec0
+    IKSerializable* m_pCenterHudTextAccessor;                 // +0xec4
     IKSerializable* m_unkEC8[12];             // +0xec8
     IKSerializable* m_unkEF8;                 // +0xef8
-    IKSerializable* m_unkEFC;                 // +0xefc
+    IKSerializable* m_pCollectibleMusicPlaylist;                 // +0xefc
     IKSerializable* m_unkF00[7];              // +0xf00
     IKSerializable* m_unkF1C;                 // +0xf1c the effect of the FX data +0xf18 (Update, flag +0xafc bit 8)
     IKSerializable* m_unkF20;                 // +0xf20
@@ -715,23 +715,23 @@ public:
 DOTD_ASSERT_SIZE(CKS08GameManager, 0xf2c);
 DOTD_ASSERT_SIZE(CKS08GameManager::StateMachine, 0xc);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unk2A8, 0x2a8);
-DOTD_ASSERT_OFFSET(CKS08GameManager, m_unk2BC, 0x2bc);
+DOTD_ASSERT_OFFSET(CKS08GameManager, m_tvClassPriorityList, 0x2bc);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unk2D0, 0x2d0);
-DOTD_ASSERT_OFFSET(CKS08GameManager, m_unk2C8, 0x2c8);
+DOTD_ASSERT_OFFSET(CKS08GameManager, m_psCurrentHeroControlInfos, 0x2c8);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_pCommonInputDicos, 0x2e8);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_gameState, 0x2ec);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_ui8PrevState, 0x2f8);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_ui8RequestedState, 0x2fa);
-DOTD_ASSERT_OFFSET(CKS08GameManager, m_unk2FC, 0x2fc);
+DOTD_ASSERT_OFFSET(CKS08GameManager, m_i32FrontEndEntryMenu, 0x2fc);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_interfaceState, 0x304);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_aMenuStack, 0x310);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_ui32MenuStackDepth, 0x318);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_ui8PrevMenu, 0x31c);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_fUnk320, 0x320);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unk328, 0x328);
-DOTD_ASSERT_OFFSET(CKS08GameManager, m_unk464, 0x464);
-DOTD_ASSERT_OFFSET(CKS08GameManager, m_unk468, 0x468);
-DOTD_ASSERT_OFFSET(CKS08GameManager, m_unk460, 0x460);
+DOTD_ASSERT_OFFSET(CKS08GameManager, m_pInterfaceVideoSegment, 0x464);
+DOTD_ASSERT_OFFSET(CKS08GameManager, m_afInterfaceVideoFade, 0x468);
+DOTD_ASSERT_OFFSET(CKS08GameManager, m_pInterfaceVideo, 0x460);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unk474, 0x474);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unk490, 0x490);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unk498, 0x498);
@@ -739,35 +739,35 @@ DOTD_ASSERT_OFFSET(CKS08GameManager, m_unk4A4, 0x4a4);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unk4BC, 0x4bc);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unk4D8, 0x4d8);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unk4E4, 0x4e4);
-DOTD_ASSERT_OFFSET(CKS08GameManager, m_unkAE4, 0xae4);
-DOTD_ASSERT_OFFSET(CKS08GameManager, m_unkAEC, 0xaec);
+DOTD_ASSERT_OFFSET(CKS08GameManager, m_pbShownTips, 0xae4);
+DOTD_ASSERT_OFFSET(CKS08GameManager, m_pFuryComboCurve, 0xaec);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unkAF4, 0xaf4);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unkAFC, 0xafc);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unkB00, 0xb00);
-DOTD_ASSERT_OFFSET(CKS08GameManager, m_unkB08, 0xb08);
+DOTD_ASSERT_OFFSET(CKS08GameManager, m_apMenuScreens, 0xb08);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_apHudInterfaces, 0xb98);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unkBB4, 0xbb4);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unkBC8, 0xbc8);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unkBD8, 0xbd8);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_apHudTextures, 0xbe4);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unkC3C, 0xc3c);
-DOTD_ASSERT_OFFSET(CKS08GameManager, m_aUnkC48, 0xc48);
-DOTD_ASSERT_OFFSET(CKS08GameManager, m_aUnkC84, 0xc84);
-DOTD_ASSERT_OFFSET(CKS08GameManager, m_unkCC0, 0xcc0);
+DOTD_ASSERT_OFFSET(CKS08GameManager, m_aSpyroUpgradeCosts, 0xc48);
+DOTD_ASSERT_OFFSET(CKS08GameManager, m_aCynderUpgradeCosts, 0xc84);
+DOTD_ASSERT_OFFSET(CKS08GameManager, m_aui32CounterTextVars, 0xcc0);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unkD88, 0xd88);
-DOTD_ASSERT_OFFSET(CKS08GameManager, m_unkD9C, 0xd9c);
+DOTD_ASSERT_OFFSET(CKS08GameManager, m_apDeathAnimDico, 0xd9c);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_ui8DeathMode, 0xd8c);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_fDeathTime, 0xd90);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unkDB8, 0xdb8);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_apDeathFx, 0xdcc);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_fDeathSinkHeight, 0xde8);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_fDeathCameraAccel, 0xdc0);
-DOTD_ASSERT_OFFSET(CKS08GameManager, m_unkDDC, 0xddc);
+DOTD_ASSERT_OFFSET(CKS08GameManager, m_pDeathCamera2, 0xddc);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_fDeathSinkAccel, 0xdf0);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unkE38, 0xe38);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_aRefTable, 0xe4c);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unkE88, 0xe88);
-DOTD_ASSERT_OFFSET(CKS08GameManager, m_unkEA8, 0xea8);
+DOTD_ASSERT_OFFSET(CKS08GameManager, m_aui32BonusValues, 0xea8);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unkEC8, 0xec8);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unkEF8, 0xef8);
 DOTD_ASSERT_OFFSET(CKS08GameManager, m_unkF00, 0xf00);

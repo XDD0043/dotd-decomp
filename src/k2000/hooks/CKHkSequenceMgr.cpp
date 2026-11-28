@@ -264,8 +264,8 @@ void StartAnswerFlash(CKHkSequenceMgr* mgr, IKFx*& slot, IKSerializable* effectD
 }
 void PrepareFlashData(CKHkSequenceMgr* mgr, IKSerializable* effectData) {
     CKParticlesEffectFxData* data = static_cast<CKParticlesEffectFxData*>(effectData);
-    data->m_unk08 = static_cast<uint8_t>(data->m_unk08 & 0xefu);
-    data->m_unk38 = mgr->m_ui8IconOnScreen;
+    data->m_ui8Flags = static_cast<uint8_t>(data->m_ui8Flags & 0xefu);
+    data->m_bScreenSpace = mgr->m_ui8IconOnScreen;
 }
 void PlaySound(IKSerializable* dictionary, uint32_t index) {
     CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(dictionary);

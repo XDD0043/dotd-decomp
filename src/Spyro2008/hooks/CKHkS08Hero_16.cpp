@@ -71,12 +71,12 @@ void CKHkS08Hero::VfFC(IKTime*) {}
 
 // 0x0033caa0 CKHkS08Hero_CtlState0_AIWarpToCatchUpPoint_Condition: +0xed0 bit 3.
 uint8_t CKHkS08Hero::CtlAIWarpToCatchUpPointCondition(IKTime*, uint8_t) {
-    return static_cast<uint8_t>((m_unked0 >> 3) & 1u);
+    return static_cast<uint8_t>((m_ui32StatusFlagsED0 >> 3) & 1u);
 }
 
 // 0x0033cab0 CKHkS08Hero_CtlState1_AIPickCatchUpPoint_Condition: +0xed0 bit 2.
 uint8_t CKHkS08Hero::CtlAIPickCatchUpPointCondition(IKTime*, uint8_t) {
-    return static_cast<uint8_t>((m_unked0 >> 2) & 1u);
+    return static_cast<uint8_t>((m_ui32StatusFlagsED0 >> 2) & 1u);
 }
 
 // 0x0033d250 CKHkS08Hero_CtlState3_AICombat_Condition: the AI partner on foot, not on a ground with property 0x200
@@ -89,7 +89,7 @@ uint8_t CKHkS08Hero::CtlAICombatCondition(IKTime*, uint8_t) {
     if (static_cast<int8_t>(GetMovementMode()) != 0) return 0;
     if (groundFlag != 0) return 0;
     if (GetPartnerHero()->IsFlyingMovementMode1() != 0) return 0;  // 0x002f85f8, 0x00340188
-    return static_cast<uint8_t>((static_cast<CKGrpS08Hero*>(m_pGrpHero)->m_unkf8 >> 10) & 1u);
+    return static_cast<uint8_t>((static_cast<CKGrpS08Hero*>(m_pGrpHero)->m_baWorkFlags >> 10) & 1u);
 }
 
 // 0x0033d330 CKHkS08Hero_CtlState5_AIClimbing_maybe_Condition: the AI partner climbs with its leader (or stays on a
@@ -114,13 +114,13 @@ uint8_t CKHkS08Hero::CtlAIClimbingCondition(IKTime*, uint8_t) {
 // the locomotion's.
 uint8_t CKHkS08Hero::CtlAIClimbing(IKTime*, int32_t phase, uint8_t other) {
     if (phase == 1) {
-        m_unk358 &= 0xffefffffu;
+        m_ui32HeroFlags358 &= 0xffefffffu;
         SetMovementMode(2);  // 0x00340c18
-        m_unk354 = (m_unk354 & 0x7fffffffu) | 0x80000000u;
+        m_ui32HeroFlags354 = (m_ui32HeroFlags354 & 0x7fffffffu) | 0x80000000u;
         return other;
     }
     if (phase != 2) return other;
-    m_unk354 &= 0x7fffffffu;
+    m_ui32HeroFlags354 &= 0x7fffffffu;
     return other;
 }
 
@@ -172,7 +172,7 @@ uint8_t CKHkS08Hero::CtlAIFollowGround(IKTime* clock, int32_t phase, uint8_t oth
     if (phase != 0) {
         if (phase == 1) {
             SetMovementMode(0);  // 0x00340c18
-            m_unk354 &= 0x7fffffffu;
+            m_ui32HeroFlags354 &= 0x7fffffffu;
         }
         return other;
     }
@@ -186,7 +186,7 @@ uint8_t CKHkS08Hero::CtlAIFollowGround(IKTime* clock, int32_t phase, uint8_t oth
             CPFPoint point;
             point.m_position = {partner->m_unk54c + frame->modelling.up.x, partner->m_unk550 + frame->modelling.up.y,
                                 partner->m_unk554 + frame->modelling.up.z};
-            point.m_unk0c = m_PFCpnt.m_Destination.m_unk0c;  // +0x43c
+            point.m_i16GraphNodeIndex = m_PFCpnt.m_Destination.m_i16GraphNodeIndex;  // +0x43c
             CGroundContactDatasInOut contact;  // ground 0, face -1, status 3, sector 0
             if (ValidateNavPosition(&contact, &point, &m_PFCharacter, 0, nullptr) != 0) {  // 0x0036a2f8
                 const float dx = m_unk54c - point.m_position.x;
@@ -237,7 +237,7 @@ uint8_t CKHkS08Hero::CtlAIFollowGround(IKTime* clock, int32_t phase, uint8_t oth
         }
     }
     CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_pGrpHero);
-    if ((group->m_unk2c8 & 0x1000u) != 0) {
+    if ((group->m_ui32PairStateFlags & 0x1000u) != 0) {
         m_unk368 = (m_unk368 & 0xffffefffu) | 0x1000u;
         sprint = false;
     }
@@ -245,13 +245,13 @@ uint8_t CKHkS08Hero::CtlAIFollowGround(IKTime* clock, int32_t phase, uint8_t oth
     const float dy = m_unk550 - partner->m_unk550;
     const float dz = m_unk554 - partner->m_unk554;
     const float distance = static_cast<float>(c22spyro::MathSqrtf(ppc::fmadds(dz, dz, ppc::fmadds(dx, dx, dy * dy))));  // 0x00010690
-    if ((group->m_unk2c8 & 0x80u) != 0 && sprint && distance > 30.0f) {  // TOC +0x2930
-        m_unk35c = (m_unk35c & 0xfffdffffu) | 0x20000u;
+    if ((group->m_ui32PairStateFlags & 0x80u) != 0 && sprint && distance > 30.0f) {  // TOC +0x2930
+        m_ui32HeroFlags35C = (m_ui32HeroFlags35C & 0xfffdffffu) | 0x20000u;
     } else {
-        m_unk35c &= 0xfffdffffu;
+        m_ui32HeroFlags35C &= 0xfffdffffu;
     }
-    if ((m_unkec8 & 0x400u) == 0) m_unk354 &= 0x7fffffffu;
-    m_unk358 &= 0xffefffffu;
+    if ((m_unkec8 & 0x400u) == 0) m_ui32HeroFlags354 &= 0x7fffffffu;
+    m_ui32HeroFlags358 &= 0xffefffffu;
     HandleAIFollowGroundPhase(clock, 0, 3);  // 0x00368248
     bool clear = m_unk3b8 == zero.x && m_unk3bc == zero.y && m_unk3c0 == zero.z;
     if (!clear) {
@@ -311,7 +311,7 @@ void CKHkS08Hero::UpdateField1348Timers() {
         return;
     }
     if (m_unk134c != 0 || m_unk1354 != 0) {
-        m_unk35c = (m_unk35c & 0xfffdffffu) | 0x20000u;
+        m_ui32HeroFlags35C = (m_ui32HeroFlags35C & 0xfffdffffu) | 0x20000u;
         m_unk1348 = 0.0f;
         m_unk134c = 0;
         m_unk1350 = 0.0f;
@@ -327,7 +327,7 @@ void CKHkS08Hero::UpdateField1348Timers() {
         m_unk134c = 0;
         m_unk1348 = 0.0f;
     }
-    if ((m_unk354 & 0x40000u) == 0 || IsFlyingMovementMode1() == 0) {  // 0x00340188
+    if ((m_ui32HeroFlags354 & 0x40000u) == 0 || IsFlyingMovementMode1() == 0) {  // 0x00340188
         m_unk1350 = 0.0f;
         m_unk1354 = 0;
         return;
@@ -368,16 +368,16 @@ RwV3d* ClimbZoneAnchor(IKSerializable* zoneObject) {
 // (+0xed0 bit 2) when the leader walks and the partner carries no more than 0.1.
 uint8_t CKHkS08Hero::CtlAIFollowFlying(IKTime* clock, int32_t phase, uint8_t other) {
     if (phase == 1) {
-        m_unk358 &= 0xffefffffu;
+        m_ui32HeroFlags358 &= 0xffefffffu;
         SetMovementMode(1);  // 0x00340c18
-        m_unk354 = (m_unk354 & 0x7fffffffu) | 0x80000000u;
+        m_ui32HeroFlags354 = (m_ui32HeroFlags354 & 0x7fffffffu) | 0x80000000u;
         m_PFCharacter.m_bits = (m_PFCharacter.m_bits & 0xfffffff8u) | 4u;  // +0x3e0
         m_PFCpnt.m_CharacterType = m_PFCharacter;                           // +0x3f8
         return other;
     }
     if (phase == 2) {
         m_unk13d3 = 0;
-        m_unk354 &= 0x7fffffffu;
+        m_ui32HeroFlags354 &= 0x7fffffffu;
         m_PFCharacter.m_bits = (m_PFCharacter.m_bits & 0xfffffff8u) | 2u;
         m_PFCpnt.m_CharacterType = m_PFCharacter;
         return other;
@@ -419,21 +419,21 @@ uint8_t CKHkS08Hero::CtlAIFollowFlying(IKTime* clock, int32_t phase, uint8_t oth
         if ((m_unkec4 & 0x100000u) == 0) {
             higher = (lead->m_unk550 > m_unk550 + 1.0f || !(lead->m_unk12d0 <= m_unk12d0 + 0.0f)) &&  // bgt; ble
                      lead->m_unk13d1 != 0 && m_unk13d8 == 0;
-        } else if ((group->m_unk2c8 & 0x20u) != 0) {
+        } else if ((group->m_ui32PairStateFlags & 0x20u) != 0) {
             higher = true;
-            group->m_unk2c8 &= 0xffffffdfu;  // stored after the two below in the original
+            group->m_ui32PairStateFlags &= 0xffffffdfu;  // stored after the two below in the original
         }
         if (higher) {
             m_unk13d3 = 1;
-            m_unk358 = (m_unk358 & 0xffefffffu) | 0x100000u;
+            m_ui32HeroFlags358 = (m_ui32HeroFlags358 & 0xffefffffu) | 0x100000u;
         } else {
             m_unk13d3 = 0;
-            m_unk358 &= 0xffefffffu;
+            m_ui32HeroFlags358 &= 0xffefffffu;
         }
     }
     if (static_cast<int8_t>(leader->GetMovementMode()) == 0 && m_unk1258 <= 0.1f &&  // cror lt|eq; TOC +0x291c
-        (group->m_unk2c8 & 0x1000u) == 0) {
-        m_unked0 = (m_unked0 & 0xfffffffbu) | 4u;
+        (group->m_ui32PairStateFlags & 0x1000u) == 0) {
+        m_ui32StatusFlagsED0 = (m_ui32StatusFlagsED0 & 0xfffffffbu) | 4u;
     }
     return other;
 }
@@ -455,7 +455,7 @@ CVector3 CKHkS08Hero::AIGetFollowFlyingTarget(IKTime* clock) {
         result.z = waypoint.m_vPosition.z;
         return result;
     }
-    if (IsClimbingMovementMode2() == 0 || (group->m_unk2c8 & 8u) == 0) {  // 0x003401a0
+    if (IsClimbingMovementMode2() == 0 || (group->m_ui32PairStateFlags & 8u) == 0) {  // 0x003401a0
         GetPartnerHero();  // the result is not used
         CKHkS08Hero* partner = GetPartnerHero();
         AIUpdatePathToTarget(clock, reinterpret_cast<CVector3*>(ClimbZoneAnchor(partner->m_unk16a0)),  // 0x0036d210
@@ -475,7 +475,7 @@ CVector3 CKHkS08Hero::AIGetFollowFlyingTarget(IKTime* clock) {
 // 0x0033ecf0 CKHkS08Hero_AIGetFollowFlyingDirection_maybe.
 CVector3 CKHkS08Hero::AIGetFollowDirection() {
     CVector3 result = kHeroZeroVector;  // TOC +0x28e0
-    m_unk358 &= 0xffefffffu;
+    m_ui32HeroFlags358 &= 0xffefffffu;
     if ((m_unkec4 & 0x100000u) == 0) {
         result.x = m_unk3b8;
         result.y = m_unk3bc;
@@ -486,25 +486,25 @@ CVector3 CKHkS08Hero::AIGetFollowDirection() {
     float tx;
     float tz;
     if (GetPartnerHero()->m_unk16a0 == nullptr) {
-        if ((m_unk354 & 1u) != 0 && (group->m_unk2c8 & 0x40u) != 0) return group->m_vUnka94;  // +0xa94
+        if ((m_ui32HeroFlags354 & 1u) != 0 && (group->m_ui32PairStateFlags & 0x40u) != 0) return group->m_vFollowTargetOverride;  // +0xa94
         const CKGrpS08Hero::SFollowWaypoint waypoint = group->GetFollowWaypoint();
         tx = waypoint.m_vPosition.x;
         tz = waypoint.m_vPosition.z;
     } else {
-        const IKSerializable* ownZone = m_unk1694;
+        const IKSerializable* ownZone = m_pCurrentClimbZone;
         if (GetPartnerHero()->m_unk16a0 != ownZone && IsClimbingMovementMode2() != 0) {
-            if (m_unk1694 == nullptr) return result;
-            const float own = ClimbZoneAnchor(m_unk1694)->x;
+            if (m_pCurrentClimbZone == nullptr) return result;
+            const float own = ClimbZoneAnchor(m_pCurrentClimbZone)->x;
             const float gap = own - ClimbZoneAnchor(GetPartnerHero()->m_unk16a0)->x;
             result = gap <= 0.0f ? kAxisPosX : kAxisNegX;  // TOC +0x2938 / +0x2934
             if (m_unk1626 != 0) {
-                m_unk358 &= 0xffefffffu;
+                m_ui32HeroFlags358 &= 0xffefffffu;
             } else {
-                m_unk358 = (m_unk358 & 0xffefffffu) | 0x100000u;
+                m_ui32HeroFlags358 = (m_ui32HeroFlags358 & 0xffefffffu) | 0x100000u;
             }
             return result;
         }
-        if (IsClimbingMovementMode2() != 0 && (group->m_unk2c8 & 8u) != 0) {
+        if (IsClimbingMovementMode2() != 0 && (group->m_ui32PairStateFlags & 8u) != 0) {
             const float dy = group->GetFollowWaypoint().m_vPosition.y - m_unk550;
             if (!(dy <= 0.0f)) return kAxisPosZ;  // TOC +0x293c
             if (dy >= 0.0f) return result;
@@ -564,15 +564,15 @@ void CKHkS08Hero::AIComputeFollowFlyingThrottle(float stopDistance, const CVecto
     if (!(distance >= stopDistance) && (m_unkec4 & 0x100000u) == 0) m_unk394 = 0;  // bge skips
     if (leader->m_unk394 > 200) m_unk394 = 0xff;
     bool callTrail = true;
-    if ((group->m_unk2c8 & 8u) == 0 && (m_unkec4 & 0x100000u) != 0) m_unk394 = 0;
-    if ((m_unk354 & 1u) != 0) callTrail = false;
+    if ((group->m_ui32PairStateFlags & 8u) == 0 && (m_unkec4 & 0x100000u) != 0) m_unk394 = 0;
+    if ((m_ui32HeroFlags354 & 1u) != 0) callTrail = false;
     if (callTrail) {
         if (group->GetFollowWaypoint().m_unk1c == 1) m_unk394 = 0xff;  // 0x002d4fd8
     } else {
         m_unk394 = 0xff;
     }
     m_unk394 = 0xff;
-    if ((m_unk354 & 4u) != 0) m_unk394 = 0;
+    if ((m_ui32HeroFlags354 & 4u) != 0) m_unk394 = 0;
     if (AsF32(group->m_unkaac) > 0.0f) {  // +0xaac
         const float again = static_cast<float>(c22spyro::MathSqrtf(squared));
         if (!(group->m_unk1e8 <= again)) {  // ble gives full
@@ -619,12 +619,12 @@ void CKHkS08Hero::AISteerFollowFlying(float stopDistance, const CVector3* target
     const float lz = m_unk554 - leader->m_unk554;
     const float toLeader = static_cast<float>(c22spyro::MathSqrtf(ppc::fmadds(lz, lz, ppc::fmadds(lx, lx, ly * ly))));
     CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_pGrpHero);
-    if (!(group->m_unk1e8 <= toLeader) && (m_unk354 & 1u) == 0) {  // ble skips
+    if (!(group->m_unk1e8 <= toLeader) && (m_ui32HeroFlags354 & 1u) == 0) {  // ble skips
         wx = zero.x;
         wy = zero.y;
         wz = zero.z;
     }
-    if ((group->m_unk2c8 & 8u) == 0 && (m_unkec4 & 0x100000u) != 0) {
+    if ((group->m_ui32PairStateFlags & 8u) == 0 && (m_unkec4 & 0x100000u) != 0) {
         wx = zero.x;
         wy = zero.y;
         wz = zero.z;
@@ -688,18 +688,18 @@ uint8_t CKHkS08Hero::CtlAIPickCatchUpPoint(IKTime*, int32_t phase, uint8_t other
         m_unk1124 = zero.x;
         m_unk112c = zero.z;
         m_unk1128 = zero.y;
-        m_unk358 &= 0xffefffffu;
-        if (ShouldStayClimbing() != 0) m_unk354 = (m_unk354 & 0x7fffffffu) | 0x80000000u;  // 0x00342fa8
+        m_ui32HeroFlags358 &= 0xffefffffu;
+        if (ShouldStayClimbing() != 0) m_ui32HeroFlags354 = (m_ui32HeroFlags354 & 0x7fffffffu) | 0x80000000u;  // 0x00342fa8
         return other;
     }
     if (phase == 2) {
-        m_unked0 &= 0xfffffffbu;
+        m_ui32StatusFlagsED0 &= 0xfffffffbu;
         return other;
     }
     if (phase != 0) return other;
     CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_pGrpHero);
-    if (m_ui8Hero == m_ui8TrackedLeader || (group->m_unk2c8 & 0x80u) == 0 || m_unk1258 > 0.1f) {  // TOC +0x291c
-        m_unked0 &= 0xfffffffbu;
+    if (m_ui8Hero == m_ui8TrackedLeader || (group->m_ui32PairStateFlags & 0x80u) == 0 || m_unk1258 > 0.1f) {  // TOC +0x291c
+        m_ui32StatusFlagsED0 &= 0xfffffffbu;
         return other;
     }
     if (((group->m_unk378 >> 24) & 0xffu) == 0) return other;  // the byte at +0x378
@@ -718,11 +718,11 @@ uint8_t CKHkS08Hero::CtlAIPickCatchUpPoint(IKTime*, int32_t phase, uint8_t other
     const float distance = static_cast<float>(c22spyro::MathSqrtf(ppc::fmadds(dz, dz, ppc::fmadds(dx, dx, zero))));  // 0x00010690
     m_unk1140 = distance;
     if (distance == zero) {
-        m_unked0 &= 0xfffffffbu;
+        m_ui32StatusFlagsED0 &= 0xfffffffbu;
         return other;
     }
     m_unk1140 = distance / 10.0f;  // TOC +0x2920
-    m_unked0 = (m_unked0 & 0xfffffff7u) | 8u;
+    m_ui32StatusFlagsED0 = (m_ui32StatusFlagsED0 & 0xfffffff7u) | 8u;
     m_unk1144 = static_cast<uint8_t>(point->m_i8Index);
     return other;
 }
@@ -734,14 +734,14 @@ uint8_t CKHkS08Hero::CtlAIPickCatchUpPoint(IKTime*, int32_t phase, uint8_t other
 uint8_t CKHkS08Hero::CtlAIWarpToCatchUpPoint(IKTime* clock, int32_t phase, uint8_t other) {
     if (phase == 1) {
         SetMovementMode(0);  // 0x00340c18
-        m_unk354 = (((m_unk354 & 0xffffffbfu) | 0x40u) & 0x7fffffffu) | 0x80000000u;
+        m_ui32HeroFlags354 = (((m_ui32HeroFlags354 & 0xffffffbfu) | 0x40u) & 0x7fffffffu) | 0x80000000u;
         m_unk113c = 0.0f;  // TOC +0x2900
         m_unkec8 = (m_unkec8 & 0xffffff7fu) | 0x80u;
-        if (m_unk1694 != nullptr) m_unk1694->RemoveClimber(CKHkClimbZone::ClimberKey(this));  // 0x00457180
+        if (m_pCurrentClimbZone != nullptr) m_pCurrentClimbZone->RemoveClimber(CKHkClimbZone::ClimberKey(this));  // 0x00457180
         return other;
     }
     if (phase == 2) {
-        m_unk354 &= 0x7fffffbfu;
+        m_ui32HeroFlags354 &= 0x7fffffbfu;
         m_unkec8 &= 0xffffff7fu;
         return other;
     }
@@ -754,7 +754,7 @@ uint8_t CKHkS08Hero::CtlAIWarpToCatchUpPoint(IKTime* clock, int32_t phase, uint8
     m_unk1284 = zero.z;
     m_unk1280 = zero.y;
     if (m_unk113c >= m_unk1140) {  // cror gt|eq
-        m_unked0 &= 0xfffffff3u;
+        m_ui32StatusFlagsED0 &= 0xfffffff3u;
         m_unk113c = m_unk1140;
     }
     const float t = Math_RemapClamped(0.0f, m_unk1140, m_unk113c, 0.0f, 1.0f);  // 0x00333618; TOC +0x2900, +0x28e4
@@ -794,8 +794,8 @@ uint8_t CKHkS08Hero::IsPointWalkableInCurrentSector(const CVector3* position) {
     CKSrvPathFinding* pathFinding = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);
     CPFPoint point;
     point.m_position = *position;
-    point.m_unk0c = m_PFCpnt.m_Destination.m_unk0c;
-    const int32_t node = static_cast<int16_t>(point.m_unk0c);
+    point.m_i16GraphNodeIndex = m_PFCpnt.m_Destination.m_i16GraphNodeIndex;
+    const int32_t node = static_cast<int16_t>(point.m_i16GraphNodeIndex);
     if (node < 0 || static_cast<uint32_t>(node) >= pathFinding->m_Graph.m_ui32GraphNodesSize) return 0;
     const CBBox& box = static_cast<CKPFGraphNode*>(pathFinding->m_Graph.m_apGraphNodes[node])->m_Sector.m_box;
     const CVector3& p = point.m_position;
@@ -813,7 +813,7 @@ uint8_t CKHkS08Hero::IsPointWalkableInCurrentSector(const CVector3* position) {
 uint8_t CKHkS08Hero::CtlControlLocked(IKTime* /*clock*/, int32_t phase, uint8_t other) {
     if (phase == 0) {
         const bool still = m_unk5a8 == 0.0f && m_unk5ac == 0.0f && m_unk5b0 == 0.0f;  // TOC +0x28e0 (0x00c50d64)
-        m_unk354 = ((m_unk354 & 0x7fffffffu) | (still ? 0u : 0x80000000u)) | 0x40u;
+        m_ui32HeroFlags354 = ((m_ui32HeroFlags354 & 0x7fffffffu) | (still ? 0u : 0x80000000u)) | 0x40u;
         m_unkec4 = m_unkec4 | 0x200000u | 0x800u | 0x400u | 0x2000u;
         return other;
     }
@@ -821,8 +821,8 @@ uint8_t CKHkS08Hero::CtlControlLocked(IKTime* /*clock*/, int32_t phase, uint8_t 
         m_unkb0 = 5;
         return 0;
     }
-    m_unk354 &= 0x7fffffbfu;
-    m_unk35c &= ~0x40u;
+    m_ui32HeroFlags354 &= 0x7fffffbfu;
+    m_ui32HeroFlags35C &= ~0x40u;
     m_unkec4 &= 0xffdfd3ffu;
     return 0;
 }
@@ -895,7 +895,7 @@ uint8_t CKHkS08Hero::CtlScriptedMoveTo(IKTime* clock, int32_t phase, uint8_t oth
         const float dx = m_unk398 - m_unk54c;
         const float flat = static_cast<float>(c22spyro::MathSqrtf(ppc::fmadds(dx, dx, dz * dz)));  // 0x00010690
         if (flat < 2.0f) {  // blt
-            m_unk358 &= 0xffefffffu;
+            m_ui32HeroFlags358 &= 0xffefffffu;
             SetMovementModeUnlessLocked(0);  // 0x00342ef8
         }
         SetPathCharacterType(4);

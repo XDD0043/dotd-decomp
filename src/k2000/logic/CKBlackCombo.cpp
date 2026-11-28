@@ -79,7 +79,7 @@ constexpr float kHitMargin = 0x1.333334p-2f;      // TOC +0x32f4 (0x3e99999a, 0.
 
 // The hit explosion of the level (+0x228 + 4 x level: +0x22c at level index 1, +0x230 at 2).
 IKSerializable* LevelHitExplosion(const CKBlackCombo* d, uint32_t level) {
-    return level == 0 ? d->m_unk228 : level == 1 ? d->m_unk22c : d->m_unk230;
+    return level == 0 ? d->m_pHitExplosionLevel0 : level == 1 ? d->m_pHitExplosionLevel1 : d->m_pHitExplosionLevel2;
 }
 
 // A pooled explosion of `data` (the inlined CKSrvFx::AcquireFx) put at the host's hot spot `hotSpot`, turned to the
@@ -106,7 +106,7 @@ void SetMeshAlpha(IKSerializable* mesh, float value) {
 // The particle data hung under the host's hot spot (+0x14; +0x10 cleared), then a pooled effect of it reserved.
 IKSerializable* StartParticles(CKBlackCombo* d, IKSerializable* data) {
     CKParticlesEffectFxData* particles = static_cast<CKParticlesEffectFxData*>(data);
-    particles->m_pAttachHotSpot = d->m_pHost->GetHotspot(d->m_unk186);  // vt+0xcc
+    particles->m_pAttachHotSpot = d->m_pHost->GetHotspot(d->m_ui8HotSpotIndex);  // vt+0xcc
     particles->m_pAttachOwner = nullptr;
     return TransformFx::Acquire(data, d);
 }
@@ -116,12 +116,12 @@ IKSerializable* StartParticles(CKBlackCombo* d, IKSerializable* data) {
 // sphere `on` with the level's radius (+0x1a8) and the damage (+0x19c).
 void CKBlackCombo::SetAttackActive(uint8_t on) {
     ApplyDamageParams(0);  // vt+0x88
-    m_pHost->SetAbilityAttackSpheres(this, on, m_unk1a8[m_unk04], m_unk19c, kOne, nullptr);  // vt+0xfc
+    m_pHost->SetAbilityAttackSpheres(this, on, m_afHitSphereRadius[m_ui32LevelIndex], m_pElementDamage, kOne, nullptr);  // vt+0xfc
 }
 
 // 0x0037d3f0 CKBlackCombo_IsGroundTrailActive_maybe: above level index 1, while airborne (host vt+0x30).
 uint8_t CKBlackCombo::IsGroundTrailActive() {
-    if (m_unk04 > 1) return m_pHost->IsAirborne();
+    if (m_ui32LevelIndex > 1) return m_pHost->IsOnGround();
     return 0;
 }
 
@@ -137,16 +137,16 @@ void CKBlackCombo::ApplyHeroControl(uint8_t on) {
 void CKBlackCombo::End(int32_t forced) {
     m_pHost->SetHero1d20(kOne);  // vt+0x84
     CKAttackMoveElement::End(forced);
-    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_unk248), 1, 0, 0);  // 0x0098f340
+    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_pSpinMesh), 1, 0, 0);  // 0x0098f340
 }
 
 // 0x0037d5a0 CKBlackCombo_StopFxAndAttack: the base's, the mesh hidden (not faded in), the attack sphere off, the host's
 // +0x1d20 back to 1.
 void CKBlackCombo::StopFxAndAttack() {
     CKAttackMoveElement::StopFxAndAttack();  // 0x00374e60
-    CSGLeaf* mesh = static_cast<CSGLeaf*>(m_unk248);
+    CSGLeaf* mesh = static_cast<CSGLeaf*>(m_pSpinMesh);
     if (mesh != nullptr) {
-        m_unk254 = 0;
+        m_bMeshFadedIn = 0;
         mesh->m_sgProperties = (mesh->m_sgProperties & 0xfffffffbu) | 4u;
     }
     m_pHost->SetAbilityAttackSpheres(this, 0, kOne, nullptr, kOne, nullptr);  // vt+0xfc
@@ -156,33 +156,33 @@ void CKBlackCombo::StopFxAndAttack() {
 // 0x0037d6b0 CKBlackCombo_Start: the base's, the hot spot asked (the result unused), the runtime cleared.
 void CKBlackCombo::Start(CKS08AbilityHostBase* host) {
     CKAttackMoveElement::Start(host);  // 0x003760b0
-    m_pHost->GetHotspot(m_unk186);    // vt+0xcc (unused)
-    m_unk25c = 0;
-    m_unk258 = 0.0f;  // (a word store of 0)
-    m_unk254 = 0;
+    m_pHost->GetHotspot(m_ui8HotSpotIndex);    // vt+0xcc (unused)
+    m_bHitHeld = 0;
+    m_fHitSlowdownTimer = 0.0f;  // (a word store of 0)
+    m_bMeshFadedIn = 0;
 }
 
 // 0x0037d720 CKBlackCombo_ResetRuntime: the base's, the hot spot 5, the runtime and the running effects cleared.
 void CKBlackCombo::ResetRuntime(int32_t type) {
     CKAttackMoveElement::ResetRuntime(type);  // 0x003756d0
-    m_unk186 = 5;
-    m_unk258 = 0.0f;  // (a word store of 0)
-    m_unk25c = 0;
-    m_unk238 = nullptr;
-    m_unk240 = nullptr;
-    m_unk254 = 0;
+    m_ui8HotSpotIndex = 5;
+    m_fHitSlowdownTimer = 0.0f;  // (a word store of 0)
+    m_bHitHeld = 0;
+    m_pActiveParticlesA = nullptr;
+    m_pActiveParticlesB = nullptr;
+    m_bMeshFadedIn = 0;
 }
 
 // 0x0037da28 CKBlackCombo_PostLoad: the base's (ResetRuntime); with a mesh, the mesh shown under sector 0 and the trail
 // taken off its parent and hung under it.
 int32_t CKBlackCombo::PostLoad(int32_t type) {
     CKAttackMoveElement::PostLoad(type);  // 0x00376e60
-    if (m_unk248 == nullptr) return 1;
-    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_unk248), 1, 0, 0);
-    CSGLeaf* trail = static_cast<CSGLeaf*>(m_unk24c);
+    if (m_pSpinMesh == nullptr) return 1;
+    SceneNode_SetVisibleInLayer(static_cast<CSGLeaf*>(m_pSpinMesh), 1, 0, 0);
+    CSGLeaf* trail = static_cast<CSGLeaf*>(m_pTrailNode);
     if (trail == nullptr) return 1;
     if (trail->m_pParent != nullptr) trail->m_pParent->RemoveChild(trail);  // vt+0x78
-    static_cast<CSGBranch*>(m_unk248)->AddChild(static_cast<CSGLeaf*>(m_unk24c));  // vt+0x70
+    static_cast<CSGBranch*>(m_pSpinMesh)->AddChild(static_cast<CSGLeaf*>(m_pTrailNode));  // vt+0x70
     return 1;
 }
 
@@ -192,7 +192,7 @@ int32_t CKBlackCombo::PostLoad(int32_t type) {
 void CKBlackCombo::SteerTowardsTarget(const CVector3* direction) {
     CVector3 at = *direction;
     if (kNullVector.x == at.x && kNullVector.y == at.y && kNullVector.z == at.z) {
-        at = m_pHost->ComputeAimDirection(m_unk210[m_unk04] * kDegToRad, this, m_unk21c);  // vt+0x58
+        at = m_pHost->ComputeAimDirection(m_afSteerConeDeg[m_ui32LevelIndex] * kDegToRad, this, m_pAimCamembert);  // vt+0x58
         m_pHost->SetHeroActionPermission(1, 0, 0, 0);                                       // vt+0x44
     }
     m_pHost->SetHeroActionPermission(9, 1, 1, 1);
@@ -202,36 +202,36 @@ void CKBlackCombo::SteerTowardsTarget(const CVector3* direction) {
 // 0x0037dd68 CKBlackCombo_UpdateAttack_maybe: CKCometDash_UpdateAttack_maybe's code at this class's offsets (the mesh
 // +0x248, the kept alpha +0x250, faded in +0x254, the collection +0x244).
 void CKBlackCombo::UpdateAttack(float dt) {
-    CNode* mesh = static_cast<CNode*>(m_unk248);
+    CNode* mesh = static_cast<CNode*>(m_pSpinMesh);
     if (mesh != nullptr) {
-        const float fadeIn = m_unk208;
-        if (m_unk18c < fadeIn) {
-            const float t = m_unk18c;
-            const uint32_t level = m_unk04;
-            SetMeshAlpha(mesh, ppc::fmadds(static_cast<float>(m_unk1c0[level]), (fadeIn - t) / fadeIn,
-                                           static_cast<float>(m_unk1b4[level]) * (t / fadeIn)));
-        } else if (m_unk254 == 0) {
-            SetMeshAlpha(mesh, static_cast<float>(m_unk1b4[m_unk04]));
-            m_unk254 = 1;
+        const float fadeIn = m_fFadeInTime;
+        if (m_fElapsedTime < fadeIn) {
+            const float t = m_fElapsedTime;
+            const uint32_t level = m_ui32LevelIndex;
+            SetMeshAlpha(mesh, ppc::fmadds(static_cast<float>(m_ai32MeshStartAlpha[level]), (fadeIn - t) / fadeIn,
+                                           static_cast<float>(m_ai32MeshHoldAlpha[level]) * (t / fadeIn)));
+        } else if (m_bMeshFadedIn == 0) {
+            SetMeshAlpha(mesh, static_cast<float>(m_ai32MeshHoldAlpha[m_ui32LevelIndex]));
+            m_bMeshFadedIn = 1;
         }
-        const float t = m_unk18c;
-        const float fadeOut = m_unk20c;
-        const float duration = m_unk44[m_unk04];
-        mesh = static_cast<CNode*>(m_unk248);
-        if ((t > duration - fadeOut || t == duration - fadeOut) && m_unk254 != 0 && mesh->m_lGeometryList != nullptr &&
+        const float t = m_fElapsedTime;
+        const float fadeOut = m_fFadeOutTime;
+        const float duration = m_afAttackDuration[m_ui32LevelIndex];
+        mesh = static_cast<CNode*>(m_pSpinMesh);
+        if ((t > duration - fadeOut || t == duration - fadeOut) && m_bMeshFadedIn != 0 && mesh->m_lGeometryList != nullptr &&
             // --fps N (not in the original): the fade-out re-reads the alpha it wrote, so it compounds per update: step
             // it once per 60 Hz frame only, as at 60 fps.
             (!dotd::fps::Unlocked() || dotd::fps::Ticks() > 0) && true) {
             const float left = duration - t;
             const uint8_t current = static_cast<CGeometry*>(mesh->m_lGeometryList)->m_cGeometryColor[3];
-            m_unk250 = current;
+            m_ui32FadeOutStartAlpha = current;
             const float value = ppc::fmadds(static_cast<float>(current), left / fadeOut,
-                                            static_cast<float>(m_unk1cc[m_unk04]) * ((fadeOut - left) / fadeOut));
+                                            static_cast<float>(m_ai32MeshEndAlpha[m_ui32LevelIndex]) * ((fadeOut - left) / fadeOut));
             TransformFx::SetGeometriesAlpha(mesh, static_cast<uint8_t>(ppc::fctiwz(value)));
         }
         // The spin: the identity turned about z, the position and the pads of the local matrix kept, then scaled.
-        RwMatrix local = static_cast<CNode*>(m_unk248)->m_pRwFrame->modelling;
-        float angle = m_unk1d8[m_unk04] * m_unk18c;
+        RwMatrix local = static_cast<CNode*>(m_pSpinMesh)->m_pRwFrame->modelling;
+        float angle = m_afMeshSpinDegPerSec[m_ui32LevelIndex] * m_fElapsedTime;
         while (angle < kAngleLow) angle = angle + kAngleTurn;
         while (angle > kAngleHigh || angle == kAngleHigh) angle = angle - kAngleTurn;
         const RwV3d position = local.pos;
@@ -244,10 +244,10 @@ void CKBlackCombo::UpdateAttack(float dt) {
         local.pos = position;
         local.flags &= ~0x20000u;
         RwMatrixScalePreConcat_Thunk(reinterpret_cast<CMatrix34*>(&local),
-                                     reinterpret_cast<const CVector3*>(&m_unk1e4[m_unk04]));  // 0x0023f670
-        static_cast<CNode*>(m_unk248)->SetLocalMatrix(&local);                                  // 0x000d0be8
+                                     reinterpret_cast<const CVector3*>(&m_avMeshScale[m_ui32LevelIndex]));  // 0x0023f670
+        static_cast<CNode*>(m_pSpinMesh)->SetLocalMatrix(&local);                                  // 0x000d0be8
     }
-    CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_unk244);
+    CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_pAnimFxCollection);
     if (collection->m_bPlaying != 0) collection->Update(dt);  // 0x0098f4b0 (TocBridge)
 }
 
@@ -256,24 +256,24 @@ void CKBlackCombo::UpdateAttack(float dt) {
 // hit explosion (+0x228 + 4 x level) at the hot spot and a hold for its time-scaling sub-effect's time (type 6, +0x0c).
 // Else, once a hold's time has run out (cror lt|eq), the steer again along the null direction (vt+0x90).
 void CKBlackCombo::UpdateMovement(float dt) {
-    if (m_unk04 == 0) return;
-    if (m_unk184 != 0 && m_pHost->IsAirborne() != 0 && m_unk18c < m_unk44[m_unk04] - kHitMargin) {
-        m_unk25c = 1;
+    if (m_ui32LevelIndex == 0) return;
+    if (m_bInAir != 0 && m_pHost->IsOnGround() != 0 && m_fElapsedTime < m_afAttackDuration[m_ui32LevelIndex] - kHitMargin) {
+        m_bHitHeld = 1;
         m_pHost->SetHeroActionPermission(1, 1, 1, 1);  // vt+0x44
-        m_unk258 = 0.0f;  // (a word store of 0)
-        CKExplosionNodeFx* burst = FireExplosion(this, LevelHitExplosion(this, m_unk04), m_unk186);
+        m_fHitSlowdownTimer = 0.0f;  // (a word store of 0)
+        CKExplosionNodeFx* burst = FireExplosion(this, LevelHitExplosion(this, m_ui32LevelIndex), m_ui8HotSpotIndex);
         if (burst == nullptr) return;
         CKTimeScalingFxData* slow = static_cast<CKTimeScalingFxData*>(burst->GetNthSubEffectOfType(6, this, 0));  // 0x001b6530
-        if (slow != nullptr) m_unk258 = slow->m_unk0c;
+        if (slow != nullptr) m_fHitSlowdownTimer = slow->m_fDuration;
         return;
     }
-    if (m_unk25c == 0) return;
-    const float left = m_unk258 - dt;
-    m_unk258 = left;
+    if (m_bHitHeld == 0) return;
+    const float left = m_fHitSlowdownTimer - dt;
+    m_fHitSlowdownTimer = left;
     if (!(left < 0.0f || left == 0.0f)) return;
     const CVector3 at = kNullVector;
     SteerTowardsTarget(&at);  // vt+0x90
-    m_unk25c = 0;
+    m_bHitHeld = 0;
 }
 
 // 0x0037fa90 CKBlackCombo_SetFxActive. On: the attack (vt+0x74), the particles (+0x234 -> +0x238) under the hot spot,
@@ -284,44 +284,44 @@ void CKBlackCombo::UpdateMovement(float dt) {
 // collection stopped, the trail's ribbons off (laid out again).
 void CKBlackCombo::SetFxActive(uint8_t on) {
     if (on == 0) {
-        TransformFx::ReleaseParticles(&m_unk238, this);
-        TransformFx::ReleaseParticles(&m_unk240, this);
-        if (m_unk244 != nullptr) static_cast<CKAnimatedFxCollection*>(m_unk244)->Stop();  // 0x005cc990 (TocBridge)
-        CTrailNodeFx* trail = static_cast<CTrailNodeFx*>(m_unk24c);
+        TransformFx::ReleaseParticles(&m_pActiveParticlesA, this);
+        TransformFx::ReleaseParticles(&m_pActiveParticlesB, this);
+        if (m_pAnimFxCollection != nullptr) static_cast<CKAnimatedFxCollection*>(m_pAnimFxCollection)->Stop();  // 0x005cc990 (TocBridge)
+        CTrailNodeFx* trail = static_cast<CTrailNodeFx*>(m_pTrailNode);
         if (trail == nullptr) return;
         // Every ribbon off, its points laid out again (CTrailNodeFx_SetRibbonActive_maybe 0x009bdfb8, inlined).
         const uint32_t count = trail->m_ui32NbTrail;
-        for (uint32_t i = 0; i < count; ++i) static_cast<CTrailNodeFx*>(m_unk24c)->SetRibbonActive(i, 0, 1);
+        for (uint32_t i = 0; i < count; ++i) static_cast<CTrailNodeFx*>(m_pTrailNode)->SetRibbonActive(i, 0, 1);
         return;
     }
     SetAttackActive(1);  // vt+0x74
-    m_unk238 = StartParticles(this, m_unk234);
-    if (m_unk04 != 0) m_unk240 = StartParticles(this, m_unk23c);
-    FireExplosion(this, m_unk04 > 1 ? m_unk224 : m_unk220, 1);
-    if (m_unk04 > 1) {
+    m_pActiveParticlesA = StartParticles(this, m_pParticlesDataA);
+    if (m_ui32LevelIndex != 0) m_pActiveParticlesB = StartParticles(this, m_pParticlesDataB);
+    FireExplosion(this, m_ui32LevelIndex > 1 ? m_pStartExplosionMax : m_pStartExplosionLow, 1);
+    if (m_ui32LevelIndex > 1) {
         CSGLeaf* owner = TransformFx::OwnerNode(m_pHost);             // vt+0x08, +0x1c
         SAnimatedFxRig* rigs = TransformFx::AttachmentSets(m_pHost);  // vt+0x104
-        static_cast<CKAnimatedFxCollection*>(m_unk244)->Play(
-            owner, rigs, static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_unk186)));  // 0x0098f4d0 (TocBridge)
+        static_cast<CKAnimatedFxCollection*>(m_pAnimFxCollection)->Play(
+            owner, rigs, static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_ui8HotSpotIndex)));  // 0x0098f4d0 (TocBridge)
     }
-    CNode* mesh = static_cast<CNode*>(m_unk248);
+    CNode* mesh = static_cast<CNode*>(m_pSpinMesh);
     if (mesh != nullptr) {
         if (mesh->m_pParent != nullptr) mesh->m_pParent->RemoveChild(mesh);  // vt+0x78
-        static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_unk186))->AttachVolume(static_cast<CNode*>(m_unk248));
-        static_cast<CNode*>(m_unk248)->Scale(&m_unk1e4[m_unk04].m_unk0);  // 0x000d0d88
-        mesh = static_cast<CNode*>(m_unk248);
+        static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_ui8HotSpotIndex))->AttachVolume(static_cast<CNode*>(m_pSpinMesh));
+        static_cast<CNode*>(m_pSpinMesh)->Scale(&m_avMeshScale[m_ui32LevelIndex].m_unk0);  // 0x000d0d88
+        mesh = static_cast<CNode*>(m_pSpinMesh);
         mesh->m_sgProperties &= 0xfffffffbu;
-        for (CGeometry* geometry = static_cast<CGeometry*>(static_cast<CNode*>(m_unk248)->m_lGeometryList);
+        for (CGeometry* geometry = static_cast<CGeometry*>(static_cast<CNode*>(m_pSpinMesh)->m_lGeometryList);
              geometry != nullptr; geometry = geometry->m_pNext) {
             geometry->m_BitProperties = (geometry->m_BitProperties & 0xffffffc0u) | 0x2cu;
-            TransformFx::SetGeometryAlpha(geometry, static_cast<uint8_t>(m_unk1c0[m_unk04]));
+            TransformFx::SetGeometryAlpha(geometry, static_cast<uint8_t>(m_ai32MeshStartAlpha[m_ui32LevelIndex]));
         }
     }
-    if (m_unk04 == 0 || m_unk24c == nullptr) return;
-    if (m_unk248 != nullptr) static_cast<CSGLeaf*>(m_unk248)->ForceWorldMatrixUpdate();  // vt+0x50
+    if (m_ui32LevelIndex == 0 || m_pTrailNode == nullptr) return;
+    if (m_pSpinMesh != nullptr) static_cast<CSGLeaf*>(m_pSpinMesh)->ForceWorldMatrixUpdate();  // vt+0x50
     // Every ribbon on (CTrailNodeFx_SetRibbonActive_maybe, inlined).
-    const uint32_t count = static_cast<CTrailNodeFx*>(m_unk24c)->m_ui32NbTrail;
-    for (uint32_t i = 0; i < count; ++i) static_cast<CTrailNodeFx*>(m_unk24c)->SetRibbonActive(i, 1, 1);
+    const uint32_t count = static_cast<CTrailNodeFx*>(m_pTrailNode)->m_ui32NbTrail;
+    for (uint32_t i = 0; i < count; ++i) static_cast<CTrailNodeFx*>(m_pTrailNode)->SetRibbonActive(i, 1, 1);
 }
 
 // 0x0037e4f0 CKBlackCombo_Load: CKAttackMoveElement's data, then (type 0 only) 160 bytes: eight references,
@@ -329,28 +329,28 @@ void CKBlackCombo::SetFxActive(uint8_t on) {
 int32_t CKBlackCombo::Load(IKFile* file, int32_t type) {
     CKAttackMoveElement::Load(file, type);
     if (type == 0) {
-        IKFile_ReadRef(file, &m_unk220);
-        IKFile_ReadRef(file, &m_unk248);
-        IKFile_ReadRef(file, &m_unk24c);
-        IKFile_ReadRef(file, &m_unk21c);
-        IKFile_ReadRef(file, &m_unk234);
-        IKFile_ReadRef(file, &m_unk23c);
-        IKFile_ReadRef(file, &m_unk224);
-        IKFile_ReadRef(file, &m_unk244);
+        IKFile_ReadRef(file, &m_pStartExplosionLow);
+        IKFile_ReadRef(file, &m_pSpinMesh);
+        IKFile_ReadRef(file, &m_pTrailNode);
+        IKFile_ReadRef(file, &m_pAimCamembert);
+        IKFile_ReadRef(file, &m_pParticlesDataA);
+        IKFile_ReadRef(file, &m_pParticlesDataB);
+        IKFile_ReadRef(file, &m_pStartExplosionMax);
+        IKFile_ReadRef(file, &m_pAnimFxCollection);
         for (int32_t i = 0; i < 3; ++i) {
-            ReadF32LE(file, &m_unk1a8[i]);
-            ReadS32LE(file, &m_unk1b4[i]);
-            ReadS32LE(file, &m_unk1c0[i]);
-            ReadS32LE(file, &m_unk1cc[i]);
-            ReadF32LE(file, &m_unk1d8[i]);
-            ReadF32LE(file, &m_unk210[i]);
-            ReadU32LEWords(file, reinterpret_cast<uint32_t*>(&m_unk1e4[i]), 3);
+            ReadF32LE(file, &m_afHitSphereRadius[i]);
+            ReadS32LE(file, &m_ai32MeshHoldAlpha[i]);
+            ReadS32LE(file, &m_ai32MeshStartAlpha[i]);
+            ReadS32LE(file, &m_ai32MeshEndAlpha[i]);
+            ReadF32LE(file, &m_afMeshSpinDegPerSec[i]);
+            ReadF32LE(file, &m_afSteerConeDeg[i]);
+            ReadU32LEWords(file, reinterpret_cast<uint32_t*>(&m_avMeshScale[i]), 3);
         }
-        ReadF32LE(file, &m_unk208);
-        ReadF32LE(file, &m_unk20c);
-        IKFile_ReadRef(file, &m_unk228);
-        IKFile_ReadRef(file, &m_unk22c);
-        IKFile_ReadRef(file, &m_unk230);
+        ReadF32LE(file, &m_fFadeInTime);
+        ReadF32LE(file, &m_fFadeOutTime);
+        IKFile_ReadRef(file, &m_pHitExplosionLevel0);
+        IKFile_ReadRef(file, &m_pHitExplosionLevel1);
+        IKFile_ReadRef(file, &m_pHitExplosionLevel2);
     }
     return 1;
 }

@@ -699,7 +699,7 @@ void CKHkDynamicObject::Update(IKTime* clock) {
             float dy = 0.0f;  // f29
             // 0x002ca128 CKGrpS08Hero_GetFocusedHeroNode_maybe (TocBridge 0x9902e0)
             IKSerializable* hero =
-                group->m_unk66 == 0xff ? nullptr : group->m_apUnk44[static_cast<int8_t>(group->m_unk66)];
+                group->m_ui8FocusedDragon == 0xff ? nullptr : group->m_apCameraTargets[static_cast<int8_t>(group->m_ui8FocusedDragon)];
             const RwV3d& heroPos = FrameOf(hero)->ltm.pos;
             const RwV3d& ownPos = FrameOf(m_pKGLObject)->modelling.pos;
             float dx = heroPos.x - ownPos.x;

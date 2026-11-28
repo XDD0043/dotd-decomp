@@ -277,19 +277,19 @@ public:
     // +0x58 a video frame the menu waits for with its interface paused (-1: none): HandleStatePhase sets -1,
     // MessageProc a video trigger's m_unk08; when the video reaches it the interface resumes.
     int32_t m_i32WaitVideoFrame;
-    float m_fUnk5c;                                  // +0x5c HandleStatePhase sets 0; HandleShortcutButtons 0x512d68
+    float m_fDelayedItemTimer;                                  // +0x5c HandleStatePhase sets 0; HandleShortcutButtons 0x512d68
     uint8_t m_unk60[4];                              // +0x60 bytes; HandleStatePhase clears +0x60, +0x61
     float m_unk64;                                   // +0x64 per player: the validated item's delay (HandleValidateButton); HandleStatePhase sets 0
     float m_unk68;                                   // +0x68 (player 2)
-    uint8_t m_unk6c[4];                              // +0x6c bytes (vt+0xe4 results in HandleStatePhase)
+    uint8_t m_aui8FocusedItem[4];                              // +0x6c bytes (vt+0xe4 results in HandleStatePhase)
     float m_fUnk70;                                  // +0x70 HandleStatePhase sets 0.2
     float m_fUnk74;                                  // +0x74 HandleStatePhase sets 0.2
-    uint8_t m_aUnk78[4];                             // +0x78 a selection per player_maybe (ResetWidgets: 0xff)
-    float m_fUnk7c;                                  // +0x7c Open sets 0.5; UpdateInput counts it down
+    uint8_t m_aui8NavDirection[4];                             // +0x78 a selection per player_maybe (ResetWidgets: 0xff)
+    float m_fOpenInputDelay;                                  // +0x7c Open sets 0.5; UpdateInput counts it down
     uint8_t m_unk80[4];                              // +0x80 bytes: player count_maybe (+0x80), flags (+0x82, +0x83)
     TVector<IKSerializable*, 3> m_apButtons;         // +0x84 CKInterfaceButton (file refs 0x630c)
-    uint8_t m_unk90;                                 // +0x90 set by KBase730C_StartTransitionToMenu 0x5148c0
-    uint8_t m_unk91;                                 // +0x91 CKS08MenuPauseInfo: a title is shown (SetTitleText sets 1, ShowNextPage 0)
+    uint8_t m_ui8NextTransitionMenu;                                 // +0x90 set by KBase730C_StartTransitionToMenu 0x5148c0
+    uint8_t m_bTitleShown;                                 // _maybe: +0x91 CKS08MenuPauseInfo: a title is shown (SetTitleText sets 1, ShowNextPage 0)
     uint8_t m_pad92[2];
 };
 DOTD_ASSERT_SIZE(CKMenuBase114c, 0x94);
@@ -311,9 +311,9 @@ DOTD_ASSERT_OFFSET(CKMenuBase114c, m_aVideoTriggers, 0x48);
 DOTD_ASSERT_OFFSET(CKMenuBase114c, m_fTime, 0x40);
 DOTD_ASSERT_OFFSET(CKMenuBase114c, m_pPausedSegment, 0x54);
 DOTD_ASSERT_OFFSET(CKMenuBase114c, m_i32WaitVideoFrame, 0x58);
-DOTD_ASSERT_OFFSET(CKMenuBase114c, m_fUnk7c, 0x7c);
+DOTD_ASSERT_OFFSET(CKMenuBase114c, m_fOpenInputDelay, 0x7c);
 DOTD_ASSERT_OFFSET(CKMenuBase114c, m_apButtons, 0x84);
-DOTD_ASSERT_OFFSET(CKMenuBase114c, m_unk90, 0x90);
+DOTD_ASSERT_OFFSET(CKMenuBase114c, m_ui8NextTransitionMenu, 0x90);
 
 // C1.6 menus: the game manager calls the menus make (vt+0xb4 ExitGame, vt+0xb8 NewGame, vt+0x1d4
 // ResetEditedOptions, vt+0x1e4 IsVideoSkipPressed, the game structure's vt+0x60 ApplyPlayerGameState) are

@@ -125,7 +125,7 @@ int32_t CKParticlesEffectNodeFx::Load(IKFile* file, int32_t type) {
 // 0x001ce1e8 CKParticlesEffectNodeFx_StopIfLinkedTo
 void CKParticlesEffectNodeFx::StopIfLinkedTo(int32_t sector) {
     if ((m_baFxData & 1) != 0 || sector == 0) return;
-    if ((m_pEffectData->m_unk08 & 0x10) == 0) return;
+    if ((m_pEffectData->m_ui8Flags & 0x10) == 0) return;
     CSGLeaf* owner = m_pEffectData->m_pAttachOwner;
     if (owner == nullptr) return;
     if (sector == static_cast<int32_t>(owner->GetSectorIndex())) Stop();
@@ -163,7 +163,7 @@ void CKParticlesEffectNodeFx::Vf64() {
     CKParticlesEffectFxData* data = m_pEffectData;
     m_pAttachOwner = nullptr;
     // Screen effects (data +0x38) hang under the secondary scene root and draw with the 0x11 render mode.
-    const uint32_t screen = (data != nullptr && data->m_unk38 != 0) ? 1u : 0u;
+    const uint32_t screen = (data != nullptr && data->m_bScreenSpace != 0) ? 1u : 0u;
     for (uint32_t i = 0; i < m_ui32NodeCount; ++i) {
         CParticlesNodeFx* node = m_ppParticleNodes[i];
         if (node == nullptr) continue;
@@ -177,11 +177,11 @@ void CKParticlesEffectNodeFx::Vf64() {
         Stop();  // vt+0x6c
         return;
     }
-    if ((data->m_unk08 & 0x10u) == 0) {
+    if ((data->m_ui8Flags & 0x10u) == 0) {
         // Not attached: every node in place with the data's matrix.
         for (uint32_t i = 0; i < m_ui32NodeCount; ++i) {
             CParticlesNodeFx* node = m_ppParticleNodes[i];
-            if (node != nullptr) node->SetLocalMatrix(m_pEffectData->m_unk24);  // 0x000d0be8
+            if (node != nullptr) node->SetLocalMatrix(m_pEffectData->m_pLocalMatrix);  // 0x000d0be8
         }
     } else if (data->m_pAttachOwner == nullptr) {
         // Attached to the data's hot spot (when there is one).
@@ -208,13 +208,13 @@ void CKParticlesEffectNodeFx::Vf64() {
             for (uint32_t i = 0; i < m_ui32NodeCount; ++i) {
                 CParticlesNodeFx* node = m_ppParticleNodes[i];
                 if (node == nullptr) continue;
-                node->m_sgProperties = (node->m_sgProperties & 0xfffeffffu) | ((m_pEffectData->m_unk08 & 1u) << 16);
-                node->m_sgProperties = (node->m_sgProperties & 0xfffdffffu) | (((m_pEffectData->m_unk08 >> 1) & 1u) << 17);
+                node->m_sgProperties = (node->m_sgProperties & 0xfffeffffu) | ((m_pEffectData->m_ui8Flags & 1u) << 16);
+                node->m_sgProperties = (node->m_sgProperties & 0xfffdffffu) | (((m_pEffectData->m_ui8Flags >> 1) & 1u) << 17);
             }
         }
         for (uint32_t i = 0; i < m_ui32NodeCount; ++i) {
             CParticlesNodeFx* node = m_ppParticleNodes[i];
-            if (node != nullptr) node->SetLocalMatrix(m_pEffectData->m_unk24);  // 0x000d0be8
+            if (node != nullptr) node->SetLocalMatrix(m_pEffectData->m_pLocalMatrix);  // 0x000d0be8
         }
     }
     // Every geometry's render mode: bit 17 = screen (UpdateProperties, vt+0x60, when it changes), the mode bits 0..4
@@ -289,7 +289,7 @@ void CKParticlesEffectNodeFx::Vf64() {
     for (uint32_t i = 0; i < m_ui32NodeCount; ++i) {
         CParticlesNodeFx* node = m_ppParticleNodes[i];
         if (node == nullptr) continue;
-        if ((m_pEffectData->m_unk08 & 8u) != 0) {
+        if ((m_pEffectData->m_ui8Flags & 8u) != 0) {
             node->m_sgProperties = (node->m_sgProperties | 0x600u) & 0xfff7ffffu;
             node->m_fEmissionSpeedAdjustment = 0.0f;  // stw 0
             node->m_pRpPrtStdEmitter->flag |= rpPRTSTDEMITTERFLAGACTIVE | rpPRTSTDEMITTERFLAGEMIT;
@@ -300,7 +300,7 @@ void CKParticlesEffectNodeFx::Vf64() {
             node->m_sgProperties = (node->m_sgProperties | 0x400u) & 0xfff7ffffu;
             node->m_fEmissionSpeedAdjustment = 0.0f;
             node->m_pRpPrtStdEmitter->flag |= rpPRTSTDEMITTERFLAGACTIVE | rpPRTSTDEMITTERFLAGEMIT;
-            if ((m_pEffectData->m_unk08 & 4u) != 0) std::memcpy(&m_fRemainingSeconds, &m_pEffectData->m_unk0c, 4);
+            if ((m_pEffectData->m_ui8Flags & 4u) != 0) std::memcpy(&m_fRemainingSeconds, &m_pEffectData->m_unk0c, 4);
         }
         node->m_sgProperties &= 0xfffffffbu;
     }
@@ -312,10 +312,10 @@ void CKParticlesEffectNodeFx::Update(IKTime* frameClock) {
     if (m_bRefreshOrientation != 0) {
         for (uint32_t i = 0; i < m_ui32NodeCount; ++i) {
             CParticlesNodeFx* node = m_ppParticleNodes[i];
-            if (node != nullptr) node->SetLocalMatrix(m_pEffectData->m_unk24);  // 0x000d0be8
+            if (node != nullptr) node->SetLocalMatrix(m_pEffectData->m_pLocalMatrix);  // 0x000d0be8
         }
     }
-    const uint8_t flags = m_pEffectData->m_unk08;
+    const uint8_t flags = m_pEffectData->m_ui8Flags;
     const float zero = 0.0f;  // TOC -0x1ba4
     if (((flags & 8u) != 0 && m_fRemainingSeconds < zero) || ((flags & 4u) != 0 && m_fRemainingSeconds < zero)) {
         Stop();  // vt+0x6c

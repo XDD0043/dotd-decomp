@@ -102,7 +102,7 @@ void CKHkS08DragonCityGolem::Restart() {
 
 // 0x004d5a78 CKHkS08DragonCityGolem_Update: while updated (+0x45), CKHkGolem's, then the pending damage.
 void CKHkS08DragonCityGolem::Update(IKTime* clock) {
-    if (m_unk45 == 0) return;
+    if (m_bEnabled == 0) return;
     CKHkGolem::Update(clock);  // 0x004c4838
     ApplyPendingDamage(clock);
 }
@@ -114,7 +114,7 @@ void CKHkS08DragonCityGolem::Update(IKTime* clock) {
 // frsp) and the whole part, when not 0, is applied.
 void CKHkS08DragonCityGolem::AccumulateDamage(float amount, CKS08Damage* damage, uint32_t slot) {
     if (damage->IsKindOfClass(0x99cc) != 0) {
-        const uint32_t kind = damage->m_unk20;
+        const uint32_t kind = damage->m_ui32DamageType;
         if (kind <= 9) {
             static const uint8_t kFactor[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 8};  // the jump table 0x004d55cc
             m_unkCC[slot] = ppc::fmadds(amount, m_af94[kFactor[kind]], m_unkCC[slot]);
@@ -137,11 +137,11 @@ namespace {
 // with no amount takes Cynder's (GetHeroByDragonIndex 1) element level of the damage's ability (+0x38's low byte): 3:
 // 60, 2: 30, below 2: 20 per second (TOC +0x6a80 / +0x6a84 / +0x6a88).
 float ContinuousAmount(const CKS08Damage* damage, float dt) {
-    float amount = damage->m_unk0c != 0 ? dt * damage->m_unk04 : damage->m_unk04;
-    if (damage->m_unk20 == 7 && amount == 0.0f) {
+    float amount = damage->m_bContinuous != 0 ? dt * damage->m_fAmount : damage->m_fAmount;
+    if (damage->m_ui32DamageType == 7 && amount == 0.0f) {
         IKGrpHero* group = static_cast<IKGrpHero*>(g_pEngine->m_gameManager->m_unk04[1]);
         CKHkS08Hero* cynder = static_cast<CKHkS08Hero*>(group->m_apHeros[1]);  // 0x002ca080
-        const uint8_t ability = static_cast<uint8_t>(static_cast<const CKS08ElementDamage*>(damage)->m_unk38);
+        const uint8_t ability = static_cast<uint8_t>(static_cast<const CKS08ElementDamage*>(damage)->m_i32AbilityId);
         const uint8_t level = cynder->GetAbilityElementLevel(ability);  // 0x0032a8d0
         if (level == 2) {
             amount = dt * 30.0f;
@@ -212,13 +212,13 @@ void CKHkS08DragonCityGolem::ProcessContacts(IKTime* clock, CKGolemAttackCommon*
             // dragon index (+0x24 byte) whatever it is.
             CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(other->m_pOwner);
             CKS08Damage* damage = static_cast<CKS08Damage*>(other->m_unk1c);
-            if (entry != nullptr && damage != nullptr && damage->m_unk08 == 0 && entry->m_unk0c != 0) {
+            if (entry != nullptr && damage != nullptr && damage->m_i32DamageKind == 0 && entry->m_unk0c != 0) {
                 bool hit = false;
-                if (damage->m_unk0c != 0) {
+                if (damage->m_bContinuous != 0) {
                     m_unkC4[hero->GetDragonIndex()] = damage;  // 0x00361960
                 } else if (damage->m_unk26 == 0) {
-                    hit = ContactHistory_Touch(-1000.0f, -1000.0f, &m_unk20, other, hero) != 0;  // 0x0098f380
-                    if (!hit) ContactHistory_Touch(-1000.0f, -1000.0f, &m_unk20, other, hero);
+                    hit = ContactHistory_Touch(-1000.0f, -1000.0f, &m_pContactHistory, other, hero) != 0;  // 0x0098f380
+                    if (!hit) ContactHistory_Touch(-1000.0f, -1000.0f, &m_pContactHistory, other, hero);
                 } else {
                     hit = ContactHistory_Touch(-1000.0f, -1000.0f, &m_unkC0, other, nullptr) != 0;
                 }
@@ -248,14 +248,14 @@ void CKHkS08DragonCityGolem::ProcessContacts(IKTime* clock, CKGolemAttackCommon*
                         OnNewHitW(manager, dragon, &point);  // OnNewHitW_2 0x004fe5f8
                     }
                     const float dt = clock->m_afDeltaTime[IKTime::SCALABLE_GAME_TIME];
-                    const float amount = damage->m_unk0c != 0 ? dt * damage->m_unk04 : damage->m_unk04;
+                    const float amount = damage->m_bContinuous != 0 ? dt * damage->m_fAmount : damage->m_fAmount;
                     AccumulateDamage(amount, damage, hero->GetDragonIndex());
                 }
             }
-            ContactHistory_Touch(-1000.0f, -1000.0f, &m_unk20, other, hero);
+            ContactHistory_Touch(-1000.0f, -1000.0f, &m_pContactHistory, other, hero);
         }
     }
-    ContactHistory_Update(&m_unk20, clock);  // 0x0098f430
+    ContactHistory_Update(&m_pContactHistory, clock);  // 0x0098f430
     ContactHistory_Update(&m_unkC0, clock);
 }
 

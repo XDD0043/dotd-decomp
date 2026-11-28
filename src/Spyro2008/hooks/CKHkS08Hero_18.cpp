@@ -121,7 +121,7 @@ void PlayOnActive(AnimBlendSlot* slot, float start, uint32_t word) {
 // (row layer x the row count + animation), crossfaded over `blend` s from `start`, or cut to at `start` without a blend
 // or with flag 0x1000 of +0x354.
 void CKHkS08Hero::PlayAnimOnInnerBlender(float start, float blend, uint8_t layer, uint32_t animation) {
-    AnimBlendSlot* slot = m_unk138 + layer;
+    AnimBlendSlot* slot = m_pAnimBlendSlots + layer;
     if (animation == 0xfffeu) {
         slot->CrossfadeToAnim(blend, 0.0, 0xffffffffu, 1);  // TOC +0x2b80: 0.0f start, no animation
         return;
@@ -140,7 +140,7 @@ void CKHkS08Hero::PlayAnimOnInnerBlender(float start, float blend, uint8_t layer
     }
     const CAnimationDictionary* dictionary = static_cast<const CAnimationDictionary*>(m_pAnimDico);
     const uint32_t word = static_cast<uint32_t>(dictionary->m_apAnimations[layer * dictionary->m_ui32NbAnimations + animation]);
-    if (blend != 0.0f && (m_unk354 & 0x1000u) == 0) {
+    if (blend != 0.0f && (m_ui32HeroFlags354 & 0x1000u) == 0) {
         slot->CrossfadeToAnim(blend, start, word, 1);
         return;
     }
@@ -171,15 +171,15 @@ void CKHkS08Hero::PlayAnimBase(float start, float blend, uint16_t animation) {
     AnimBlendSlot* slot = GetAnimBlendSlot();  // vt+0x194
     const CAnimationDictionary* dictionary = static_cast<const CAnimationDictionary*>(m_pAnimDico);
     const uint32_t word = static_cast<uint32_t>(dictionary->m_apAnimations[animation]);
-    if (blend == 0.0f || (m_unk354 & 0x1000u) != 0 || (m_unk364 & 0x100u) != 0) {  // TOC +0x2b80
+    if (blend == 0.0f || (m_ui32HeroFlags354 & 0x1000u) != 0 || (m_ui32HeroFlags364 & 0x100u) != 0) {  // TOC +0x2b80
         PlayOnActive(slot, start, word);
     } else {
         slot->CrossfadeToAnim(blend, start, word, 1);  // 0x00079ea0
     }
     m_unk158 = blend;
-    m_unk160 = animation;
+    m_i16CurAnimIndex = animation;
     m_unk15c = start;
-    m_unk354 = ((m_unk354 & 0xffffdfffu) | 0x2000u) & 0xffff7fffu;
+    m_ui32HeroFlags354 = ((m_ui32HeroFlags354 & 0xffffdfffu) | 0x2000u) & 0xffff7fffu;
 }
 
 // 0x00352468 CKHkS08Hero_UpdateAnimStateMachine_maybe: the animation machine (rows +0x140 by the third byte of their
@@ -192,9 +192,9 @@ void CKHkS08Hero::UpdateAnimStateMachine(IKTime* clock) {
     const float dt = clock->m_afDeltaTime[0];
     const uint8_t layers = group->GetNbAnimBlendSlots(m_ui8Hero);  // vt+0x134
     const uint32_t* handlers = reinterpret_cast<const uint32_t*>(m_unk148);
-    if ((m_unk358 & 2u) != 0) {
-        if (m_unk14c != 0xff) {
-            SwitchState(handlers, m_unk14c, 0xff, clock);
+    if ((m_ui32HeroFlags358 & 2u) != 0) {
+        if (m_ui8AnimCurrentState != 0xff) {
+            SwitchState(handlers, m_ui8AnimCurrentState, 0xff, clock);
             if ((m_unk368 & 0x400u) == 0) {
                 const uint8_t count = group->GetNbAnimBlendSlots(m_ui8Hero);                     // vt+0x134
                 const int8_t active = static_cast<int8_t>(group->GetActiveInnerBlendSlot(m_ui8Hero));  // vt+0x170
@@ -204,7 +204,7 @@ void CKHkS08Hero::UpdateAnimStateMachine(IKTime* clock) {
             }
         }
         UpdateSecondaryAnimCrossfade(clock);  // vt+0x108
-        if ((m_unk360 & 0x800u) != 0) GetAnimBlendSlot()->AdvanceInactiveTrack(dt);  // vt+0x194, slot vt+0x10
+        if ((m_ui32HeroFlags360 & 0x800u) != 0) GetAnimBlendSlot()->AdvanceInactiveTrack(dt);  // vt+0x194, slot vt+0x10
         return;
     }
     const uint8_t count = group->GetNbHeroStatesD();  // vt+0x140
@@ -215,13 +215,13 @@ void CKHkS08Hero::UpdateAnimStateMachine(IKTime* clock) {
             break;
         }
     }
-    m_unk354 &= 0xffffdfffu;
-    if (found != m_unk14c) SwitchState(handlers, m_unk14c, found, clock);
-    RunState(handlers, m_unk14c, clock);
+    m_ui32HeroFlags354 &= 0xffffdfffu;
+    if (found != m_ui8AnimCurrentState) SwitchState(handlers, m_ui8AnimCurrentState, found, clock);
+    RunState(handlers, m_ui8AnimCurrentState, clock);
     UpdateAnimation(clock);  // vt+0x104
     const int8_t active = static_cast<int8_t>(group->GetActiveInnerBlendSlot(m_ui8Hero));  // vt+0x170
     for (uint32_t i = 0; i < layers; ++i) {
-        if (static_cast<int32_t>(i) != active) m_unk138[i].AdvanceInactiveTrack(dt);  // slot vt+0x10
+        if (static_cast<int32_t>(i) != active) m_pAnimBlendSlots[i].AdvanceInactiveTrack(dt);  // slot vt+0x10
     }
 }
 
@@ -229,7 +229,7 @@ void CKHkS08Hero::UpdateAnimStateMachine(IKTime* clock) {
 // (the group's index for the hero, vt+0x164) grows by the frame's displacement (+0x5b4) over its file radius, at
 // least 0.001; then vt+0xf4 sets the other volumes' radii.
 void CKHkS08Hero::UpdateSpeedScaledVolumeRadius() {
-    if ((m_unk360 & 0x10000u) != 0) return;
+    if ((m_ui32HeroFlags360 & 0x10000u) != 0) return;
     const int8_t index = static_cast<int8_t>(CKGrpS08Hero::GetSpeedVolumeIndexOf(m_ui8Hero));  // vt+0x164
     if (index != -1) {
         IKBoundingVolume* volume = static_cast<IKBoundingVolume*>(m_apBoundings[index]);
@@ -257,8 +257,8 @@ void CKHkS08Hero::UpdateSpeedScaledVolumeRadius() {
 // after the walk (moving the hero's moving spheres with them). Then the touch histories run down.
 void CKHkS08Hero::ResolveHeroContactMovement(IKTime* clock) {
     static const CVector3 kNull = {0.0f, 0.0f, 0.0f};  // 0x00c50d64 (TOC1 +0x2bc0)
-    if ((m_unk354 & 0x20u) != 0 || (m_unk35c & 0x200000u) != 0) return;
-    if ((m_unk35c & 0x10u) != 0) {
+    if ((m_ui32HeroFlags354 & 0x20u) != 0 || (m_ui32HeroFlags35C & 0x200000u) != 0) return;
+    if ((m_ui32HeroFlags35C & 0x10u) != 0) {
         // A pending hit without a volume: its source +0xd4 at the point +0xd8 (vt+0x190, a fifth argument 0 unused).
         HandleHeroDamageAndReaction(m_unkd4, reinterpret_cast<const CVector3*>(&m_unkd8), nullptr);  // 0x0030d688
     }
@@ -282,26 +282,26 @@ void CKHkS08Hero::ResolveHeroContactMovement(IKTime* clock) {
                 other = static_cast<IKBoundingVolume*>(collision->GetBoundingVolume1());
             }
             if ((own->m_ui16PropertiesFlags & 0x6eu) != 0 &&
-                ContactHistory_Touch(-1000.0f, -1000.0f, &m_unk110, other, other->m_pOwner) != 0) {  // 0x005830f8
+                ContactHistory_Touch(-1000.0f, -1000.0f, &m_pTouchContactHistory, other, other->m_pOwner) != 0) {  // 0x005830f8
                 m_unke4 = other;
                 const CVector3* point = collision->GetWorldContactPoint();  // vt+0x20
                 m_unke8 = point->x;
                 m_unkf0 = point->z;
                 m_unkec = point->y;
-                m_unk354 = (m_unk354 & 0xfdffffffu) | 0x2000000u;
+                m_ui32HeroFlags354 = (m_ui32HeroFlags354 & 0xfdffffffu) | 0x2000000u;
             }
             if ((other->m_ui16PropertiesFlags & 0x200u) != 0) {
                 // The hit needs vt+0xf8 (CKHkS08Hero_vfF8 0x9bd6d0: 0), so only the touch is kept.
-                ContactHistory_Touch(-1000.0f, 1.0f, &m_unk10c, other, other->m_pOwner);
+                ContactHistory_Touch(-1000.0f, 1.0f, &m_pDamageContactHistory, other, other->m_pOwner);
             }
-            if ((m_unk358 & 4u) != 0 && (other->m_ui16PropertiesFlags & 0x100u) != 0) {
+            if ((m_ui32HeroFlags358 & 4u) != 0 && (other->m_ui16PropertiesFlags & 0x100u) != 0) {
                 const uint8_t type = other->m_ui8OwnerType;
                 if (type == 2) {
-                    m_unk354 = (m_unk354 & 0xfff7ffffu) | 0x80000u;
+                    m_ui32HeroFlags354 = (m_ui32HeroFlags354 & 0xfff7ffffu) | 0x80000u;
                 } else if (type == 3) {
-                    m_unk354 = (m_unk354 & 0xffdfffffu) | 0x200000u;
+                    m_ui32HeroFlags354 = (m_ui32HeroFlags354 & 0xffdfffffu) | 0x200000u;
                 } else if (type == 1) {
-                    m_unk354 = (m_unk354 & 0xffefffffu) | 0x100000u;
+                    m_ui32HeroFlags354 = (m_ui32HeroFlags354 & 0xffefffffu) | 0x100000u;
                 }
                 m_unk108 = other->m_pOwner;
             }
@@ -311,30 +311,30 @@ void CKHkS08Hero::ResolveHeroContactMovement(IKTime* clock) {
                 const uint8_t type = other->m_ui8OwnerType;
                 if ((own->m_ui16PropertiesFlags & 0x2000u) != 0 || type == 1) {
                     if (type == 1) {
-                        m_unk354 = (m_unk354 & 0xffefffffu) | 0x100000u;
+                        m_ui32HeroFlags354 = (m_ui32HeroFlags354 & 0xffefffffu) | 0x100000u;
                         push = (own->m_ui16PropertiesFlags & 1u) != 0;
                     }
                 } else if (type == 2) {
-                    m_unk354 = (m_unk354 & 0xfff7ffffu) | 0x80000u;
+                    m_ui32HeroFlags354 = (m_ui32HeroFlags354 & 0xfff7ffffu) | 0x80000u;
                     m_unk108 = other->m_pOwner;
                     // Unless +0x354 bit 6, vt+0x15c (CKHkS08Hero_vf15C 0x9bd6d8) is asked: it returns 1, so an enemy's
                     // contact never pushes here (the enemy pushes: HandleHeroContactDamageAndImpulse, C2.7).
                 } else if (type == 3) {
-                    m_unk354 = (m_unk354 & 0xffdfffffu) | 0x200000u;
+                    m_ui32HeroFlags354 = (m_ui32HeroFlags354 & 0xffdfffffu) | 0x200000u;
                     m_unk108 = other->m_pOwner;
                     CKHkS08Hero* partner = static_cast<CKHkS08Hero*>(other->m_pOwner);
-                    if ((m_unk354 & 0x40u) == 0 && (m_unk364 & 0x1000u) == 0 && (own->m_ui16PropertiesFlags & 0x100u) != 0) {
+                    if ((m_ui32HeroFlags354 & 0x40u) == 0 && (m_ui32HeroFlags364 & 0x1000u) == 0 && (own->m_ui16PropertiesFlags & 0x100u) != 0) {
                         if ((other->m_ui16PropertiesFlags & 0x2000u) != 0) {
                             push = true;
                         } else if (m_ui8Hero == m_ui8TrackedLeader) {
                             if (partner->m_ui8Hero == partner->m_ui8TrackedLeader) {
                                 push = shared = true;
                             } else if (HasNonZeroSpeed530Or534() == 0 || partner->HasNonZeroSpeed530Or534() != 0) {
-                                if ((partner->m_unk358 & 4u) != 0) push = shared = true;
+                                if ((partner->m_ui32HeroFlags358 & 4u) != 0) push = shared = true;
                             } else {
                                 push = shared = true;
                             }
-                        } else if ((m_unk358 & 0x80u) == 0 && (m_unk354 & 0x40000u) == 0) {
+                        } else if ((m_ui32HeroFlags358 & 0x80u) == 0 && (m_ui32HeroFlags354 & 0x40000u) == 0) {
                             if (partner->m_ui8Hero != partner->m_ui8TrackedLeader) {
                                 push = shared = true;
                             } else if (HasNonZeroSpeed530Or534() == 0 && partner->HasNonZeroSpeed530Or534() != 0) {
@@ -378,11 +378,11 @@ void CKHkS08Hero::ResolveHeroContactMovement(IKTime* clock) {
                         dot = ppc::fmadds(nz, m_unk548, dot);
                         if (dot < 0.0f) {
                             const float slow = ppc::fmadds(-dot * static_cast<float>(m_unk347), -0.01f, 1.0f);
-                            m_unk530 = m_unk530 * slow;
+                            m_fCurHSpeed = m_fCurHSpeed * slow;
                         }
                     }
                 } else {
-                    if (other->m_ui8OwnerType != 3) m_unk530 = 0.0f;
+                    if (other->m_ui8OwnerType != 3) m_fCurHSpeed = 0.0f;
                     x = kNull.x;
                     y = kNull.y;
                     z = kNull.z;
@@ -464,8 +464,8 @@ void CKHkS08Hero::ResolveHeroContactMovement(IKTime* clock) {
     m_unk5e4 = x + slideX;
     m_unk5e8 = y + slideY;
     m_unk5ec = slideZ + z;
-    ContactHistory_Update(&m_unk10c, clock);    // 0x005833c0
-    ContactHistory_Update(&m_unk110, nullptr);
+    ContactHistory_Update(&m_pDamageContactHistory, clock);    // 0x005833c0
+    ContactHistory_Update(&m_pTouchContactHistory, nullptr);
 }
 
 // 0x00352c38 CKHkS08Hero_ResetBoundingSpheresAtDelta_maybe (step 4 AI: TeleportTo's): the hero's moving
@@ -526,7 +526,7 @@ void CKHkS08Hero::AttachVolumeToHotspot(IKBoundingVolume* volume, int32_t hotspo
 
 // 0x00350c48 CKHkS08Hero_AdvanceInnerBlenderAnimTime_maybe
 void CKHkS08Hero::AdvanceInnerBlenderAnimTime(float dt, uint32_t slot) {
-    AnimBlendSlot& blend = m_unk138[slot];
+    AnimBlendSlot& blend = m_pAnimBlendSlots[slot];
     CKBlenderController* blender = static_cast<CKBlenderController*>(blend.m_pController);
     CKAnmKeyFrameController* controller = static_cast<CKAnmKeyFrameController*>(blender->m_apControllers[blend.m_unk10]);
     controller->m_unk50 = dt + controller->m_unk50;  // fadds f1, f1, f0

@@ -104,7 +104,7 @@ public:
     TVector<uint8_t, 8> m_vbCinematicStates;  // +0x2c one per stage (XXL2 bool)
     TVector<CKGameModule*, 8> m_vpModules;  // +0x38
     TVector<uint8_t, 8> m_vbModuleStates;   // +0x44 one per module
-    TVector<uint8_t, 8> m_vbUnk50;          // +0x50 DotD: a second byte per module
+    TVector<uint8_t, 8> m_vbModuleFlags2;          // +0x50 DotD: a second byte per module
     TVector<IKSerializable*, 8> m_vpUnk5c;  // +0x5c DotD list
     TVector<uint8_t, 8> m_vbUnk68;          // +0x68 one per +0x5c entry
     TVector<IKSerializable*, 8> m_vpUnk74;  // +0x74 DotD list
@@ -118,7 +118,7 @@ DOTD_ASSERT_OFFSET(CKGameState, m_vpStages, 0x20);
 DOTD_ASSERT_OFFSET(CKGameState, m_vbCinematicStates, 0x2c);
 DOTD_ASSERT_OFFSET(CKGameState, m_vpModules, 0x38);
 DOTD_ASSERT_OFFSET(CKGameState, m_vbModuleStates, 0x44);
-DOTD_ASSERT_OFFSET(CKGameState, m_vbUnk50, 0x50);
+DOTD_ASSERT_OFFSET(CKGameState, m_vbModuleFlags2, 0x50);
 DOTD_ASSERT_OFFSET(CKGameState, m_vpUnk5c, 0x5c);
 DOTD_ASSERT_OFFSET(CKGameState, m_vbUnk68, 0x68);
 DOTD_ASSERT_OFFSET(CKGameState, m_vpUnk74, 0x74);

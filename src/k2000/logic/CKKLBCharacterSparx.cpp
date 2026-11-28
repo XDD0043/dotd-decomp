@@ -80,7 +80,7 @@ IKSerializable* HeroGroup() { return static_cast<CKS08GameManager*>(g_pEngine->m
 void CKKLBCharacterSparx::Vf50() {
     IKSerializable* group = HeroGroup();
     if (group != nullptr) {
-        m_pSparx = static_cast<CKGrpS08Hero*>(group)->m_pUnkad0;
+        m_pSparx = static_cast<CKGrpS08Hero*>(group)->m_pSparx;
         return;
     }
     m_pSparx = nullptr;
@@ -191,7 +191,7 @@ IKSerializable* CKKLBCharacterSparx::Vf9C() { return SparxOf(this)->m_pTargetB8;
 
 // 0x00450908 CKKLBCharacterSparx_vfA4: the node (+0x1c) of the hero group's Sparx (+0xad0), null without one.
 IKSerializable* CKKLBCharacterSparx::VfA4() {
-    IKSerializable* sparx = static_cast<CKGrpS08Hero*>(HeroGroup())->m_pUnkad0;
+    IKSerializable* sparx = static_cast<CKGrpS08Hero*>(HeroGroup())->m_pSparx;
     if (sparx == nullptr) return nullptr;
     return static_cast<CKHkS08Sparx*>(sparx)->m_pKGLObject;
 }

@@ -87,62 +87,62 @@ float Sqrtf(float x) { return static_cast<float>(std::sqrt(static_cast<double>(x
 int32_t CKFireBreath::Load(IKFile* file, int32_t type) {
     CKBreathElement::Load(file, type);
     if (type == 0) {
-        IKFile_ReadRef(file, &m_unk1a0);
+        IKFile_ReadRef(file, &m_pSparkFxData);
         for (int32_t i = 0; i < 10; ++i) ReadF32LE(file, &m_unk178[i]);
-        IKFile_ReadRef(file, &m_unk1d4);
-        IKFile_ReadRef(file, &m_unk1d8);
-        IKFile_ReadRef(file, &m_unk1e0);
-        IKFile_ReadRef(file, &m_unk1a8[0]);
-        IKFile_ReadRef(file, &m_unk1a8[1]);
-        IKFile_ReadRef(file, &m_unk1a8[2]);
-        IKFile_ReadRef(file, &m_unk1e4);
-        IKFile_ReadRef(file, &m_unk1b8[0]);
-        IKFile_ReadRef(file, &m_unk1b8[1]);
-        IKFile_ReadRef(file, &m_unk1b8[2]);
-        ReadF32LE(file, &m_unk1c8[0]);
-        ReadF32LE(file, &m_unk1c8[1]);
-        ReadF32LE(file, &m_unk1c8[2]);
+        IKFile_ReadRef(file, &m_pAnimFxLevel1);
+        IKFile_ReadRef(file, &m_pAnimFxLevel2);
+        IKFile_ReadRef(file, &m_pSoundDico);
+        IKFile_ReadRef(file, &m_apParticlesFxData[0]);
+        IKFile_ReadRef(file, &m_apParticlesFxData[1]);
+        IKFile_ReadRef(file, &m_apParticlesFxData[2]);
+        IKFile_ReadRef(file, &m_pAimCamembert);
+        IKFile_ReadRef(file, &m_apPointLightFxData[0]);
+        IKFile_ReadRef(file, &m_apPointLightFxData[1]);
+        IKFile_ReadRef(file, &m_apPointLightFxData[2]);
+        ReadF32LE(file, &m_afPointLightReach[0]);
+        ReadF32LE(file, &m_afPointLightReach[1]);
+        ReadF32LE(file, &m_afPointLightReach[2]);
     }
     return 1;
 }
 
 // 0x003a32b8 CKFireBreath_Start
 void CKFireBreath::Start(CKS08AbilityHostBase* host) {
-    m_unk1e8 = nullptr;
+    m_pLoopSound = nullptr;
     CKBreathElement::Start(host);  // 0x00380f50
 }
 
 // 0x003a3240 CKFireBreath_End
 void CKFireBreath::End(int32_t forced) {
-    if (m_unk1e8 != nullptr) {
-        Sound_Stop(m_unk1e8, 0);  // 0x001111b0
-        m_unk1e8 = nullptr;
+    if (m_pLoopSound != nullptr) {
+        Sound_Stop(m_pLoopSound, 0);  // 0x001111b0
+        m_pLoopSound = nullptr;
     }
     CKBreathElement::End(forced);  // 0x00381220
 }
 
 // 0x003a31e0 ResetFireBreathRuntimeEffects
 void CKFireBreath::ResetRuntime(int32_t type) {
-    m_unk1e8 = nullptr;
+    m_pLoopSound = nullptr;
     CKBreathElement::ResetRuntime(type);  // 0x00381ed8
-    m_unk15c = 2;
-    m_unk1ec = 0.0f;
-    m_unk1c4 = nullptr;
-    m_unk1a4 = nullptr;
-    m_unk1b4 = nullptr;
-    m_unk1dc = nullptr;
+    m_ui8HotspotIndex = 2;
+    m_fFlameRollRad = 0.0f;
+    m_pPointLightNodeFx = nullptr;
+    m_pSparkNodeFx = nullptr;
+    m_pParticlesNodeFx = nullptr;
+    m_pActiveAnimFx = nullptr;
 }
 
 // 0x003a3098 CKFireBreath_GetSound_maybe
 CKSound* CKFireBreath::GetSound(int32_t which) {
-    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_unk1e0);
+    CKSoundDictionaryID* sounds = static_cast<CKSoundDictionaryID*>(m_pSoundDico);
     if (which == 0) return sounds->GetSound(0);  // 0x00112bc0
     if (which != 1) return nullptr;
     auto playable = [sounds](uint32_t index) {
         return sounds->GetSound(index) != nullptr && sounds->GetSound(index)->GetSample() != nullptr;  // 0x00111000
     };
-    if (m_unk04 == 1 || m_unk04 == 2) {
-        if (m_unk04 == 2 && playable(3)) return sounds->GetSound(3);
+    if (m_dwLevelIndex == 1 || m_dwLevelIndex == 2) {
+        if (m_dwLevelIndex == 2 && playable(3)) return sounds->GetSound(3);
         if (playable(2)) return sounds->GetSound(2);
     }
     return sounds->GetSound(1);
@@ -151,7 +151,7 @@ CKSound* CKFireBreath::GetSound(int32_t which) {
 // 0x003a35c8 CKFireBreath_GetEmitterPosition
 CVector3 CKFireBreath::GetEmitterPosition(uint8_t raw) {
     CVector3 out = kNullVector;
-    const CKParticlesEffectNodeFx* effect = static_cast<const CKParticlesEffectNodeFx*>(m_unk1b4);
+    const CKParticlesEffectNodeFx* effect = static_cast<const CKParticlesEffectNodeFx*>(m_pParticlesNodeFx);
     if (effect != nullptr && effect->m_ui32NodeCount != 0) {
         const CParticlesNodeFx* node = nullptr;
         for (uint32_t i = effect->m_ui32NodeCount; i != 0;) {
@@ -174,9 +174,9 @@ CVector3 CKFireBreath::GetEmitterPosition(uint8_t raw) {
 // 0x003a3e98 CKFireBreath_ConfigureSparkNode_maybe. The float tests are the original's (ble / bgt: ordered).
 void CKFireBreath::ConfigureSparkNode(int32_t on) {
     if (on == 0) return;
-    CKSparkNodeFx* spark = static_cast<CKSparkNodeFx*>(m_unk1a4);
+    CKSparkNodeFx* spark = static_cast<CKSparkNodeFx*>(m_pSparkNodeFx);
     if (spark == nullptr) return;
-    const float ratio = m_unk44[m_unk04] / m_unk44[0];
+    const float ratio = m_afConeAngleDeg[m_dwLevelIndex] / m_afConeAngleDeg[0];
     float scaleA = ratio;  // the range 0x40's
     float scaleB = ratio;  // the range 0x50's
     float scaleC = ratio;  // the speed's
@@ -199,10 +199,10 @@ void CKFireBreath::ConfigureSparkNode(int32_t on) {
     const float axisA[3] = {0.0f, 0.0f, mid};
     const float axisB[3] = {sine, 0.0f, 1.0f - mid};
     spark->SetParamVec2_40(rangeA);                       // 0x001d3f88
-    static_cast<CKSparkNodeFx*>(m_unk1a4)->SetParamVec2_50(rangeB);                          // 0x001d3fd8
-    static_cast<CKSparkNodeFx*>(m_unk1a4)->SetParamFloat_68(scaleC * m_unk178[8]);           // 0x001d4028 (+0x198)
-    static_cast<CKSparkNodeFx*>(m_unk1a4)->SetParamVec3_10(axisA);                           // 0x001d4048
-    static_cast<CKSparkNodeFx*>(m_unk1a4)->SetParamVec3_1c(axisB);                           // 0x001d40b0
+    static_cast<CKSparkNodeFx*>(m_pSparkNodeFx)->SetParamVec2_50(rangeB);                          // 0x001d3fd8
+    static_cast<CKSparkNodeFx*>(m_pSparkNodeFx)->SetParamFloat_68(scaleC * m_unk178[8]);           // 0x001d4028 (+0x198)
+    static_cast<CKSparkNodeFx*>(m_pSparkNodeFx)->SetParamVec3_10(axisA);                           // 0x001d4048
+    static_cast<CKSparkNodeFx*>(m_pSparkNodeFx)->SetParamVec3_1c(axisB);                           // 0x001d40b0
 }
 
 // 0x003a5498 SetFireBreathEffectsActive. The four pooled lookups are the inlined CKSrvFx::AcquireFx.
@@ -210,46 +210,46 @@ void CKFireBreath::SetFxActive(uint8_t on) {
     CKSrvFx* fx = FxService();
     if (on == 0) {
         ConfigureSparkNode(0);
-        if (m_unk1a4 != nullptr) {
-            StopOwnedSparkEffect(static_cast<CKSparkNodeFx*>(m_unk1a4), this);  // 0x001d4698
-            static_cast<IKFx*>(m_unk1a4)->ReleaseReservation(this);           // vt+0x54
-            m_unk1a4 = nullptr;
+        if (m_pSparkNodeFx != nullptr) {
+            StopOwnedSparkEffect(static_cast<CKSparkNodeFx*>(m_pSparkNodeFx), this);  // 0x001d4698
+            static_cast<IKFx*>(m_pSparkNodeFx)->ReleaseReservation(this);           // vt+0x54
+            m_pSparkNodeFx = nullptr;
         }
-        if (m_unk1b4 != nullptr) {
-            StopOwnedParticleEffect(static_cast<IKFx*>(m_unk1b4), this);  // 0x001cdde8
-            static_cast<IKFx*>(m_unk1b4)->ReleaseReservation(this);
-            m_unk1b4 = nullptr;
+        if (m_pParticlesNodeFx != nullptr) {
+            StopOwnedParticleEffect(static_cast<IKFx*>(m_pParticlesNodeFx), this);  // 0x001cdde8
+            static_cast<IKFx*>(m_pParticlesNodeFx)->ReleaseReservation(this);
+            m_pParticlesNodeFx = nullptr;
         }
-        if (m_unk1dc != nullptr) {
-            static_cast<CKAnimatedFxCollection*>(m_unk1dc)->Stop();  // TocBridge -> 0x005cc990
-            m_unk1dc = nullptr;
+        if (m_pActiveAnimFx != nullptr) {
+            static_cast<CKAnimatedFxCollection*>(m_pActiveAnimFx)->Stop();  // TocBridge -> 0x005cc990
+            m_pActiveAnimFx = nullptr;
         }
-        if (m_unk1c4 != nullptr) {
-            static_cast<IKFx*>(m_unk1c4)->StopAndRelease(this);  // vt+0x58
-            m_unk1c4 = nullptr;
+        if (m_pPointLightNodeFx != nullptr) {
+            static_cast<IKFx*>(m_pPointLightNodeFx)->StopAndRelease(this);  // vt+0x58
+            m_pPointLightNodeFx = nullptr;
         }
-        if (m_unk1e8 != nullptr) {
-            Sound_Stop(m_unk1e8, 0);
-            m_unk1e8 = nullptr;
+        if (m_pLoopSound != nullptr) {
+            Sound_Stop(m_pLoopSound, 0);
+            m_pLoopSound = nullptr;
         }
         return;
     }
-    CSGHotSpot* spot = static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_unk15c));  // vt+0xcc
+    CSGHotSpot* spot = static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_ui8HotspotIndex));  // vt+0xcc
     // The spark burst under the hot spot.
-    CKSparkFxData* sparkData = static_cast<CKSparkFxData*>(m_unk1a0);
+    CKSparkFxData* sparkData = static_cast<CKSparkFxData*>(m_pSparkFxData);
     sparkData->m_unk10 = spot;
     sparkData->m_unk0c = nullptr;
-    m_unk1a4 = fx->AcquireFx(sparkData, this);
+    m_pSparkNodeFx = fx->AcquireFx(sparkData, this);
     // The level's particle effect following the hot spot.
-    CKParticlesEffectFxData* particles = static_cast<CKParticlesEffectFxData*>(m_unk1a8[m_unk04]);
+    CKParticlesEffectFxData* particles = static_cast<CKParticlesEffectFxData*>(m_apParticlesFxData[m_dwLevelIndex]);
     particles->m_pAttachOwner = nullptr;
     particles->m_pAttachHotSpot = spot;
-    m_unk1b4 = fx->AcquireFx(particles, this);
+    m_pParticlesNodeFx = fx->AcquireFx(particles, this);
     ConfigureSparkNode(1);
     // Levels 1 and 2: the animated collection on the hero's rigs.
-    if (m_unk04 != 0) {
-        CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_unk04 == 1 ? m_unk1d4 : m_unk1d8);
-        m_unk1dc = collection;
+    if (m_dwLevelIndex != 0) {
+        CKAnimatedFxCollection* collection = static_cast<CKAnimatedFxCollection*>(m_dwLevelIndex == 1 ? m_pAnimFxLevel1 : m_pAnimFxLevel2);
+        m_pActiveAnimFx = collection;
         // vt+0x08, its +0x1c
         CSGLeaf* heroNode = static_cast<CSGLeaf*>(static_cast<IKHook*>(m_pHost->GetOwner())->m_pKGLObject);
         // vt+0x104 (the hero host's GetHeroAttachmentSets 0x3ee6a0: the hero's +0x1070; a hero-only slot here).
@@ -260,19 +260,19 @@ void CKFireBreath::SetFxActive(uint8_t on) {
     // The level's point light at the hot spot.
     CVector3 position;
     spot->GetWorldPosition(&position);  // 0x000ce790
-    CKPointLightFxData* light = static_cast<CKPointLightFxData*>(m_unk1b8[m_unk04]);
+    CKPointLightFxData* light = static_cast<CKPointLightFxData*>(m_apPointLightFxData[m_dwLevelIndex]);
     light->m_vPosition = position;
-    m_unk1c4 = fx->AcquireFx(light, this);
+    m_pPointLightNodeFx = fx->AcquireFx(light, this);
     // The start sound and the level's loop sound, both on the hero's node.
     CKSound* start = GetSound(0);
     if (start != nullptr) {
         start->SetAttachObject(static_cast<IKHook*>(m_pHost->GetOwner())->m_pKGLObject);  // 0x00111350
         start->Play(0.0f);  // 0x00111230
     }
-    m_unk1e8 = GetSound(1);
-    if (m_unk1e8 != nullptr) {
-        m_unk1e8->SetAttachObject(static_cast<IKHook*>(m_pHost->GetOwner())->m_pKGLObject);
-        m_unk1e8->Play(0.0f);
+    m_pLoopSound = GetSound(1);
+    if (m_pLoopSound != nullptr) {
+        m_pLoopSound->SetAttachObject(static_cast<IKHook*>(m_pHost->GetOwner())->m_pKGLObject);
+        m_pLoopSound->Play(0.0f);
     }
 }
 
@@ -282,36 +282,36 @@ void CKFireBreath::SetFxActive(uint8_t on) {
 // 0 without one, and the effects take the rolled orientation; the point light goes to the flame's reach (the breath's
 // distance, at most +0x1c8[level], stopped by a wall).
 void CKFireBreath::UpdateFx(float dt) {
-    CKParticlesEffectNodeFx* effect = static_cast<CKParticlesEffectNodeFx*>(m_unk1b4);
+    CKParticlesEffectNodeFx* effect = static_cast<CKParticlesEffectNodeFx*>(m_pParticlesNodeFx);
     if (effect != nullptr) {
         const uint32_t count = effect->m_ui32NodeCount;
         for (uint32_t i = 0; i != count; ++i) {
-            CParticlesNodeFx* node = static_cast<CKParticlesEffectNodeFx*>(m_unk1b4)->m_ppParticleNodes[i];
+            CParticlesNodeFx* node = static_cast<CKParticlesEffectNodeFx*>(m_pParticlesNodeFx)->m_ppParticleNodes[i];
             if (node != nullptr) node->m_fEmissionSpeedAdjustment = m_pHost->GetHeroSpeedForAbility();  // vt+0x48
         }
     }
-    if (m_unk1a4 != nullptr) {
-        float ratio = m_unk44[m_unk04] / m_unk44[0];
+    if (m_pSparkNodeFx != nullptr) {
+        float ratio = m_afConeAngleDeg[m_dwLevelIndex] / m_afConeAngleDeg[0];
         if (ratio > 1.0f) ratio = ppc::fmadds(ratio - 1.0f, m_unk178[2] - 1.0f, 1.0f);  // TOC +0x37f8
         const float speed = ratio * m_unk178[8];
-        static_cast<CKSparkNodeFx*>(m_unk1a4)->SetParamFloat_68(speed + m_pHost->GetHeroSpeedForAbility());  // 0x001d4028
+        static_cast<CKSparkNodeFx*>(m_pSparkNodeFx)->SetParamFloat_68(speed + m_pHost->GetHeroSpeedForAbility());  // 0x001d4028
     }
-    if (m_unk1dc != nullptr) static_cast<CKAnimatedFxCollection*>(m_unk1dc)->Update(dt);  // TocBridge -> 0x005cccb0
-    m_pHost->ComputeAimDirection(0x1.921fb6p+1f, this, m_unk1e4);  // vt+0x58 (pi, TOC +0x37fc); the result is unused
-    if (m_unk1b4 == nullptr || m_unk1a4 == nullptr) return;
+    if (m_pActiveAnimFx != nullptr) static_cast<CKAnimatedFxCollection*>(m_pActiveAnimFx)->Update(dt);  // TocBridge -> 0x005cccb0
+    m_pHost->ComputeAimDirection(0x1.921fb6p+1f, this, m_pAimCamembert);  // vt+0x58 (pi, TOC +0x37fc); the result is unused
+    if (m_pParticlesNodeFx == nullptr || m_pSparkNodeFx == nullptr) return;
 
     CMatrix34 spot;
-    static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_unk15c))->GetWorldMatrix(&spot);  // vt+0xcc, 0x000ce970
+    static_cast<CSGHotSpot*>(m_pHost->GetHotspot(m_ui8HotspotIndex))->GetWorldMatrix(&spot);  // vt+0xcc, 0x000ce970
     if (m_pHost->GetOwner()->IsKindOfClass(0x25c2) != 0) {  // vt+0x08, vt+0x08
         CMatrix34 inverse;
         Mat4_Invert(&inverse, &spot);  // 0x0023f878
         float roll;
         if (m_pHost->GetLockedTarget() == nullptr) {  // vt+0xd4
             // Back to 0.
-            const float step = dt * m_unkE0;
-            roll = m_unk1ec - step;
+            const float step = dt * m_fGroundTurnA;
+            roll = m_fFlameRollRad - step;
             if (!(roll >= 0.0f)) {
-                roll = m_unk1ec + step;
+                roll = m_fFlameRollRad + step;
                 if (!(roll <= 0.0f)) roll = 0.0f;
             }
         } else {
@@ -339,9 +339,9 @@ void CKFireBreath::UpdateFx(float dt) {
             } else if (wanted >= 0x1.0c1524p+0f) {  // TOC +0x3804 (0x3f860a92)
                 wanted = 0x1.0c1524p+0f;
             }
-            const float step = dt * m_unkE0;
-            const float low = ppc::fmadds(step, -5.0f, m_unk1ec);  // TOC +0x3808
-            const float high = ppc::fmadds(step, 5.0f, m_unk1ec);  // TOC +0x3810
+            const float step = dt * m_fGroundTurnA;
+            const float low = ppc::fmadds(step, -5.0f, m_fFlameRollRad);  // TOC +0x3808
+            const float high = ppc::fmadds(step, 5.0f, m_fFlameRollRad);  // TOC +0x3810
             if (wanted <= low) {
                 roll = low;
             } else if (wanted >= high) {
@@ -350,20 +350,20 @@ void CKFireBreath::UpdateFx(float dt) {
                 roll = wanted;
             }
         }
-        m_unk1ec = roll;
+        m_fFlameRollRad = roll;
         Mat4_RotateLocalZDeg(roll * 0x1.ca5dc2p+5f, &spot);  // TOC +0x380c (0x42652ee1); 0x002419c0
         CVector3 forward;
         Mat4_TransformVectors(&inverse, &forward, &spot.m_right, 1);  // 0x0023f7b0
-        SetOwnedParticleEffectTransform(static_cast<CKParticlesEffectNodeFx*>(m_unk1b4), &forward, &kAxisY, this);  // 0x001cdc08
-        static_cast<CSGMovable*>(static_cast<CKSparkNodeFx*>(m_unk1a4)->m_pSparkNode)->SetOrientationFromAtUp(&forward, &kAxisY);  // 0x000d0918
-        if (m_unk1dc != nullptr) {
-            static_cast<CKAnimatedFxCollection*>(m_unk1dc)->SetOrientation(&forward, &kAxisY);  // TocBridge -> 0x005cc7f0
+        SetOwnedParticleEffectTransform(static_cast<CKParticlesEffectNodeFx*>(m_pParticlesNodeFx), &forward, &kAxisY, this);  // 0x001cdc08
+        static_cast<CSGMovable*>(static_cast<CKSparkNodeFx*>(m_pSparkNodeFx)->m_pSparkNode)->SetOrientationFromAtUp(&forward, &kAxisY);  // 0x000d0918
+        if (m_pActiveAnimFx != nullptr) {
+            static_cast<CKAnimatedFxCollection*>(m_pActiveAnimFx)->SetOrientation(&forward, &kAxisY);  // TocBridge -> 0x005cc7f0
         }
     }
-    if (m_unk1c4 == nullptr) return;
+    if (m_pPointLightNodeFx == nullptr) return;
     // The point light at the flame's reach.
-    float reach = m_unk138 * m_unk16c;
-    if (!(m_unk1c8[m_unk04] > reach)) reach = m_unk1c8[m_unk04];
+    float reach = m_fSphereSpeed * m_fBreathElapsedTime;
+    if (!(m_afPointLightReach[m_dwLevelIndex] > reach)) reach = m_afPointLightReach[m_dwLevelIndex];
     const float startX = ppc::fmadds(spot.m_at.x, -0.5f, spot.m_pos.x);  // TOC +0x3818
     const float startY = ppc::fmadds(spot.m_at.y, -0.5f, spot.m_pos.y);
     const float startZ = ppc::fmadds(spot.m_at.z, -0.5f, spot.m_pos.z);
@@ -382,5 +382,5 @@ void CKFireBreath::UpdateFx(float dt) {
         endX = ppc::fmadds(t, spot.m_at.x, startX);
         endY = ppc::fmadds(t, spot.m_at.y, startY);
     }
-    static_cast<CKPointLightFxData*>(m_unk1b8[m_unk04])->m_vPosition = CVector3{endX, endY, endZ};
+    static_cast<CKPointLightFxData*>(m_apPointLightFxData[m_dwLevelIndex])->m_vPosition = CVector3{endX, endY, endZ};
 }

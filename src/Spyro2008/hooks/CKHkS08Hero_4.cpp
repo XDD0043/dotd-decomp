@@ -131,18 +131,18 @@
 #include <cmath>
 
 // 0x00301508 CKHkS08Hero_GetAnimBlendSlot (vt+0x194): the slot the animation plays on.
-AnimBlendSlot* CKHkS08Hero::GetAnimBlendSlot() { return m_unk138 + m_animBlendSlot10f0.m_unk10; }
+AnimBlendSlot* CKHkS08Hero::GetAnimBlendSlot() { return m_pAnimBlendSlots + m_animBlendSlot10f0.m_unk10; }
 
 // 0x00301528 CKHkS08Hero_GetInactiveAnimBlendSlot: the other one.
-AnimBlendSlot* CKHkS08Hero::GetInactiveAnimBlendSlot() { return m_unk138 + (m_animBlendSlot10f0.m_unk10 ^ 1u); }
+AnimBlendSlot* CKHkS08Hero::GetInactiveAnimBlendSlot() { return m_pAnimBlendSlots + (m_animBlendSlot10f0.m_unk10 ^ 1u); }
 
 // 0x003045e8 CKHkS08Hero_GetCinematicAnimSlots (vt+0xbc): the cinematic blocs reach the hero's animation through its own
 // blend slots, not its node's (the hero node's blend mode is 3, so CAnimatedNode_Load never loads the node's slot): the
 // group's slot count for this hero (vt+0x134, 2 in DotD) and the playing slot, then the other one.
 void CKHkS08Hero::GetBlendSlot(AnimBlendSlot** slots, int32_t* count) {
     *count = static_cast<IKGrpHero*>(m_pGrpHero)->GetNbAnimBlendSlots(m_ui8Hero);
-    slots[0] = m_unk138 + m_animBlendSlot10f0.m_unk10;
-    slots[1] = m_unk138 + (m_animBlendSlot10f0.m_unk10 ^ 1u);
+    slots[0] = m_pAnimBlendSlots + m_animBlendSlot10f0.m_unk10;
+    slots[1] = m_pAnimBlendSlots + (m_animBlendSlot10f0.m_unk10 ^ 1u);
 }
 
 // 0x00301578 CKHkS08Hero_AdvanceAnimTime (vt+0x188): the base's.
@@ -256,13 +256,13 @@ void CKHkS08Hero::SkipAnimToEnd() { SkipAnimToEndBase(); }  // 0x00351450
 // speed over [+0xbd8, +0xbdc] into [0, 1], times the normalised velocity's y clamped to [-1, 1] (rising / falling); with
 // +0xed0 bit 3, +0x1148 over [0, 1] into [1, -1]. Else 0.
 float CKHkS08Hero::ComputeLocomotionBlendWeight() {
-    const int16_t animation = static_cast<int16_t>(m_unk160);
+    const int16_t animation = static_cast<int16_t>(m_i16CurAnimIndex);
     if (animation == 0x44 || animation == 0x45) {
-        const float value = ClampToRange(m_unk12c4, m_unk964, m_unka00);
+        const float value = ClampToRange(m_fCurrentHorizSpeed, m_unk964, m_unka00);
         return Math_RemapClamped(m_unk964, m_unka00, value, 0.0f, 1.0f);  // 0x00333618; TOC +0x208c / +0x2090
     }
     if (animation != 0x18) return 0.0f;  // TOC +0x208c
-    if ((m_unked0 & 8u) != 0) return Math_RemapClamped(0.0f, 1.0f, AsF32(m_unk1148), 1.0f, -1.0f);  // TOC +0x2094
+    if ((m_ui32StatusFlagsED0 & 8u) != 0) return Math_RemapClamped(0.0f, 1.0f, AsF32(m_unk1148), 1.0f, -1.0f);  // TOC +0x2094
     const float low = m_unkbd8;
     const float high = m_unkbdc;
     const float speed =
@@ -295,10 +295,10 @@ void CKHkS08Hero::UpdateIdleVariationAnim(float dt) {
     // 0x00a705f0 (TOC +0x209c): the dictionary entries of the variations; the word before it (0) is read for index -1.
     static const uint32_t kIdleVariations[9] = {0, 2, 3, 4, 5, 6, 0x89, 0x8a, 0x77};
     const uint32_t* const table = &kIdleVariations[1];
-    const int16_t animation = static_cast<int16_t>(m_unk160);
+    const int16_t animation = static_cast<int16_t>(m_i16CurAnimIndex);
     if (animation == 0) {
         float timer = m_unk19ac;
-        if (timer > m_unkb64 && (m_unk354 & 0x8000u) != 0) {
+        if (timer > m_unkb64 && (m_ui32HeroFlags354 & 0x8000u) != 0) {
             const uint32_t draw = static_cast<uint32_t>(Rand_Int()) & 0xffffu;  // 0x00011500
             const uint32_t index = ((draw * 5u) >> 16) & 0xffffu;
             m_unk19b0 = static_cast<uint16_t>(index);
@@ -310,7 +310,7 @@ void CKHkS08Hero::UpdateIdleVariationAnim(float dt) {
     }
     // BUG(original): +0x19b0 is 0xffff (-1) unless a variation was chosen: the word before the table is read (0).
     const int32_t variation = static_cast<int16_t>(m_unk19b0);
-    if (static_cast<int32_t>(animation) == static_cast<int32_t>(table[variation] & 0xffffu) && (m_unk354 & 0x8000u) != 0) {
+    if (static_cast<int32_t>(animation) == static_cast<int32_t>(table[variation] & 0xffffu) && (m_ui32HeroFlags354 & 0x8000u) != 0) {
         PlayAnimation(0.0f, 0.0f, 0);  // vt+0x184
     }
     m_unk19ac = 0.0f;
@@ -330,7 +330,7 @@ uint8_t CKHkS08Hero::AnimLocomotionFlyingCondition(IKTime*, uint8_t) { return Is
 // (-1: the current one, +0x160) into out[0..5] (0 for a missing mark); nothing for an animation above 0x116 or not in
 // the hero's dictionary.
 void CKHkS08Hero::GetAnimParams13to18(float* out, int32_t animation) {
-    if (animation == -1) animation = static_cast<int16_t>(m_unk160);
+    if (animation == -1) animation = static_cast<int16_t>(m_i16CurAnimIndex);
     if (animation > 0x116) return;
     const CAnimationDictionary* dictionary = static_cast<const CAnimationDictionary*>(m_pAnimDico);
     RtAnimAnimation* anim = CAnimationManager_GetAnimation(static_cast<uint32_t>(dictionary->m_apAnimations[animation]));
@@ -353,7 +353,7 @@ uint8_t CKHkS08Hero::GroundAnimState00(IKTime* clock, int32_t phase, uint8_t) {
     CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_pGrpHero);
     if (phase == 1) {
         uint16_t animation = 1;
-        if ((group->m_unkf8 & 0x400u) == 0 && IsAbilityActive() == 0) animation = 0;  // 0x002fc228
+        if ((group->m_baWorkFlags & 0x400u) == 0 && IsAbilityActive() == 0) animation = 0;  // 0x002fc228
         PlayAnimation(0.0f, 0.2f, animation);  // vt+0x184; TOC +0x208c / +0x20a0
         m_unk19ac = 0.0f;
         m_unk19b0 = 0xffff;
@@ -370,10 +370,10 @@ uint8_t CKHkS08Hero::GroundAnimState00(IKTime* clock, int32_t phase, uint8_t) {
     if (phase != 0) return 0;
     if ((m_unkec8 & 0x400u) != 0) return 0xb;
     bool idleOne = false;
-    if ((group->m_unkf8 & 0x400u) != 0) {
-        if (m_unk160 != 1) idleOne = true;
+    if ((group->m_baWorkFlags & 0x400u) != 0) {
+        if (m_i16CurAnimIndex != 1) idleOne = true;
     }
-    if (!idleOne && IsAbilityActive() != 0 && m_unk160 != 1) idleOne = true;
+    if (!idleOne && IsAbilityActive() != 0 && m_i16CurAnimIndex != 1) idleOne = true;
     if (idleOne) PlayAnimation(0.0f, 0.2f, 1);  // vt+0x184
     if ((m_unkec8 & 2u) != 0) return 0xc;
     if (m_unk1512 != 0) return 3;
@@ -461,8 +461,8 @@ uint8_t CKHkS08Hero::GroundAnimState03(IKTime* clock, int32_t phase, uint8_t) {
             m_unked8 |= 0x800u;
             return 3;
         }
-        const int16_t animation = static_cast<int16_t>(m_unk160);
-        if ((animation == 0x12 || animation == 0x13 || animation == 0x14) && (m_unk354 & 0x8000u) != 0) return 5;
+        const int16_t animation = static_cast<int16_t>(m_i16CurAnimIndex);
+        if ((animation == 0x12 || animation == 0x13 || animation == 0x14) && (m_ui32HeroFlags354 & 0x8000u) != 0) return 5;
         if (m_unk1838 == 0) AdvanceAnimTime(clock->m_afDeltaTime[0]);  // vt+0x188
         return 3;
     }
@@ -501,8 +501,8 @@ uint8_t CKHkS08Hero::GroundAnimState04(IKTime* clock, int32_t phase, uint8_t) {
     if ((m_unkec8 & 4u) != 0) return 0xd;
     if (m_unk1512 != 0) return 3;
     if (m_unk1507 != 0) return 8;
-    if (m_unk1508 == 0 && m_unk1517 == 0 && m_unk160 != 0x11) PlayAnimation(0.0f, 0.2f, 0x11);
-    const bool turnEnded = m_unk160 == 0x11 && (m_unk354 & 0x8000u) != 0;
+    if (m_unk1508 == 0 && m_unk1517 == 0 && m_i16CurAnimIndex != 0x11) PlayAnimation(0.0f, 0.2f, 0x11);
+    const bool turnEnded = m_i16CurAnimIndex == 0x11 && (m_ui32HeroFlags354 & 0x8000u) != 0;
     if (turnEnded || m_unk1378 != 0.0f) {  // TOC +0x208c
         if (m_unk150d != 0) return 2;
         return m_unk150c;
@@ -553,8 +553,8 @@ uint8_t UpdateAirborneCommon(CKHkS08Hero* hero, float backBlend) {
         if (hero->m_unk388 != 0.0f && (hero->m_unkec4 & 0x8000u) != 0) return 9;  // TOC +0x208c
         return 7;
     }
-    if ((hero->m_unkec4 & 0x1000000u) != 0 && hero->m_unk160 != 0x23) hero->PlayAnimation(0.0f, 0.2f, 0x23);
-    if ((hero->m_unkec4 & 0x1000000u) == 0 && hero->m_unk160 == 0x23) hero->PlayAnimation(0.0f, backBlend, 0x18);
+    if ((hero->m_unkec4 & 0x1000000u) != 0 && hero->m_i16CurAnimIndex != 0x23) hero->PlayAnimation(0.0f, 0.2f, 0x23);
+    if ((hero->m_unkec4 & 0x1000000u) == 0 && hero->m_i16CurAnimIndex == 0x23) hero->PlayAnimation(0.0f, backBlend, 0x18);
     return 0xff;
 }
 }  // namespace
@@ -615,7 +615,7 @@ uint8_t CKHkS08Hero::GroundAnimState07(IKTime* clock, int32_t phase, uint8_t) {
         }
         m_unked8 |= 0x1000u;
         m_unkec4 |= 0x10000200u;
-        m_unk354 &= 0xfffffdffu;
+        m_ui32HeroFlags354 &= 0xfffffdffu;
         m_unkecc &= 0xffbfffffu;
         m_unkec8 |= 0x18u;
         return 7;
@@ -631,16 +631,16 @@ uint8_t CKHkS08Hero::GroundAnimState07(IKTime* clock, int32_t phase, uint8_t) {
     if ((m_unkec8 & 4u) != 0) return 0xd;
     if (m_unk1512 != 0) return 3;
     if (m_unk150d == 0) {
-        if (m_unk160 == 0x1a) {
+        if (m_i16CurAnimIndex == 0x1a) {
             PlayAnimation(0.0f, 0.25f, 0x19);  // TOC +0x20bc
             return 7;
         }
-    } else if (m_unk160 == 0x19) {
+    } else if (m_i16CurAnimIndex == 0x19) {
         return 2;
     }
-    const int16_t animation = static_cast<int16_t>(m_unk160);
+    const int16_t animation = static_cast<int16_t>(m_i16CurAnimIndex);
     if (m_unk150c != 0 && animation == 0x19) return 1;
-    if ((animation != 0x1a && animation != 0x19) || (m_unk354 & 0x8000u) != 0) {
+    if ((animation != 0x1a && animation != 0x19) || (m_ui32HeroFlags354 & 0x8000u) != 0) {
         if (m_unk150d != 0) return 2;
         if (m_unk150c != 0) return 1;
         if (m_unk150b != 0) return 0;
@@ -669,8 +669,8 @@ uint8_t CKHkS08Hero::GroundAnimState08(IKTime* clock, int32_t phase, uint8_t) {
     }
     if (phase != 0) return 8;
     if (m_unk1512 != 0) return 3;
-    const int16_t animation = static_cast<int16_t>(m_unk160);
-    if ((animation == 8 || animation == 7) && (m_unk354 & 0x8000u) != 0) return 0;
+    const int16_t animation = static_cast<int16_t>(m_i16CurAnimIndex);
+    if ((animation == 8 || animation == 7) && (m_ui32HeroFlags354 & 0x8000u) != 0) return 0;
     AdvanceAnimTime(clock->m_afDeltaTime[0]);  // vt+0x188
     return 8;
 }
@@ -702,7 +702,7 @@ uint8_t CKHkS08Hero::GroundAnimState10(IKTime* clock, int32_t phase, uint8_t) {
         m_unk1540 = scaled;
         PlayAnimation(0.0f, 0.2f, 0x1b);
         m_unkec4 |= 0x1800u;
-        m_unk354 |= 0x800u;
+        m_ui32HeroFlags354 |= 0x800u;
         CKVibrationData* vibration = static_cast<CKVibrationData*>(m_unk116c);
         if (vibration != nullptr && m_ui8Hero == m_ui8TrackedLeader) {
             vibration->m_pOwner = this;
@@ -715,17 +715,17 @@ uint8_t CKHkS08Hero::GroundAnimState10(IKTime* clock, int32_t phase, uint8_t) {
     if (phase == 2) {
         m_unkec4 &= 0xffffe7ffu;
         m_unk1544 = 0.0f;
-        m_unk354 &= 0xfffff7ffu;
+        m_ui32HeroFlags354 &= 0xfffff7ffu;
         return 10;
     }
     if (phase != 0) return 10;
-    const int16_t animation = static_cast<int16_t>(m_unk160);
+    const int16_t animation = static_cast<int16_t>(m_i16CurAnimIndex);
     if (animation == 0x1b) {
-        if ((m_unk354 & 0x8000u) != 0) {
+        if ((m_ui32HeroFlags354 & 0x8000u) != 0) {
             PlayAnimation(m_unk1540, 0.2f, 0x1c);
             return 10;
         }
-    } else if (animation == 0x1c && (m_unk354 & 0x8000u) != 0) {
+    } else if (animation == 0x1c && (m_ui32HeroFlags354 & 0x8000u) != 0) {
         return 0;
     }
     AdvanceAnimTime(clock->m_afDeltaTime[0]);  // vt+0x188
@@ -746,19 +746,19 @@ uint8_t CKHkS08Hero::GroundAnimState11(IKTime* clock, int32_t phase, uint8_t) {
             m_unked8 |= 0x8000u;
         }
         m_unkec8 |= 0xc00000u;
-        m_unk35c |= 8u;
-        m_unk354 |= 0x80000000u;
+        m_ui32HeroFlags35C |= 8u;
+        m_ui32HeroFlags354 |= 0x80000000u;
         if (m_ui8Hero != m_ui8TrackedLeader) m_unk368 |= 0x2000u;
         m_unkec4 |= 0x100u;
         return 0xb;
     }
     if (phase == 2) {
         m_unkec8 &= 0xfffbc1ffu;
-        m_unk354 &= 0xfffff7ffu;
+        m_ui32HeroFlags354 &= 0xfffff7ffu;
         m_unkec4 &= 0xffdfd3ffu;
         m_unkec8 &= 0xfd3fff7fu;
-        m_unk35c &= 0xfffffff7u;
-        m_unk354 &= 0x7fffffffu;
+        m_ui32HeroFlags35C &= 0xfffffff7u;
+        m_ui32HeroFlags354 &= 0x7fffffffu;
         m_unk368 &= 0xffffdfffu;
         m_unkec4 &= 0xfffffeffu;
         return 0xb;
@@ -766,9 +766,9 @@ uint8_t CKHkS08Hero::GroundAnimState11(IKTime* clock, int32_t phase, uint8_t) {
     if (phase != 0) return 0xb;
     m_unkec4 |= 0x100u;
     uint32_t flags = m_unkec8;
-    const int16_t animation = static_cast<int16_t>(m_unk160);
+    const int16_t animation = static_cast<int16_t>(m_i16CurAnimIndex);
     if ((flags & 0x2000u) == 0) {
-        if (animation == 0x2a && (m_unk354 & 0x8000u) != 0) {
+        if (animation == 0x2a && (m_ui32HeroFlags354 & 0x8000u) != 0) {
             m_unkecc |= 0x2000000u;
             PlayAnimation(0.0f, 0.2f, 0x29);
             return 0xb;
@@ -789,8 +789,8 @@ uint8_t CKHkS08Hero::GroundAnimState11(IKTime* clock, int32_t phase, uint8_t) {
         flags = m_unkec8;
     }
     if ((flags & 0x1000u) != 0) return 5;
-    const int16_t now = static_cast<int16_t>(m_unk160);
-    if ((flags & 0x400u) == 0 || ((now == 0x26 || now == 0x27) && (m_unk354 & 0x8000u) != 0)) return 0;
+    const int16_t now = static_cast<int16_t>(m_i16CurAnimIndex);
+    if ((flags & 0x400u) == 0 || ((now == 0x26 || now == 0x27) && (m_ui32HeroFlags354 & 0x8000u) != 0)) return 0;
     AdvanceAnimTime(clock->m_afDeltaTime[0]);  // vt+0x188
     return 0xb;
 }
@@ -821,7 +821,7 @@ uint8_t CKHkS08Hero::GroundAnimState12(IKTime* clock, int32_t phase, uint8_t) {
         m_unk1244 = kNullVector.z;
         m_unk1240 = kNullVector.y;
         m_unkec4 |= 0x202c00u;
-        m_unk354 |= 0x800u;
+        m_ui32HeroFlags354 |= 0x800u;
         if (m_unk1511 == 0) {
             m_unked8 |= 0x2000u;
         } else {
@@ -837,7 +837,7 @@ uint8_t CKHkS08Hero::GroundAnimState12(IKTime* clock, int32_t phase, uint8_t) {
         m_unk122c = 0.0f;
         m_unk1228 = 4;
         m_unkec4 &= 0xffdfd3ffu;
-        m_unk354 &= 0xfffff7ffu;
+        m_ui32HeroFlags354 &= 0xfffff7ffu;
         m_unkec8 &= 0xff3fffffu;
         camera->m_baTemporaryFlags &= 0xf7ffffffu;
         m_unk1248 = kNullVector.x;
@@ -853,28 +853,28 @@ uint8_t CKHkS08Hero::GroundAnimState12(IKTime* clock, int32_t phase, uint8_t) {
     bool ended = false;
     switch (m_unk1228) {
         case 0:
-            if (m_unk160 != 0x2b) {
+            if (m_i16CurAnimIndex != 0x2b) {
                 PlayAnimation(0.0f, 0.2f, 0x2b);
                 return 0xc;
             }
             ended = true;
             break;
         case 1:
-            if (m_unk160 != 0x2c) {
+            if (m_i16CurAnimIndex != 0x2c) {
                 PlayAnimation(0.0f, 0.2f, 0x2c);
                 return 0xc;
             }
             ended = true;
             break;
         case 2:
-            if (m_unk160 != 0x2d) {
+            if (m_i16CurAnimIndex != 0x2d) {
                 PlayAnimation(0.0f, 0.2f, 0x2d);
                 return 0xc;
             }
             ended = true;
             break;
         case 3:
-            if (m_unk160 != 0x2e) {
+            if (m_i16CurAnimIndex != 0x2e) {
                 PlayAnimation(0.0f, 0.2f, 0x2e);
                 return 0xc;
             }
@@ -887,7 +887,7 @@ uint8_t CKHkS08Hero::GroundAnimState12(IKTime* clock, int32_t phase, uint8_t) {
     }
     if (ended) {
         if ((flags & 0x100000u) != 0 && m_unk1378 > 0.5f && (flags & 0x200000u) == 0) return 2;  // TOC +0x20b8
-        if ((m_unk354 & 0x8000u) != 0) {
+        if ((m_ui32HeroFlags354 & 0x8000u) != 0) {
             if ((flags & 0x200000u) == 0) return 0;
             return 0xd;
         }
@@ -905,25 +905,25 @@ uint8_t CKHkS08Hero::GroundAnimState12(IKTime* clock, int32_t phase, uint8_t) {
 // standing without bit 2.
 uint8_t CKHkS08Hero::GroundAnimState13(IKTime* clock, int32_t phase, uint8_t) {
     if (phase == 1) {
-        PlayAnimation(0.0f, 0.04f, m_unk160 == 0xcf ? 0xd0 : 0xd1);
+        PlayAnimation(0.0f, 0.04f, m_i16CurAnimIndex == 0xcf ? 0xd0 : 0xd1);
         m_unkec8 |= 0x18u;
         m_unkec4 |= 0x203c00u;
-        m_unk354 |= 0x800u;
+        m_ui32HeroFlags354 |= 0x800u;
         m_unked8 |= 0x2000000u;
         return 0xd;
     }
     if (phase == 2) {
         m_unkec8 &= 0xffffffe7u;
         m_unkec4 &= 0xffdfc3ffu;
-        m_unk354 &= 0xfffff7ffu;
+        m_ui32HeroFlags354 &= 0xfffff7ffu;
         m_unkec8 &= 0xff3fffffu;
         return 0xd;
     }
     if (phase != 0) return 0xd;
     if ((m_unkec8 & 2u) != 0) return 0xc;
     if ((m_unkec8 & 4u) == 0) return 0;
-    const int16_t animation = static_cast<int16_t>(m_unk160);
-    if ((animation == 0xcf || animation == 0xd0) && (m_unk354 & 0x8000u) != 0) {
+    const int16_t animation = static_cast<int16_t>(m_i16CurAnimIndex);
+    if ((animation == 0xcf || animation == 0xd0) && (m_ui32HeroFlags354 & 0x8000u) != 0) {
         PlayAnimation(0.0f, 0.04f, 0xd1);
     } else if (m_unk1838 == 0) {
         AdvanceAnimTime(clock->m_afDeltaTime[0]);  // vt+0x188
@@ -965,7 +965,7 @@ uint8_t CKHkS08Hero::GroundAnimState15(IKTime* clock, int32_t phase, uint8_t) {
 uint8_t CKHkS08Hero::GroundAnimState16(IKTime* clock, int32_t phase, uint8_t) {
     if (phase == 0) {
         if (ShouldJoinPartnerFlight() == 0) return 0;  // 0x00341fa0
-        if (m_unk160 == 0x90 && (m_unk354 & 0x8000u) != 0) return 0xf;
+        if (m_i16CurAnimIndex == 0x90 && (m_ui32HeroFlags354 & 0x8000u) != 0) return 0xf;
         if (m_unk1838 == 0) AdvanceAnimTime(clock->m_afDeltaTime[0]);  // vt+0x188
         return 0x10;
     }
@@ -988,7 +988,7 @@ void CKHkS08Hero::UpdateSecondaryAnimCrossfade(IKTime* clock) {
 void CKHkS08Hero::UpdateLocomotionAnimationBlend(float dt, uint8_t enabled) {
     m_unk144c.x = ComputeLocomotionBlendWeight();  // 0x00301fe0
     if (enabled != 0) {
-        const int16_t animation = static_cast<int16_t>(m_unk160);
+        const int16_t animation = static_cast<int16_t>(m_i16CurAnimIndex);
         if (animation == 0x44 || animation == 0x45 || animation == 0x18) {
             // The dictionary entries: the centre (0x18 in the air, 0x41 / 0x42 flying) and the pair's two sides (rising
             // 0x15, falling 0x16, or 0x17 high in the air: the ground sub-state 6; flying: the cruise itself).
@@ -1003,7 +1003,7 @@ void CKHkS08Hero::UpdateLocomotionAnimationBlend(float dt, uint8_t enabled) {
                 negative = 0x45;
                 centre = 0x42;
                 positive = 0x45;
-            } else if (m_unk1960 == 6) {
+            } else if (m_ui8GroundAnimState == 6) {
                 negative = 0x17;
             }
             if (GetAnimBlendSlot()->m_unk14 == 0) {  // vt+0x194: no crossfade on the slot
@@ -1052,7 +1052,7 @@ void CKHkS08Hero::UpdateSideBlendAnims(float dt, uint8_t enabled) {
         int32_t second = 0;
         float timeScale = 1.0f;  // TOC +0x2090
         bool found = true;
-        switch (static_cast<int16_t>(m_unk160)) {
+        switch (static_cast<int16_t>(m_i16CurAnimIndex)) {
             case 0x09:
                 first = 0xa; centre = 0x9; second = 0xb;
                 timeScale = m_unk12d0 * 0.5f;  // TOC +0x20b8
@@ -1084,7 +1084,7 @@ void CKHkS08Hero::UpdateSideBlendAnims(float dt, uint8_t enabled) {
             case 0xde: first = 0x103; centre = 0xde; second = 0x104; m_unk12f4 = m_unk1d04; m_unk12f8 = m_unk1d08; break;
             case 0xe1:
                 first = 0x109; centre = 0xe1; second = 0x10a;
-                timeScale = m_unk1d20;
+                timeScale = m_fAbilityAnimSpeedScale;
                 m_unk12f4 = m_unk1d04; m_unk12f8 = m_unk1d08;
                 break;
             case 0xed: first = 0xff; centre = 0xed; second = 0x100; m_unk12f4 = m_unk1d04; m_unk12f8 = m_unk1d08; break;
@@ -1092,14 +1092,14 @@ void CKHkS08Hero::UpdateSideBlendAnims(float dt, uint8_t enabled) {
             case 0xf1: first = 0x105; centre = 0xf1; second = 0x106; m_unk12f4 = m_unk1d04; m_unk12f8 = m_unk1d08; break;
             case 0xf4:
                 first = 0x10b; centre = 0xf4; second = 0x10c;
-                timeScale = m_unk1d20;
+                timeScale = m_fAbilityAnimSpeedScale;
                 m_unk12f4 = m_unk1d04; m_unk12f8 = m_unk1d08;
                 break;
             case 0xf6: first = 0x101; centre = 0xf6; second = 0x102; m_unk12f4 = m_unk1d04; m_unk12f8 = m_unk1d08; break;
             case 0xf9: first = 0x107; centre = 0xf9; second = 0x108; m_unk12f4 = m_unk1d04; m_unk12f8 = m_unk1d08; break;
             case 0xfc:
                 first = 0x10d; centre = 0xfc; second = 0x10e;
-                timeScale = m_unk1d20;
+                timeScale = m_fAbilityAnimSpeedScale;
                 m_unk12f4 = m_unk1d04; m_unk12f8 = m_unk1d08;
                 break;
             default:
@@ -1180,7 +1180,7 @@ bool IsFlyCruiseAnim(int16_t animation) {
 // (on the ground): state 11.
 uint8_t CKHkS08Hero::FlyAnimState00(IKTime* clock, int32_t phase, uint8_t) {
     if (phase == 1) {
-        if (!(m_unk12c4 < m_unk964)) {  // bge
+        if (!(m_fCurrentHorizSpeed < m_unk964)) {  // bge
             PlayAnimation(0.0f, 0.2f, 0x37);  // vt+0x184; TOC +0x208c / +0x20a0
         } else {
             PlayAnimation(0.0f, 0.5f, 0x30);  // TOC +0x20b8
@@ -1202,9 +1202,9 @@ uint8_t CKHkS08Hero::FlyAnimState00(IKTime* clock, int32_t phase, uint8_t) {
     if (m_unk1438 != 0) return 0xe;
     if (m_unk13cc != 0) return 7;
     if ((flagsEcc & 0x800000u) != 0) return 8;
-    if (m_unk13ce != 0) return !(m_unk12c4 < m_unk964) ? 2 : 1;  // crnor eq, lt, lt
+    if (m_unk13ce != 0) return !(m_fCurrentHorizSpeed < m_unk964) ? 2 : 1;  // crnor eq, lt, lt
     if (m_unk13a4 != 0) return 3;
-    int16_t animation = static_cast<int16_t>(m_unk160);
+    int16_t animation = static_cast<int16_t>(m_i16CurAnimIndex);
     if (!IsFlyCruiseAnim(animation) && animation != 0x44) {
         bool skip = false;
         if (animation == 0x37) {
@@ -1212,7 +1212,7 @@ uint8_t CKHkS08Hero::FlyAnimState00(IKTime* clock, int32_t phase, uint8_t) {
                 skip = true;
             } else {
                 PlayAnimation(0.0f, 0.5f, 0x30);
-                animation = static_cast<int16_t>(m_unk160);
+                animation = static_cast<int16_t>(m_i16CurAnimIndex);
             }
         }
         if (!skip && animation == 0x30 && m_unk12d0 >= m_unk964) PlayAnimation(0.0f, 0.2f, 0x37);  // cror gt|eq
@@ -1228,12 +1228,12 @@ uint8_t CKHkS08Hero::FlyAnimState00(IKTime* clock, int32_t phase, uint8_t) {
 // above the cruise speed: state 2.
 uint8_t CKHkS08Hero::FlyAnimState01(IKTime* clock, int32_t phase, uint8_t) {
     if (phase == 1) {
-        if (m_unk1809 == 0) {
+        if (m_bTakeOffPending == 0) {
             PlayAnimation(0.0f, 0.2f, 0x33);  // vt+0x184
             m_unk1838 = 0;
             m_unked8 |= 1u;
         } else {
-            m_unk1809 = 0;
+            m_bTakeOffPending = 0;
             PlayAnimation(0.0f, 0.2f, 0x36);
             m_unked8 |= 0x20u;
         }
@@ -1254,10 +1254,10 @@ uint8_t CKHkS08Hero::FlyAnimState01(IKTime* clock, int32_t phase, uint8_t) {
     if ((flagsEcc & 0x80000u) != 0) return 0x11;
     if (m_unk13a4 != 0) return 3;
     if (m_unk13cc != 0) return 7;
-    if (!AnimIdIsShort(m_unk160) || (m_unk354 & 0x8000u) != 0) return 0;
+    if (!AnimIdIsShort(m_i16CurAnimIndex) || (m_ui32HeroFlags354 & 0x8000u) != 0) return 0;
     if ((flagsEcc & 0x800000u) != 0) return 8;
     if (m_unk13ce != 0) {
-        if (!(m_unk12c4 < m_unk964)) return 2;  // bge
+        if (!(m_fCurrentHorizSpeed < m_unk964)) return 2;  // bge
         PlayAnimation(0.0f, 0.2f, 0x33);
         m_unk13c0 = 0.0f;
         m_unk1838 = 0;
@@ -1272,12 +1272,12 @@ uint8_t CKHkS08Hero::FlyAnimState01(IKTime* clock, int32_t phase, uint8_t) {
 // a take-off (+0x1809). Gliding (0) when 0x02 / 0x3a / 0x3d ends; +0x13ce below the cruise speed: state 1.
 uint8_t CKHkS08Hero::FlyAnimState02(IKTime* clock, int32_t phase, uint8_t) {
     if (phase == 1) {
-        if (m_unk1809 == 0) {
+        if (m_bTakeOffPending == 0) {
             PlayAnimation(0.0f, 0.2f, 0x3a);  // vt+0x184
             m_unk1838 = 0;
             m_unked8 |= 1u;
         } else {
-            m_unk1809 = 0;
+            m_bTakeOffPending = 0;
             PlayAnimation(0.0f, 0.2f, 0x3d);
             m_unked8 |= 0x20u;
         }
@@ -1299,17 +1299,17 @@ uint8_t CKHkS08Hero::FlyAnimState02(IKTime* clock, int32_t phase, uint8_t) {
     if ((flagsEcc & 0x80000u) != 0) return 0x11;
     if (m_unk13a4 != 0) return 3;
     if (m_unk13cc != 0) return 7;
-    const int16_t animation = static_cast<int16_t>(m_unk160);
-    if (animation == 2 && (m_unk354 & 0x8000u) != 0) return 0;
+    const int16_t animation = static_cast<int16_t>(m_i16CurAnimIndex);
+    if (animation == 2 && (m_ui32HeroFlags354 & 0x8000u) != 0) return 0;
     if ((flagsEcc & 0x800000u) != 0) return 8;
     if (m_unk13ce != 0) {
-        if (m_unk12c4 < m_unk964) return 1;  // blt
+        if (m_fCurrentHorizSpeed < m_unk964) return 1;  // blt
         PlayAnimation(0.0f, 0.2f, 0x3a);
         m_unk13c0 = 0.0f;
         m_unk1838 = 0;
         return 2;
     }
-    if ((animation == 0x3a || animation == 0x3d) && (m_unk354 & 0x8000u) != 0) return 0;
+    if ((animation == 0x3a || animation == 0x3d) && (m_ui32HeroFlags354 & 0x8000u) != 0) return 0;
     if (m_unk1838 == 0) AdvanceAnimTime(clock->m_afDeltaTime[0]);  // vt+0x188
     m_unk13c0 = m_unk13c0 + clock->m_afDeltaTime[0];
     return 2;
@@ -1340,12 +1340,12 @@ uint8_t CKHkS08Hero::FlyAnimState03(IKTime* clock, int32_t phase, uint8_t) {
     m_unked8 |= 4u;
     if (m_unk13cf != 0) return 5;
     if (m_unk13d1 == 0) {
-        if (m_unk160 == 0x46 && (m_unk354 & 0x8000u) != 0) {
+        if (m_i16CurAnimIndex == 0x46 && (m_ui32HeroFlags354 & 0x8000u) != 0) {
             m_unkec4 &= 0xfdffe7ffu;
             return 9;
         }
         m_unkec4 |= 0x2001800u;
-        if (m_unk160 != 0x46) PlayAnimation(0.0f, 0.2f, 0x46);
+        if (m_i16CurAnimIndex != 0x46) PlayAnimation(0.0f, 0.2f, 0x46);
     } else {
         if (m_unk13a4 == 0) return 0;
         if (m_unk13ce != 0) return 4;
@@ -1378,10 +1378,10 @@ uint8_t CKHkS08Hero::FlyAnimState04(IKTime* clock, int32_t phase, uint8_t) {
     if (phase != 0) return 4;
     if ((m_unkec8 & 2u) != 0) return 0xf;
     if (m_unk13cf != 0) return 5;
-    const int16_t animation = static_cast<int16_t>(m_unk160);
+    const int16_t animation = static_cast<int16_t>(m_i16CurAnimIndex);
     if (!IsFlyCruiseAnim(animation)) {
         if (animation != 0x44) return m_unk13a4 == 0 ? 0 : 3;
-        if ((m_unk354 & 0x8000u) != 0) return 3;
+        if ((m_ui32HeroFlags354 & 0x8000u) != 0) return 3;
     }
     if (m_unk1838 == 0) AdvanceAnimTime(clock->m_afDeltaTime[0]);  // vt+0x188
     m_unk13c0 = m_unk13c0 + clock->m_afDeltaTime[0];
@@ -1404,7 +1404,7 @@ uint8_t CKHkS08Hero::FlyAnimState05(IKTime* clock, int32_t phase, uint8_t) {
     }
     if (phase != 0) return 5;
     m_unk13d0 = 0;
-    if (m_unk160 != 0x43 || (m_unk354 & 0x8000u) != 0) return 0;
+    if (m_i16CurAnimIndex != 0x43 || (m_ui32HeroFlags354 & 0x8000u) != 0) return 0;
     if (m_unk1838 == 0) AdvanceAnimTime(clock->m_afDeltaTime[0]);  // vt+0x188
     m_unk13c0 = m_unk13c0 + clock->m_afDeltaTime[0];
     return 5;
@@ -1425,7 +1425,7 @@ uint8_t CKHkS08Hero::FlyAnimState06(IKTime* clock, int32_t phase, uint8_t) {
     if (phase != 0) return 6;
     if (m_unk13cc != 0) return 7;
     if ((m_unkecc & 0x800000u) != 0) return 8;
-    if (m_unk13ce != 0) return !(m_unk12c4 < m_unk964) ? 2 : 1;  // crnor eq, lt, lt
+    if (m_unk13ce != 0) return !(m_fCurrentHorizSpeed < m_unk964) ? 2 : 1;  // crnor eq, lt, lt
     const float boost = AsF32(m_unk1380);
     if (boost <= 0.0f || m_unk94c < boost) return 0;  // cror lt|eq; blt
     // The dictionary's 0x3e entry (+0x13c +4, word 0x3e): its duration (+0x10), 1 when missing or 0.
@@ -1437,7 +1437,7 @@ uint8_t CKHkS08Hero::FlyAnimState06(IKTime* clock, int32_t phase, uint8_t) {
         duration = boostAnim->duration;
     }
     float rate = (m_unk948 - m_unk13c0) / duration;
-    if (m_unk160 == 0x3e && (m_unk354 & 0x8000u) != 0) {
+    if (m_i16CurAnimIndex == 0x3e && (m_ui32HeroFlags354 & 0x8000u) != 0) {
         PlayAnimation(0.0f, 2.0f, 0x3f);  // TOC +0x20b0
         rate = 1.0f;
         m_unkec4 |= 0x80000u;
@@ -1470,7 +1470,7 @@ uint8_t CKHkS08Hero::FlyAnimState07(IKTime* clock, int32_t phase, uint8_t) {
     }
     if (phase != 0) return 7;
     if (m_unk1438 != 0) return 0xe;
-    if (m_unk160 != 0x40 || (m_unk354 & 0x8000u) != 0) return 0;
+    if (m_i16CurAnimIndex != 0x40 || (m_ui32HeroFlags354 & 0x8000u) != 0) return 0;
     if ((m_unkec8 & 0x400u) != 0) return 0xb;
     if (m_unk1838 == 0) AdvanceAnimTime(clock->m_afDeltaTime[0]);  // vt+0x188
     return 7;
@@ -1489,7 +1489,7 @@ uint8_t CKHkS08Hero::FlyAnimState08(IKTime* clock, int32_t phase, uint8_t) {
         return 8;
     }
     if (phase != 0) return 8;
-    if (m_unk160 == 0x5b && (m_unk354 & 0x8000u) != 0) return 0;
+    if (m_i16CurAnimIndex == 0x5b && (m_ui32HeroFlags354 & 0x8000u) != 0) return 0;
     if (m_unk1838 == 0) AdvanceAnimTime(clock->m_afDeltaTime[0]);  // vt+0x188
     return 8;
 }
@@ -1499,7 +1499,7 @@ uint8_t CKHkS08Hero::FlyAnimState08(IKTime* clock, int32_t phase, uint8_t) {
 // +0x990 (+0x12d0): state 10.
 uint8_t CKHkS08Hero::FlyAnimState09(IKTime* clock, int32_t phase, uint8_t) {
     if (phase == 0) {
-        if (m_unk160 == 0x4b && (m_unk354 & 0x8000u) != 0) PlayAnimation(0.0f, 0.2f, 0x47);  // vt+0x184
+        if (m_i16CurAnimIndex == 0x4b && (m_ui32HeroFlags354 & 0x8000u) != 0) PlayAnimation(0.0f, 0.2f, 0x47);  // vt+0x184
         if (m_unk1384 != 0) return 0xc;
         if (m_unk13d1 != 0) return 0;
         if (m_unk12d0 > m_unk990) return 0xa;  // bgt
@@ -1507,10 +1507,10 @@ uint8_t CKHkS08Hero::FlyAnimState09(IKTime* clock, int32_t phase, uint8_t) {
         return 9;
     }
     if (phase == 1) {
-        if (m_unk1809 == 0) {
+        if (m_bTakeOffPending == 0) {
             PlayAnimation(0.0f, 0.2f, 0x47);
         } else {
-            m_unk1809 = 0;
+            m_bTakeOffPending = 0;
             PlayAnimation(0.0f, 0.2f, 0x4b);
         }
     }
@@ -1549,7 +1549,7 @@ uint8_t CKHkS08Hero::FlyAnimState11(IKTime* clock, int32_t phase, uint8_t) {
 // 0x00302c98 CKHkS08Hero_FlyAnimState12_Anim4A: 0x4a (+0x13a7 set) until it ends; with +0x13d1 its end goes to state 9.
 uint8_t CKHkS08Hero::FlyAnimState12(IKTime* clock, int32_t phase, uint8_t) {
     if (phase == 0) {
-        const bool running = m_unk160 == 0x4a && (m_unk354 & 0x8000u) == 0;
+        const bool running = m_i16CurAnimIndex == 0x4a && (m_ui32HeroFlags354 & 0x8000u) == 0;
         if (m_unk13d1 != 0 && !running) return 9;
         if (running) AdvanceAnimTime(clock->m_afDeltaTime[0]);  // vt+0x188
         return 0xc;
@@ -1587,7 +1587,7 @@ uint8_t CKHkS08Hero::FlyAnimState13(IKTime* clock, int32_t phase, uint8_t) {
         first = 0x4e;
         second = 0x4f;
     }
-    const int16_t current = static_cast<int16_t>(m_unk160);
+    const int16_t current = static_cast<int16_t>(m_i16CurAnimIndex);
     if (first != current && second != current && m_unk13d8 != 0) {
         PlayAnimation(0.0f, 0.2f, static_cast<uint16_t>(m_unk13d9 == 0 ? first : second));
     }
@@ -1596,9 +1596,9 @@ uint8_t CKHkS08Hero::FlyAnimState13(IKTime* clock, int32_t phase, uint8_t) {
         return 0xd;
     }
     if (m_unk13d8 == 0) {
-        const int16_t animation = static_cast<int16_t>(m_unk160);
+        const int16_t animation = static_cast<int16_t>(m_i16CurAnimIndex);
         if (animation != 0x50 && animation != 0x51) return 0;
-        if ((m_unk354 & 0x8000u) != 0) return 0;
+        if ((m_ui32HeroFlags354 & 0x8000u) != 0) return 0;
     }
     if ((m_unkec8 & 0x400u) != 0) return 0xb;
     AdvanceAnimTime(clock->m_afDeltaTime[0]);  // vt+0x188
@@ -1608,7 +1608,7 @@ uint8_t CKHkS08Hero::FlyAnimState13(IKTime* clock, int32_t phase, uint8_t) {
 // 0x00302bb0 CKHkS08Hero_FlyAnimState14_Anim52: 0x52 until it ends, then gliding (0).
 uint8_t CKHkS08Hero::FlyAnimState14(IKTime* clock, int32_t phase, uint8_t) {
     if (phase == 0) {
-        if (m_unk160 != 0x52 || (m_unk354 & 0x8000u) != 0) return 0;
+        if (m_i16CurAnimIndex != 0x52 || (m_ui32HeroFlags354 & 0x8000u) != 0) return 0;
         AdvanceAnimTime(clock->m_afDeltaTime[0]);  // vt+0x188
         return 0xe;
     }
@@ -1628,7 +1628,7 @@ uint8_t CKHkS08Hero::FlyAnimState15(IKTime* clock, int32_t phase, uint8_t) {
         } else if (m_unk1228 == 3) {
             PlayAnimation(0.0f, 0.2f, 0x54);
         }
-        m_unk354 |= 0x800u;
+        m_ui32HeroFlags354 |= 0x800u;
         m_unked8 |= 0x80u;
         camera->m_baTemporaryFlags |= 0x8000000u;
         m_unkec8 |= 0xc00080u;
@@ -1639,7 +1639,7 @@ uint8_t CKHkS08Hero::FlyAnimState15(IKTime* clock, int32_t phase, uint8_t) {
         m_unk122c = 0.0f;
         m_unk1228 = 4;
         m_unkec4 &= 0xffdfd3ffu;
-        m_unk354 &= 0xfffff7ffu;
+        m_ui32HeroFlags354 &= 0xfffff7ffu;
         m_unkec8 &= 0xff3fffffu;
         camera->m_baTemporaryFlags &= 0xf7ffffffu;
         m_unk1248 = kNullVector.x;
@@ -1650,15 +1650,15 @@ uint8_t CKHkS08Hero::FlyAnimState15(IKTime* clock, int32_t phase, uint8_t) {
     }
     if (phase != 0) return 0xf;
     if ((m_unkecc & 0x800000u) != 0) return 8;
-    if (m_unk13ce != 0) return !(m_unk12c4 < m_unk964) ? 2 : 1;  // crnor eq, lt, lt
+    if (m_unk13ce != 0) return !(m_fCurrentHorizSpeed < m_unk964) ? 2 : 1;  // crnor eq, lt, lt
     const uint8_t direction = m_unk1228;
     if (direction == 3 || direction == 2) {
         const uint16_t animation = direction == 3 ? 0x54 : 0x53;
-        if (m_unk160 != animation) {
+        if (m_i16CurAnimIndex != animation) {
             PlayAnimation(0.0f, 0.2f, animation);
             return 0xf;
         }
-        if ((m_unk354 & 0x8000u) != 0) return 0;
+        if ((m_ui32HeroFlags354 & 0x8000u) != 0) return 0;
     } else if (direction == 4) {
         return 0;
     }
@@ -1676,7 +1676,7 @@ uint8_t CKHkS08Hero::FlyAnimState16(IKTime*, int32_t phase, uint8_t) {
     if (phase != 2) return 0x10;
     if ((m_unkec8 & 0x40000u) != 0) m_unkec8 |= 0x80000u;
     m_unkec8 &= 0xfffbc1ffu;
-    m_unk354 &= 0xfffff7ffu;
+    m_ui32HeroFlags354 &= 0xfffff7ffu;
     m_unkec4 &= 0xffdfd3ffu;
     m_unkec8 &= 0xcd3fff7fu;
     return 0x10;
@@ -1689,7 +1689,7 @@ uint8_t CKHkS08Hero::FlyAnimState17(IKTime* clock, int32_t phase, uint8_t) {
     if (phase == 1) {
         PlayAnimation(0.0f, 0.2f, 0x55);  // vt+0x184
         m_unkec4 |= 0x202c00u;
-        m_unk354 |= 0x800u;
+        m_ui32HeroFlags354 |= 0x800u;
         m_unkec8 |= 0x100u;
         m_unked8 |= 0x80u;
         return 0x11;
@@ -1697,12 +1697,12 @@ uint8_t CKHkS08Hero::FlyAnimState17(IKTime* clock, int32_t phase, uint8_t) {
     if (phase == 2) {
         m_unkec8 &= 0xff3fffffu;
         m_unkec4 &= 0xffdfd3ffu;
-        m_unk354 &= 0xfffff7ffu;
+        m_ui32HeroFlags354 &= 0xfffff7ffu;
         m_unkec8 &= 0xfffffeffu;
         return 0x11;
     }
     if (phase != 0) return 0x11;
-    if (m_unk160 == 0x55 && (m_unk354 & 0x8000u) != 0) {
+    if (m_i16CurAnimIndex == 0x55 && (m_ui32HeroFlags354 & 0x8000u) != 0) {
         if ((m_unkec4 & 0x40000u) == 0) SetMovementMode(0);  // 0x00340c18
         return 0;
     }
@@ -1804,20 +1804,20 @@ uint8_t CKHkS08Hero::ClimbAnimState01(IKTime* clock, int32_t phase, uint8_t) {
         along = 0x65;
         turn = 0x66;
     }
-    int16_t animation = static_cast<int16_t>(m_unk160);
+    int16_t animation = static_cast<int16_t>(m_i16CurAnimIndex);
     bool playTurn = true;
     bool checkAlong = true;
     if (animation != sideways) {
         if (m_unk168e != 0) {
             PlayAnimation(0.0f, 0.2f, static_cast<uint16_t>(sideways));
-            animation = static_cast<int16_t>(m_unk160);
+            animation = static_cast<int16_t>(m_i16CurAnimIndex);
         }
         if (animation == along) checkAlong = false;
     }
     if (checkAlong) {
         if (m_unk168c != 0) {
             PlayAnimation(0.0f, 0.2f, static_cast<uint16_t>(along));
-            animation = static_cast<int16_t>(m_unk160);
+            animation = static_cast<int16_t>(m_i16CurAnimIndex);
         }
         if (animation == turn) playTurn = false;
     }
@@ -1848,7 +1848,7 @@ uint8_t CKHkS08Hero::ClimbAnimState02(IKTime* clock, int32_t phase, uint8_t) {
     }
     if (phase != 0) return 2;
     const uint8_t kind = m_unk1664;
-    const int16_t current = static_cast<int16_t>(m_unk160);
+    const int16_t current = static_cast<int16_t>(m_i16CurAnimIndex);
     const uint32_t rising = HeroAnimTableWord(0x64, kind);
     if (current == static_cast<int16_t>(rising)) {
         if (m_unk1280 < 0.0f) {  // bge
@@ -1872,15 +1872,15 @@ uint8_t CKHkS08Hero::ClimbAnimState02(IKTime* clock, int32_t phase, uint8_t) {
     }
     if (m_unk1627 != 0) {
         const uint32_t hold = HeroAnimTableWord(0xac, m_unk1664);
-        if (static_cast<int16_t>(m_unk160) != static_cast<int16_t>(hold)) {
+        if (static_cast<int16_t>(m_i16CurAnimIndex) != static_cast<int16_t>(hold)) {
             PlayAnimation(0.0f, 0.2f, static_cast<uint16_t>(hold));
             return 2;
         }
     }
     if (GetClimbFlag1627Or1626And1628() == 0) return ShouldStayClimbing() != 0 ? 3 : 0;  // 0x0031d880, 0x00342fa8
     const int32_t index = m_unk1664;
-    const int32_t now = static_cast<int16_t>(m_unk160);
-    const bool ended = (m_unk354 & 0x8000u) != 0;
+    const int32_t now = static_cast<int16_t>(m_i16CurAnimIndex);
+    const bool ended = (m_ui32HeroFlags354 & 0x8000u) != 0;
     // The entry (+0x40) or the hold (+0xac) still running, or the up / down animation: the time runs (0x8b ending
     // instead sets +0xecc bit 15); any other animation but 0x8b: nothing.
     bool runs = (static_cast<int32_t>(HeroAnimTableWord(0x40, index) & 0xffffu) == now && !ended) ||
@@ -1916,8 +1916,8 @@ uint8_t CKHkS08Hero::ClimbAnimState03(IKTime* clock, int32_t phase, uint8_t) {
     if (phase != 0) return 3;
     if (m_unk1678 == 0) return 0;
     const uint32_t animation = HeroAnimTableWord(0x14, static_cast<int32_t>(m_unk1740)) & 0xffffu;
-    if (static_cast<int32_t>(static_cast<int16_t>(m_unk160)) == static_cast<int32_t>(animation) &&
-        (m_unk354 & 0x8000u) != 0) {
+    if (static_cast<int32_t>(static_cast<int16_t>(m_i16CurAnimIndex)) == static_cast<int32_t>(animation) &&
+        (m_ui32HeroFlags354 & 0x8000u) != 0) {
         return 0;
     }
     if ((m_unkedc & 0x200u) != 0 && !(m_unk1378 <= 0.5f)) return 1;  // ble; TOC +0x20b8
@@ -1948,8 +1948,8 @@ uint8_t CKHkS08Hero::ClimbAnimState04(IKTime* clock, int32_t phase, uint8_t) {
     }
     if (phase != 0) return 4;
     if (m_unk1626 != 0) return 2;
-    const int16_t animation = static_cast<int16_t>(m_unk160);
-    if ((animation == 0x85 || animation == 0x86) && (m_unk354 & 0x8000u) != 0) {
+    const int16_t animation = static_cast<int16_t>(m_i16CurAnimIndex);
+    if ((animation == 0x85 || animation == 0x86) && (m_ui32HeroFlags354 & 0x8000u) != 0) {
         if (!(std::fabs(m_unk378) > 0.5f)) return 0;  // the sign bit cleared through the stack; bgt; TOC +0x20b8
         if (!(m_unk378 <= 0.0f)) {  // ble
             m_unk168d = 0;
@@ -1977,8 +1977,8 @@ uint8_t CKHkS08Hero::ClimbAnimState05(IKTime* clock, int32_t phase, uint8_t) {
         m_unkec8 &= 0xfffffffeu;
         SetDirectionLock(0);  // 0x009bdb48 inlined: 0x00354cf0 and the +0x354 / +0x364 / +0x590 stores
         CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_pGrpHero);
-        if (group->m_ui8ControlledHeroCount <= 1 && (group->m_unk2c8 & 0x1000u) == 0) {  // 0x002ca288
-            static_cast<CKHkS08Hero*>(group->m_apCompanionHeroes[0])->m_unked0 |= 4u;
+        if (group->m_ui8ControlledHeroCount <= 1 && (group->m_ui32PairStateFlags & 0x1000u) == 0) {  // 0x002ca288
+            static_cast<CKHkS08Hero*>(group->m_apCompanionHeroes[0])->m_ui32StatusFlagsED0 |= 4u;
         }
         return 5;
     }
@@ -1987,7 +1987,7 @@ uint8_t CKHkS08Hero::ClimbAnimState05(IKTime* clock, int32_t phase, uint8_t) {
         PlayAnimation(0.0f, 0.0f, 0x87);
         m_unkec4 &= 0x7fffffffu;
     }
-    if (m_unk160 == 0x87 && (m_unk354 & 0x8000u) != 0) {
+    if (m_i16CurAnimIndex == 0x87 && (m_ui32HeroFlags354 & 0x8000u) != 0) {
         SetMovementMode(0);  // 0x00340c18
     } else {
         AdvanceAnimTime(clock->m_afDeltaTime[0]);  // vt+0x188
@@ -2015,8 +2015,8 @@ uint8_t CKHkS08Hero::ClimbAnimState06(IKTime* clock, int32_t phase, uint8_t) {
         return 6;
     }
     if (phase != 0) return 6;
-    const int16_t animation = static_cast<int16_t>(m_unk160);
-    if ((animation == 0x89 || animation == 0x8a) && (m_unk354 & 0x8000u) != 0) return 0;
+    const int16_t animation = static_cast<int16_t>(m_i16CurAnimIndex);
+    if ((animation == 0x89 || animation == 0x8a) && (m_ui32HeroFlags354 & 0x8000u) != 0) return 0;
     AdvanceAnimTime(clock->m_afDeltaTime[0]);  // vt+0x188
     return 6;
 }
@@ -2034,7 +2034,7 @@ uint8_t CKHkS08Hero::ClimbAnimState07(IKTime* clock, int32_t phase, uint8_t) {
         return 7;
     }
     if (phase != 0) return 7;
-    if (m_unk160 == 0x8c && (m_unk354 & 0x8000u) != 0) return 1;
+    if (m_i16CurAnimIndex == 0x8c && (m_ui32HeroFlags354 & 0x8000u) != 0) return 1;
     if (m_unk1838 == 0) AdvanceAnimTime(clock->m_afDeltaTime[0]);  // vt+0x188
     return 7;
 }
@@ -2045,18 +2045,18 @@ uint8_t CKHkS08Hero::ClimbAnimState07(IKTime* clock, int32_t phase, uint8_t) {
 uint8_t CKHkS08Hero::AnimLocomotionClimb(IKTime* clock, int32_t phase, uint8_t other) {
     const uint32_t* handlers = static_cast<const uint32_t*>(m_unk19a4);
     if (phase == 1) {
-        const uint8_t previous = m_unk19a8;
+        const uint8_t previous = m_ui8ClimbAnimState;
         if (previous != 0xff) CallStateHandler(&handlers[previous * 2u], clock, 2, 0);
-        m_unk19a8 = 0;
+        m_ui8ClimbAnimState = 0;
         CallStateHandler(&handlers[0], clock, 1, previous);
         return other;
     }
     if (phase == 2) {
-        if (m_unk19a8 != 0xff) CallStateHandler(&handlers[m_unk19a8 * 2u], clock, 2, 0xff);
-        m_unk19a8 = 0xff;
+        if (m_ui8ClimbAnimState != 0xff) CallStateHandler(&handlers[m_ui8ClimbAnimState * 2u], clock, 2, 0xff);
+        m_ui8ClimbAnimState = 0xff;
         return other;
     }
-    if (phase == 0) RunState(handlers, m_unk19a8, clock);
+    if (phase == 0) RunState(handlers, m_ui8ClimbAnimState, clock);
     return other;
 }
 
@@ -2067,7 +2067,7 @@ uint8_t CKHkS08Hero::AnimLocomotionClimb(IKTime* clock, int32_t phase, uint8_t o
 uint8_t CKHkS08Hero::AnimLocomotionFlying(IKTime* clock, int32_t phase, uint8_t other) {
     const uint32_t* handlers = static_cast<const uint32_t*>(m_unk18cc);
     if (phase == 0) {
-        RunState(handlers, m_unk18d0, clock);
+        RunState(handlers, m_ui8FlyAnimState, clock);
         return other;
     }
     if (phase == 1) {
@@ -2077,17 +2077,17 @@ uint8_t CKHkS08Hero::AnimLocomotionFlying(IKTime* clock, int32_t phase, uint8_t 
         PlayAnimation(0.0f, 0.2f, 0x3a);  // vt+0x184; TOC +0x20a0
         m_unk13a7 = 0;
         m_unk13a6 = 0;
-        const uint8_t previous = m_unk18d0;
+        const uint8_t previous = m_ui8FlyAnimState;
         const uint8_t first = m_unk13d1 == 0 ? 9 : 0;
         if (previous != 0xff) CallStateHandler(&handlers[previous * 2u], clock, 2, first);
-        m_unk18d0 = first;
+        m_ui8FlyAnimState = first;
         CallStateHandler(&handlers[first * 2u], clock, 1, previous);
         return 0;
     }
     m_unk13c8 = 0.0f;
     m_unk13c4 = 0.0f;
-    if (m_unk18d0 != 0xff) CallStateHandler(&handlers[m_unk18d0 * 2u], clock, 2, 0xff);
-    m_unk18d0 = 0xff;
+    if (m_ui8FlyAnimState != 0xff) CallStateHandler(&handlers[m_ui8FlyAnimState * 2u], clock, 2, 0xff);
+    m_ui8FlyAnimState = 0xff;
     m_unk1838 = 0;
     m_unkec4 &= 0xfff7ffffu;
     m_unkecc &= 0xffffe7ffu;

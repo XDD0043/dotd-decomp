@@ -181,11 +181,11 @@ int32_t IKGrpHero::Load(IKFile* file, int32_t type) {
     ReadRaw(file, &count, 1);
     m_apHeros = LoadHeroRefArray(file, count);
     IKFile_ReadRef(file, &m_pUnk40);
-    m_apUnk44 = LoadHeroRefArray(file, count);
+    m_apCameraTargets = LoadHeroRefArray(file, count);
     m_apUnk48 = LoadHeroRefArray(file, count);
     m_apUnk4c = LoadHeroRefArray(file, count);
     for (CTriggerStarter& trigger : m_aTriggers) trigger.Load(file, K_LEVEL_PLATEFORMS);
-    IKFile_ReadRef(file, &m_pUnk58);
+    IKFile_ReadRef(file, &m_pLocTextAccessor);
     for (uint32_t& word : m_sProperties.m_aui32Words) ReadU32LE(file, &word);
     for (uint16_t& value : m_sProperties.m_aui16Values) ReadU16LE(file, &value);
     ReadRaw(file, &m_sProperties.m_ui8Value, 1);
@@ -197,17 +197,17 @@ int32_t CKGrpS08Hero::Load(IKFile* file, int32_t type) {
     IKGrpHero::Load(file, type);
     if (type != K_LEVEL_PLATEFORMS) return 1;
     ReadF32LE(file, &m_unk10c);
-    ReadF32LE(file, &m_unk110);
-    ReadF32LE(file, &m_unk114);
-    ReadF32LE(file, &m_unk118);
+    ReadF32LE(file, &m_fTetherSpringRadius);
+    ReadF32LE(file, &m_fTetherDampingRadius);
+    ReadF32LE(file, &m_fTetherSpringStiffness);
     ReadF32LE(file, &m_unk174);
     ReadF32LE(file, &m_unk178);
-    ReadF32LE(file, &m_unk11c);
+    ReadF32LE(file, &m_fTetherDampingCoeff);
     ReadF32LE(file, &m_unk120);
-    ReadF32LE(file, &m_unk124);
-    ReadF32LE(file, &m_unk128);
-    ReadF32LE(file, &m_unk12c);
-    ReadF32LE(file, &m_unk130);
+    ReadF32LE(file, &m_fAltTetherSpringRadius);
+    ReadF32LE(file, &m_fAltTetherDampingRadius);
+    ReadF32LE(file, &m_fAltTetherSpringStiffness);
+    ReadF32LE(file, &m_fAltTetherDampingCoeff);
     ReadF32LE(file, &m_unk134);
     ReadF32LE(file, &m_unk138);
     ReadF32LE(file, &m_unk13c);
@@ -220,7 +220,7 @@ int32_t CKGrpS08Hero::Load(IKFile* file, int32_t type) {
     ReadF32LE(file, &m_unk1ac);
     ReadF32LE(file, &m_unk1b0);
     ReadF32LE(file, &m_unk1b4);
-    IKFile_ReadRef(file, &m_pUnk2cc);
+    IKFile_ReadRef(file, &m_pQuakeLauncher);
     ReadF32LE(file, &m_unk148);
     ReadF32LE(file, &m_unk1a0);
     ReadF32LE(file, &m_unk1a4);
@@ -254,8 +254,8 @@ int32_t CKGrpS08Hero::Load(IKFile* file, int32_t type) {
     ReadF32LE(file, &m_unk25c);
     ReadF32LE(file, &m_unk260);
     ReadF32LE(file, &m_unk264);
-    m_tsUnkab0.Load(file, K_LEVEL_PLATEFORMS);
-    IKFile_ReadRef(file, &m_pUnkad0);
+    m_tsOnPowerBucketFill.Load(file, K_LEVEL_PLATEFORMS);
+    IKFile_ReadRef(file, &m_pSparx);
     ReadS32LE(file, &m_unk268);
     ReadS32LE(file, &m_unk26c);
     ReadF32LE(file, &m_unk270);
@@ -290,18 +290,18 @@ int32_t CKGrpS08Hero::Load(IKFile* file, int32_t type) {
     ReadF32LE(file, &m_unk2bc);
     ReadU32LE(file, &m_unk2c0);
     ReadF32LE(file, &m_unk2c4);
-    IKFile_ReadRef(file, &m_pUnkabc);
+    IKFile_ReadRef(file, &m_pPromptTextAccessor);
     ReadF32LE(file, &m_unk17c);
     ReadF32LE(file, &m_unk180);
     ReadF32LE(file, &m_unk184);
     ReadF32LE(file, &m_unk18c);
     ReadF32LE(file, &m_unk188);
-    m_tsUnk338.Load(file, K_LEVEL_PLATEFORMS);
-    m_tsUnkac0.Load(file, K_LEVEL_PLATEFORMS);
+    m_tsOnFuryChargeStart.Load(file, K_LEVEL_PLATEFORMS);
+    m_tsOnPlayerHeroHurt.Load(file, K_LEVEL_PLATEFORMS);
     ReadF32LE(file, &m_unk200);
     ReadF32LE(file, &m_unk1b8);
-    IKFile_ReadRef(file, &m_pUnk348);
-    IKFile_ReadRef(file, &m_pUnk34c);
+    IKFile_ReadRef(file, &m_pFuryFlashFxData);
+    IKFile_ReadRef(file, &m_pFuryFilterFxData);
     ReadF32LE(file, &m_unk1bc);
     ReadF32LE(file, &m_unk1c0);
     ReadF32LE(file, &m_unk1c4);
@@ -309,16 +309,16 @@ int32_t CKGrpS08Hero::Load(IKFile* file, int32_t type) {
     ReadF32LE(file, &m_unk1cc);
     ReadF32LE(file, &m_unk1d0);
     ReadS32LE(file, &m_unk1d4);
-    IKFile_ReadRef(file, &m_pUnk354);
-    m_tsUnk340.Load(file, K_LEVEL_PLATEFORMS);
-    IKFile_ReadRef(file, &m_pUnk358);
+    IKFile_ReadRef(file, &m_pFuryExplosionFxData);
+    m_tsOnFuryEnd.Load(file, K_LEVEL_PLATEFORMS);
+    IKFile_ReadRef(file, &m_pFuryHdrFxData);
     ReadF32LE(file, &m_unk15c);
     ReadF32LE(file, &m_unk160);
     ReadF32LE(file, &m_unk164);
     ReadF32LE(file, &m_unk168);
     ReadF32LE(file, &m_unk16c);
     ReadF32LE(file, &m_unk170);
-    IKFile_ReadRef(file, &m_pUnk360);
+    IKFile_ReadRef(file, &m_pFuryChargeCurve);
     ReadF32LE(file, &m_unk190);
     return 1;
 }
@@ -423,7 +423,7 @@ void CKGrpS08Hero::RebuildControlledAndCompanionHeroArrays() {
         }
         m_apControlledHeroes[j] = item;
     }
-    m_unkf8 = (m_unkf8 & ~0x200u) | 0x200u;
+    m_baWorkFlags = (m_baWorkFlags & ~0x200u) | 0x200u;
 }
 
 // 0x002ceee8 CKGrpS08Hero_Start
@@ -436,29 +436,29 @@ void CKGrpS08Hero::Start() {
 void CKGrpS08Hero::Restart() {
     ReinitRuntime();
     m_unk31c = m_unk178;
-    m_unk2c8 = 0;
-    m_unk2d0 = 0;
+    m_ui32PairStateFlags = 0;
+    m_fSwitchFeedbackTimer = 0;
     m_unk320 = 0;
     c22spyro::SrvDynamicSetEntryFlag(static_cast<CKSrvDynamic*>(g_pEngine->m_srvDynamic), this, 1);  // 0x23aff8
     m_unk37c = 0;
-    m_vUnka94 = CVector3{0.0f, 0.0f, 0.0f};  // the zero vector 0xc50d64 (TOC 0x1c30)
+    m_vFollowTargetOverride = CVector3{0.0f, 0.0f, 0.0f};  // the zero vector 0xc50d64 (TOC 0x1c30)
     m_unkaa0[0] = 0;
     m_unkaa0[1] = 0;
     m_unkaa0[2] = 0;
-    m_unka88 = 0;
-    m_unk2c8 = (m_unk2c8 & 0xfffffffdu) | 2u;
-    m_unkac8 = 0;
-    CKHDRFxData* hdr = static_cast<CKHDRFxData*>(m_pUnk358);
-    m_unk350 = 0;
-    m_unk35c = 0;
-    m_unkacc = 0xff;
+    m_ui32FollowTrailCount = 0;
+    m_ui32PairStateFlags = (m_ui32PairStateFlags & 0xfffffffdu) | 2u;
+    m_fFlightFloorLevel = 0;
+    CKHDRFxData* hdr = static_cast<CKHDRFxData*>(m_pFuryHdrFxData);
+    m_pActiveFuryFilterFx = 0;
+    m_pActiveFuryHdrFx = 0;
+    m_ui8FlightFloorHero = 0xff;
     hdr->m_unk14 = static_cast<int32_t>((static_cast<uint32_t>(hdr->m_unk14) & 0xfffffffdu) | 2u);
     hdr->m_unk10 = hdr->m_unk0c;
-    m_unk36c = -1.0f;  // TOC 0x1c34
-    m_unk364 = -1.0f;
-    m_unk374 = 0;
+    m_fFinisherCooldown = -1.0f;  // TOC 0x1c34
+    m_fFinisherCooldownTarget = -1.0f;
+    m_fAnnouncerElapsedTime = 0;
     m_unk320 = 1;
-    m_unkfc = 0;
+    m_bUseAltTetherParams = 0;
     m_unk108 = m_unk10c;
     m_unk100 = m_unk10c;
     m_unk104 = 20.0f;  // TOC 0x1c38
@@ -591,21 +591,21 @@ void CKGrpS08Hero::SetFocusedDragon(IKSerializable* heroObject, uint8_t force) {
     CKSrvDetect* detect = static_cast<CKSrvDetect*>(g_pEngine->m_srvDetect);
     const uint8_t index = hero->m_ui8Hero;
     const uint8_t count = GetHeroCount();  // vt+0xf4
-    if (force != 0 || m_unk66 == 0xff || none) {
-        m_unk66 = index;
+    if (force != 0 || m_ui8FocusedDragon == 0xff || none) {
+        m_ui8FocusedDragon = index;
         const CKHkS08Hero* focused = static_cast<const CKHkS08Hero*>(m_apHeros[static_cast<int8_t>(index)]);
         static_cast<CKS08GameManager*>(g_pEngine->m_gameManager)->m_unk4A3 = focused->m_ui8Leader;
     }
     if (count == 0) return;
     for (uint32_t i = 0; i < count; ++i) {
-        const bool focusedHero = static_cast<int32_t>(static_cast<int8_t>(m_unk66)) == static_cast<int32_t>(i);
+        const bool focusedHero = static_cast<int32_t>(static_cast<int8_t>(m_ui8FocusedDragon)) == static_cast<int32_t>(i);
         if (focusedHero) {
-            ActivateInDetectors(detect, m_apUnk44[i]);
+            ActivateInDetectors(detect, m_apCameraTargets[i]);
         } else {
-            DisableInDetectors(detect, m_apUnk44[i]);
+            DisableInDetectors(detect, m_apCameraTargets[i]);
         }
         const CKHkS08Hero* other = static_cast<const CKHkS08Hero*>(m_apHeros[i]);
-        if (static_cast<int32_t>(static_cast<int8_t>(m_unk66)) == static_cast<int32_t>(i) ||
+        if (static_cast<int32_t>(static_cast<int8_t>(m_ui8FocusedDragon)) == static_cast<int32_t>(i) ||
             other->m_ui8Hero != other->m_ui8TrackedLeader) {
             DisableInDetectors(detect, m_apUnk48[i]);
         } else {
@@ -628,7 +628,7 @@ void CKGrpS08Hero::SetFocusedDragon(IKSerializable* heroObject, uint8_t force) {
 // approach (+0x100 toward +0x120 or +0x10c).
 void CKGrpS08Hero::Update(IKTime* clock) {
     UpdateSwitchPressFeedback(clock);  // 0x002ce5c8
-    m_unk2c8 &= 0xfffffbffu;
+    m_ui32PairStateFlags &= 0xfffffbffu;
     static_cast<CKSrvDynamic*>(g_pEngine->m_srvDynamic)->SetEntryFlag(this, 1);  // 0x0023aff8
     UpdateCoopFocusedDragon(clock);    // 0x002d6c60
     UpdateHeroGroup(clock);            // 0x002c8870 IKGrpHero_Update
@@ -637,7 +637,7 @@ void CKGrpS08Hero::Update(IKTime* clock) {
     UpdateTimers364(clock);            // 0x002d61b8
     if (m_ui8ControlledHeroCount <= 1) UpdateSinglePlayerPartnerFlags();  // 0x002ca288, 0x002d57a8
     UpdateFlightAltitudeGap();         // 0x002ce888
-    m_unk100 = m_unkfc != 0 ? m_unk120 : m_unk10c;
+    m_unk100 = m_bUseAltTetherParams != 0 ? m_unk120 : m_unk10c;
     FloatApproach_Step(clock->m_afDeltaTime[0], &m_unk100);  // 0x002436e8
 }
 
@@ -654,20 +654,20 @@ void CKGrpS08Hero::UpdateSwitchPressFeedback(IKTime* clock) {
             pressed0 = 0;
             if (manager->GetActionValue(7, 0) != 0.0f) {  // vt+0x164; TOC +0x1c28
                 pressed0 = 1;
-                m_unk2d0 = 2.0f;  // TOC +0x1c24
+                m_fSwitchFeedbackTimer = 2.0f;  // TOC +0x1c24
             }
             pressed1 = 0;
             if (manager->GetActionValue(7, 1) != 0.0f) {
                 pressed1 = 1;
-                m_unk2d0 = 2.0f;
+                m_fSwitchFeedbackTimer = 2.0f;
             }
         }
     }
-    if (m_unk2d0 > 0.0f) m_unk2d0 = m_unk2d0 - clock->m_afDeltaTime[0];
+    if (m_fSwitchFeedbackTimer > 0.0f) m_fSwitchFeedbackTimer = m_fSwitchFeedbackTimer - clock->m_afDeltaTime[0];
     for (int32_t index = 1; index >= 0; --index) {
         CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(m_apHeros[index]);
         uint8_t on = 0;
-        if (m_unk2d0 > 0.0f && hero->m_ui8Hero == hero->m_ui8TrackedLeader) {
+        if (m_fSwitchFeedbackTimer > 0.0f && hero->m_ui8Hero == hero->m_ui8TrackedLeader) {
             if (!(m_ui8ControlledHeroCount > 1)) {
                 on = 1;
             } else if (hero->m_ui8Leader == 0) {
@@ -715,7 +715,7 @@ int CompareCatchUpPoints(const void* first, const void* second) {
 
 // UpdateCatchUpPoints' inlined cell reads and writes: the point's cell in the grid of the graph node its hint names.
 CKPFGraphNode* PointNode(CKSrvPathFinding* service, const CPFPoint* point) {
-    return static_cast<CKPFGraphNode*>(service->m_Graph.m_apGraphNodes[point->m_unk0c]);
+    return static_cast<CKPFGraphNode*>(service->m_Graph.m_apGraphNodes[point->m_i16GraphNodeIndex]);
 }
 // The cell's palette value is 0xff (a dynamic obstacle): (~value & 0xff) - 1 is negative.
 uint8_t IsPointCellBlocked(CKSrvPathFinding* service, const CPFPoint* point) {
@@ -740,9 +740,9 @@ CKGrpS08Hero::SCatchUpPoint* CKGrpS08Hero::FindCatchUpPoint(CKHkS08Hero* hero) {
     const uint8_t index = hero->m_ui8Hero;
     const CKHkS08Hero* controlling = hero->GetControllingHero();  // 0x00344e68
     const uint32_t count = m_sProperties.m_ui8Value;
-    const int8_t held = static_cast<int8_t>(m_pUnk7c[index]);
+    const int8_t held = static_cast<int8_t>(m_ai8WantedPos[index]);
     if (count == 0) return nullptr;
-    SCatchUpPoint* points = static_cast<SCatchUpPoint*>(m_pUnk74) + controlling->m_ui8Leader * count;
+    SCatchUpPoint* points = static_cast<SCatchUpPoint*>(m_asPosAroundLead) + controlling->m_ui8Leader * count;
     SCatchUpPoint* first = nullptr;
     if (held == -1) {
         for (uint32_t i = 0; i < count; ++i) {
@@ -783,15 +783,15 @@ uint8_t CKGrpS08Hero::IsDragonSelectable(uint8_t dragon) {
     const CKHkS08Hero* hero = static_cast<const CKHkS08Hero*>(m_apHeros[dragon]);
     if (hero->m_ui8Hero == hero->m_ui8TrackedLeader) return 1;
     if (hero->m_aui8Unk1a4[0] == 0) return 0;
-    if ((hero->m_unk358 & 0x400000u) != 0) return 0;
-    return static_cast<uint8_t>(((hero->m_unk360 >> 12) & 1u) ^ 1u);
+    if ((hero->m_ui32HeroFlags358 & 0x400000u) != 0) return 0;
+    return static_cast<uint8_t>(((hero->m_ui32HeroFlags360 >> 12) & 1u) ^ 1u);
 }
 
 // 0x002cb6f0 CKGrpS08Hero_AssignFollowSlot_maybe
 const CVector3* CKGrpS08Hero::AssignFollowSlot(CKHkS08Hero* hero) {
     const uint8_t index = hero->m_ui8Hero;
     const uint8_t player = hero->GetControllingHero()->m_ui8Leader;  // 0x00344e68
-    int8_t* held = reinterpret_cast<int8_t*>(m_pUnk7c);
+    int8_t* held = reinterpret_cast<int8_t*>(m_ai8WantedPos);
     const int8_t previous = held[index];
     SCatchUpPoint* first = nullptr;  // the first free point no other hero of the player holds
     SCatchUpPoint* same = nullptr;   // the free point the hero held
@@ -799,7 +799,7 @@ const CVector3* CKGrpS08Hero::AssignFollowSlot(CKHkS08Hero* hero) {
         held[index] = -1;
         return nullptr;
     }
-    SCatchUpPoint* points = static_cast<SCatchUpPoint*>(m_pUnk74) + player * m_sProperties.m_ui8Value;
+    SCatchUpPoint* points = static_cast<SCatchUpPoint*>(m_asPosAroundLead) + player * m_sProperties.m_ui8Value;
     for (uint32_t i = 0; i < m_sProperties.m_ui8Value; ++i) {
         SCatchUpPoint* point = &points[i];
         if (point->m_ui8Unavailable != 0) continue;
@@ -842,7 +842,7 @@ const CVector3* CKGrpS08Hero::AssignFollowSlot(CKHkS08Hero* hero) {
 uint8_t CKGrpS08Hero::CanSwitchToDragon(uint8_t dragon) {
     const CKHkS08Hero* target = static_cast<const CKHkS08Hero*>(m_apHeros[dragon]);
     if (target->m_ui8Hero == target->m_ui8TrackedLeader) return 1;
-    if ((m_unkf8 & 2u) != 0 || (m_unkf8 & 4u) != 0) return 0;
+    if ((m_baWorkFlags & 2u) != 0 || (m_baWorkFlags & 4u) != 0) return 0;
     const uint8_t count = GetHeroCount();  // vt+0xf4
     for (uint32_t i = 0; i != count; ++i) {
         const CGround* ground = static_cast<const CGround*>(static_cast<CKHkS08Hero*>(m_apHeros[i])->GetGroundInfo());
@@ -858,42 +858,42 @@ uint8_t CKGrpS08Hero::CanSwitchToDragon(uint8_t dragon) {
 void CKGrpS08Hero::RequestDragonSelection(uint8_t selected, uint8_t requested, uint8_t flag6, uint8_t flag7,
                                           uint8_t immediate, uint8_t applyArg, uint8_t forceFlag8) {
     const float now = g_pEngine->m_timeManager->m_pTime->m_afCurrentTime[0];
-    const bool renew = (m_unkf8 & 0x20u) == 0 || m_unk64 != selected || m_unk65 != requested;
+    const bool renew = (m_baWorkFlags & 0x20u) == 0 || m_ui8SelectedDragon != selected || m_ui8RequestedDragon != requested;
     if (renew) {
         m_unk60 = now;
-        m_unk64 = selected;
-        m_unk65 = requested;
-        uint32_t flags = (m_unkf8 & ~0x40u) | ((static_cast<uint32_t>(flag6) << 6) & 0x3fc0u);
+        m_ui8SelectedDragon = selected;
+        m_ui8RequestedDragon = requested;
+        uint32_t flags = (m_baWorkFlags & ~0x40u) | ((static_cast<uint32_t>(flag6) << 6) & 0x3fc0u);
         flags = (flags & ~0x80u) | ((static_cast<uint32_t>(flag7) << 7) & 0x7f80u);
-        m_unkf8 = flags;
-        if (forceFlag8 != 0 || (m_unkf8 & 0x10000u) != 0) {
-            m_unkf8 = (flags & ~0x100u) | 0x100u;
+        m_baWorkFlags = flags;
+        if (forceFlag8 != 0 || (m_baWorkFlags & 0x10000u) != 0) {
+            m_baWorkFlags = (flags & ~0x100u) | 0x100u;
         } else {
-            m_unkf8 = flags & ~0x100u;
+            m_baWorkFlags = flags & ~0x100u;
         }
-        if ((m_unkf8 & 0x20u) == 0) QueueTriggerSignals(&m_aTriggers[4]);  // +0xb8; 0x00236338
-        m_unkf8 = (m_unkf8 & ~0x20u) | 0x20u;
+        if ((m_baWorkFlags & 0x20u) == 0) QueueTriggerSignals(&m_aTriggers[4]);  // +0xb8; 0x00236338
+        m_baWorkFlags = (m_baWorkFlags & ~0x20u) | 0x20u;
     }
     if (immediate != 0) {
         ProcessDragonSwitchRequest(applyArg);  // vt+0x180
         return;
     }
     if (!(now - m_unk60 >= m_unk5c)) return;  // cror gt|eq
-    const CKHkS08Hero* target = static_cast<const CKHkS08Hero*>(m_apHeros[m_unk65]);
+    const CKHkS08Hero* target = static_cast<const CKHkS08Hero*>(m_apHeros[m_ui8RequestedDragon]);
     // 0x00363ca0 IKHkHero_GetFlag360Bit12_maybe (IKHkHero_2.cpp; inlined here): +0x360 bit 12.
-    if (((target->m_unk360 >> 12) & 1u) != 0 || target->m_aui8Unk1a4[0] == 0) {
-        m_unk65 = static_cast<uint8_t>(m_unk65 + 1);
-        if (!(m_unk65 < GetHeroCount())) m_unk65 = immediate;  // vt+0xf4; `immediate` is 0 here
+    if (((target->m_ui32HeroFlags360 >> 12) & 1u) != 0 || target->m_aui8Unk1a4[0] == 0) {
+        m_ui8RequestedDragon = static_cast<uint8_t>(m_ui8RequestedDragon + 1);
+        if (!(m_ui8RequestedDragon < GetHeroCount())) m_ui8RequestedDragon = immediate;  // vt+0xf4; `immediate` is 0 here
         return;
     }
-    if (m_unk65 == m_unk64 || CanSwitchToDragon(m_unk65) == 0 || (m_unkf8 & 8u) != 0 || (m_unkf8 & 2u) != 0) {
-        m_unk65 = m_unk64;
-        m_unkf8 &= ~0x20u;
+    if (m_ui8RequestedDragon == m_ui8SelectedDragon || CanSwitchToDragon(m_ui8RequestedDragon) == 0 || (m_baWorkFlags & 8u) != 0 || (m_baWorkFlags & 2u) != 0) {
+        m_ui8RequestedDragon = m_ui8SelectedDragon;
+        m_baWorkFlags &= ~0x20u;
         return;
     }
     // Both heroes must allow the switch (vt+0x170 CKHkS08Hero_CanDragonSwitch_maybe 0x2dbc60).
-    if (static_cast<CKHkS08Hero*>(m_apHeros[m_unk64])->CanDragonSwitch() == 0) return;
-    if (static_cast<CKHkS08Hero*>(m_apHeros[m_unk65])->CanDragonSwitch() == 0) return;
+    if (static_cast<CKHkS08Hero*>(m_apHeros[m_ui8SelectedDragon])->CanDragonSwitch() == 0) return;
+    if (static_cast<CKHkS08Hero*>(m_apHeros[m_ui8RequestedDragon])->CanDragonSwitch() == 0) return;
     ProcessDragonSwitchRequest(applyArg);  // vt+0x180
 }
 
@@ -901,14 +901,14 @@ void CKGrpS08Hero::RequestDragonSelection(uint8_t selected, uint8_t requested, u
 // +0xec seconds after the last switch (+0x6c) requests the next dragon (RequestDragonSelection, also every frame while a
 // request is pending, +0xf8 bit 5); +0xf8 bit 15 runs a timer (+0x70) toward the interaction target.
 void CKGrpS08Hero::UpdatePartnerInteraction(IKTime* clock) {
-    if ((m_unkf8 & 0x20000u) != 0) {
-        m_unk65 = m_unk64;
+    if ((m_baWorkFlags & 0x20000u) != 0) {
+        m_ui8RequestedDragon = m_ui8SelectedDragon;
         m_unk6c = -1000.0f;  // TOC 0x1b60
-        m_unkf8 &= ~0x20u;
+        m_baWorkFlags &= ~0x20u;
     }
     const uint8_t count = GetHeroCount();  // vt+0xf4
-    uint32_t flags = m_unkf8;
-    uint8_t requested = m_unk65;
+    uint32_t flags = m_baWorkFlags;
+    uint8_t requested = m_ui8RequestedDragon;
     uint8_t pressed = 0;
     // BUG(original): the loop over the heroes tests the first hero's +0x0c bit 1 every time.
     const bool blocked = (flags & 8u) != 0 ||
@@ -919,18 +919,18 @@ void CKGrpS08Hero::UpdatePartnerInteraction(IKTime* clock) {
             const CKHkS08Hero* hero = static_cast<const CKHkS08Hero*>(m_apHeros[i]);
             if (hero == nullptr) continue;
             if (hero->m_ui8Hero != hero->m_ui8TrackedLeader) continue;
-            if ((hero->m_unk360 & 0x20000u) == 0) continue;
+            if ((hero->m_ui32HeroFlags360 & 0x20000u) == 0) continue;
             pressed = 1;
-            if (static_cast<int32_t>(static_cast<int8_t>(m_unk66)) != static_cast<int32_t>(i)) continue;
+            if (static_cast<int32_t>(static_cast<int8_t>(m_ui8FocusedDragon)) != static_cast<int32_t>(i)) continue;
             if ((flags & 0x20u) == 0) requested = static_cast<uint8_t>(i);
             requested = static_cast<uint8_t>(requested + 1);
             if (count <= requested) requested = 0;
-            m_unk64 = static_cast<uint8_t>(i);
+            m_ui8SelectedDragon = static_cast<uint8_t>(i);
         }
     }
-    if ((flags & 0x20u) != 0 || m_unk64 != requested) {
-        RequestDragonSelection(m_unk64, requested, 0, 0, 0, 0, 0);  // 0x002cbb08
-        flags = m_unkf8;
+    if ((flags & 0x20u) != 0 || m_ui8SelectedDragon != requested) {
+        RequestDragonSelection(m_ui8SelectedDragon, requested, 0, 0, 0, 0, 0);  // 0x002cbb08
+        flags = m_baWorkFlags;
     }
     if ((flags & 0x8000u) != 0) {
         float timer;
@@ -980,9 +980,9 @@ void CKGrpS08Hero::UpdateCatchUpPoints() {
     const float halfCone = static_cast<float>(m_sProperties.m_aui16Values[1]) * 0.5f * 0x1.1df468p-6f;
     CPFCharacter character;
     character.m_bits = 0x801;
-    character.m_unk04 = g_pfGridScale.m_halfCellSize * 0x1.99999ap-3f;  // 0x00c40260 * 0.2
-    character.m_unk08 = 0x1.99999ap-3f;  // 0.2
-    character.m_unk0c = 1.0f;
+    character.m_fRadius = g_pfGridScale.m_halfCellSize * 0x1.99999ap-3f;  // 0x00c40260 * 0.2
+    character.m_fMaxStepHeight = 0x1.99999ap-3f;  // 0.2
+    character.m_fMaxStepRise = 1.0f;
     const float range = PropertyFloat(m_sProperties, 7);  // +0xdc
     const float rangeSq = range * range;
     for (IKSerializable** cursor = m_apControlledHeroes; *cursor != nullptr; ++cursor) {
@@ -990,29 +990,29 @@ void CKGrpS08Hero::UpdateCatchUpPoints() {
         const CVector3 position{hero->m_unk54c, hero->m_unk550, hero->m_unk554};
         const CVector3 heading{hero->m_unk540, hero->m_unk544, hero->m_unk548};
         const CPFPoint leaderPoint = hero->m_PFCpnt.m_Destination;  // +0x430
-        const uint16_t leaderSector = leaderPoint.m_unk0c;
+        const uint16_t leaderSector = leaderPoint.m_i16GraphNodeIndex;
         const float headingYaw = Vec3_GetYawAngleFromX(&heading);  // 0x00244638
         // The companions following this hero; the widest one's character.
         uint8_t companions = 0;
-        character.m_unk04 = 0.0f;
+        character.m_fRadius = 0.0f;
         for (IKSerializable** other = m_apCompanionHeroes; *other != nullptr; ++other) {
             const CKHkS08Hero* companion = static_cast<const CKHkS08Hero*>(*other);
             if (hero->m_ui8Hero != companion->m_ui8TrackedLeader) continue;
-            const uint32_t flags35c = companion->m_unk35c;
+            const uint32_t flags35c = companion->m_ui32HeroFlags35C;
             if ((flags35c & 0x40u) != 0 && (companion->m_unk3b0 & 0x40u) == 0) continue;
             if ((flags35c & 0x20u) != 0) continue;
-            const uint32_t flags360 = companion->m_unk360;
+            const uint32_t flags360 = companion->m_ui32HeroFlags360;
             if ((flags360 & 0x40000000u) != 0) continue;
             if ((flags35c & 0x20000000u) != 0) continue;
             if ((flags360 & 0x1000u) != 0) continue;
-            if ((companion->m_unk364 & 0x200u) != 0) continue;
-            const uint32_t flags358 = companion->m_unk358;
+            if ((companion->m_ui32HeroFlags364 & 0x200u) != 0) continue;
+            const uint32_t flags358 = companion->m_ui32HeroFlags358;
             if ((flags358 & 8u) != 0 || (flags358 & 4u) != 0) continue;
-            if (companion->m_PFCharacter.m_unk04 > character.m_unk04) character = companion->m_PFCharacter;  // +0x3e0
+            if (companion->m_PFCharacter.m_fRadius > character.m_fRadius) character = companion->m_PFCharacter;  // +0x3e0
             ++companions;
         }
         const uint32_t block = static_cast<uint8_t>(hero->m_ui8Leader * m_sProperties.m_ui8Value);
-        SCatchUpPoint* points = static_cast<SCatchUpPoint*>(m_pUnk74) + block;
+        SCatchUpPoint* points = static_cast<SCatchUpPoint*>(m_asPosAroundLead) + block;
         if (m_sProperties.m_ui8Value != 0) {
             float yaw = backYaw;
             float angle = halfStep + 0.0f;  // TOC 0x1b2c
@@ -1060,19 +1060,19 @@ void CKGrpS08Hero::UpdateCatchUpPoints() {
             SCatchUpPoint& point = points[j];
             if (point.m_ui8Unavailable != 0) continue;
             probe.m_position = point.m_vPosition;
-            probe.m_unk0c = leaderSector;
+            probe.m_i16GraphNodeIndex = leaderSector;
             FindSector(service, &probe);
             uint8_t reachable = static_cast<uint8_t>(hero->GetNavTransitionFlag2IfAllowed(
-                static_cast<int16_t>(probe.m_unk0c), static_cast<int16_t>(leaderSector)));  // 0x00369f40
-            if (reachable == 0) probe.m_unk0c = leaderSector;
+                static_cast<int16_t>(probe.m_i16GraphNodeIndex), static_cast<int16_t>(leaderSector)));  // 0x00369f40
+            if (reachable == 0) probe.m_i16GraphNodeIndex = leaderSector;
             const uint8_t valid =
                 hero->ValidateNavPosition(&contacts[j], &probe, &character, 1, &point.m_ui8Raised);  // 0x0036a2f8
             bool reject = point.m_ui8Unavailable != 0 || valid == 0;
             if (!reject && PropertyFloat(m_sProperties, 6) < std::fabs(position.y - probe.m_position.y)) reject = true;
             point.m_ui8Unavailable = reject ? 1 : 0;
-            if (static_cast<int16_t>(probe.m_unk0c) == -1) {
+            if (static_cast<int16_t>(probe.m_i16GraphNodeIndex) == -1) {
                 reachable = 0;
-            } else if (static_cast<int16_t>(leaderSector) == static_cast<int16_t>(probe.m_unk0c)) {
+            } else if (static_cast<int16_t>(leaderSector) == static_cast<int16_t>(probe.m_i16GraphNodeIndex)) {
                 reachable = 1;
             }
             point.m_ui8Reachable = reachable;
@@ -1092,7 +1092,7 @@ void CKGrpS08Hero::UpdateCatchUpPoints() {
             probe.m_position = point.m_vPosition;
             point.m_ui8CellBlocked = FindSector(service, &probe) != 0 ? IsPointCellBlocked(service, &probe) : 0;
         }
-        if (static_cast<int16_t>(leaderPoint.m_unk0c) != -1) {
+        if (static_cast<int16_t>(leaderPoint.m_i16GraphNodeIndex) != -1) {
             probe = leaderPoint;
             if (FindSector(service, &probe) != 0) SetPointCellBlocked(service, &probe, 1);
         }
@@ -1104,11 +1104,11 @@ void CKGrpS08Hero::UpdateCatchUpPoints() {
         }
         // The extra points: the nearest open cells around the hero's nav point (else the nearest sector's point).
         CPFPoint seed = leaderPoint;
-        if (static_cast<int16_t>(leaderPoint.m_unk0c) == -1) seed = service->ClampToNearestSector(&leaderPoint);  // 0x001e5680
+        if (static_cast<int16_t>(leaderPoint.m_i16GraphNodeIndex) == -1) seed = service->ClampToNearestSector(&leaderPoint);  // 0x001e5680
         CGroundContactDatasInOut contact = hero->m_gcCurDatasInOut;  // +0x4b8
-        SCatchUpPoint* extra = static_cast<SCatchUpPoint*>(m_pUnk78);
+        SCatchUpPoint* extra = static_cast<SCatchUpPoint*>(m_asAltPosAroundLead);
         uint32_t found = 0;
-        const int32_t seedSector = static_cast<int16_t>(seed.m_unk0c);
+        const int32_t seedSector = static_cast<int16_t>(seed.m_i16GraphNodeIndex);
         for (int32_t attempt = 0; attempt != wanted; ++attempt) {
             probe = seed;
             CKPFGraphNode* node = PointNode(service, &seed);
@@ -1125,7 +1125,7 @@ void CKGrpS08Hero::UpdateCatchUpPoints() {
             if (hero->ValidateNavPosition(&contact, &probe, &character, 1, &point.m_ui8Raised) == 0) continue;
             if (position.y - probe.m_position.y >= PropertyFloat(m_sProperties, 6)) continue;  // bge
             FindSector(service, &probe);
-            if (seedSector != static_cast<int16_t>(probe.m_unk0c)) continue;
+            if (seedSector != static_cast<int16_t>(probe.m_i16GraphNodeIndex)) continue;
             point.m_vPosition.x = probe.m_position.x;
             point.m_vPosition.y = probe.m_position.y;
             point.m_fScore = 0.0f;
@@ -1145,7 +1145,7 @@ void CKGrpS08Hero::UpdateCatchUpPoints() {
             const uint8_t wasBlocked = extra[k].m_ui8CellBlocked;
             if (FindSector(service, &probe) != 0) SetPointCellBlocked(service, &probe, wasBlocked);
         }
-        if (static_cast<int16_t>(leaderPoint.m_unk0c) != -1) {
+        if (static_cast<int16_t>(leaderPoint.m_i16GraphNodeIndex) != -1) {
             probe = leaderPoint;
             if (FindSector(service, &probe) != 0) SetPointCellBlocked(service, &probe, leaderCellBlocked & 1u);
         }
@@ -1169,7 +1169,7 @@ void CKGrpS08Hero::ApplyTetherPullToHero(float maxDistance, CKHkS08Hero* hero) {
     const CVector3 zero{0.0f, 0.0f, 0.0f};  // the zero vector 0xc50d64 (TOC 0x1c30)
     hero->SetExternalDisplacement(&zero);   // 0x0032a6e8
     uint32_t* distance314 = &m_unk2d4[16];
-    uint32_t* distance318 = &m_unk318;
+    uint32_t* distance318 = &m_fHero1ToMidDist;
     if (hero->m_ui8Hero == 0) {
         if (WordAsFloat(*distance314) <= half) return;  // ble
     } else {
@@ -1223,16 +1223,16 @@ int32_t CKGrpS08Hero::PostLoad(int32_t type) {
         CKSrvDynamic* dynamic = static_cast<CKSrvDynamic*>(g_pEngine->m_srvDynamic);
         dynamic->RegisterHook(this, 0, 0xff, {0x00b97b20u, 0}, {0, 0}, {0, 0});  // 0x0023b480
         dynamic->SetNativeDispatch(this, &CKGrpS08Hero::DispatchDynamicHook);  // DOTD
-        m_tsUnkab0.PostLoad(0);  // 0x00236330
+        m_tsOnPowerBucketFill.PostLoad(0);  // 0x00236330
         m_unk324 = 50.0f;        // TOC 0x1c60
         m_unk328 = 20.0f;        // TOC 0x1c38
         m_unk330 = 0;
         m_unk334 = 1000;
         m_unk32c = 0;
-        m_unkab8 = static_cast<uint8_t>(type);
-        m_tsUnk338.PostLoad(0);
-        m_tsUnk340.PostLoad(0);
-        m_tsUnkac0.PostLoad(0);
+        m_ui8PowerBucketFillHero = static_cast<uint8_t>(type);
+        m_tsOnFuryChargeStart.PostLoad(0);
+        m_tsOnFuryEnd.PostLoad(0);
+        m_tsOnPlayerHeroHurt.PostLoad(0);
     }
     return 1;
 }
@@ -1241,7 +1241,7 @@ int32_t CKGrpS08Hero::PostLoad(int32_t type) {
 void CKGrpS08Hero::ScoreCatchUpPointsByCompanionDistance() {
     if (m_ui8ControlledHeroCount > 1) return;
     const CKHkS08Hero* companion = static_cast<const CKHkS08Hero*>(m_apCompanionHeroes[0]);
-    SCatchUpPoint* points = static_cast<SCatchUpPoint*>(m_pUnk74);
+    SCatchUpPoint* points = static_cast<SCatchUpPoint*>(m_asPosAroundLead);
     float largest = 0.0f;  // TOC 0x1c28
     for (uint32_t i = m_sProperties.m_ui8Value; i != 0;) {
         --i;
@@ -1311,7 +1311,7 @@ void CKGrpS08Hero::UpdateHeroPairGeometry(float dt) {
     const float bz = ppc::fmadds(dt, secondVelocity.z, secondPosition.z);
     const float by = ppc::fmadds(dt, secondVelocity.y, secondPosition.y);
     // +0x2f0: the tether's middle (kept with +0x2c8 bit 0).
-    if ((m_unk2c8 & 1u) == 0) {
+    if ((m_ui32PairStateFlags & 1u) == 0) {
         StoreFloat(&m_unk2d4[7], (ax + bx) * 0.5f);  // TOC 0x1c2c
         StoreFloat(&m_unk2d4[8], (ay + by) * 0.5f);
         StoreFloat(&m_unk2d4[9], (az + bz) * 0.5f);
@@ -1354,18 +1354,18 @@ void CKGrpS08Hero::UpdateHeroPairGeometry(float dt) {
     const float e0z = mz - az;
     const float e1z = mz - bz;
     StoreFloat(&m_unk2d4[16], std::sqrt(ppc::fmadds(e0z, e0z, ppc::fmadds(e0x, e0x, e0y * e0y))));
-    StoreFloat(&m_unk318, std::sqrt(ppc::fmadds(e1z, e1z, ppc::fmadds(e1x, e1x, e1y * e1y))));
+    StoreFloat(&m_fHero1ToMidDist, std::sqrt(ppc::fmadds(e1z, e1z, ppc::fmadds(e1x, e1x, e1y * e1y))));
     const float maxDistance = m_unk108;
     ApplyTetherPullToHero(maxDistance, first);   // 0x002ceb30
     ApplyTetherPullToHero(maxDistance, second);
     // +0x2c8 bit 2: the middle is held (bit 0) or bit 11.
-    if ((m_unk2c8 & 1u) != 0 || (m_unk2c8 & 0x800u) != 0) {
-        m_unk2c8 = (m_unk2c8 & ~4u) | 4u;
+    if ((m_ui32PairStateFlags & 1u) != 0 || (m_ui32PairStateFlags & 0x800u) != 0) {
+        m_ui32PairStateFlags = (m_ui32PairStateFlags & ~4u) | 4u;
     } else {
-        m_unk2c8 &= ~4u;
+        m_ui32PairStateFlags &= ~4u;
     }
     const uint32_t count = GetHeroCount();  // vt+0xf4
-    if ((m_unk2c8 & 1u) != 0) {
+    if ((m_ui32PairStateFlags & 1u) != 0) {
         // No tether while the middle is held.
         for (uint32_t i = count; i != 0;) {
             --i;
@@ -1400,17 +1400,17 @@ void CKGrpS08Hero::UpdateHeroPairGeometry(float dt) {
                 tether = true;
             }
             if (tether) hero->m_unkec4 &= ~0x400000u;
-            if ((m_unk2c8 & 0x1000u) != 0) hero->m_unkec4 &= ~0x400000u;
+            if ((m_ui32PairStateFlags & 0x1000u) != 0) hero->m_unkec4 &= ~0x400000u;
             if ((hero->m_unkec8 & 0x8000000u) != 0) hero->m_unkec4 = (hero->m_unkec4 & ~0x400000u) | 0x400000u;
             if (hero->ShouldStayClimbing() != 0 || hero->PartnerShouldStayClimbing() != 0) {
-                m_unk2c8 &= ~2u;
+                m_ui32PairStateFlags &= ~2u;
             } else {
-                m_unk2c8 = (m_unk2c8 & ~2u) | 2u;
+                m_ui32PairStateFlags = (m_ui32PairStateFlags & ~2u) | 2u;
             }
             if (!(hero->m_unk1258 <= threshold)) {  // ble
-                m_unk2c8 &= ~2u;
+                m_ui32PairStateFlags &= ~2u;
             } else if (hero->GetPartnerHero()->m_unk1258 > threshold) {
-                m_unk2c8 &= ~2u;
+                m_ui32PairStateFlags &= ~2u;
             }
         }
     }
@@ -1419,7 +1419,7 @@ void CKGrpS08Hero::UpdateHeroPairGeometry(float dt) {
     lastFirst->m_unk118d = 0;
     lastSecond->m_unk118d = 0;
     // The answers are not used (0x00342fa8).
-    if ((lastFirst->ShouldStayClimbing() != 0 || (lastFirst->m_unk354 & 0x40000u) == 0) &&
+    if ((lastFirst->ShouldStayClimbing() != 0 || (lastFirst->m_ui32HeroFlags354 & 0x40000u) == 0) &&
         (lastFirst->m_unk368 & 0x80u) == 0) {
         lastSecond->ShouldStayClimbing();
     }
@@ -1439,7 +1439,7 @@ void CKGrpS08Hero::UpdateHeroSpeechAnims(IKTime* clock) {
         CKHkS08Hero* hero = static_cast<CKHkS08Hero*>(m_apHeros[i]);
         const uint8_t layer = GetActiveInnerBlendSlot(static_cast<uint8_t>(i));  // vt+0x170
         if (hero->m_unk1a0 == nullptr || static_cast<int8_t>(layer) == -1) continue;
-        AnimBlendSlot& slot = hero->m_unk138[layer];
+        AnimBlendSlot& slot = hero->m_pAnimBlendSlots[layer];
         const CKAnmKeyFrameController* controller = static_cast<const CKAnmKeyFrameController*>(
             static_cast<CKBlenderController*>(slot.m_pController)->m_apControllers[slot.m_unk10]);
         const bool playing = controller->m_unk58 != nullptr;
@@ -1466,38 +1466,38 @@ void CKGrpS08Hero::UpdateFlightAltitudeGap() {
     if (m_ui8ControlledHeroCount == 2 && (first->IsFlyingMovementMode1() != 0 || second->IsFlyingMovementMode1() != 0) &&
         first->m_unk13d8 == 0 && first->ShouldStayClimbing() == 0 && second->m_unk13d8 == 0 &&
         second->ShouldStayClimbing() == 0) {
-        const float firstHeight = first->IsFlyingMovementMode1() == 0 ? first->GetHeightAboveGround() : first->m_unk1458;
-        const float secondHeight = second->IsFlyingMovementMode1() == 0 ? second->GetHeightAboveGround() : second->m_unk1458;
+        const float firstHeight = first->IsFlyingMovementMode1() == 0 ? first->GetHeightAboveGround() : first->m_fFlightHeight;
+        const float secondHeight = second->IsFlyingMovementMode1() == 0 ? second->GetHeightAboveGround() : second->m_fFlightHeight;
         const float firstLevel = first->m_unk550 - firstHeight;
         const float secondLevel = second->m_unk550 - secondHeight;
         if (firstLevel <= secondLevel) {
-            m_unkac8 = secondLevel;
-            m_unkacc = 0;
+            m_fFlightFloorLevel = secondLevel;
+            m_ui8FlightFloorHero = 0;
         } else {
-            m_unkac8 = firstLevel;
-            m_unkacc = 1;
+            m_fFlightFloorLevel = firstLevel;
+            m_ui8FlightFloorHero = 1;
         }
         return;
     }
     if ((first->ShouldStayClimbing() == 0 && first->m_unk13d8 == 0) || second->IsFlyingMovementMode1() == 0) {
         if ((second->ShouldStayClimbing() != 0 || first->m_unk13d8 != 0) && first->IsFlyingMovementMode1() != 0) {
             const float gap = second->m_unk550 - level;
-            if (first->m_unk550 - first->m_unk1458 < gap) {
-                m_unkac8 = gap;
-                m_unkacc = 0;
+            if (first->m_unk550 - first->m_fFlightHeight < gap) {
+                m_fFlightFloorLevel = gap;
+                m_ui8FlightFloorHero = 0;
                 return;
             }
         }
     } else {
         const float gap = first->m_unk550 - level;
-        if (second->m_unk550 - second->m_unk1458 < gap) {
-            m_unkac8 = gap;
-            m_unkacc = 1;
+        if (second->m_unk550 - second->m_fFlightHeight < gap) {
+            m_fFlightFloorLevel = gap;
+            m_ui8FlightFloorHero = 1;
             return;
         }
     }
-    m_unkac8 = 0.0f;
-    m_unkacc = 0xff;
+    m_fFlightFloorLevel = 0.0f;
+    m_ui8FlightFloorHero = 0xff;
 }
 
 namespace {
@@ -1545,20 +1545,20 @@ int32_t CKGrpS08Hero::HandleHeroCommand(uint32_t command, void* data) {
         case 6: {
             const uint8_t on = *static_cast<const uint8_t*>(data);
             if (on != 0) {
-                m_unk65 = m_unk64;
-                m_unkf8 &= 0xffffffdfu;
+                m_ui8RequestedDragon = m_ui8SelectedDragon;
+                m_baWorkFlags &= 0xffffffdfu;
             }
-            m_unkf8 = (m_unkf8 & 0xfffffffbu) | (static_cast<uint32_t>(on) << 2);
+            m_baWorkFlags = (m_baWorkFlags & 0xfffffffbu) | (static_cast<uint32_t>(on) << 2);
             return 0;
         }
-        case 7: m_unkf8 = (m_unkf8 & 0xfffffff7u) | 8u; return 0;
-        case 8: m_unkf8 &= 0xfffffff7u; return 0;
-        case 9: m_unkf8 = (m_unkf8 & 0xffffffefu) | 0x10u; return 0;
-        case 10: m_unkf8 &= 0xffffffefu; return 0;
-        case 13: m_unkf8 = (m_unkf8 & 0xffffefffu) | 0x1000u; return 0;
-        case 14: m_unkf8 &= 0xffffefffu; return 0;
-        case 15: m_unkf8 = (m_unkf8 & 0xfffeffffu) | 0x10000u; return 0;
-        case 16: m_unkf8 &= 0xfffeffffu; return 0;
+        case 7: m_baWorkFlags = (m_baWorkFlags & 0xfffffff7u) | 8u; return 0;
+        case 8: m_baWorkFlags &= 0xfffffff7u; return 0;
+        case 9: m_baWorkFlags = (m_baWorkFlags & 0xffffffefu) | 0x10u; return 0;
+        case 10: m_baWorkFlags &= 0xffffffefu; return 0;
+        case 13: m_baWorkFlags = (m_baWorkFlags & 0xffffefffu) | 0x1000u; return 0;
+        case 14: m_baWorkFlags &= 0xffffefffu; return 0;
+        case 15: m_baWorkFlags = (m_baWorkFlags & 0xfffeffffu) | 0x10000u; return 0;
+        case 16: m_baWorkFlags &= 0xfffeffffu; return 0;
         default: return 1;
     }
 }
@@ -1582,7 +1582,7 @@ int32_t CKGrpS08Hero::MessageProc(uint16_t message, void* data) {
         const int32_t command = HandleHeroCommand(message & 0xffu, data);
         base = command == 3 ? 3 : command == 2 ? 2 : MessageResult(command);
     } else if (high == 0x26 && (message & 0xffu) == 0x66) {
-        *static_cast<IKSerializable**>(data) = AccessorText(m_pUnk58);  // the CKLocTextAccessor +0x58
+        *static_cast<IKSerializable**>(data) = AccessorText(m_pLocTextAccessor);  // the CKLocTextAccessor +0x58
         base = 0;
     } else {
         base = MessageResult(1);
@@ -1593,39 +1593,39 @@ int32_t CKGrpS08Hero::MessageProc(uint16_t message, void* data) {
             case 0x11: {
                 // The focused hero's (+0xab8) carried power bucket shown (vt+0x194 1). Not handled either way (1).
                 IKSerializable* bucket =
-                    static_cast<CKHkS08Hero*>(m_apHeros[m_unkab8])->GetCarriedPowerBucket();  // 0x003401f0
+                    static_cast<CKHkS08Hero*>(m_apHeros[m_ui8PowerBucketFillHero])->GetCarriedPowerBucket();  // 0x003401f0
                 if (bucket != nullptr) static_cast<CKHkS08PowerBucket*>(bucket)->SetCarriedShown(1);  // vt+0x194
                 own = 1;
                 break;
             }
-            case 0x12: m_unk2c8 = (m_unk2c8 & 0xfffffeffu) | 0x100u; own = 0; break;
-            case 0x15: m_unkfc = 1; own = 0; break;
-            case 0x16: m_unkfc = 0; own = 0; break;
-            case 0x17: m_unk2c8 = (m_unk2c8 & 0xfffff7ffu) | 0x800u; own = 0; break;
-            case 0x18: m_unk2c8 &= 0xfffff7ffu; own = 0; break;
-            case 0x1a: m_unk2c8 = (m_unk2c8 & 0xffffefffu) | 0x1000u; own = 0; break;
-            case 0x1b: m_unk2c8 &= 0xffffefffu; own = 0; break;
+            case 0x12: m_ui32PairStateFlags = (m_ui32PairStateFlags & 0xfffffeffu) | 0x100u; own = 0; break;
+            case 0x15: m_bUseAltTetherParams = 1; own = 0; break;
+            case 0x16: m_bUseAltTetherParams = 0; own = 0; break;
+            case 0x17: m_ui32PairStateFlags = (m_ui32PairStateFlags & 0xfffff7ffu) | 0x800u; own = 0; break;
+            case 0x18: m_ui32PairStateFlags &= 0xfffff7ffu; own = 0; break;
+            case 0x1a: m_ui32PairStateFlags = (m_ui32PairStateFlags & 0xffffefffu) | 0x1000u; own = 0; break;
+            case 0x1b: m_ui32PairStateFlags &= 0xffffefffu; own = 0; break;
             case 0x1d:
-                m_unk2c8 = (m_unk2c8 & 0xfffffdffu) | 0x200u;
+                m_ui32PairStateFlags = (m_ui32PairStateFlags & 0xfffffdffu) | 0x200u;
                 static_cast<CKS08GameManager*>(g_pEngine->m_gameManager)->DrainDragonFury(0, m_unk334, 1);  // 0x004fdb28
                 m_unk328 = m_unk17c;
                 m_unk32c = 0;
                 own = 0;
                 break;
             case 0x1e:
-                static_cast<CKHkS08Hero*>(m_apHeros[0])->m_unked4 |= 0x10u;
-                static_cast<CKHkS08Hero*>(m_apHeros[1])->m_unked4 |= 0x10u;
+                static_cast<CKHkS08Hero*>(m_apHeros[0])->m_ui32StatusFlagsED4 |= 0x10u;
+                static_cast<CKHkS08Hero*>(m_apHeros[1])->m_ui32StatusFlagsED4 |= 0x10u;
                 own = 0;
                 break;
             case 0x1f:
-                static_cast<CKHkS08Hero*>(m_apHeros[0])->m_unked4 &= 0xffffffefu;
-                static_cast<CKHkS08Hero*>(m_apHeros[1])->m_unked4 &= 0xffffffefu;
+                static_cast<CKHkS08Hero*>(m_apHeros[0])->m_ui32StatusFlagsED4 &= 0xffffffefu;
+                static_cast<CKHkS08Hero*>(m_apHeros[1])->m_ui32StatusFlagsED4 &= 0xffffffefu;
                 own = 0;
                 break;
             default: own = 1; break;  // 0xc13, 0xc14, 0xc19, 0xc1c
         }
     } else if (high == 0x26 && (message & 0xffu) == 0x66) {
-        *static_cast<IKSerializable**>(data) = AccessorText(m_pUnkabc);  // the group's own CKLocTextAccessor
+        *static_cast<IKSerializable**>(data) = AccessorText(m_pPromptTextAccessor);  // the group's own CKLocTextAccessor
         own = 0;
     }
     if (base == 3) return 3;
@@ -1688,19 +1688,19 @@ int32_t CKGrpS08Hero::GetInfo(IKInfo* info, int32_t request) {
     }
     switch (info->m_ui32Id) {
     case 7:
-        return AnswerInfo(info, [](IKSerializable* o, uint32_t) { return static_cast<uint32_t>(static_cast<CKGrpS08Hero*>(o)->m_unkab8); }, 1);
+        return AnswerInfo(info, [](IKSerializable* o, uint32_t) { return static_cast<uint32_t>(static_cast<CKGrpS08Hero*>(o)->m_ui8PowerBucketFillHero); }, 1);
     case 0xb:
-        return AnswerInfo(info, [](IKSerializable* o, uint32_t) { return (static_cast<CKGrpS08Hero*>(o)->m_unkf8 >> 10) & 1u; }, 0);
+        return AnswerInfo(info, [](IKSerializable* o, uint32_t) { return (static_cast<CKGrpS08Hero*>(o)->m_baWorkFlags >> 10) & 1u; }, 0);
     case 0xd:
         return AnswerInfo(info, [](IKSerializable* o, uint32_t) {
             CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(o);
-            const CKHkS08Hero* hero = static_cast<const CKHkS08Hero*>(group->m_apHeros[group->m_unk66]);
+            const CKHkS08Hero* hero = static_cast<const CKHkS08Hero*>(group->m_apHeros[group->m_ui8FocusedDragon]);
             return static_cast<uint32_t>(hero->IsAnyComboKindActive() ^ 1u);  // 0x002fd030
         }, 0);
     case 0xf:
-        return AnswerInfo(info, [](IKSerializable* o, uint32_t) { return static_cast<uint32_t>(static_cast<CKGrpS08Hero*>(o)->m_unk66); }, 1);
+        return AnswerInfo(info, [](IKSerializable* o, uint32_t) { return static_cast<uint32_t>(static_cast<CKGrpS08Hero*>(o)->m_ui8FocusedDragon); }, 1);
     case 0x13:
-        return AnswerInfo(info, [](IKSerializable* o, uint32_t) { return (static_cast<CKGrpS08Hero*>(o)->m_unk2c8 >> 8) & 1u; }, 0);
+        return AnswerInfo(info, [](IKSerializable* o, uint32_t) { return (static_cast<CKGrpS08Hero*>(o)->m_ui32PairStateFlags >> 8) & 1u; }, 0);
     case 0xc:
         // 0x009bd378 CKGrpS08Hero_IsAverageManaAtLeastHalf_maybe: the heroes' mana over their capacities, averaged, at
         // least 0.5 (TOC1 +0x1c28 0, +0x1c2c 0.5; no hero: 0 / 0, false).
@@ -1735,33 +1735,33 @@ int32_t CKGrpS08Hero::GetInfo(IKInfo* info, int32_t request) {
 // selected hero is told 0xc46; the requested dragon becomes the selected one. Then the time (+0x6c) and the request
 // dropped.
 void CKGrpS08Hero::ApplyRequestedDragonSelection(uint8_t applyArg) {
-    CKHkS08Hero* requested = static_cast<CKHkS08Hero*>(m_apHeros[m_unk65]);
-    CKHkS08Hero* selected = static_cast<CKHkS08Hero*>(m_apHeros[m_unk64]);
+    CKHkS08Hero* requested = static_cast<CKHkS08Hero*>(m_apHeros[m_ui8RequestedDragon]);
+    CKHkS08Hero* selected = static_cast<CKHkS08Hero*>(m_apHeros[m_ui8SelectedDragon]);
     if (requested->m_ui8Hero == requested->m_ui8TrackedLeader && requested->m_ui8Leader != selected->m_ui8Leader) {
         SetFocusedDragon(requested, 1);  // 0x002cc3f0
-        requested->m_unk364 = (requested->m_unk364 & ~0x20000000u) | 0x20000000u;
+        requested->m_ui32HeroFlags364 = (requested->m_ui32HeroFlags364 & ~0x20000000u) | 0x20000000u;
     } else {
         // vt+0xf0 0x009bd130 CKGrpS08Hero_vfF0 (selected, requested) is empty.
         const uint32_t count = GetHeroCount();  // vt+0xf4
         for (uint32_t i = 0; i < count; ++i) {
             IKHkHero* hero = static_cast<IKHkHero*>(m_apHeros[i]);
-            if (m_unk64 != hero->m_ui8TrackedLeader) continue;
-            hero->m_ui8TrackedLeader = m_unk65;
-            m_pUnk7c[hero->m_ui8Hero] = 0xff;
+            if (m_ui8SelectedDragon != hero->m_ui8TrackedLeader) continue;
+            hero->m_ui8TrackedLeader = m_ui8RequestedDragon;
+            m_ai8WantedPos[hero->m_ui8Hero] = 0xff;
         }
         requested->m_ui8Leader = selected->m_ui8Leader;
-        requested->m_ui8TrackedLeader = m_unk65;
-        requested->m_unk364 = (requested->m_unk364 & ~0x40u) | ((static_cast<uint32_t>(applyArg) << 6) & 0x3fc0u);
+        requested->m_ui8TrackedLeader = m_ui8RequestedDragon;
+        requested->m_ui32HeroFlags364 = (requested->m_ui32HeroFlags364 & ~0x40u) | ((static_cast<uint32_t>(applyArg) << 6) & 0x3fc0u);
         selected->ApplyControlAssignment(0, 0);   // 0x00348010
         requested->ApplyControlAssignment(0, 1);
         RebuildControlledAndCompanionHeroArrays();  // the same code, inlined
         QueueTriggerSignals(&m_aTriggers[0]);       // +0x98; 0x00236338
-        if ((selected->m_unk358 & 1u) != 0) selected->GetAttachedObject()->MessageProc(0xc46, nullptr);  // vt+0x1c
-        m_unk64 = m_unk65;
+        if ((selected->m_ui32HeroFlags358 & 1u) != 0) selected->GetAttachedObject()->MessageProc(0xc46, nullptr);  // vt+0x1c
+        m_ui8SelectedDragon = m_ui8RequestedDragon;
     }
     m_unk6c = g_pEngine->m_timeManager->m_pTime->m_afCurrentTime[0];
-    m_unk65 = m_unk64;
-    m_unkf8 &= ~0x20u;
+    m_ui8RequestedDragon = m_ui8SelectedDragon;
+    m_baWorkFlags &= ~0x20u;
 }
 
 // 0x002cf410 CKGrpS08Hero_Destroy
@@ -1773,17 +1773,17 @@ void CKGrpS08Hero::Destroy() {
 // 0x002cef40 CKGrpS08Hero_RecursiveRegistration (vt+0x24)
 void CKGrpS08Hero::RecursiveRegistration(int32_t type) {
     IKGrpHero::RecursiveRegistration(type);  // 0x002c8b00
-    m_pUnk2cc->RecursiveRegistration(type);
+    m_pQuakeLauncher->RecursiveRegistration(type);
     // +0xab0, +0x338, +0x340, +0xac0: the trigger starters' (KStub_Return1_2361b0: nothing).
-    m_pUnkabc->RecursiveRegistration(type);
-    m_pUnk348->RecursiveRegistration(type);
-    m_pUnk34c->RecursiveRegistration(type);
-    m_pUnk354->RecursiveRegistration(type);
-    m_pUnk358->RecursiveRegistration(type);
-    m_pUnk360->RecursiveRegistration(type);
+    m_pPromptTextAccessor->RecursiveRegistration(type);
+    m_pFuryFlashFxData->RecursiveRegistration(type);
+    m_pFuryFilterFxData->RecursiveRegistration(type);
+    m_pFuryExplosionFxData->RecursiveRegistration(type);
+    m_pFuryHdrFxData->RecursiveRegistration(type);
+    m_pFuryChargeCurve->RecursiveRegistration(type);
 }
 
 // 0x002d4bc0 CKGrpS08Hero_GetFocusedHeroCamera_maybe
 IKSerializable* CKGrpS08Hero::GetFocusedHeroCamera() const {
-    return static_cast<CKHkS08Hero*>(m_apHeros[m_unk66])->m_unk1818;
+    return static_cast<CKHkS08Hero*>(m_apHeros[m_ui8FocusedDragon])->m_pCameraTargetNode;
 }

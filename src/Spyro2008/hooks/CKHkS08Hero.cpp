@@ -146,17 +146,17 @@ CKHkS08Hero::CKHkS08Hero() {
     m_unk13d4 = 0.0f;
     m_unk13d8 = 0;
     m_unk1539 = 0;
-    m_unk1808 = 0;
+    m_ui8MovementMode = 0;
     m_unk1813 = 0;
     m_unk1814 = 0;
     m_unk1815 = 0;
     m_unk1b34 = 0.0f;
     m_unk18d1 = 0xff;
-    m_unk18d0 = 0xff;
+    m_ui8FlyAnimState = 0xff;
     m_unk1961 = 0xff;
-    m_unk1960 = 0xff;
+    m_ui8GroundAnimState = 0xff;
     m_unk19a9 = 0xff;
-    m_unk19a8 = 0xff;
+    m_ui8ClimbAnimState = 0xff;
     m_unk1a28 = 1;
     m_apUnk1a24 = nullptr;
     m_unk1a34 = 1;
@@ -183,35 +183,35 @@ void CKHkS08Hero::RecursiveRegistration(int32_t type) {
     m_unk1aa4->RecursiveRegistration(type);
     m_unk1ae4->RecursiveRegistration(type);
     m_unkee8->RecursiveRegistration(type);
-    m_unk1818->RecursiveRegistration(type);
+    m_pCameraTargetNode->RecursiveRegistration(type);
     m_unk19b4->RecursiveRegistration(type);
     m_unk19bc->RecursiveRegistration(type);
     m_unk19d4->RecursiveRegistration(type);
     m_unk19f8->RecursiveRegistration(type);
     m_unk19fc->RecursiveRegistration(type);
-    m_unkfb8->RecursiveRegistration(type);
+    m_pCarrierHero->RecursiveRegistration(type);
     m_apUnkfbc[0]->RecursiveRegistration(type);
     m_apUnkfbc[1]->RecursiveRegistration(type);
     m_apUnkfbc[2]->RecursiveRegistration(type);
     m_apUnkfbc[3]->RecursiveRegistration(type);
     m_apUnkfbc[4]->RecursiveRegistration(type);
-    if (m_apUnk1bd0[0] != nullptr) m_apUnk1bd0[0]->RecursiveRegistration(type);
-    if (m_apUnk1bd0[1] != nullptr) m_apUnk1bd0[1]->RecursiveRegistration(type);
-    if (m_apUnk1bd0[2] != nullptr) m_apUnk1bd0[2]->RecursiveRegistration(type);
-    if (m_apUnk1bd0[3] != nullptr) m_apUnk1bd0[3]->RecursiveRegistration(type);
-    if (m_apUnk1bd0[4] != nullptr) m_apUnk1bd0[4]->RecursiveRegistration(type);
-    if (m_apUnk1bd0[5] != nullptr) m_apUnk1bd0[5]->RecursiveRegistration(type);
-    if (m_apUnk1bd0[6] != nullptr) m_apUnk1bd0[6]->RecursiveRegistration(type);
-    if (m_apUnk1bd0[7] != nullptr) m_apUnk1bd0[7]->RecursiveRegistration(type);
-    if (m_apUnk1bd0[8] != nullptr) m_apUnk1bd0[8]->RecursiveRegistration(type);
-    if (m_apUnk1bd0[9] != nullptr) m_apUnk1bd0[9]->RecursiveRegistration(type);
+    if (m_apAbilities[0] != nullptr) m_apAbilities[0]->RecursiveRegistration(type);
+    if (m_apAbilities[1] != nullptr) m_apAbilities[1]->RecursiveRegistration(type);
+    if (m_apAbilities[2] != nullptr) m_apAbilities[2]->RecursiveRegistration(type);
+    if (m_apAbilities[3] != nullptr) m_apAbilities[3]->RecursiveRegistration(type);
+    if (m_apAbilities[4] != nullptr) m_apAbilities[4]->RecursiveRegistration(type);
+    if (m_apAbilities[5] != nullptr) m_apAbilities[5]->RecursiveRegistration(type);
+    if (m_apAbilities[6] != nullptr) m_apAbilities[6]->RecursiveRegistration(type);
+    if (m_apAbilities[7] != nullptr) m_apAbilities[7]->RecursiveRegistration(type);
+    if (m_apAbilities[8] != nullptr) m_apAbilities[8]->RecursiveRegistration(type);
+    if (m_apAbilities[9] != nullptr) m_apAbilities[9]->RecursiveRegistration(type);
     m_unk19dc->RecursiveRegistration(type);
     m_unk1b1c->RecursiveRegistration(type);
     m_unk1b20->RecursiveRegistration(type);
     m_unk1b24->RecursiveRegistration(type);
     m_unk1a78->RecursiveRegistration(type);
     m_unk1a7c->RecursiveRegistration(type);
-    m_unk1d38->RecursiveRegistration(type);
+    m_pFlightAimCone->RecursiveRegistration(type);
     m_unk1b28->RecursiveRegistration(type);
     m_unk1ae0->RecursiveRegistration(type);
     m_unk19e4->RecursiveRegistration(type);
@@ -235,7 +235,7 @@ void CKHkS08Hero::RecursiveRegistration(int32_t type) {
     m_unk1b6c->RecursiveRegistration(type);
     m_unk1b70->RecursiveRegistration(type);
     m_unk1b74->RecursiveRegistration(type);
-    m_unk1190->RecursiveRegistration(type);
+    m_pFlightImpulsionCpnt->RecursiveRegistration(type);
     m_unk1dc4->RecursiveRegistration(type);
     m_unk1dc8->RecursiveRegistration(type);
     m_unk1dd4->RecursiveRegistration(type);
@@ -436,7 +436,7 @@ int32_t CKHkS08Hero::Load(IKFile* file, int32_t type) {
     ReadF32LE(file, &m_unkddc);
     ReadF32LE(file, &m_unkde0);
     ReadF32LE(file, &m_unkde4);
-    IKFile_ReadRef(file, &m_unk1818);
+    IKFile_ReadRef(file, &m_pCameraTargetNode);
     ReadF32LE(file, &m_unkd2c);
     ReadF32LE(file, &m_unkd30);
     ReadF32LE(file, &m_unkd34);
@@ -547,7 +547,7 @@ int32_t CKHkS08Hero::Load(IKFile* file, int32_t type) {
         static_cast<CKS08HeroBlow*>(m_apUnk1a30[i])->Vf98(m_ui8Hero);  // vt+0x98 0x009bec20 CKS08HeroBlow_vf98
     }
     IKFile_ReadRef(file, &m_unk1aa4);
-    IKFile_ReadRef(file, &m_unkfb8);
+    IKFile_ReadRef(file, &m_pCarrierHero);
     ReadF32LE(file, &m_unkca8);
     ReadF32LE(file, &m_unkcac);
     ReadF32LE(file, &m_unkcb0);
@@ -634,7 +634,7 @@ int32_t CKHkS08Hero::Load(IKFile* file, int32_t type) {
     ReadU32LE(file, &m_unkbb4);
     ReadF32LE(file, &m_unkbb8);
     IKFile_ReadObjectRefArray(file, m_apUnkfbc, 5);
-    for (int i = 0; i < 10; ++i) IKFile_ReadRef(file, &m_apUnk1bd0[i]);
+    for (int i = 0; i < 10; ++i) IKFile_ReadRef(file, &m_apAbilities[i]);
     ReadRaw(file, &m_unk1c20, 4);
     ReadRaw(file, &m_unk1c34, 4);
     ReadRaw(file, &m_unk1c24, 4);
@@ -815,10 +815,10 @@ int32_t CKHkS08Hero::Load(IKFile* file, int32_t type) {
     ReadF32LE(file, &m_unka60);
     ReadF32LE(file, &m_unka64);
     ReadF32LE(file, &m_unkdd8);
-    m_unk114c.Load(file, K_LEVEL_PLATEFORMS);
+    m_tsStartCarrying.Load(file, K_LEVEL_PLATEFORMS);
     IKFile_ReadRef(file, &m_unk19c4);
     IKFile_ReadRef(file, &m_unk19cc);
-    m_unk1154.Load(file, K_LEVEL_PLATEFORMS);
+    m_tsHit.Load(file, K_LEVEL_PLATEFORMS);
     ReadF32LE(file, &m_unke78);
     ReadF32LE(file, &m_unke7c);
     ReadF32LE(file, &m_unke80);
@@ -841,7 +841,7 @@ int32_t CKHkS08Hero::Load(IKFile* file, int32_t type) {
     IKFile_ReadRef(file, &m_unk1b70);
     IKFile_ReadRef(file, &m_unk1b74);
     ReadF32LE(file, &m_unk8cc);
-    IKFile_ReadRef(file, &m_unk1190);
+    IKFile_ReadRef(file, &m_pFlightImpulsionCpnt);
     ReadF32LE(file, &m_unka70);
     ReadF32LE(file, &m_unka74);
     ReadF32LE(file, &m_unk914);
@@ -858,7 +858,7 @@ int32_t CKHkS08Hero::Load(IKFile* file, int32_t type) {
     ReadF32LE(file, &m_unk908);
     ReadF32LE(file, &m_unk90c);
     ReadF32LE(file, &m_unk910);
-    IKFile_ReadRef(file, &m_unk1d38);
+    IKFile_ReadRef(file, &m_pFlightAimCone);
     ReadF32LE(file, &m_unk8d4);
     ReadF32LE(file, &m_unk8d8);
     IKFile_ReadRef(file, &m_unk1dc8);
@@ -1005,7 +1005,7 @@ void CKHkS08Hero::ResetMotionState(int32_t flag) {
     m_unk1060 = uVar2;
     m_unk1068 = 0;
     m_unk368 = m_unk368 & 0xfffffbff | 0x400;
-    m_unk358 = (m_unk358 & 0xbfffffff | 0x40000000);
+    m_ui32HeroFlags358 = (m_ui32HeroFlags358 & 0xbfffffff | 0x40000000);
     m_unk1124 = 0x0;
     uVar2 = 0x0;
     m_unk112c = 0x0;
@@ -1060,7 +1060,7 @@ void CKHkS08Hero::InitLocomotionAnimSubStateMachines() {
     m_unk1880 = 0;
     m_unk18d1 = 0x12;
     m_unk18cc = &m_unk183c;
-    m_unk18d0 = 0xff;
+    m_ui8FlyAnimState = 0xff;
     m_unk18d4 = 0x00b9a108u;
     m_unk18dc = 0x00b9a1a8u;
     m_unk18e4 = 0x00b9a1a0u;
@@ -1096,7 +1096,7 @@ void CKHkS08Hero::InitLocomotionAnimSubStateMachines() {
     m_unk1950 = 0;
     m_unk1958 = 0;
     m_unk1961 = 0x11;
-    m_unk1960 = 0xff;
+    m_ui8GroundAnimState = 0xff;
     m_unk195c = &m_unk18d4;
     m_unk1994 = 0x00b9a088u;
     m_unk19a0 = 0;
@@ -1116,7 +1116,7 @@ void CKHkS08Hero::InitLocomotionAnimSubStateMachines() {
     m_unk1998 = 0;
     m_unk19a9 = 8;
     m_unk19a4 = &m_unk1964;
-    m_unk19a8 = 0xff;
+    m_ui8ClimbAnimState = 0xff;
 }
 
 // 0x002df3e0 CKHkS08Hero_Start
@@ -1145,13 +1145,13 @@ void CKHkS08Hero::Start() {
     m_unkec4 = 0;
     m_unkec8 = 0;
     m_unkecc = 0;
-    m_unked0 = 0;
-    m_unked4 = 0;
+    m_ui32StatusFlagsED0 = 0;
+    m_ui32StatusFlagsED4 = 0;
     ResetMotionState(1);
     InitLocomotionAnimSubStateMachines();
-    m_unk1a88 = m_unk1a8c;
+    m_pCurrentComboNode = m_unk1a8c;
     DisableSwingTrails();
-    static_cast<CKS08CarrierHero*>(m_unkfb8)->Reset();  // vt+0x68 0x4b4118
+    static_cast<CKS08CarrierHero*>(m_pCarrierHero)->Reset();  // vt+0x68 0x4b4118
 }
 
 // 0x002df308 CKHkS08Hero_Restart (vt+0x54, the level restart): the default state (which makes the controlled hero the
@@ -1163,15 +1163,15 @@ void CKHkS08Hero::Restart() {
     DisableSwingTrails();   // 0x00334e20
     ResetMotionState(1);    // 0x002d9410
     InitLocomotionAnimSubStateMachines();  // 0x002df070
-    m_unk1a88 = m_unk1a8c;
-    if (m_unk1cc0 != nullptr) static_cast<CKAbilityElement*>(m_unk1cc0)->Stop(0);  // vt+0x5c
+    m_pCurrentComboNode = m_unk1a8c;
+    if (m_pActiveAbility != nullptr) static_cast<CKAbilityElement*>(m_pActiveAbility)->Stop(0);  // vt+0x5c
     m_unked8 = 0;
     m_unkec4 = 0;
     m_unkec8 = 0;
     m_unkecc = 0;
-    m_unked0 = 0;
-    m_unked4 = 0;
-    static_cast<CKS08CarrierHero*>(m_unkfb8)->DropCarriedObjectAndReset();  // vt+0x70 0x4b3e40
+    m_ui32StatusFlagsED0 = 0;
+    m_ui32StatusFlagsED4 = 0;
+    static_cast<CKS08CarrierHero*>(m_pCarrierHero)->DropCarriedObjectAndReset();  // vt+0x70 0x4b3e40
 }
 
 // 0x009bd698 CKHkS08Hero_vf198 (an inline copy in the original): a float stored at +0x894.
@@ -1203,10 +1203,10 @@ void CKHkS08Hero::InitAnimBlendSlot() {
 void CKHkS08Hero::OnAttachToObject() {
     m_unkedc = 0;
     m_unkec8 &= ~4u;
-    CKImpulsionCpnt* impulsion = static_cast<CKImpulsionCpnt*>(m_unk1190);
-    impulsion->m_unk2c = 0.0f;
-    impulsion->m_unk24 = 0.0f;
-    impulsion->m_unk28 = 0.0f;
+    CKImpulsionCpnt* impulsion = static_cast<CKImpulsionCpnt*>(m_pFlightImpulsionCpnt);
+    impulsion->m_fImpulseTimer = 0.0f;
+    impulsion->m_fValue = 0.0f;
+    impulsion->m_fSpeed = 0.0f;
     if (m_unk90->GetClassID() == 0x247) return;  // vt+0x18
     // The zero vector 0x00c50d64 (x, then z, then y as the original stores them).
     m_unk1268 = 0.0f;
@@ -1214,8 +1214,8 @@ void CKHkS08Hero::OnAttachToObject() {
     m_unk126c = 0.0f;
     SetMovementMode(0);  // 0x340c18
     m_unkec8 &= ~0x80u;
-    m_unked0 &= ~0xcu;
-    m_unk534 = 0.0f;
+    m_ui32StatusFlagsED0 &= ~0xcu;
+    m_fCurVSpeed = 0.0f;
     m_unk5b4 = 0.0f;
     m_unk5bc = 0.0f;
     m_unk5b8 = 0.0f;
@@ -1246,7 +1246,7 @@ void CKHkS08Hero::OnDetachFromObject() {
     m_unk126c = 0.0f;
     SetMovementMode(0);  // 0x340c18
     m_unkec8 &= 0xffffff7fu;
-    m_unked0 &= 0xfffffff3u;
+    m_ui32StatusFlagsED0 &= 0xfffffff3u;
 }
 
 // 0x002dbde0 CKHkS08Hero_LockedUpdate (vt+0x80): a locked hero (a cinematic holds it) counts the model fade timer
@@ -1290,7 +1290,7 @@ int32_t CKHkS08Hero::MessageProc(uint16_t message, void* data) {
         switch (id) {
         case 0x13: {
             own = 0;
-            CKS08CarrierHero* carrier = static_cast<CKS08CarrierHero*>(m_unkfb8);
+            CKS08CarrierHero* carrier = static_cast<CKS08CarrierHero*>(m_pCarrierHero);
             if (carrier == nullptr) break;
             IKSerializable* carried = carrier->GetCarriedObject();  // vt+0x80
             if (carried == nullptr) break;
@@ -1334,7 +1334,7 @@ int32_t CKHkS08Hero::MessageProc(uint16_t message, void* data) {
         }
         case 0x1c:
             own = 0;
-            if (m_ui8Hero != m_ui8TrackedLeader) m_unked0 = (m_unked0 & ~4u) | 4u;
+            if (m_ui8Hero != m_ui8TrackedLeader) m_ui32StatusFlagsED0 = (m_ui32StatusFlagsED0 & ~4u) | 4u;
             break;
         case 0x20:
         case 0x21:
@@ -1397,15 +1397,15 @@ uint8_t CKHkS08Hero::CanAttachTo(IKSerializable* object, int32_t count) {
         return 1;
     }
     // 0x0032a428 CKHkS08Hero_GetFlagED4Bit3_maybe
-    if (((m_unked4 >> 3) & 1u) != 0 && object->IsKindOfClass(0x91cc) == 0) return 0;
+    if (((m_ui32StatusFlagsED4 >> 3) & 1u) != 0 && object->IsKindOfClass(0x91cc) == 0) return 0;
     if (m_unk90 != nullptr) {
         if (m_unk90->IsKindOfClass(0x91cc) != 0) return 0;
         if (m_unk90 != nullptr && m_unk90->IsKindOfClass(0x1a02) != 0 && object->IsKindOfClass(0x1a02) != 0) return 0;
     }
-    if ((m_unked4 & 0x40u) != 0) return 0;
+    if ((m_ui32StatusFlagsED4 & 0x40u) != 0) return 0;
     if (m_ui8Hero == m_ui8TrackedLeader && object->IsKindOfClass(0x2a82) != 0) return 1;
     if (IsAnyComboKindActive() != 0 && (m_unkec8 & 0x8000000u) == 0) return 0;  // 0x002fd030
-    CKS08CarrierHero* carrier = static_cast<CKS08CarrierHero*>(m_unkfb8);
+    CKS08CarrierHero* carrier = static_cast<CKS08CarrierHero*>(m_pCarrierHero);
     if (carrier == nullptr) return 1;
     if (carrier->GetCarriedObject() == nullptr) return 1;  // vt+0x80
     return count > 1 ? 1 : 0;
@@ -1415,8 +1415,8 @@ uint8_t CKHkS08Hero::CanAttachTo(IKSerializable* object, int32_t count) {
 int32_t CKHkS08Hero::PostLoad(int32_t type) {
     IKHkHero::PostLoad(type);  // 0x00346400
     // The blows of the combo tree learn their hero (vt+0x98 of CKS08HeroBlow, 0x009bec20: a byte at +0x2c).
-    for (uint32_t i = 0; i < m_unk1a2c; ++i) static_cast<CKS08HeroBlow*>(m_apUnk1a24[i])->m_unk2c = m_ui8Hero;
-    m_unk1a88 = m_unk1a8c;
+    for (uint32_t i = 0; i < m_unk1a2c; ++i) static_cast<CKS08HeroBlow*>(m_apUnk1a24[i])->m_ui8Hero = m_ui8Hero;
+    m_pCurrentComboNode = m_unk1a8c;
     if (type == K_LEVEL_PLATEFORMS) {
         m_unk16d8 = reinterpret_cast<CMatrix34*>(RwMatrixCreate());  // RwMatrixCreate_Thunk 0x0023fa68
         m_unk16d4 = reinterpret_cast<CMatrix34*>(RwMatrixCreate());
@@ -1432,9 +1432,9 @@ int32_t CKHkS08Hero::PostLoad(int32_t type) {
         m_unk16ec = reinterpret_cast<CMatrix34*>(RwMatrixCreate());
         m_unk16f0 = reinterpret_cast<CMatrix34*>(RwMatrixCreate());
         m_unk1724 = 0.4f;  // TOC1 +0x1ae0: 0x3ecccccd
-        m_unk1df8 = nullptr;
-        m_unk114c.PostLoad(0);  // TriggerEventList_PostLoad_maybe 0x00236330
-        m_unk1154.PostLoad(0);
+        m_pAbilityHost = nullptr;
+        m_tsStartCarrying.PostLoad(0);  // TriggerEventList_PostLoad_maybe 0x00236330
+        m_tsHit.PostLoad(0);
         m_unk1a08 = nullptr;
         m_unk1dcc = nullptr;
     }
@@ -1505,13 +1505,13 @@ void CKHkS08Hero::Update(IKTime* clock) {
     if (m_unk1b04 > 0.0f) m_unk1b04 = m_unk1b04 - dt;
     m_unkec4 &= 0xefffffffu;
     m_unkecc &= 0xfffffaf7u;
-    m_unked0 &= 0xffffffbfu;
+    m_ui32StatusFlagsED0 &= 0xffffffbfu;
     m_unkecc &= 0xfdf7ffffu;
-    m_unked0 &= 0xefffffffu;
-    m_unked4 &= 0xfffffffdu;
+    m_ui32StatusFlagsED0 &= 0xefffffffu;
+    m_ui32StatusFlagsED4 &= 0xfffffffdu;
     if (m_unk1dd0 == 0) m_unk1dd1 = 0;
     m_unk1dd0 = 0;
-    m_unked4 &= 0xffffffdfu;
+    m_ui32StatusFlagsED4 &= 0xffffffdfu;
     m_unk88c = clock->m_afDeltaTime[0];
     m_unk1548 = clock->m_afCurrentTime[0];
     if (m_ui8TrackedLeader == m_ui8Hero) {
@@ -1526,7 +1526,7 @@ void CKHkS08Hero::Update(IKTime* clock) {
         }
     }
     ProcessHeroContactList();  // 0x002d8f38
-    CKS08CarrierHero* carrier = static_cast<CKS08CarrierHero*>(m_unkfb8);
+    CKS08CarrierHero* carrier = static_cast<CKS08CarrierHero*>(m_pCarrierHero);
     const bool carriedBefore = carrier->GetCarriedObject() != nullptr;  // vt+0x80
     carrier->UpdateStateMachine(clock);                                 // vt+0x74
     const bool carriedAfter = carrier->GetCarriedObject() != nullptr;
@@ -1555,15 +1555,15 @@ void CKHkS08Hero::Update(IKTime* clock) {
     UpdateField794ByAnimAndElementLevel();  // 0x003101e8
     IKSerializable* climbGround = nullptr;
     if ((m_unkec8 & 0x800u) == 0) {
-        if (ShouldStayClimbing() == 0 || m_unk1694 == nullptr) {  // 0x00342fa8
+        if (ShouldStayClimbing() == 0 || m_pCurrentClimbZone == nullptr) {  // 0x00342fa8
             m_unkecc &= 0xffffbfffu;
         } else {
-            climbGround = m_unk1694->GetGroundByIndex(0);  // 0x00456bf0: the zone's moving body's first ground
+            climbGround = m_pCurrentClimbZone->GetGroundByIndex(0);  // 0x00456bf0: the zone's moving body's first ground
             m_unkecc = (m_unkecc & 0xffffbfffu) | 0x4000u;
         }
     } else {
         m_unkecc = (m_unkecc & 0xffffbfffu) | 0x4000u;
-        IKSerializable* ground = m_unk11fc.m_pGround;
+        IKSerializable* ground = m_gcContact11FC.m_pGround;
         if (ground != nullptr && ground->GetClassID() == 0x13) climbGround = ground;  // vt+0x18
     }
     if ((m_unkecc & 0x4000u) == 0) {
@@ -1599,23 +1599,23 @@ void CKHkS08Hero::Update(IKTime* clock) {
     UpdateMovementAndContacts(clock);  // 0x00347530
     const bool carriedAfterMove = carrier->GetCarriedObject() != nullptr;
     if (!carriedBefore) {
-        if (carriedAfter) QueueTriggerSignals(&m_unk114c);  // 0x00236338
+        if (carriedAfter) QueueTriggerSignals(&m_tsStartCarrying);  // 0x00236338
     } else if (!carriedAfter) {
         m_unkec8 &= 0xff3fffffu;
     }
     if (!carriedBeforeMove) {
-        if (carriedAfterMove) QueueTriggerSignals(&m_unk114c);
+        if (carriedAfterMove) QueueTriggerSignals(&m_tsStartCarrying);
     } else if (!carriedAfterMove) {
         m_unkec8 &= 0xff3fffffu;
     }
     UpdateModeFlagsAndTetherTimers();  // 0x002dd340
     UpdateHeroStatusAndTimedDamage();  // 0x002fef58
     m_unkecc &= 0xffffcffdu;
-    m_unk180a = 0;
+    m_bMovementModeChanged = 0;
     m_unkecc &= 0xff7fffdfu;
     CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(m_pGrpHero);
-    group->m_unk2c8 = (group->m_unk2c8 & 0xfffffbffu) | 0x400u;
-    m_unked0 &= 0xdfffffffu;
+    group->m_ui32PairStateFlags = (group->m_ui32PairStateFlags & 0xfffffbffu) | 0x400u;
+    m_ui32StatusFlagsED0 &= 0xdfffffffu;
     if (m_ui8Hero == m_ui8TrackedLeader) m_unk368 &= 0xffffdfffu;
     UpdateField1348Timers();  // 0x0033d8f0
 }
@@ -1626,12 +1626,12 @@ void CKHkS08Hero::Update(IKTime* clock) {
 // (9 per dragon, 0x00a704c8): the damage and impulse it gives (HandleHeroContactDamageAndImpulse), the push +0x5e4
 // clamped to max(+0x12cc, 1) * dt * 5 (scaled down to that length), and the climb zones' contacts.
 void CKHkS08Hero::ProcessHeroContactList() {
-    if (m_unk1690 != 0 && m_unk1690 != m_unk169c) {
+    if (m_pHeldClimbZone != 0 && m_pHeldClimbZone != m_unk169c) {
         m_unk1698 = m_unk169c;
-        m_unk169c = m_unk1694;
+        m_unk169c = m_pCurrentClimbZone;
     }
     const uint32_t status = m_unkec4;
-    m_unk1694 = 0;
+    m_pCurrentClimbZone = 0;
     m_unk1676 = 0;
     m_unk16a0 = 0;
     if ((status & 0x20000000u) == 0) m_unk16b8 = 0;
@@ -1689,7 +1689,7 @@ void CKHkS08Hero::ProcessHeroContactList() {
 void CKHkS08Hero::UpdateMovement(IKTime* clock) {
     const float dt = clock->m_afDeltaTime[0];
     CSGMovable* node = static_cast<CSGMovable*>(m_pKGLObject);
-    CSGMovable* leaf = static_cast<CSGMovable*>(m_unk1818);
+    CSGMovable* leaf = static_cast<CSGMovable*>(m_pCameraTargetNode);
     if ((m_unkec4 & 1u) != 0 && IsLockedToObject() == 0) {  // 0x00362040
         const int8_t mode = static_cast<int8_t>(GetMovementMode());  // 0x003401b8
         if (mode == 1) {
@@ -1708,8 +1708,8 @@ void CKHkS08Hero::UpdateMovement(IKTime* clock) {
             }
         }
         leaf->SetLocalMatrix(&node->m_pRwFrame->modelling);  // 0x000d0be8
-        if ((m_unk354 & 1u) == 0) m_unk1820 = m_unk550;
-        if ((m_unk354 & 0x40000u) != 0) {
+        if ((m_ui32HeroFlags354 & 1u) == 0) m_unk1820 = m_unk550;
+        if ((m_ui32HeroFlags354 & 0x40000u) != 0) {
             m_unk181c = m_unk54c;
             m_unk1820 = m_unk550;
             m_unk1824 = m_unk554;
@@ -1971,9 +1971,9 @@ uint8_t CKHkS08Hero::CanDragonSwitch() {
     uint8_t answer;
     const int8_t mode = static_cast<int8_t>(GetMovementMode());  // 0x003401b8
     if (mode == 1) {
-        if (m_unk160 == 0x55) {
-            group->m_unk65 = group->m_unk64;
-            group->m_unkf8 &= ~0x20u;
+        if (m_i16CurAnimIndex == 0x55) {
+            group->m_ui8RequestedDragon = group->m_ui8SelectedDragon;
+            group->m_baWorkFlags &= ~0x20u;
             answer = 0;
         } else {
             answer = 1;
@@ -1994,9 +1994,9 @@ uint8_t CKHkS08Hero::CanDragonSwitch() {
         // BUG(original): another mode answers the low byte of the hero's address (the modes are 0, 1 and 2).
         answer = static_cast<uint8_t>(reinterpret_cast<uintptr_t>(this));
     }
-    if ((m_unked0 & 8u) != 0) {
-        group->m_unk65 = group->m_unk64;
-        group->m_unkf8 &= ~0x20u;
+    if ((m_ui32StatusFlagsED0 & 8u) != 0) {
+        group->m_ui8RequestedDragon = group->m_ui8SelectedDragon;
+        group->m_baWorkFlags &= ~0x20u;
         answer = 0;
     }
     return answer;
@@ -2076,7 +2076,7 @@ void CKHkS08Hero::Stop() {
         node->AddChild(bounding);                              // vt+0x70
     }
     SetCollisionVolumeEnabled(static_cast<IKBoundingVolume*>(m_apBoundings[0]), 0);
-    static_cast<CKS08CarrierHero*>(m_unkfb8)->DropCarriedObject();  // vt+0x6c
+    static_cast<CKS08CarrierHero*>(m_pCarrierHero)->DropCarriedObject();  // vt+0x6c
     m_unk218 = m_unk1724;
     IKSerializable** effects[4] = {&m_unk19b8, &m_unk19c0, &m_unk19c8, &m_unk19d0};
     for (IKSerializable** effect : effects) {
@@ -2112,9 +2112,9 @@ void CKHkS08Hero::FreeOwnedResources() {
     RwMatrixDestroy_Thunk(m_unk16e8);
     RwMatrixDestroy_Thunk(m_unk16ec);
     RwMatrixDestroy_Thunk(m_unk16f0);
-    if (m_unk1df8 != nullptr) {
-        delete m_unk1df8;  // vt+0x04 the deleting destructor
-        m_unk1df8 = nullptr;
+    if (m_pAbilityHost != nullptr) {
+        delete m_pAbilityHost;  // vt+0x04 the deleting destructor
+        m_pAbilityHost = nullptr;
     }
 }
 

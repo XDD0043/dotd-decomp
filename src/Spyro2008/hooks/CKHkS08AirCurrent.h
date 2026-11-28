@@ -83,21 +83,21 @@ public:
     // this finds the live air current with those bits (null when none). Not in the original.
     static CKHkS08AirCurrent* FromRecordWord(uint32_t word);
 
-    uint16_t m_ui16NbUnk24;                    // +0x20 lhbrx: the count of +0x24 and +0x28
+    uint16_t m_ui16NbStreamNodes;                    // _maybe: +0x20 lhbrx: the count of +0x24 and +0x28
     uint8_t m_pad22[2];
-    IKSerializable** m_apUnk24;                // +0x24 Mem_AllocAligned16, m_ui16NbUnk24 references (0: null)
-    uint8_t* m_aUnk28;                         // +0x28 OperatorNewArray, m_ui16NbUnk24 bytes (0: null)
-    IKSerializable* m_pUnk2C;                  // +0x2c
-    IKSerializable* m_pUnk30;                  // +0x30 a CNode
-    IKSerializable* m_pUnk34;                  // +0x34
+    IKSerializable** m_apStreamNodes;                // _maybe: +0x24 Mem_AllocAligned16, m_ui16NbUnk24 references (0: null)
+    uint8_t* m_aui8StreamNodeAlpha;                         // +0x28 OperatorNewArray, m_ui16NbUnk24 bytes (0: null)
+    IKSerializable* m_pFlowNode;                  // +0x2c
+    IKSerializable* m_pFlickerNode;                  // +0x30 a CNode
+    IKSerializable* m_pSteadyNode;                  // +0x34
     uint16_t m_unk38;                          // +0x38 lhbrx
     uint8_t m_pad3A[2];
-    IKSerializable* m_pUnk3C;                  // +0x3c a CFogBoxNodeFx
+    IKSerializable* m_pFogBoxA;                  // +0x3c a CFogBoxNodeFx
     uint16_t m_unk40;                          // +0x40 lhbrx
     uint8_t m_pad42[2];
-    IKSerializable* m_pUnk44;                  // +0x44 a CFogBoxNodeFx
-    IKSerializable* m_pUnk48;                  // +0x48 a CKSoundDictionaryID (read last)
-    float m_fUnk4C;                            // +0x4c AddRecords: the records' height base
+    IKSerializable* m_pFogBoxB;                  // +0x44 a CFogBoxNodeFx
+    IKSerializable* m_pSoundDico;                  // +0x48 a CKSoundDictionaryID (read last)
+    float m_fRecordHeightBase;                            // +0x4c AddRecords: the records' height base
     float m_fUnk50;                            // +0x50
     float m_fUnk54;                            // +0x54
     float m_fUnk58;                            // +0x58
@@ -105,26 +105,26 @@ public:
     float m_fUnk60;                            // +0x60
     float m_fUnk64;                            // +0x64
     float m_afUnk68[11];                       // +0x68..+0x93 read one by one
-    IKSerializable* m_pUnk94;                  // +0x94 a CMultiGeometryBasic
-    IKSerializable* m_pUnk98;                  // +0x98 a CKSpline4L
-    float m_afUnk9C[3];                        // +0x9c a vector
-    float m_fUnkA8;                            // +0xa8
-    float m_fUnkAC;                            // +0xac
-    float m_unkB0;                             // +0xb0 the gust interval (minimum)
-    float m_unkB4;                             // +0xb4 the gust interval (maximum)
-    float m_unkB8;                             // +0xb8 the gust strength (minimum; +0xbc the maximum)
-    float m_fUnkBC;                            // +0xbc
+    IKSerializable* m_pMultiGeometry;                  // +0x94 a CMultiGeometryBasic
+    IKSerializable* m_pSpline;                  // +0x98 a CKSpline4L
+    float m_vWindDir[3];                        // +0x9c a vector
+    float m_fBaseStrength;                            // +0xa8
+    float m_fTubeRadius;                            // +0xac
+    float m_fGustIntervalMin;                             // +0xb0 the gust interval (minimum)
+    float m_fGustIntervalMax;                             // +0xb4 the gust interval (maximum)
+    float m_fGustStrengthMin;                             // +0xb8 the gust strength (minimum; +0xbc the maximum)
+    float m_fGustStrengthMax;                            // +0xbc
     float m_fUnkC0;                            // +0xc0
     float m_fUnkC4;                            // +0xc4
     float m_fUnkC8;                            // +0xc8
     float m_fUnkCC;                            // +0xcc
-    IKSerializable* m_pUnkD0;                  // +0xd0 a CKHkDetectorGroup
-    float m_unkD4;                             // +0xd4 the ramp time of the push for a hero inside
-    IKSerializable* m_pUnkD8;                  // +0xd8 a CKCameraConstraint
-    IKSerializable* m_pUnkDC;                  // +0xdc
-    uint8_t m_ui8NbUnkE4;                      // +0xe0 (the live word holds a pointer later: runtime)
+    IKSerializable* m_pDetectorGroup;                  // +0xd0 a CKHkDetectorGroup
+    float m_fPushRampTime;                             // +0xd4 the ramp time of the push for a hero inside
+    IKSerializable* m_pCameraConstraint;                  // +0xd8 a CKCameraConstraint
+    IKSerializable* m_pMainAnimFx;                  // +0xdc
+    uint8_t m_ui8NbFlowAnimFx;                      // +0xe0 (the live word holds a pointer later: runtime)
     uint8_t m_padE1[3];
-    IKSerializable** m_apUnkE4;                // +0xe4 Mem_AllocAligned16, m_ui8NbUnkE4 references
+    IKSerializable** m_apFlowAnimFx;                // +0xe4 Mem_AllocAligned16, m_ui8NbUnkE4 references
     // Runtime (not read).
     float m_afWind[3];                         // +0xe8 the push direction times the strength (OnActivate, the gusts)
     float m_fStrength;                         // +0xf4 OnActivate: +0xa8
@@ -144,16 +144,16 @@ public:
     float m_fTimeInside;                       // +0x12c a hero inside
 };
 DOTD_ASSERT_SIZE(CKHkS08AirCurrent, 0x130);
-DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_ui16NbUnk24, 0x20);
-DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_apUnk24, 0x24);
-DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_aUnk28, 0x28);
-DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_pUnk2C, 0x2c);
+DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_ui16NbStreamNodes, 0x20);
+DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_apStreamNodes, 0x24);
+DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_aui8StreamNodeAlpha, 0x28);
+DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_pFlowNode, 0x2c);
 DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_unk38, 0x38);
-DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_pUnk3C, 0x3c);
+DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_pFogBoxA, 0x3c);
 DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_unk40, 0x40);
-DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_pUnk44, 0x44);
-DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_pUnk48, 0x48);
-DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_fUnk4C, 0x4c);
+DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_pFogBoxB, 0x44);
+DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_pSoundDico, 0x48);
+DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_fRecordHeightBase, 0x4c);
 DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_afWind, 0xe8);
 DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_fFlowTimer, 0xfc);
 DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_fAlpha, 0x11c);
@@ -162,14 +162,14 @@ DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_fUnk50, 0x50);
 DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_fUnk5C, 0x5c);
 DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_fUnk64, 0x64);
 DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_afUnk68, 0x68);
-DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_pUnk94, 0x94);
-DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_afUnk9C, 0x9c);
-DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_fUnkA8, 0xa8);
-DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_unkB0, 0xb0);
-DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_fUnkBC, 0xbc);
+DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_pMultiGeometry, 0x94);
+DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_vWindDir, 0x9c);
+DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_fBaseStrength, 0xa8);
+DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_fGustIntervalMin, 0xb0);
+DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_fGustStrengthMax, 0xbc);
 DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_fUnkCC, 0xcc);
-DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_pUnkD0, 0xd0);
-DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_unkD4, 0xd4);
-DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_pUnkDC, 0xdc);
-DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_ui8NbUnkE4, 0xe0);
-DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_apUnkE4, 0xe4);
+DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_pDetectorGroup, 0xd0);
+DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_fPushRampTime, 0xd4);
+DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_pMainAnimFx, 0xdc);
+DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_ui8NbFlowAnimFx, 0xe0);
+DOTD_ASSERT_OFFSET(CKHkS08AirCurrent, m_apFlowAnimFx, 0xe4);

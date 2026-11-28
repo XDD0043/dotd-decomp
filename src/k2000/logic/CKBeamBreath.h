@@ -66,54 +66,54 @@ protected:
     CVector3 UpdateBeamAndImpact(float impactPullBack);
 
 public:
-    int32_t m_unk178[3];         // +0x178 the beam's alpha while held (an integer per level)
-    int32_t m_unk184[3];         // +0x184 its alpha at the start of the fade-in
-    int32_t m_unk190[3];         // +0x190 its alpha at the end of the fade-out
-    float m_unk19c[3];           // +0x19c the mesh's scale across (x and y)
-    float m_unk1a8[3];           // +0x1a8 the mesh's own length (the z scale divides by it)
-    float m_unk1b4;              // +0x1b4 the fade-in time
-    float m_unk1b8;              // +0x1b8 the fade-out time (0: hidden at once)
-    float m_unk1bc[3];           // +0x1bc the beam's length (the Load reads five words +0x1b4..+0x1c4)
-    IKSerializable* m_unk1c8[3]; // +0x1c8 references (live: CKParticlesEffectFxData): the beam particles of each level
-    IKSerializable* m_unk1d4[3]; // +0x1d4 references (live: CKParticlesEffectFxData): the impact particles of each level
-    IKSerializable* m_unk1e0;    // +0x1e0 (not loaded) the beam particle effect (a CKParticlesEffectNodeFx)
-    IKSerializable* m_unk1e4;    // +0x1e4 (not loaded) the impact particle effect
-    CNode* m_unk1e8[3];          // +0x1e8 references (live: CNode): the beam meshes of each level
-    IKSerializable* m_unk1f4[3]; // +0x1f4 references (live: CKPointLightFxData) of each level
-    IKSerializable* m_unk200;    // +0x200 (not loaded) the point light effect
-    IKSerializable* m_unk204;    // +0x204 reference (live: CKAimCamembert)
-    IKSerializable* m_unk208;    // +0x208 reference (live: CKSoundDictionaryID)
-    CNode* m_unk20c;             // +0x20c (not loaded) the mesh in use
-    uint32_t m_unk210;           // +0x210 (not loaded) the mesh's alpha when the breath stopped
-    uint8_t m_unk214;            // +0x214 (not loaded) faded in (set once held; the fade-out runs while it is set)
+    int32_t m_ai32BeamHoldAlpha[3];         // +0x178 the beam's alpha while held (an integer per level)
+    int32_t m_ai32BeamStartAlpha[3];         // +0x184 its alpha at the start of the fade-in
+    int32_t m_ai32BeamEndAlpha[3];         // +0x190 its alpha at the end of the fade-out
+    float m_afBeamCrossScale[3];           // +0x19c the mesh's scale across (x and y)
+    float m_afBeamMeshLength[3];           // +0x1a8 the mesh's own length (the z scale divides by it)
+    float m_fFadeInTime;              // +0x1b4 the fade-in time
+    float m_fFadeOutTime;              // +0x1b8 the fade-out time (0: hidden at once)
+    float m_afBeamLength[3];           // +0x1bc the beam's length (the Load reads five words +0x1b4..+0x1c4)
+    IKSerializable* m_apBeamParticles[3]; // +0x1c8 references (live: CKParticlesEffectFxData): the beam particles of each level
+    IKSerializable* m_apImpactParticles[3]; // +0x1d4 references (live: CKParticlesEffectFxData): the impact particles of each level
+    IKSerializable* m_pActiveBeamParticles;    // +0x1e0 (not loaded) the beam particle effect (a CKParticlesEffectNodeFx)
+    IKSerializable* m_pActiveImpactParticles;    // +0x1e4 (not loaded) the impact particle effect
+    CNode* m_apBeamMeshes[3];          // +0x1e8 references (live: CNode): the beam meshes of each level
+    IKSerializable* m_apPointLightFxData[3]; // +0x1f4 references (live: CKPointLightFxData) of each level
+    IKSerializable* m_pPointLightNodeFx;    // +0x200 (not loaded) the point light effect
+    IKSerializable* m_pAimCamembert;    // +0x204 reference (live: CKAimCamembert)
+    IKSerializable* m_pSoundDico;    // +0x208 reference (live: CKSoundDictionaryID)
+    CNode* m_pActiveBeamMesh;             // +0x20c (not loaded) the mesh in use
+    uint32_t m_ui32FadeOutStartAlpha;           // +0x210 (not loaded) the mesh's alpha when the breath stopped
+    uint8_t m_bFadedIn;            // +0x214 (not loaded) faded in (set once held; the fade-out runs while it is set)
     uint8_t m_pad215[3];
-    float m_unk218;              // +0x218 (not loaded) the fade clock
-    RwMatrix* m_unk21c;          // +0x21c (not loaded) the mesh's local matrix under the hot spot (ResetRuntime type 0)
-    CKSound* m_unk220;           // +0x220 (not loaded) the loop sound
-    float m_unk224;              // +0x224 (not loaded) the beam's pitch (radians)
+    float m_fFadeClock;              // +0x218 (not loaded) the fade clock
+    RwMatrix* m_pLocalMatrix;          // +0x21c (not loaded) the mesh's local matrix under the hot spot (ResetRuntime type 0)
+    CKSound* m_pLoopSound;           // +0x220 (not loaded) the loop sound
+    float m_fBeamPitchRad;              // +0x224 (not loaded) the beam's pitch (radians)
 };
 DOTD_ASSERT_SIZE(CKBeamBreath, 0x228);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk178, 0x178);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk184, 0x184);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk190, 0x190);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk19c, 0x19c);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk1a8, 0x1a8);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk1b4, 0x1b4);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk1b8, 0x1b8);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk1bc, 0x1bc);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk1c8, 0x1c8);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk1d4, 0x1d4);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk1e0, 0x1e0);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk1e4, 0x1e4);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk1e8, 0x1e8);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk1f4, 0x1f4);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk200, 0x200);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk204, 0x204);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk208, 0x208);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk20c, 0x20c);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk210, 0x210);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk214, 0x214);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk218, 0x218);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk21c, 0x21c);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk220, 0x220);
-DOTD_ASSERT_OFFSET(CKBeamBreath, m_unk224, 0x224);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_ai32BeamHoldAlpha, 0x178);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_ai32BeamStartAlpha, 0x184);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_ai32BeamEndAlpha, 0x190);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_afBeamCrossScale, 0x19c);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_afBeamMeshLength, 0x1a8);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_fFadeInTime, 0x1b4);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_fFadeOutTime, 0x1b8);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_afBeamLength, 0x1bc);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_apBeamParticles, 0x1c8);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_apImpactParticles, 0x1d4);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_pActiveBeamParticles, 0x1e0);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_pActiveImpactParticles, 0x1e4);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_apBeamMeshes, 0x1e8);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_apPointLightFxData, 0x1f4);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_pPointLightNodeFx, 0x200);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_pAimCamembert, 0x204);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_pSoundDico, 0x208);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_pActiveBeamMesh, 0x20c);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_ui32FadeOutStartAlpha, 0x210);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_bFadedIn, 0x214);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_fFadeClock, 0x218);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_pLocalMatrix, 0x21c);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_pLoopSound, 0x220);
+DOTD_ASSERT_OFFSET(CKBeamBreath, m_fBeamPitchRad, 0x224);

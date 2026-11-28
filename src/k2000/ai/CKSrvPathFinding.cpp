@@ -95,9 +95,9 @@ PFGridScale_maybe g_pfGridScale = {1.0f, 0.5f, 1.0f};
 CKSrvPathFinding::CKSrvPathFinding() {
     m_Graph.m_Character.m_bits = 0;
     m_Graph.m_Character.m_bits = (m_Graph.m_Character.m_bits & 0xfffff800u) | 0x407u;
-    m_Graph.m_Character.m_unk08 = 0x1.99999ap-3f;  // 0.2 (0x3e4ccccd)
-    m_Graph.m_Character.m_unk0c = 1.0f;
-    m_Graph.m_Character.m_unk04 = g_pfGridScale.m_halfCellSize * 0x1.99999ap-3f;
+    m_Graph.m_Character.m_fMaxStepHeight = 0x1.99999ap-3f;  // 0.2 (0x3e4ccccd)
+    m_Graph.m_Character.m_fMaxStepRise = 1.0f;
+    m_Graph.m_Character.m_fRadius = g_pfGridScale.m_halfCellSize * 0x1.99999ap-3f;
 
     m_AstarGraph.SearchList = nullptr;
     m_AstarGraph.m_ui32NumberOfZone = 0;
@@ -197,8 +197,8 @@ void CKSrvPathFinding::RecursiveRegistration(int32_t type) {
 
 // 0x001e62e0 NavSectors_SnapPointToGround_maybe
 int32_t CKSrvPathFinding::SnapPointToGround(CPFPoint* point, const CGroundContactDatasInOut* contact) {
-    if (static_cast<int16_t>(point->m_unk0c) == -1) FindSectorForPoint(point);
-    const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(m_Graph.m_apGraphNodes[point->m_unk0c]);
+    if (static_cast<int16_t>(point->m_i16GraphNodeIndex) == -1) FindSectorForPoint(point);
+    const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(m_Graph.m_apGraphNodes[point->m_i16GraphNodeIndex]);
     const CBBox& box = node->m_Sector.m_box;
     CGroundContactDatasIn in;
     in.m_fDeltaMax = 0.0f;
@@ -242,9 +242,9 @@ int32_t CKSrvPathFinding::Load(IKFile* file, int32_t type) {
 void CPFCharacter::Load(IKFile* file, int32_t type) {
     if (type != K_LEVEL_PLATEFORMS) return;
     ReadU32LE(file, &m_bits);
-    ReadF32LE(file, &m_unk04);
-    ReadF32LE(file, &m_unk08);
-    ReadF32LE(file, &m_unk0c);
+    ReadF32LE(file, &m_fRadius);
+    ReadF32LE(file, &m_fMaxStepHeight);
+    ReadF32LE(file, &m_fMaxStepRise);
 }
 
 // 0x001e9e28 PFPathQuery_Release_maybe
@@ -267,7 +267,7 @@ bool AllowsAgent(const CKPFGraphTransition* transition, const CPFCharacter* char
     const uint32_t bits = character->m_bits;
     if (allowed != 0x80 && (allowed & (bits >> 3)) == 0) return false;
     if (((transition->m_AllowedChar.m_bits & bits) & 7) == 0) return false;
-    return character->m_unk04 <= transition->m_AllowedChar.m_unk04;
+    return character->m_fRadius <= transition->m_AllowedChar.m_fRadius;
 }
 
 // Whether the palette entry for the flags is blocked (low seven bits all set).
@@ -277,7 +277,7 @@ bool IsBlocked(uint8_t palette) { return static_cast<uint8_t>(palette | 0x7f) ==
 // 0x001e9198 CKSrvPathFinding_HasSectorRoute_maybe
 uint8_t CKSrvPathFinding::HasSectorRoute(const CPFPoint* from, const CPFPoint* to, const CPFCharacter* character,
                                          int16_t* length) {
-    if (static_cast<int16_t>(from->m_unk0c) == -1 || static_cast<int16_t>(to->m_unk0c) == -1) return 0;
+    if (static_cast<int16_t>(from->m_i16GraphNodeIndex) == -1 || static_cast<int16_t>(to->m_i16GraphNodeIndex) == -1) return 0;
     for (uint8_t slot = 0; slot < 20; ++slot) {
         if (m_aPathStock[slot].m_bIsFree == 0) continue;
         m_aPathStock[slot].Initialize(from, to, character);  // 0x001e9ee0
@@ -295,7 +295,7 @@ uint8_t CKSrvPathFinding::HasSectorRoute(const CPFPoint* from, const CPFPoint* t
 
 // 0x001e5148 NavSectors_PointToCell_maybe
 void CKSrvPathFinding::PointToCell(const CPFPoint* point, float* fracX, float* fracZ, uint8_t* cell) const {
-    const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(m_Graph.m_apGraphNodes[point->m_unk0c]);
+    const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(m_Graph.m_apGraphNodes[point->m_i16GraphNodeIndex]);
     const CPFSector& sector = node->m_Sector;
     const float x = point->m_position.x - sector.m_box.m_inf.x;
     const float z = point->m_position.z - sector.m_box.m_inf.z;
@@ -323,9 +323,9 @@ uint32_t CKSrvPathFinding::SetBoxBlocked(uint16_t node, const CVector3* min, con
     for (int k = 0; k < 4; ++k) {
         CPFPoint point;
         point.m_position = corners[k];
-        point.m_unk0c = node;
+        point.m_i16GraphNodeIndex = node;
         if ((FindSectorForPoint(&point) & 0xff) == 0) continue;  // 0x001e5ca0
-        const int16_t id = static_cast<int16_t>(point.m_unk0c);
+        const int16_t id = static_cast<int16_t>(point.m_i16GraphNodeIndex);
         ids[k] = id;
         if (id == own) continue;
         bool seen = false;
@@ -343,12 +343,12 @@ uint32_t CKSrvPathFinding::FindSectorForPoint(CPFPoint* point) {
     const float z = point->m_position.z;
     uint32_t index = 0;
     bool found = false;
-    if (static_cast<int16_t>(point->m_unk0c) >= 0) {
-        const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(nodes[point->m_unk0c]);
+    if (static_cast<int16_t>(point->m_i16GraphNodeIndex) >= 0) {
+        const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(nodes[point->m_i16GraphNodeIndex]);
         const CBBox& box = node->m_Sector.m_box;
         if (box.m_inf.x <= x && x <= box.m_sup.x && box.m_inf.z <= z && z <= box.m_sup.z && box.m_inf.y <= y &&
             y <= box.m_sup.y) {
-            index = point->m_unk0c;
+            index = point->m_i16GraphNodeIndex;
             found = true;
         } else {
             for (uint32_t i = 0; i < node->m_ui16TransitionSize; ++i) {
@@ -366,12 +366,12 @@ uint32_t CKSrvPathFinding::FindSectorForPoint(CPFPoint* point) {
     if (!found) {
         const uint16_t sector = m_Graph.m_quadTree.FindSector(&point->m_position.x, &m_Graph.m_apGraphNodes);
         if (sector == 0xffff) {
-            point->m_unk0c = 0xffff;
+            point->m_i16GraphNodeIndex = 0xffff;
             return 0;
         }
         index = sector;
     }
-    point->m_unk0c = static_cast<const CKPFGraphNode*>(nodes[index])->FindBoxIdAtPoint(&point->m_position.x);
+    point->m_i16GraphNodeIndex = static_cast<const CKPFGraphNode*>(nodes[index])->FindBoxIdAtPoint(&point->m_position.x);
     return 1;
 }
 
@@ -381,9 +381,9 @@ uint32_t CKSrvPathFinding::FindSectorForPoint(CPFPoint* point) {
 uint32_t CKSrvPathFinding::IsPointWalkable(const CPFPoint* point, const CPFCharacter* character) {
     const float x = point->m_position.x;
     const float z = point->m_position.z;
-    CKPFGraphNode* node = static_cast<CKPFGraphNode*>(m_Graph.m_apGraphNodes[point->m_unk0c]);
+    CKPFGraphNode* node = static_cast<CKPFGraphNode*>(m_Graph.m_apGraphNodes[point->m_i16GraphNodeIndex]);
     CPFGrid& grid = node->m_Sector.m_grid;
-    const float radius = character->m_unk04;
+    const float radius = character->m_fRadius;
     const float margin = g_pfGridScale.m_halfCellSize - radius;
     PathFinding_SetWalkabilityMode(character->m_bits & 7);
     grid.m_ui8DynamicMask = (character->m_bits & 0x800) == 0 ? 0xf7 : 0xff;
@@ -597,8 +597,8 @@ void CKSrvPathFinding::ComputeSegmentEndpoints(uint8_t slotIndex, CVector3* out)
 
 // 0x001e4f70 CKSrvPathFinding_IsValidOrFindNearestPointInTheBox
 uint8_t CKSrvPathFinding::ClampPointToSector(CPFPoint* point) {
-    if (static_cast<int16_t>(point->m_unk0c) == -1) return 0;
-    const CBBox& box = GraphNode(m_Graph, point->m_unk0c)->m_Sector.m_box;
+    if (static_cast<int16_t>(point->m_i16GraphNodeIndex) == -1) return 0;
+    const CBBox& box = GraphNode(m_Graph, point->m_i16GraphNodeIndex)->m_Sector.m_box;
     if (BoxHoldsPoint(box, point->m_position)) return 1;
     CVector3 clamped;
     AABB_ClampPoint(&box, &point->m_position, &clamped);
@@ -670,7 +670,7 @@ CPFPoint CKSrvPathFinding::ClampToNearestSector(const CPFPoint* point) {
     const uint32_t count = m_Graph.m_ui32GraphNodesSize;
     if (count == 0) {
         result.m_position = point->m_position;
-        result.m_unk0c = point->m_unk0c;
+        result.m_i16GraphNodeIndex = point->m_i16GraphNodeIndex;
         return result;
     }
     CVector3 best;
@@ -698,7 +698,7 @@ CPFPoint CKSrvPathFinding::ClampToNearestSector(const CPFPoint* point) {
         } while (count > (i & 0xffff));
     }
     result.m_position = best;
-    result.m_unk0c = static_cast<uint16_t>(bestIndex);
+    result.m_i16GraphNodeIndex = static_cast<uint16_t>(bestIndex);
     return result;
 }
 
@@ -719,19 +719,19 @@ uint8_t CKSrvPathFinding::IsDirectPathWalkable(const CPFPoint* from, const CPFPo
                                                const CPFCharacter* character, uint8_t thin) {
     const uint32_t nodeCount = m_Graph.m_ui32GraphNodesSize;
     const uint8_t mask = (character->m_bits & 0x800) == 0 ? 0xf7 : 0xff;
-    CKPFGraphNode* const fromNode = from->m_unk0c < nodeCount ? GraphNode(m_Graph, from->m_unk0c) : nullptr;
-    CKPFGraphNode* const toNode = to->m_unk0c < nodeCount ? GraphNode(m_Graph, to->m_unk0c) : nullptr;
+    CKPFGraphNode* const fromNode = from->m_i16GraphNodeIndex < nodeCount ? GraphNode(m_Graph, from->m_i16GraphNodeIndex) : nullptr;
+    CKPFGraphNode* const toNode = to->m_i16GraphNodeIndex < nodeCount ? GraphNode(m_Graph, to->m_i16GraphNodeIndex) : nullptr;
     PathFinding_SetWalkabilityMode(character->m_bits & 7);
     if (fromNode != nullptr) fromNode->m_Sector.m_grid.m_ui8DynamicMask = mask;
     PathFinding_SetWalkabilityMode(character->m_bits & 7);
     if (toNode != nullptr) toNode->m_Sector.m_grid.m_ui8DynamicMask = mask;
-    const int32_t fromIndex = static_cast<int16_t>(from->m_unk0c);
+    const int32_t fromIndex = static_cast<int16_t>(from->m_i16GraphNodeIndex);
     if (fromIndex < 0 || static_cast<uint32_t>(fromIndex) >= nodeCount) return 0;
-    if (!BoxHoldsPoint(GraphNode(m_Graph, from->m_unk0c)->m_Sector.m_box, from->m_position)) return 0;
+    if (!BoxHoldsPoint(GraphNode(m_Graph, from->m_i16GraphNodeIndex)->m_Sector.m_box, from->m_position)) return 0;
     if (IsPointWalkable(from, character) == 0) return 0;
-    const int32_t toIndex = static_cast<int16_t>(to->m_unk0c);
+    const int32_t toIndex = static_cast<int16_t>(to->m_i16GraphNodeIndex);
     if (toIndex < 0 || static_cast<uint32_t>(toIndex) >= nodeCount) return 0;
-    if (!BoxHoldsPoint(GraphNode(m_Graph, to->m_unk0c)->m_Sector.m_box, to->m_position)) return 0;
+    if (!BoxHoldsPoint(GraphNode(m_Graph, to->m_i16GraphNodeIndex)->m_Sector.m_box, to->m_position)) return 0;
     if (IsPointWalkable(to, character) == 0) return 0;
     // The grid holding both: the same node, else the target's when it holds the start, else the start's when it
     // holds the target.
@@ -754,7 +754,7 @@ uint8_t CKSrvPathFinding::IsDirectPathWalkable(const CPFPoint* from, const CPFPo
     b.m_fY = inv * (to->m_position.z - box.m_inf.z);
     b.m_fX = inv * (to->m_position.x - box.m_inf.x);
     if (thin != 0) return sector->IsSegmentWalkable(&a, &b, 0);
-    return sector->IsWideSegmentWalkable(character->m_unk04, &a, &b, 0);
+    return sector->IsWideSegmentWalkable(character->m_fRadius, &a, &b, 0);
 }
 
 // 0x001e6e68 CKSrvPathFinding_IsPathWalkableOnTwoGrids. The portal's edge on the departure box (by the
@@ -762,8 +762,8 @@ uint8_t CKSrvPathFinding::IsDirectPathWalkable(const CPFPoint* from, const CPFPo
 // by the segment at `t` (on the segment); the halves stop at t -+ (radius / length + 0.001).
 uint8_t CKSrvPathFinding::IsDirectPathAcrossTransition(const CPFPoint* from, const CPFPoint* to,
                                                        const CPFCharacter* character) {
-    CKPFGraphNode* const fromNode = GraphNode(m_Graph, from->m_unk0c);
-    const int32_t found = fromNode->FindTransitionIndexTo(GraphNode(m_Graph, to->m_unk0c));
+    CKPFGraphNode* const fromNode = GraphNode(m_Graph, from->m_i16GraphNodeIndex);
+    const int32_t found = fromNode->FindTransitionIndexTo(GraphNode(m_Graph, to->m_i16GraphNodeIndex));
     if (static_cast<int16_t>(found) < 0) return 0;
     CKPFGraphTransition* const transition = fromNode->m_ppTransition[found & 0xffff];
     if (transition == nullptr) return 0;
@@ -820,14 +820,14 @@ uint8_t CKSrvPathFinding::IsDirectPathAcrossTransition(const CPFPoint* from, con
     if (Seg2D_IntersectSegment(&edge, &segment, &tEdge, &t) == 0) return 0;
     const float length = MathSqrtf(
         ppc::fmadds(segment.m_VectDir.m_fX, segment.m_VectDir.m_fX, segment.m_VectDir.m_fY * segment.m_VectDir.m_fY));
-    const float margin = character->m_unk04 / length + 0.001f;  // 0x3a83126f
+    const float margin = character->m_fRadius / length + 0.001f;  // 0x3a83126f
     CPFPoint half;
-    half.m_unk0c = 0xffff;
+    half.m_i16GraphNodeIndex = 0xffff;
     const float before = t - margin;
     if (before > 0.0f) {
         const float keep = 1.0f - before;
         half.m_position.y = from->m_position.y;
-        half.m_unk0c = from->m_unk0c;
+        half.m_i16GraphNodeIndex = from->m_i16GraphNodeIndex;
         half.m_position.z = ppc::fmadds(az, keep, bz * before);
         half.m_position.x = ppc::fmadds(ax, keep, bx * before);
         if (IsDirectPathWalkable(from, &half, character, 0) == 0) return 0;
@@ -836,7 +836,7 @@ uint8_t CKSrvPathFinding::IsDirectPathAcrossTransition(const CPFPoint* from, con
     if (after >= 1.0f) return 1;
     const float keep = 1.0f - after;
     half.m_position.y = to->m_position.y;
-    half.m_unk0c = to->m_unk0c;
+    half.m_i16GraphNodeIndex = to->m_i16GraphNodeIndex;
     half.m_position.z = ppc::fmadds(az, keep, bz * after);
     half.m_position.x = ppc::fmadds(ax, keep, bx * after);
     return IsDirectPathWalkable(&half, to, character, 0) != 0 ? 1 : 0;
@@ -849,8 +849,8 @@ uint8_t CKSrvPathFinding::IsDirectPathAcrossTransition(const CPFPoint* from, con
 PFSearchResult CKSrvPathFinding::FindSectorRoute(uint8_t slotIndex) {
     PFSearchResult result;
     CPFPathSlot& slot = m_aPathStock[slotIndex];
-    const int16_t seekerHint = static_cast<int16_t>(slot.m_SeekerPosition.m_unk0c);
-    const int16_t targetHint = static_cast<int16_t>(slot.m_TargetPosition.m_unk0c);
+    const int16_t seekerHint = static_cast<int16_t>(slot.m_SeekerPosition.m_i16GraphNodeIndex);
+    const int16_t targetHint = static_cast<int16_t>(slot.m_TargetPosition.m_i16GraphNodeIndex);
     if (seekerHint == -1) {
         result.m_i16Value = seekerHint;
         result.m_eState = 9;
@@ -862,9 +862,9 @@ PFSearchResult CKSrvPathFinding::FindSectorRoute(uint8_t slotIndex) {
         return result;
     }
     m_Graph.m_Character.m_bits = slot.m_Character.m_bits;
-    m_Graph.m_Character.m_unk0c = slot.m_Character.m_unk0c;
-    m_Graph.m_Character.m_unk04 = slot.m_Character.m_unk04;
-    m_Graph.m_Character.m_unk08 = slot.m_Character.m_unk08;
+    m_Graph.m_Character.m_fMaxStepRise = slot.m_Character.m_fMaxStepRise;
+    m_Graph.m_Character.m_fRadius = slot.m_Character.m_fRadius;
+    m_Graph.m_Character.m_fMaxStepHeight = slot.m_Character.m_fMaxStepHeight;
     const uint16_t startIndex = static_cast<uint16_t>(seekerHint);
     const uint16_t goalIndex = static_cast<uint16_t>(targetHint);
     CKPFGraphNode* const startNode = GraphNode(m_Graph, startIndex);
@@ -1013,7 +1013,7 @@ PFSearchResult CKSrvPathFinding::FindSectorRoute(uint8_t slotIndex) {
 PFSearchResult CKSrvPathFinding::SolveSectorSegment(uint8_t slotIndex) {
     PFSearchResult result;
     CPFPathSlot& slot = m_aPathStock[slotIndex];
-    const float radius = slot.m_Character.m_unk04;
+    const float radius = slot.m_Character.m_fRadius;
     CKPFGraphNode* const node = GraphNode(m_Graph, slot.m_ui16GraphPath[slot.m_ui32GraphPathIndex]);
     CPFGrid& grid = node->m_Sector.m_grid;
     CVector3 ends[2];
@@ -1074,14 +1074,14 @@ void CKSrvPathFinding::ProcessRequest(uint8_t slotIndex) {
         FindSectorForPoint(&slot.m_TargetPosition);
     } else {
         bool seekerLost = true;
-        if (static_cast<int16_t>(slot.m_SeekerPosition.m_unk0c) != -1 &&
-            BoxHoldsPoint(GraphNode(m_Graph, slot.m_SeekerPosition.m_unk0c)->m_Sector.m_box,
+        if (static_cast<int16_t>(slot.m_SeekerPosition.m_i16GraphNodeIndex) != -1 &&
+            BoxHoldsPoint(GraphNode(m_Graph, slot.m_SeekerPosition.m_i16GraphNodeIndex)->m_Sector.m_box,
                           slot.m_SeekerPosition.m_position)) {
             seekerLost = false;
         }
         if (seekerLost) slot.m_eState = 9;
-        if (static_cast<int16_t>(slot.m_TargetPosition.m_unk0c) == -1 ||
-            !BoxHoldsPoint(GraphNode(m_Graph, slot.m_TargetPosition.m_unk0c)->m_Sector.m_box,
+        if (static_cast<int16_t>(slot.m_TargetPosition.m_i16GraphNodeIndex) == -1 ||
+            !BoxHoldsPoint(GraphNode(m_Graph, slot.m_TargetPosition.m_i16GraphNodeIndex)->m_Sector.m_box,
                            slot.m_TargetPosition.m_position)) {
             slot.m_eState = 0x11;
             return;
@@ -1260,7 +1260,7 @@ int16_t TAstar::FindPathInGrid(const CPFGrid* grid, const uint8_t* start, const 
 // (CPFSector_FindIndexFromVector, then CPFSector_FindVectorFromIndex: at the box's bottom + 0.01) into `out`. Dead in
 // the original (no pointer to its descriptor 0xb76360, no call).
 void CKSrvPathFinding::SnapPointToCellCenter(const CPFPoint* point, CVector3* out) const {
-    const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(m_Graph.m_apGraphNodes[point->m_unk0c]);
+    const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(m_Graph.m_apGraphNodes[point->m_i16GraphNodeIndex]);
     uint8_t cell[2];
     node->m_Sector.WorldToCell(&point->m_position, cell);
     node->m_Sector.CellToWorldPos(cell, out);
@@ -1290,8 +1290,8 @@ uint32_t CKSrvPathFinding::RelocatePoint(CPFPoint* point) {
         return box.m_inf.y <= y && box.m_sup.y >= y;
     };
     int32_t found = -1;
-    if (static_cast<int16_t>(point->m_unk0c) >= 0) {
-        const uint16_t hint = point->m_unk0c;
+    if (static_cast<int16_t>(point->m_i16GraphNodeIndex) >= 0) {
+        const uint16_t hint = point->m_i16GraphNodeIndex;
         const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(m_Graph.m_apGraphNodes[hint]);
         if (holds(node->m_Sector.m_box)) {
             found = hint;
@@ -1315,12 +1315,12 @@ uint32_t CKSrvPathFinding::RelocatePoint(CPFPoint* point) {
             }
         }
         if (found < 0) {
-            point->m_unk0c = 0xffff;
+            point->m_i16GraphNodeIndex = 0xffff;
             return 0;
         }
     }
     const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(m_Graph.m_apGraphNodes[found & 0xffff]);
-    point->m_unk0c = node->FindBoxIdAtPoint(&point->m_position.x);  // 0x001efe18
+    point->m_i16GraphNodeIndex = node->FindBoxIdAtPoint(&point->m_position.x);  // 0x001efe18
     return 1;
 }
 
@@ -1334,8 +1334,8 @@ uint32_t CKSrvPathFinding::RefreshQueryEndpointSectors(uint32_t slot) {
 // 0x001e6de0 CKSrvPathFinding_GetTransitionBetweenPoints_maybe: GetTransitionBetween of the two points' nodes. Dead in
 // the original (no pointer to its descriptor 0xb76428, no call).
 CKPFGraphTransition* CKSrvPathFinding::GetTransitionBetweenPoints(const CPFPoint* from, const CPFPoint* to) const {
-    const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(m_Graph.m_apGraphNodes[from->m_unk0c]);
-    const int32_t index = node->FindTransitionIndexTo(m_Graph.m_apGraphNodes[to->m_unk0c]);
+    const CKPFGraphNode* node = static_cast<const CKPFGraphNode*>(m_Graph.m_apGraphNodes[from->m_i16GraphNodeIndex]);
+    const int32_t index = node->FindTransitionIndexTo(m_Graph.m_apGraphNodes[to->m_i16GraphNodeIndex]);
     if (static_cast<int16_t>(index) < 0) return nullptr;
     return node->m_ppTransition[static_cast<uint16_t>(index)];
 }

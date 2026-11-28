@@ -101,9 +101,9 @@ void CTrailNodeFx::LoadTrail(uint32_t /*index*/, STrailNodeData* trail, IKFile* 
         IKFile_ReadRef(file, &trail->m_pHotSpot2);
         ReadU32LE(file, &trail->m_ui32NbCtrPoints);
         ReadU32LE(file, &trail->m_ui32NbLineVertex);
-        ReadF32LE(file, &trail->m_unk44);
-        ReadU32LE(file, &trail->m_unk38);
-        ReadU32LE(file, &trail->m_unk34);
+        ReadF32LE(file, &trail->m_fSamplePeriod);
+        ReadU32LE(file, &trail->m_ui32NbVerticesPerStrip);
+        ReadU32LE(file, &trail->m_ui32NbStrips);
     }
     trail->m_ui8Visible = 0;
     trail->m_pCtrlPoints = nullptr;
@@ -146,17 +146,17 @@ int32_t CTrailNodeFx::PostLoad(int32_t type) {
         return 1;
     }
     uint32_t total = 0;
-    for (uint32_t i = 0; i < count; ++i) total += trails[i]->m_unk34 * trails[i]->m_ui32NbCtrPoints;
+    for (uint32_t i = 0; i < count; ++i) total += trails[i]->m_ui32NbStrips * trails[i]->m_ui32NbCtrPoints;
     m_pTrailCtrlPoints = static_cast<CVector3*>(Mem_AllocAligned16((total * 12u) & 0xfffffffcu));  // 0x00053198
     for (uint32_t i = 0; i < total; ++i) m_pTrailCtrlPoints[i] = kNullVector;
     CVector3* points = m_pTrailCtrlPoints;
     for (uint32_t i = 0; i < count; ++i) {
         STrailNodeData* trail = trails[i];
         trail->m_pCtrlPoints = points;
-        trail->m_unk48 = 0.0f;  // an integer 0 store
-        trail->m_unk4c = kNullVector;
-        trail->m_unk58 = kNullVector;
-        points += trail->m_unk34 * trail->m_ui32NbCtrPoints;
+        trail->m_fElapsedSinceShift = 0.0f;  // an integer 0 store
+        trail->m_vLastPointFirstStrip = kNullVector;
+        trail->m_vLastPointLastStrip = kNullVector;
+        points += trail->m_ui32NbStrips * trail->m_ui32NbCtrPoints;
         trail->m_v3Extrem1 = kNullVector;
         trail->m_v3Extrem2 = kNullVector;
     }
@@ -217,14 +217,14 @@ void CTrailNodeFx::SetRibbonActive(uint32_t ribbon, uint32_t active, int32_t res
         uint32_t place = 0;  // a byte counter
         do {
             Point(trail, place) = a;
-            Point(trail, (trail->m_unk34 - 1u) * trail->m_ui32NbCtrPoints + place) = b;
+            Point(trail, (trail->m_ui32NbStrips - 1u) * trail->m_ui32NbCtrPoints + place) = b;
             place = (place + 1u) & 0xffu;
         } while (place < trail->m_ui32NbCtrPoints);
     }
     float sx, sy, sz;
-    StripStep(a, b, trail->m_unk34, &sx, &sy, &sz);
+    StripStep(a, b, trail->m_ui32NbStrips, &sx, &sy, &sz);
     // The strips between: every point one step past the previous strip's first point (byte counters).
-    if (trail->m_unk34 - 1u > 1u) {
+    if (trail->m_ui32NbStrips - 1u > 1u) {
         uint32_t strip = 1;
         do {
             const uint32_t n = trail->m_ui32NbCtrPoints;
@@ -240,14 +240,14 @@ void CTrailNodeFx::SetRibbonActive(uint32_t ribbon, uint32_t active, int32_t res
                 } while (place < trail->m_ui32NbCtrPoints);
             }
             strip = (strip + 1u) & 0xffu;
-        } while (strip < trail->m_unk34 - 1u);
+        } while (strip < trail->m_ui32NbStrips - 1u);
     }
 }
 
 // 0x000eabb0 TrailStrip_ResetPointsBetweenAnchors_maybe
 void CTrailNodeFx::ResetPointsBetweenAnchors(STrailNodeData* trail) {
     CVector3& first = Point(trail, 0);
-    CVector3& last = Point(trail, (trail->m_unk34 - 1u) * trail->m_ui32NbCtrPoints);
+    CVector3& last = Point(trail, (trail->m_ui32NbStrips - 1u) * trail->m_ui32NbCtrPoints);
     switch (AnchorMode(m_sgProperties)) {
     case 1:
         first = trail->m_v3Extrem1;
@@ -269,8 +269,8 @@ void CTrailNodeFx::ResetPointsBetweenAnchors(STrailNodeData* trail) {
         break;
     }
     float sx, sy, sz;
-    StripStep(first, last, trail->m_unk34, &sx, &sy, &sz);
-    for (uint32_t strip = 1; trail->m_unk34 - 1u > 1u && strip < trail->m_unk34 - 1u; ++strip) {
+    StripStep(first, last, trail->m_ui32NbStrips, &sx, &sy, &sz);
+    for (uint32_t strip = 1; trail->m_ui32NbStrips - 1u > 1u && strip < trail->m_ui32NbStrips - 1u; ++strip) {
         CVector3& p = Point(trail, strip * trail->m_ui32NbCtrPoints);
         p = Point(trail, (strip - 1u) * trail->m_ui32NbCtrPoints);
         p.x = sx + p.x;
@@ -283,7 +283,7 @@ namespace {
 
 // Every strip's points one place back (the last one dropped), the first place left as it was.
 void ShiftStrips(STrailNodeData* trail) {
-    for (uint32_t strip = 0; strip < trail->m_unk34; ++strip) {
+    for (uint32_t strip = 0; strip < trail->m_ui32NbStrips; ++strip) {
         const uint32_t n = trail->m_ui32NbCtrPoints;
         for (uint32_t i = (strip + 1u) * n - 1u; strip * trail->m_ui32NbCtrPoints < i; --i) {
             trail->m_pCtrlPoints[i] = trail->m_pCtrlPoints[i - 1u];
@@ -293,7 +293,7 @@ void ShiftStrips(STrailNodeData* trail) {
 
 // The last `hidden` points of every strip onto the last visible one.
 void CollapseTail(STrailNodeData* trail, uint32_t hidden) {
-    for (uint32_t strip = 0; strip < trail->m_unk34; ++strip) {
+    for (uint32_t strip = 0; strip < trail->m_ui32NbStrips; ++strip) {
         const CVector3 p = trail->m_pCtrlPoints[(strip + 1u) * trail->m_ui32NbCtrPoints - hidden - 1u];
         for (uint32_t k = 0; k < hidden; ++k) trail->m_pCtrlPoints[(strip + 1u) * trail->m_ui32NbCtrPoints - k - 1u] = p;
     }
@@ -315,37 +315,37 @@ uint8_t CTrailNodeFx::UpdateTrailGeometry(IKTime* frameClock) {
             if ((properties & 2u) != 0) colourChanged = 1;
             if ((properties & 1u) != 0) {
                 // On: every period the points move one place back and the newest one is laid out again.
-                trail->m_unk48 = trail->m_unk48 + frameClock->m_afDeltaTime[0];
-                if (!(trail->m_unk48 >= trail->m_unk44)) {
+                trail->m_fElapsedSinceShift = trail->m_fElapsedSinceShift + frameClock->m_afDeltaTime[0];
+                if (!(trail->m_fElapsedSinceShift >= trail->m_fSamplePeriod)) {
                     ResetPointsBetweenAnchors(trail);
                 } else {
                     do {
-                        trail->m_unk48 = trail->m_unk48 - trail->m_unk44;
+                        trail->m_fElapsedSinceShift = trail->m_fElapsedSinceShift - trail->m_fSamplePeriod;
                         ShiftStrips(trail);
                         ResetPointsBetweenAnchors(trail);
-                        trail->m_unk4c = Point(trail, trail->m_ui32NbCtrPoints - 1u);
-                        trail->m_unk58 = Point(trail, trail->m_ui32NbCtrPoints * trail->m_unk34 - 1u);
-                    } while (trail->m_unk48 >= trail->m_unk44);
+                        trail->m_vLastPointFirstStrip = Point(trail, trail->m_ui32NbCtrPoints - 1u);
+                        trail->m_vLastPointLastStrip = Point(trail, trail->m_ui32NbCtrPoints * trail->m_ui32NbStrips - 1u);
+                    } while (trail->m_fElapsedSinceShift >= trail->m_fSamplePeriod);
                 }
                 rebuilt = 1;
             } else if (trail->m_ui8Visible != 0) {
                 // Off and still visible: one point fewer every period, the hidden ones on the last visible one.
-                trail->m_unk48 = trail->m_unk48 + frameClock->m_afDeltaTime[0];
+                trail->m_fElapsedSinceShift = trail->m_fElapsedSinceShift + frameClock->m_afDeltaTime[0];
                 const uint32_t hiddenAtStart = trail->m_ui32NbCtrPoints - trail->m_ui8Visible;
-                if (!(trail->m_unk48 >= trail->m_unk44)) {
+                if (!(trail->m_fElapsedSinceShift >= trail->m_fSamplePeriod)) {
                     ResetPointsBetweenAnchors(trail);
                     const uint32_t n = trail->m_ui32NbCtrPoints;
                     if (n > 2u && n - 2u > hiddenAtStart) CollapseTail(trail, n - trail->m_ui8Visible);
                 } else {
                     while (trail->m_ui8Visible != 0) {
-                        trail->m_unk48 = trail->m_unk48 - trail->m_unk44;
+                        trail->m_fElapsedSinceShift = trail->m_fElapsedSinceShift - trail->m_fSamplePeriod;
                         ShiftStrips(trail);
                         ResetPointsBetweenAnchors(trail);
                         CollapseTail(trail, trail->m_ui32NbCtrPoints - trail->m_ui8Visible);
                         trail->m_ui8Visible = static_cast<uint8_t>(trail->m_ui8Visible - 1);
-                        trail->m_unk4c = Point(trail, trail->m_ui32NbCtrPoints - hiddenAtStart - 1u);
-                        trail->m_unk58 = Point(trail, trail->m_ui32NbCtrPoints * trail->m_unk34 - hiddenAtStart - 1u);
-                        if (!(trail->m_unk48 >= trail->m_unk44)) break;
+                        trail->m_vLastPointFirstStrip = Point(trail, trail->m_ui32NbCtrPoints - hiddenAtStart - 1u);
+                        trail->m_vLastPointLastStrip = Point(trail, trail->m_ui32NbCtrPoints * trail->m_ui32NbStrips - hiddenAtStart - 1u);
+                        if (!(trail->m_fElapsedSinceShift >= trail->m_fSamplePeriod)) break;
                     }
                 }
                 rebuilt = 1;
@@ -378,25 +378,25 @@ uint8_t CTrailNodeFx::UpdateTrailGeometry(IKTime* frameClock) {
                 }
                 if (trail->m_ui8Visible == 0) {
                     // Nothing visible: every vertex of a strip on its first one.
-                    for (uint32_t strip = 0; strip < trail->m_unk34; ++strip) {
-                        for (uint32_t k = 0; k < trail->m_unk38; ++k) {
-                            vertices[strip * trail->m_unk38 + k] = vertices[strip * trail->m_unk38];
+                    for (uint32_t strip = 0; strip < trail->m_ui32NbStrips; ++strip) {
+                        for (uint32_t k = 0; k < trail->m_ui32NbVerticesPerStrip; ++k) {
+                            vertices[strip * trail->m_ui32NbVerticesPerStrip + k] = vertices[strip * trail->m_ui32NbVerticesPerStrip];
                         }
                     }
                 } else {
-                    for (uint32_t strip = 0; strip < trail->m_unk34; ++strip) {
+                    for (uint32_t strip = 0; strip < trail->m_ui32NbStrips; ++strip) {
                         Bezier_SampleCurvePoints(static_cast<int32_t>(trail->m_ui32NbCtrPoints),
                                                  trail->m_pCtrlPoints + strip * trail->m_ui32NbCtrPoints,
-                                                 static_cast<int32_t>(trail->m_unk38),
-                                                 vertices + strip * trail->m_unk38);  // 0x00010b68
+                                                 static_cast<int32_t>(trail->m_ui32NbVerticesPerStrip),
+                                                 vertices + strip * trail->m_ui32NbVerticesPerStrip);  // 0x00010b68
                     }
                 }
-                if (trail->m_unk38 > 2u) {
+                if (trail->m_ui32NbVerticesPerStrip > 2u) {
                     // u along the strip (the first step scaled by the time since the points moved, the others whole,
                     // at most 1), v across the strips.
-                    const uint32_t strips = trail->m_unk34;
-                    const float phase = trail->m_unk48 / trail->m_unk44;
-                    const float du = kOne / ToFloat(trail->m_unk38 - 1u);
+                    const uint32_t strips = trail->m_ui32NbStrips;
+                    const float phase = trail->m_fElapsedSinceShift / trail->m_fSamplePeriod;
+                    const float du = kOne / ToFloat(trail->m_ui32NbVerticesPerStrip - 1u);
                     const float dv = kOne / static_cast<float>(static_cast<double>(static_cast<int64_t>(strips) - 1));
                     if (strips != 0) {
                         float v = kZero;
@@ -404,8 +404,8 @@ uint8_t CTrailNodeFx::UpdateTrailGeometry(IKTime* frameClock) {
                         for (;;) {
                             float u = kZero;
                             uint32_t k = 0;
-                            while (k < trail->m_unk38) {
-                                const uint32_t index = strip * trail->m_unk38 + texBase + k;
+                            while (k < trail->m_ui32NbVerticesPerStrip) {
+                                const uint32_t index = strip * trail->m_ui32NbVerticesPerStrip + texBase + k;
                                 // PORT: the original also writes past the array (see the BUG below); those writes
                                 // are dropped here.
                                 if (static_cast<int32_t>(index) < rpGeometry->numVertices) {

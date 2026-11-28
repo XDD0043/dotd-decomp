@@ -30,7 +30,7 @@
 //   [ ] 0x9c0ac8  CKS08ElementDamage_SetContinuous_maybe  [inline]
 //   [ ] 0x9c0ad0  CKS08ElementDamage_vf58  [inline]
 //   [ ] 0x9c0ae8  CKS08ElementDamage_SetStun_maybe  [inline]
-//   [ ] 0x9c0af0  CKS08ElementDamage_vf60  [inline]
+//   [ ] 0x9c0af0  CKS08ElementDamage_SetDisarmAmount  [inline]
 //   [ ] 0x9c0af8  CKS08ElementDamage_SetDamageType  [inline]
 //   [ ] 0x9c0b00  CKS08ElementDamage_SetAbilityId_maybe  [inline]
 //   [ ] 0x9c0b08  CKS08ElementDamage_vf6C  [inline]
@@ -63,7 +63,7 @@ int32_t CKS08ElementDamage::Load(IKFile* file, int32_t type) {
         for (uint32_t i = 0; i < count; ++i) ReadF32LE(file, &m_afValues[i]);
         for (uint32_t i = count; i < 10; ++i) m_afValues[i] = 0.0f;  // stw 0
     }
-    ReadS32LE(file, &m_unk38);
+    ReadS32LE(file, &m_i32AbilityId);
     return 1;
 }
 
@@ -96,7 +96,7 @@ float* CopyValues(const float* from) {
 CKS08ElementDamage::CKS08ElementDamage(const CKS08ElementDamage& other) : CKS08StunDamage() {
     m_unk34 = other.m_unk34;
     m_unk35 = other.m_unk35;
-    m_unk38 = other.m_unk38;
+    m_i32AbilityId = other.m_i32AbilityId;
     m_afValues = CopyValues(other.m_afValues);
 }
 
@@ -106,7 +106,7 @@ CKS08ElementDamage& CKS08ElementDamage::operator=(const CKS08ElementDamage& othe
     if (this == &other) return *this;
     m_unk34 = other.m_unk34;
     m_unk35 = other.m_unk35;
-    m_unk38 = other.m_unk38;
+    m_i32AbilityId = other.m_i32AbilityId;
     if (m_afValues != nullptr) delete[] m_afValues;
     m_afValues = nullptr;
     m_afValues = CopyValues(other.m_afValues);

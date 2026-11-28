@@ -22,12 +22,12 @@ public:
     // 0x002cf1b0 CKGrpS08Hero_Create (after the IKGrpHero constructor), in its order: 0.0f (TOC 0x1c28).
     CKGrpS08Hero() {
         m_unk100 = 0.0f;
-        m_unk364 = 0.0f;
+        m_fFinisherCooldownTarget = 0.0f;
         m_unk108 = 0.0f;
         m_unk104 = 0.0f;
-        m_unk36c = 0.0f;
-        m_unk368 = 0.0f;
-        m_unka88 = 0;
+        m_fFinisherCooldown = 0.0f;
+        m_fFinisherCooldownSpeed = 0.0f;
+        m_ui32FollowTrailCount = 0;
         m_pAnnounced = nullptr;
     }
 
@@ -45,7 +45,7 @@ public:
     void Restart() override;           // vt+0x54 0x002d0a08 CKGrpS08Hero_Restart
     uint8_t GetHeroCount() override { return 2; }  // vt+0xf4 0x002ce318 GetCKGrpS08HeroCount
     // 0x002ca188 CKGrpS08Hero_IsDragonSwitchPending_maybe (C2.8 sequence: the sequence manager's Update): +0xf8 bit 5.
-    uint8_t IsDragonSwitchPending() const { return static_cast<uint8_t>((m_unkf8 >> 5) & 1u); }
+    uint8_t IsDragonSwitchPending() const { return static_cast<uint8_t>((m_baWorkFlags >> 5) & 1u); }
     // vt+0x1c 0x002cfb68 CKGrpS08Hero_MessageProc: IKGrpHero's messages (0x2ce1f0: the commands 0xc00..0xc10,
     // 0x2666), then the group's own 0xc11..0xc1f (+0x2c8 bits 8, 9, 11, 12, +0xfc, the heroes' +0xed4 bit 4).
     int32_t MessageProc(uint16_t message, void* data) override;
@@ -77,7 +77,7 @@ public:
     // the group's vtable, these are the same tables without the object.
     static uint8_t GetNbSpeedModesOf(uint8_t hero);
     // 0x002ce520 CKGrpS08Hero_GetTetherSpringRadius_maybe: +0x124 with +0xfc set, else +0x110.
-    float GetTetherSpringRadius() const { return m_unkfc != 0 ? m_unk124 : m_unk110; }
+    float GetTetherSpringRadius() const { return m_bUseAltTetherParams != 0 ? m_fAltTetherSpringRadius : m_fTetherSpringRadius; }
     static uint8_t GetSpeedVolumeIndexOf(uint8_t hero);
     // step 4 ANIM: the sound tables the heroes read through the group's vtable (constants; BUG(original): no bound
     // checks). vt+0x158 0x002ce448: the sound of movement event `event` (0..15; table 0x00a704a0, signed byte: -1 for
@@ -170,7 +170,7 @@ public:
     // CKGrpS08Hero_RecordLeaderTrail_maybe 0x2d5be0: dead, no pointer to its descriptor).
     struct SFollowWaypoint {
         CVector3 m_vPosition;  // +0x00
-        CVector3 m_vUnk0c;     // +0x0c
+        CVector3 m_vDirection;     // _maybe: +0x0c
         float m_unk18;         // +0x18
         uint32_t m_unk1c;      // +0x1c (AIComputeFollowFlyingThrottle tests 1)
         uint16_t m_unk20;      // +0x20 (0xffff for none)
@@ -208,14 +208,14 @@ public:
     // into +0x65) and clears the pending switch (+0xf8 bit 5); +0xf8 bit 1 = `locked` (the whole word or'ed in).
     void SetDragonSwitchLocked(uint32_t locked) {
         if (locked != 0) {
-            m_unk65 = m_unk64;
-            m_unkf8 &= ~0x20u;
+            m_ui8RequestedDragon = m_ui8SelectedDragon;
+            m_baWorkFlags &= ~0x20u;
         }
-        m_unkf8 = (m_unkf8 & ~2u) | (locked << 1);
+        m_baWorkFlags = (m_baWorkFlags & ~2u) | (locked << 1);
     }
     // 0x002ca258 CKGrpS08Hero_IsInputBlocked_maybe / 0x002ca268 SetInputBlocked_maybe: +0xf8 bit 3.
-    uint8_t IsInputBlocked() const { return static_cast<uint8_t>((m_unkf8 >> 3) & 1u); }
-    void SetInputBlocked(uint32_t blocked) { m_unkf8 = (m_unkf8 & ~8u) | (blocked << 3); }
+    uint8_t IsInputBlocked() const { return static_cast<uint8_t>((m_baWorkFlags >> 3) & 1u); }
+    void SetInputBlocked(uint32_t blocked) { m_baWorkFlags = (m_baWorkFlags & ~8u) | (blocked << 3); }
     // 0x002ca298 CKGrpS08Hero_vf16C_Thunk_maybe: vt+0x16c, sign-extended (CKHkPushObstacle / CKHkPushKillObject).
     int8_t GetHotSpotIndexSigned(uint8_t hero, uint8_t part) { return static_cast<int8_t>(GetHotSpotIndex(hero, part)); }
     // vt+0xb8 0x002ce308 CKGrpS08Hero_vfB8 returns 1 and vt+0xec 0x002ce310 CKGrpS08Hero_vfEC is empty: IKBaseGroup
@@ -258,10 +258,10 @@ public:
     // 0x002ce540 / 0x002ce560 / 0x002ce580 CKGrpS08Hero_GetTetherDampingRadius_maybe / SpringStiffness_maybe /
     // DampingCoeff_maybe: +0x128 / +0x12c / +0x130 with +0xfc set, else +0x114 / +0x118 / +0x11c.
     // 0x002d51e0 CKGrpS08Hero_ClearFollowTrail_maybe: no trail points (+0xa88 = 0; CKHkS08Hero_11.cpp has a copy).
-    void ClearFollowTrail() { m_unka88 = 0; }
-    float GetTetherDampingRadius() const { return m_unkfc != 0 ? m_unk128 : m_unk114; }
-    float GetTetherSpringStiffness() const { return m_unkfc != 0 ? m_unk12c : m_unk118; }
-    float GetTetherDampingCoeff() const { return m_unkfc != 0 ? m_unk130 : m_unk11c; }
+    void ClearFollowTrail() { m_ui32FollowTrailCount = 0; }
+    float GetTetherDampingRadius() const { return m_bUseAltTetherParams != 0 ? m_fAltTetherDampingRadius : m_fTetherDampingRadius; }
+    float GetTetherSpringStiffness() const { return m_bUseAltTetherParams != 0 ? m_fAltTetherSpringStiffness : m_fTetherSpringStiffness; }
+    float GetTetherDampingCoeff() const { return m_bUseAltTetherParams != 0 ? m_fAltTetherDampingCoeff : m_fTetherDampingCoeff; }
     // 0x002d4bc0 CKGrpS08Hero_GetFocusedHeroCamera_maybe: the focused hero's (+0x66) camera target (+0x1818)
     // (CKS08GameManager::GetFocusedHeroCamera has it inline with its guard).
     IKSerializable* GetFocusedHeroCamera() const;
@@ -279,22 +279,22 @@ public:
     void OnEnemyKilled(IKSerializable* enemy);
     static uint8_t GetMaxPlayers();    // 0x002cabd8 GetMaxPlayers_maybe: the game manager's vt+0x150
 
-    uint32_t m_unkf8;  // +0xf8 not loaded
-    uint8_t m_unkfc;   // +0xfc not loaded (Restart: a byte, 0)
+    uint32_t m_baWorkFlags;  // +0xf8 not loaded
+    uint8_t m_bUseAltTetherParams;   // +0xfc not loaded (Restart: a byte, 0)
     uint8_t m_padfd[3];
     float m_unk100;  // +0x100 the constructor sets 0.0; not loaded
     float m_unk104;  // +0x104 the constructor sets 0.0; not loaded
     float m_unk108;  // +0x108 the constructor sets 0.0; not loaded
     float m_unk10c;  // +0x10c
-    float m_unk110;  // +0x110
-    float m_unk114;  // +0x114
-    float m_unk118;  // +0x118
-    float m_unk11c;  // +0x11c
+    float m_fTetherSpringRadius;  // +0x110
+    float m_fTetherDampingRadius;  // +0x114
+    float m_fTetherSpringStiffness;  // +0x118
+    float m_fTetherDampingCoeff;  // +0x11c
     float m_unk120;  // +0x120
-    float m_unk124;  // +0x124
-    float m_unk128;  // +0x128
-    float m_unk12c;  // +0x12c
-    float m_unk130;  // +0x130
+    float m_fAltTetherSpringRadius;  // +0x124
+    float m_fAltTetherDampingRadius;  // +0x128
+    float m_fAltTetherSpringStiffness;  // +0x12c
+    float m_fAltTetherDampingCoeff;  // +0x130
     float m_unk134;  // +0x134
     float m_unk138;  // +0x138
     float m_unk13c;  // +0x13c
@@ -399,11 +399,11 @@ public:
     float m_unk2bc;  // +0x2bc
     uint32_t m_unk2c0;  // +0x2c0
     float m_unk2c4;  // +0x2c4
-    uint32_t m_unk2c8;  // +0x2c8 not loaded
-    IKSerializable* m_pUnk2cc;  // +0x2cc reference (LVL010: CKQuakeCameraLauncher)
-    float m_unk2d0;          // +0x2d0 not loaded (Restart: 0; ProcessDragonSwitchRequest: 2.0)
+    uint32_t m_ui32PairStateFlags;  // +0x2c8 not loaded
+    IKSerializable* m_pQuakeLauncher;  // +0x2cc reference (LVL010: CKQuakeCameraLauncher)
+    float m_fSwitchFeedbackTimer;          // +0x2d0 not loaded (Restart: 0; ProcessDragonSwitchRequest: 2.0)
     uint32_t m_unk2d4[17];   // +0x2d4..+0x314 not loaded
-    uint32_t m_unk318;       // +0x318 not loaded
+    uint32_t m_fHero1ToMidDist;       // +0x318 not loaded
     float m_unk31c;          // +0x31c not loaded (Restart copies m_unk178)
     uint8_t m_unk320;        // +0x320 not loaded (Restart: 0, then 1)
     uint8_t m_pad321[3];
@@ -412,18 +412,18 @@ public:
     uint32_t m_unk32c;       // +0x32c not loaded (PostLoad: 0)
     uint32_t m_unk330;       // +0x330 not loaded (PostLoad: 0)
     uint32_t m_unk334;       // +0x334 not loaded (PostLoad: 1000)
-    CTriggerStarter m_tsUnk338;  // +0x338
-    CTriggerStarter m_tsUnk340;  // +0x340
-    IKSerializable* m_pUnk348;  // +0x348 reference (LVL010: CKFlashFxData)
-    IKSerializable* m_pUnk34c;  // +0x34c reference (LVL010: CKFilterFxData)
-    IKSerializable* m_unk350;  // +0x350 not loaded: the fury's filter effect (UpdateFury)
-    IKSerializable* m_pUnk354;  // +0x354 reference (LVL010: CKExplosionFxData)
-    IKSerializable* m_pUnk358;  // +0x358 reference (LVL010: CKHDRFxData)
-    IKSerializable* m_unk35c;  // +0x35c not loaded: the fury's HDR effect (UpdateFury)
-    IKSerializable* m_pUnk360;  // +0x360 reference (LVL010: CKCurve2DCpnt)
-    float m_unk364;  // +0x364 the constructor sets 0.0; not loaded
-    float m_unk368;  // +0x368 the constructor sets 0.0; not loaded
-    float m_unk36c;  // +0x36c the constructor sets 0.0; not loaded
+    CTriggerStarter m_tsOnFuryChargeStart;  // +0x338
+    CTriggerStarter m_tsOnFuryEnd;  // +0x340
+    IKSerializable* m_pFuryFlashFxData;  // +0x348 reference (LVL010: CKFlashFxData)
+    IKSerializable* m_pFuryFilterFxData;  // +0x34c reference (LVL010: CKFilterFxData)
+    IKSerializable* m_pActiveFuryFilterFx;  // +0x350 not loaded: the fury's filter effect (UpdateFury)
+    IKSerializable* m_pFuryExplosionFxData;  // +0x354 reference (LVL010: CKExplosionFxData)
+    IKSerializable* m_pFuryHdrFxData;  // +0x358 reference (LVL010: CKHDRFxData)
+    IKSerializable* m_pActiveFuryHdrFx;  // +0x35c not loaded: the fury's HDR effect (UpdateFury)
+    IKSerializable* m_pFuryChargeCurve;  // +0x360 reference (LVL010: CKCurve2DCpnt)
+    float m_fFinisherCooldownTarget;  // +0x364 the constructor sets 0.0; not loaded
+    float m_fFinisherCooldownSpeed;  // +0x368 the constructor sets 0.0; not loaded
+    float m_fFinisherCooldown;  // +0x36c the constructor sets 0.0; not loaded
     // +0x370 the blows whose finisher camera was shown (AllowFinisherCamera; FreeListPool 0x00ceaa20 nodes in the original,
     // new / delete here): the constructor sets null; not loaded.
     struct AnnouncedBlow {
@@ -431,52 +431,52 @@ public:
         AnnouncedBlow* m_pNext;  // +0x04
     };
     AnnouncedBlow* m_pAnnounced;
-    float m_unk374;          // +0x374 not loaded (Restart: 0); the announcer time (UpdateTimers364 adds dt)
+    float m_fAnnouncerElapsedTime;          // +0x374 not loaded (Restart: 0); the announcer time (UpdateTimers364 adds dt)
     uint32_t m_unk378;       // +0x378 not loaded
     uint32_t m_unk37c;       // +0x37c not loaded (Restart: 0)
-    uint32_t m_unk380[450];  // +0x380..+0xa84 not loaded
-    uint32_t m_unka88;  // +0xa88 the constructor sets 0; not loaded
+    uint32_t m_aFollowTrail[450];  // +0x380..+0xa84 not loaded
+    uint32_t m_ui32FollowTrailCount;  // +0xa88 the constructor sets 0; not loaded
     uint32_t m_unka8c[2];    // +0xa8c..+0xa90 not loaded
-    CVector3 m_vUnka94;      // +0xa94 not loaded (Restart: the zero vector)
+    CVector3 m_vFollowTargetOverride;      // +0xa94 not loaded (Restart: the zero vector)
     uint32_t m_unkaa0[3];    // +0xaa0..+0xaa8 not loaded (Restart: 0)
     uint32_t m_unkaac;       // +0xaac not loaded
-    CTriggerStarter m_tsUnkab0;  // +0xab0
-    uint8_t m_unkab8;   // +0xab8 not loaded (PostLoad: a byte, 0)
+    CTriggerStarter m_tsOnPowerBucketFill;  // _maybe: +0xab0
+    uint8_t m_ui8PowerBucketFillHero;   // _maybe: +0xab8 not loaded (PostLoad: a byte, 0)
     uint8_t m_padab9[3];
-    IKSerializable* m_pUnkabc;  // +0xabc reference (LVL010: CKLocTextAccessor)
-    CTriggerStarter m_tsUnkac0;  // +0xac0
-    float m_unkac8;     // +0xac8 not loaded (the flight altitude gap)
-    uint8_t m_unkacc;   // +0xacc not loaded (Restart: a byte, 0xff)
+    IKSerializable* m_pPromptTextAccessor;  // +0xabc reference (LVL010: CKLocTextAccessor)
+    CTriggerStarter m_tsOnPlayerHeroHurt;  // +0xac0
+    float m_fFlightFloorLevel;     // +0xac8 not loaded (the flight altitude gap)
+    uint8_t m_ui8FlightFloorHero;   // +0xacc not loaded (Restart: a byte, 0xff)
     uint8_t m_padacd[3];
-    IKSerializable* m_pUnkad0;  // +0xad0 reference (LVL010: CKHkS08Sparx)
+    IKSerializable* m_pSparx;  // +0xad0 reference (LVL010: CKHkS08Sparx)
     uint32_t m_unkad4[10];  // +0xad4..+0xaf8 not loaded
 };
 static_assert(CKGrpS08Hero::kClassKey == 0x984, "key");
 static_assert(sizeof(CKGrpS08Hero::SCatchUpPoint) == 0x18, "catch-up point");
 DOTD_ASSERT_SIZE(CKGrpS08Hero, 0xafc);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unkf8, 0xf8);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unkfc, 0xfc);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_baWorkFlags, 0xf8);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_bUseAltTetherParams, 0xfc);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk100, 0x100);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk2d0, 0x2d0);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_fSwitchFeedbackTimer, 0x2d0);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk31c, 0x31c);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk320, 0x320);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk374, 0x374);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_fAnnouncerElapsedTime, 0x374);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk37c, 0x37c);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_vUnka94, 0xa94);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_vFollowTargetOverride, 0xa94);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unkaa0, 0xaa0);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unkacc, 0xacc);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_ui8FlightFloorHero, 0xacc);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk104, 0x104);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk108, 0x108);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk10c, 0x10c);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk110, 0x110);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk114, 0x114);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk118, 0x118);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk11c, 0x11c);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_fTetherSpringRadius, 0x110);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_fTetherDampingRadius, 0x114);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_fTetherSpringStiffness, 0x118);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_fTetherDampingCoeff, 0x11c);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk120, 0x120);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk124, 0x124);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk128, 0x128);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk12c, 0x12c);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk130, 0x130);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_fAltTetherSpringRadius, 0x124);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_fAltTetherDampingRadius, 0x128);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_fAltTetherSpringStiffness, 0x12c);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_fAltTetherDampingCoeff, 0x130);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk134, 0x134);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk138, 0x138);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk13c, 0x13c);
@@ -579,20 +579,20 @@ DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk2b8, 0x2b8);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk2bc, 0x2bc);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk2c0, 0x2c0);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk2c4, 0x2c4);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_pUnk2cc, 0x2cc);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_tsUnk338, 0x338);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_tsUnk340, 0x340);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_pUnk348, 0x348);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_pUnk34c, 0x34c);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_pUnk354, 0x354);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_pUnk358, 0x358);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_pUnk360, 0x360);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk364, 0x364);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk368, 0x368);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unk36c, 0x36c);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_pQuakeLauncher, 0x2cc);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_tsOnFuryChargeStart, 0x338);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_tsOnFuryEnd, 0x340);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_pFuryFlashFxData, 0x348);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_pFuryFilterFxData, 0x34c);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_pFuryExplosionFxData, 0x354);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_pFuryHdrFxData, 0x358);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_pFuryChargeCurve, 0x360);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_fFinisherCooldownTarget, 0x364);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_fFinisherCooldownSpeed, 0x368);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_fFinisherCooldown, 0x36c);
 DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_pAnnounced, 0x370);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_unka88, 0xa88);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_tsUnkab0, 0xab0);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_pUnkabc, 0xabc);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_tsUnkac0, 0xac0);
-DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_pUnkad0, 0xad0);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_ui32FollowTrailCount, 0xa88);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_tsOnPowerBucketFill, 0xab0);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_pPromptTextAccessor, 0xabc);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_tsOnPlayerHeroHurt, 0xac0);
+DOTD_ASSERT_OFFSET(CKGrpS08Hero, m_pSparx, 0xad0);

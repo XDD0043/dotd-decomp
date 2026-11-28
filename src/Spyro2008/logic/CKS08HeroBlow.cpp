@@ -61,35 +61,35 @@
 // 0x0036e6b8 CKS08HeroBlow_Load: level data only; the fields in the file's order.
 int32_t CKS08HeroBlow::Load(IKFile* file, int32_t type) {
     if (type != K_LEVEL_PLATEFORMS) return 1;
-    ReadU8(file, &m_unk04);
-    ReadU8(file, &m_unk2d);
-    ReadS32LE(file, &m_unk30);
+    ReadU8(file, &m_ui8HotspotIndex);
+    ReadU8(file, &m_ui8LinkCode);
+    ReadS32LE(file, &m_i32AnimOffset);
     ReadU8(file, &m_unk34);
-    ReadF32LE(file, &m_unk08);
+    ReadF32LE(file, &m_fHitRadius);
     ReadF32LE(file, &m_unk20);
     ReadF32LE(file, &m_unk24);
     ReadF32LE(file, &m_unk28);
     ReadF32LE(file, &m_unk0c);
-    ReadF32LE(file, &m_unk1c);
+    ReadF32LE(file, &m_fRecoveryDelay);
     ReadF32LE(file, &m_unk10);
     ReadU8(file, &m_unk14);
-    ReadU8(file, &m_unk52);
-    ReadF32LE(file, &m_unk54);
+    ReadU8(file, &m_bIsGrabBlow);
+    ReadF32LE(file, &m_fThrowDelay);
     ReadU8(file, &m_unk58);
-    ReadF32LE(file, &m_unk5c);
-    ReadU8(file, &m_unk48);
-    if (m_unk48 != 0) {
-        IKFile_ReadRef(file, &m_unk4c);
+    ReadF32LE(file, &m_fReleaseDelay);
+    ReadU8(file, &m_bHasTimeScaleCurve);
+    if (m_bHasTimeScaleCurve != 0) {
+        IKFile_ReadRef(file, &m_pTimeScaleCurve);
     } else {
-        m_unk4c = nullptr;  // the original stores the flag byte (0) as a word
+        m_pTimeScaleCurve = nullptr;  // the original stores the flag byte (0) as a word
     }
-    ReadU8(file, &m_unk60);
+    ReadU8(file, &m_bHasReleaseDelay);
     ReadU8(file, &m_unk50);
     ReadU8(file, &m_unk51);
-    ReadU8(file, &m_unk53);
+    ReadU8(file, &m_bThrowOnTimeout);
     IKFile_ReadRef(file, &m_pDamage);
-    ReadF32LE(file, &m_unk38);
-    IKFile_ReadRef(file, &m_unk3c);
+    ReadF32LE(file, &m_fAnimSpeed);
+    IKFile_ReadRef(file, &m_pCameraData);
     ReadU8(file, &m_unk61);
     ReadU8(file, &m_unk40);
     ReadF32LE(file, &m_unk44);
@@ -98,23 +98,23 @@ int32_t CKS08HeroBlow::Load(IKFile* file, int32_t type) {
 
 // 0x0036e350 CKS08HeroBlow_EvalTimeScale (vt+0xc0)
 float CKS08HeroBlow::EvalTimeScale(float x) const {
-    if (m_unk48 == 0) return 1.0f;  // TOC +0x2f58
-    return static_cast<const CKCurve2DCpnt*>(m_unk4c)->Evaluate(x);  // 0x00249ea8
+    if (m_bHasTimeScaleCurve == 0) return 1.0f;  // TOC +0x2f58
+    return static_cast<const CKCurve2DCpnt*>(m_pTimeScaleCurve)->Evaluate(x);  // 0x00249ea8
 }
 
 // vt+0x24 0x0036e5b0 CKS08HeroBlow_RecursiveRegistration: the time-scale curve's (when there is one), then the camera
 // data's (vt+0x24), with the same type.
 void CKS08HeroBlow::RecursiveRegistration(int32_t type) {
-    if (m_unk4c != nullptr) m_unk4c->RecursiveRegistration(type);
-    m_unk3c->RecursiveRegistration(type);
+    if (m_pTimeScaleCurve != nullptr) m_pTimeScaleCurve->RecursiveRegistration(type);
+    m_pCameraData->RecursiveRegistration(type);
 }
 
 // vt+0x30 0x0036e650 CKS08HeroBlow_PostLoad: for type 0 the timer (+0x18) back to its reset value (+0x0c).
 int32_t CKS08HeroBlow::PostLoad(int32_t type) {
     if (type != 0) return 1;
-    m_unk18 = m_unk0c;
+    m_fTimer = m_unk0c;
     return 1;
 }
 
 // vt+0x10 0x0036e670 CKS08HeroBlow_Destroy: the camera data's Destroy (vt+0x10).
-void CKS08HeroBlow::Destroy() { m_unk3c->Destroy(); }
+void CKS08HeroBlow::Destroy() { m_pCameraData->Destroy(); }

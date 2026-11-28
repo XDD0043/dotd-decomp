@@ -60,54 +60,54 @@
 int32_t CKGrabElement::Load(IKFile* file, int32_t type) {
     if (type == 0) {
         for (int32_t i = 0; i < 3; ++i) {
-            ReadS32LE(file, &m_unk08[i]);
-            ReadF32LE(file, &m_unk14[i]);
-            ReadS32LE(file, &m_unk2c[i]);
+            ReadS32LE(file, &m_ai32Damage[i]);
+            ReadF32LE(file, &m_afCooldown[i]);
+            ReadS32LE(file, &m_ai32ManaPerSecond[i]);
             ReadF32LE(file, &m_unk38[i]);
             ReadF32LE(file, &m_unk44[i]);
-            ReadF32LE(file, &m_unk50[i]);
-            ReadF32LE(file, &m_unk5c[i]);
-            ReadF32LE(file, &m_unk68[i]);
-            ReadF32LE(file, &m_unk74[i]);
-            ReadF32LE(file, &m_unk80[i]);
-            ReadF32LE(file, &m_unk8c[i]);
-            ReadF32LE(file, &m_unk98[i]);
-            ReadF32LE(file, &m_unkA4[i]);
-            ReadF32LE(file, &m_unkB0[i]);
-            ReadF32LE(file, &m_unkBc[i]);
-            ReadU8(file, &m_unkC8[i]);
-            ReadU8(file, &m_unkCb[i]);
+            ReadF32LE(file, &m_afDisarmAmount[i]);
+            ReadF32LE(file, &m_afStunAmount[i]);
+            ReadF32LE(file, &m_afElementEffect0[i]);
+            ReadF32LE(file, &m_afElementEffect1[i]);
+            ReadF32LE(file, &m_afElementEffect2[i]);
+            ReadF32LE(file, &m_afElementEffect4[i]);
+            ReadF32LE(file, &m_afElementEffect6[i]);
+            ReadF32LE(file, &m_afElementEffect5[i]);
+            ReadF32LE(file, &m_afElementEffect7[i]);
+            ReadF32LE(file, &m_afElementEffect3[i]);
+            ReadU8(file, &m_abDamageFlag34[i]);
+            ReadU8(file, &m_abDamageFlag35[i]);
         }
         ReadU8(file, &m_unkD8);
         ReadU8(file, &m_unkD9);
         ReadU8(file, &m_unkDa);
         ReadF32LE(file, &m_unkDc);
         ReadF32LE(file, &m_unkE0);
-        ReadF32LE(file, &m_unkF0);
+        ReadF32LE(file, &m_fGroundMoveSpeed);
         ReadU8(file, &m_unkE4);
         ReadU8(file, &m_unkE5);
         ReadU8(file, &m_unkE6);
         ReadF32LE(file, &m_unkE8);
         ReadF32LE(file, &m_unkEc);
-        ReadF32LE(file, &m_unkF4);
+        ReadF32LE(file, &m_fFlyMoveSpeed);
         ReadU8(file, &m_unkF8);
         ReadU8(file, &m_unkF9);
         ReadF32LE(file, &m_unkFc);
         ReadF32LE(file, &m_unk100);
-        IKFile_ReadRef(file, &m_unk138);
+        IKFile_ReadRef(file, &m_pElementDamage);
         ReadU8(file, &m_unk104);
         ReadU8(file, &m_unk105);
         ReadU8(file, &m_unk106);
         ReadF32LE(file, &m_unk108);
         ReadF32LE(file, &m_unk10c);
-        ReadF32LE(file, &m_unk110);
-        ReadU8(file, &m_unk114);
-        ReadF32LE(file, &m_unk118);
-        IKFile_ReadRef(file, &m_unkD0);
+        ReadF32LE(file, &m_fAirMoveSpeed);
+        ReadU8(file, &m_bAirParam11f8Enable);
+        ReadF32LE(file, &m_fAirParam11f8);
+        IKFile_ReadRef(file, &m_pAimCone);
         ReadF32LE(file, &m_unk20);
         ReadF32LE(file, &m_unk24);
         ReadF32LE(file, &m_unk28);
-        IKFile_ReadRef(file, &m_unk11c);
+        IKFile_ReadRef(file, &m_pFizzleExplosionFxData);
     }
     return 1;
 }
@@ -135,21 +135,21 @@ void CKGrabElement::Start(CKS08AbilityHostBase* host) {
     if (m_bRunning != 0 || host == nullptr) return;
     m_pHost = host;
     m_pTarget = nullptr;
-    m_unk125 = 0;
-    m_unk126 = 0;
-    m_unk127 = 0;
-    m_unk12f = 0;
-    m_unk13c = 0;
+    m_bInLoop = 0;
+    m_bInStartAnim = 0;
+    m_bInEndAnim = 0;
+    m_bTargetHeld = 0;
+    m_bForcedEnd = 0;
     m_bRunning = 1;
-    m_unk04 = host->GetAbilityLevelIndex(this);  // vt+0xf4
+    m_dwLevelIndex = host->GetAbilityLevelIndex(this);  // vt+0xf4
     ApplyHeroControl(1);                          // vt+0x68
     m_fMana = 0.0f;
-    m_unk134 = m_pHost->CanUseAltLoopAnim();  // vt+0x38
+    m_bAltLoopAnim = m_pHost->CanUseAltLoopAnim();  // vt+0x38
     if (m_pHost->PlayAbilityAnim(this, 0) != 0) {  // vt+0x7c
-        m_unk126 = 1;
+        m_bInStartAnim = 1;
     } else {
-        if (m_unk134 == 0 || m_pHost->PlayAbilityAnim(this, 2) == 0) m_pHost->PlayAbilityAnim(this, 1);
-        m_unk125 = 1;
+        if (m_bAltLoopAnim == 0 || m_pHost->PlayAbilityAnim(this, 2) == 0) m_pHost->PlayAbilityAnim(this, 1);
+        m_bInLoop = 1;
         if (Vf90() != 0) SetFxActive(1);  // vt+0x90 / vt+0x70
     }
     m_fStartTime = GameClockNow();
@@ -167,7 +167,7 @@ void CKGrabElement::End(int32_t forced) {
     ApplyHeroControl(0);  // vt+0x68
     m_bRunning = 0;
     const float forcedCooldown[3] = {m_unk20, m_unk24, m_unk28};
-    const float cooldown = forced != 0 ? forcedCooldown[m_unk04] : m_unk14[m_unk04];
+    const float cooldown = forced != 0 ? forcedCooldown[m_dwLevelIndex] : m_afCooldown[m_dwLevelIndex];
     m_pHost->SetAbilityCooldown(cooldown, this, static_cast<uint8_t>((forced ^ 1) & 0xff));  // vt+0x9c
     m_pHost = nullptr;
 }
@@ -187,13 +187,13 @@ void CKGrabElement::ApplyHeroControl(uint8_t on) {
                                    m_unk106);  // vt+0x64
         const uint8_t gateAir = m_unkD9 == 0 ? static_cast<uint8_t>(m_unkF8 != 0) : 0;
         const uint8_t gateFly = m_unkE5 == 0 ? static_cast<uint8_t>(m_unkF9 != 0) : 0;
-        const uint8_t gateGround = m_unk105 == 0 ? static_cast<uint8_t>(m_unk114 != 0) : 0;
-        host->SetAbilityParam11f8(m_unkFc, m_unk100, m_unk118, gateAir, gateFly, gateGround);  // vt+0x68
-        host->SetAbilityMoveSpeed(m_unkF0, m_unkF4, m_unk110);                                // vt+0x50
+        const uint8_t gateGround = m_unk105 == 0 ? static_cast<uint8_t>(m_bAirParam11f8Enable != 0) : 0;
+        host->SetAbilityParam11f8(m_unkFc, m_unk100, m_fAirParam11f8, gateAir, gateFly, gateGround);  // vt+0x68
+        host->SetAbilityMoveSpeed(m_fGroundMoveSpeed, m_fFlyMoveSpeed, m_fAirMoveSpeed);                                // vt+0x50
         host->SetAbilityMoveSpeedEnabled(1);                                                  // vt+0x54
-        const uint8_t standing = static_cast<uint8_t>(host->IsAirborne() ^ 1);                // vt+0x30
-        m_unk12e = standing;
-        host->SetAbilityHeroMode(this, standing);  // vt+0x70
+        const uint8_t inAir = static_cast<uint8_t>(host->IsOnGround() ^ 1);                // vt+0x30
+        m_bInAir = inAir;
+        host->SetAbilityHeroMode(this, inAir);  // vt+0x70
         return;
     }
     host->SetHeroActionPermission(0, 0, 0, 0);
@@ -204,7 +204,7 @@ void CKGrabElement::ApplyHeroControl(uint8_t on) {
     host->SetHeroActionPermission(8, 0, 0, 0);
     host->SetHeroActionPermission(9, 0, 0, 0);
     host->SetAbilityTurnParams(m_unkDc, m_unkE0, m_unkE8, m_unkEc, m_unk108, m_unk10c, 0, 0, 0);
-    host->SetAbilityParam11f8(m_unkFc, m_unk100, m_unk118, 0, 0, 0);
+    host->SetAbilityParam11f8(m_unkFc, m_unk100, m_fAirParam11f8, 0, 0, 0);
     host->SetAbilityMoveSpeedEnabled(0);
     host->SetAbilityHeroMode(this, 0);
 }
@@ -214,37 +214,37 @@ void CKGrabElement::ResetRuntime() {
     m_fStartTime = -1.0f;  // 0xbf800000
     m_fMana = 0.0f;
     m_pTarget = nullptr;
-    m_unk12c = 0xff;
-    m_unk12d = 1;
+    m_bHotspotIndex = 0xff;
+    m_bButtonIndex = 1;
     m_pHost = nullptr;
-    m_unk04 = 0;
+    m_dwLevelIndex = 0;
     m_bRunning = 0;
-    m_unk125 = 0;
-    m_unk126 = 0;
-    m_unk127 = 0;
-    m_unk12f = 0;
-    m_unk134 = 0;
+    m_bInLoop = 0;
+    m_bInStartAnim = 0;
+    m_bInEndAnim = 0;
+    m_bTargetHeld = 0;
+    m_bAltLoopAnim = 0;
 }
 
 // 0x003a66a0 CKGrabElement_ApplyDamageParams
 void CKGrabElement::ApplyDamageParams(uint8_t continuous) {
     const float damageScale = m_pHost->GetDamageScale();  // vt+0xc0
     const float effectScale = m_pHost->GetEffectScale();  // vt+0xc4
-    const uint32_t level = m_unk04;
-    CKS08ElementDamage* damage = static_cast<CKS08ElementDamage*>(m_unk138);
-    damage->SetAmount(damageScale * static_cast<float>(static_cast<double>(m_unk08[level])));  // vt+0x50 (fcfid, frsp)
-    damage->SetStun(m_unk5c[level]);                           // vt+0x5c
-    damage->SetStunDuration(m_unk50[level]);                   // vt+0x60
-    damage->SetElementValue(effectScale * m_unk68[level], 0);  // vt+0x58
-    damage->SetElementValue(effectScale * m_unk74[level], 1);
-    damage->SetElementValue(effectScale * m_unk80[level], 2);
-    damage->SetElementValue(effectScale * m_unk98[level], 6);
-    damage->SetElementValue(effectScale * m_unk8c[level], 4);
-    damage->SetElementValue(effectScale * m_unkB0[level], 7);
-    damage->SetElementValue(effectScale * m_unkBc[level], 3);
-    damage->SetElementValue(effectScale * m_unkA4[level], 5);
-    damage->SetUnk34(m_unkC8[level]);  // vt+0x6c
-    damage->SetUnk35(m_unkCb[level]);  // vt+0x70
+    const uint32_t level = m_dwLevelIndex;
+    CKS08ElementDamage* damage = static_cast<CKS08ElementDamage*>(m_pElementDamage);
+    damage->SetAmount(damageScale * static_cast<float>(static_cast<double>(m_ai32Damage[level])));  // vt+0x50 (fcfid, frsp)
+    damage->SetStun(m_afStunAmount[level]);                           // vt+0x5c
+    damage->SetDisarmAmount(m_afDisarmAmount[level]);                   // vt+0x60
+    damage->SetElementValue(effectScale * m_afElementEffect0[level], 0);  // vt+0x58
+    damage->SetElementValue(effectScale * m_afElementEffect1[level], 1);
+    damage->SetElementValue(effectScale * m_afElementEffect2[level], 2);
+    damage->SetElementValue(effectScale * m_afElementEffect6[level], 6);
+    damage->SetElementValue(effectScale * m_afElementEffect4[level], 4);
+    damage->SetElementValue(effectScale * m_afElementEffect7[level], 7);
+    damage->SetElementValue(effectScale * m_afElementEffect3[level], 3);
+    damage->SetElementValue(effectScale * m_afElementEffect5[level], 5);
+    damage->SetUnk34(m_abDamageFlag34[level]);  // vt+0x6c
+    damage->SetUnk35(m_abDamageFlag35[level]);  // vt+0x70
     damage->SetDamageType(kAbilityDamageTypes[GetAbilityId() & 0xffu]);  // vt+0x64; TOC 0x00a70988
     damage->SetAbilityId(GetAbilityId());                                 // vt+0x68
     damage->SetContinuous(continuous);                                    // vt+0x54
@@ -253,12 +253,12 @@ void CKGrabElement::ApplyDamageParams(uint8_t continuous) {
 // 0x003a6c48 CKGrabElement_StartEmitterFx: the inlined pooled lookup (CKSrvFx::AcquireFx) of the explosion data's
 // effect, owned by this element.
 void CKGrabElement::StartEmitterFx() {
-    IKFxData* data = reinterpret_cast<IKFxData*>(m_unk11c);
+    IKFxData* data = reinterpret_cast<IKFxData*>(m_pFizzleExplosionFxData);
     CKSrvFx* fxService = static_cast<CKSrvFx*>(g_pEngine->m_srvFx);
     if (fxService->m_ui32EltNb == 0) return;
     CKExplosionNodeFx* fx = static_cast<CKExplosionNodeFx*>(fxService->AcquireFx(data, this));
     if (fx == nullptr) return;
-    const CVector3 position = m_pHost->GetHotspotPosition(m_unk12c);  // vt+0xd0
+    const CVector3 position = m_pHost->GetHotspotPosition(m_bHotspotIndex);  // vt+0xd0
     fx->SetTranslation(&position, this);  // 0x001b66e8
     fx->Trigger(this, 0);                 // 0x001b82a8
     fx->ReleaseReservation(this);         // vt+0x54
@@ -266,7 +266,7 @@ void CKGrabElement::StartEmitterFx() {
 
 // 0x003a6fb8 CKGrabElement_ReleaseAndStopFx_maybe
 void CKGrabElement::ReleaseAndStopFx() {
-    if (m_unk12f != 0) {
+    if (m_bTargetHeld != 0) {
         // BUG(original): the direction (r1+0x70) is passed without being set; GrabTarget takes it for null (and puts
         // the direction to the target in it) only when the stack happens to hold three zeros. DOTD: the null vector
         // (the enemy host ignores it; the hero host's grab is not ported).
@@ -274,32 +274,32 @@ void CKGrabElement::ReleaseAndStopFx() {
         GrabTarget(0, 1, &direction);  // vt+0x7c
     }
     SetFxActive(0);  // vt+0x70
-    m_unk125 = 0;
+    m_bInLoop = 0;
 }
 
 // 0x003a7eb8 CKGrabElement_GrabTarget_maybe
 void CKGrabElement::GrabTarget(uint8_t grab, uint8_t mode, CVector3* direction) {
     if (grab == 0) {
         IKSerializable* target = m_pTarget;
-        m_unk12f = 0;
+        m_bTargetHeld = 0;
         if (target != nullptr) {
             DirectionToTarget(m_pHost, target, direction);
             const CVector3 copy = *direction;
-            m_unk12f = static_cast<uint8_t>(m_pHost->GrabEnemy(this, 0, mode, &copy, m_unk138, m_pTarget) ^ 1);  // vt+0xec
+            m_bTargetHeld = static_cast<uint8_t>(m_pHost->GrabEnemy(this, 0, mode, &copy, m_pElementDamage, m_pTarget) ^ 1);  // vt+0xec
         }
         m_pTarget = nullptr;
         return;
     }
-    if (m_unk12f != 0 && m_pTarget != nullptr) {
+    if (m_bTargetHeld != 0 && m_pTarget != nullptr) {
         DirectionToTarget(m_pHost, m_pTarget, direction);
         const CVector3 copy = *direction;
-        m_pHost->GrabEnemy(this, 0, 1, &copy, m_unk138, m_pTarget);  // vt+0xec (mode 1)
+        m_pHost->GrabEnemy(this, 0, 1, &copy, m_pElementDamage, m_pTarget);  // vt+0xec (mode 1)
     }
     CKS08AbilityHostBase* host = m_pHost;
     float weight;
     const CVector3 point = host->GetTargetPoint(&weight);                            // vt+0x98
-    const uint8_t held = host->GrabEnemy(this, 1, mode, &point, m_unk138, nullptr);  // vt+0xec
-    m_unk12f = held;
+    const uint8_t held = host->GrabEnemy(this, 1, mode, &point, m_pElementDamage, nullptr);  // vt+0xec
+    m_bTargetHeld = held;
     if (held != 0) m_pTarget = m_pHost->GetLockedTarget();  // vt+0xd4
 }
 
@@ -311,40 +311,40 @@ void CKGrabElement::GrabTarget(uint8_t grab, uint8_t mode, CVector3* direction) 
 uint8_t CKGrabElement::Update(float dt) {
     if (m_bRunning == 0) return 0;
     if (m_fStartTime == GameClockNow()) return 1;
-    if (m_unk127 != 0) {
+    if (m_bInEndAnim != 0) {
         // The end animation.
         if (m_pHost->IsAbilityAnimPhaseDone(this, 4) == 0) return 1;  // vt+0x80
-        End(m_unk13c);
+        End(m_bForcedEnd);
         return 0;
     }
     float held;
-    if (m_pHost->IsAbilityButtonDown(m_unk12d) == 0 && m_pHost->GetAbilityButtonHoldTime(m_unk12d, &held) == 0) {  // vt+0x8c / +0x94
+    if (m_pHost->IsAbilityButtonDown(m_bButtonIndex) == 0 && m_pHost->GetAbilityButtonHoldTime(m_bButtonIndex, &held) == 0) {  // vt+0x8c / +0x94
         // Let go: the end animation, else the end.
         ReleaseAndStopFx();  // vt+0x88
-        if (m_unk126 == 0 && m_pHost->PlayAbilityAnim(this, 4) != 0) {
-            m_unk127 = 1;
+        if (m_bInStartAnim == 0 && m_pHost->PlayAbilityAnim(this, 4) != 0) {
+            m_bInEndAnim = 1;
             return 1;
         }
         End(0);
         return 0;
     }
-    if (m_unk126 != 0) {
+    if (m_bInStartAnim != 0) {
         // The start animation, then the loop.
         if (m_pHost->IsAbilityAnimPhaseDone(this, 0) == 0) return 1;
-        m_unk134 = m_pHost->CanUseAltLoopAnim();  // vt+0x38
-        if (m_unk134 == 0 || m_pHost->PlayAbilityAnim(this, 2) == 0) m_pHost->PlayAbilityAnim(this, 1);
-        m_unk126 = 0;
-        m_unk125 = 1;
+        m_bAltLoopAnim = m_pHost->CanUseAltLoopAnim();  // vt+0x38
+        if (m_bAltLoopAnim == 0 || m_pHost->PlayAbilityAnim(this, 2) == 0) m_pHost->PlayAbilityAnim(this, 1);
+        m_bInStartAnim = 0;
+        m_bInLoop = 1;
         if (Vf90() == 0) return 1;
         SetFxActive(1);  // vt+0x70
         return 1;
     }
-    if (m_unk125 == 0) return 0;
+    if (m_bInLoop == 0) return 0;
 
     // The mana.
     {
         const float before = m_fMana;
-        const float rate = m_pHost->GetManaCostScale() * static_cast<float>(static_cast<double>(m_unk2c[m_unk04]));  // vt+0xc8
+        const float rate = m_pHost->GetManaCostScale() * static_cast<float>(static_cast<double>(m_ai32ManaPerSecond[m_dwLevelIndex]));  // vt+0xc8
         m_fMana = ppc::fmadds(rate, dt, before);
         if (m_fMana >= 1.0f) {  // TOC +0x38d0 (cror gt|eq: a NaN does not spend)
             m_pHost->ConsumeAbilityMana(this, WholeMana(m_fMana));  // vt+0xb8
@@ -356,20 +356,20 @@ uint8_t CKGrabElement::Update(float dt) {
             // 0x3a764c: out of mana.
             ReleaseAndStopFx();  // vt+0x88
             StartEmitterFx();    // vt+0x78
-            m_unk13c = 1;
+            m_bForcedEnd = 1;
             if (m_pHost->PlayAbilityAnim(this, 4) != 0) {
-                m_unk127 = 1;
+                m_bInEndAnim = 1;
                 return 1;
             }
-            End(m_unk13c);
+            End(m_bForcedEnd);
             return 0;
         }
     }
 
     bool hold = true;  // 0x3a7380: the hold step (vt+0x84) runs
-    if (m_unk12f == 0) {
+    if (m_bTargetHeld == 0) {
         // 0x3a7718: nothing held: aim and grab the locked target.
-        m_pHost->ComputeAimDirection(0x1.921fb2p+0f, this, m_unkD0);  // vt+0x58; TOC +0x38d4 (0x3fc90fd9)
+        m_pHost->ComputeAimDirection(0x1.921fb2p+0f, this, m_pAimCone);  // vt+0x58; TOC +0x38d4 (0x3fc90fd9)
         if (m_pHost->GetLockedTarget() != nullptr) {          // vt+0xd4
             CVector3 direction{0.0f, 0.0f, 0.0f};             // 0x00c50d64
             GrabTarget(1, 0, &direction);                     // vt+0x7c
@@ -379,10 +379,10 @@ uint8_t CKGrabElement::Update(float dt) {
             // 0x3a7868: the miss: the level's full cost at once, then the end.
             UpdateGrab();  // vt+0x74
             m_pHost->ConsumeAbilityMana(
-                this, WholeMana(static_cast<float>(static_cast<double>(m_unk2c[m_unk04])) * m_unk14[m_unk04]));  // vt+0xb8
+                this, WholeMana(static_cast<float>(static_cast<double>(m_ai32ManaPerSecond[m_dwLevelIndex])) * m_afCooldown[m_dwLevelIndex]));  // vt+0xb8
             ReleaseAndStopFx();  // 0x3a7908
             if (m_pHost->PlayAbilityAnim(this, 4) != 0) {
-                m_unk127 = 1;
+                m_bInEndAnim = 1;
                 return 1;
             }
             End(0);
@@ -392,7 +392,7 @@ uint8_t CKGrabElement::Update(float dt) {
         // 0x3a731c: held.
         if (Vf94() != 0) {
             // 0x3a7afc: the target followed: another locked target is grabbed and the effects restarted.
-            m_pHost->ComputeAimDirection(0x1.921fb2p+0f, this, m_unkD0);
+            m_pHost->ComputeAimDirection(0x1.921fb2p+0f, this, m_pAimCone);
             if (m_pTarget != m_pHost->GetLockedTarget() && m_pHost->GetLockedTarget() != nullptr) {
                 CVector3 direction{0.0f, 0.0f, 0.0f};
                 GrabTarget(1, 0, &direction);
@@ -404,7 +404,7 @@ uint8_t CKGrabElement::Update(float dt) {
             // 0x3a7908: the hold is lost.
             ReleaseAndStopFx();
             if (m_pHost->PlayAbilityAnim(this, 4) != 0) {
-                m_unk127 = 1;
+                m_bInEndAnim = 1;
                 return 1;
             }
             End(0);
@@ -413,31 +413,31 @@ uint8_t CKGrabElement::Update(float dt) {
     }
     if (hold) Vf84(dt);  // vt+0x84
 
-    // 0x3a73a8: the standing state follows the host (vt+0x30); a change re-applies the control and the loop.
+    // 0x3a73a8: the in-air state follows the host (vt+0x30); a change re-applies the control and the loop.
     bool changed = false;
-    if (m_unk12e != 0) {
-        if (m_pHost->IsAirborne() != 0) {
-            m_unk12e = 0;
+    if (m_bInAir != 0) {
+        if (m_pHost->IsOnGround() != 0) {
+            m_bInAir = 0;
             changed = true;
         }
-    } else if (m_pHost->IsAirborne() == 0) {
-        m_unk12e = 1;
+    } else if (m_pHost->IsOnGround() == 0) {
+        m_bInAir = 1;
         changed = true;
     }
     if (changed) {
         // 0x3a7a30
-        m_unk134 = m_pHost->CanUseAltLoopAnim();  // vt+0x38
+        m_bAltLoopAnim = m_pHost->CanUseAltLoopAnim();  // vt+0x38
         ApplyHeroControl(1);
-        if (m_unk134 == 0 || m_pHost->PlayAbilityAnim(this, 2) == 0) m_pHost->PlayAbilityAnim(this, 1);
+        if (m_bAltLoopAnim == 0 || m_pHost->PlayAbilityAnim(this, 2) == 0) m_pHost->PlayAbilityAnim(this, 1);
     }
     // 0x3a73e8: the alternative loop while the host allows it.
-    if (m_unk134 != 0) {
+    if (m_bAltLoopAnim != 0) {
         if (m_pHost->CanUseAltLoopAnim() != 0) return 1;
         m_pHost->PlayAbilityAnim(this, 1);
-        m_unk134 = 0;
+        m_bAltLoopAnim = 0;
     }
     if (m_pHost->CanUseAltLoopAnim() == 0) return 1;
     if (m_pHost->PlayAbilityAnim(this, 2) == 0) return 1;
-    m_unk134 = 1;
+    m_bAltLoopAnim = 1;
     return 1;
 }

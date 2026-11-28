@@ -34,12 +34,12 @@ public:
     // 0x004153d8 CKHkS08CrumblyZoneMultiState_Create (inlined constructor): the base's, then the three
     // vectors empty with a capacity of 1.
     CKHkS08CrumblyZoneMultiState() {
-        m_vUnk90.m_ui32NbElt = 1;
-        m_vUnk90.m_pBlock = nullptr;
-        m_vUnk90.m_ui32NbUsedElt = 0;
-        m_vUnkB0.m_ui32NbElt = 1;
-        m_vUnkB0.m_pBlock = nullptr;
-        m_vUnkB0.m_ui32NbUsedElt = 0;
+        m_vDamageFilters.m_ui32NbElt = 1;
+        m_vDamageFilters.m_pBlock = nullptr;
+        m_vDamageFilters.m_ui32NbUsedElt = 0;
+        m_vManaFeedStateFlags.m_ui32NbElt = 1;
+        m_vManaFeedStateFlags.m_pBlock = nullptr;
+        m_vManaFeedStateFlags.m_ui32NbUsedElt = 0;
         m_vUnkC0.m_ui32NbElt = 1;
         m_vUnkC0.m_ui32NbUsedElt = 0;
         m_vUnkC0.m_pBlock = nullptr;
@@ -73,32 +73,32 @@ public:
     // (ConsumeDragonMana), sound 0 of +0xbc plays and a mana bonus spawned at his hot spot 5 flies to the zone.
     void Update(IKTime* frameClock) override;
 
-    IKSerializable* m_pUnk8C;                  // +0x8c a CKS08Damage (struct draft)
-    TVector<StateEntry, 1> m_vUnk90;           // +0x90
-    uint8_t m_unk9C;                           // +0x9c
+    IKSerializable* m_pDamage;                  // +0x8c a CKS08Damage (struct draft)
+    TVector<StateEntry, 1> m_vDamageFilters;           // +0x90
+    uint8_t m_bManaFeedEnabled;                           // +0x9c
     uint8_t m_pad9D[3];
-    float m_fUnkA0;                            // +0xa0
-    float m_fUnkA4;                            // +0xa4
-    float m_unkA8;                             // +0xa8 not set by Create or Load: the mana feed's timer
+    float m_fManaFeedRadius;                            // +0xa0
+    float m_fManaFeedInterval;                            // +0xa4
+    float m_fManaFeedTimer;                             // +0xa8 not set by Create or Load: the mana feed's timer
     IKSerializable* m_pUnkAC;                  // +0xac
-    TVector<uint8_t, 1> m_vUnkB0;              // +0xb0 one byte per state_maybe
-    IKSerializable* m_pUnkBC;                  // +0xbc a CKSoundDictionaryID (struct draft)
+    TVector<uint8_t, 1> m_vManaFeedStateFlags;              // +0xb0 one byte per state_maybe
+    IKSerializable* m_pSoundDico;                  // +0xbc a CKSoundDictionaryID (struct draft)
     TVector<uint8_t, 1> m_vUnkC0;              // +0xc0 one byte per state_maybe
     uint8_t m_unkCC;                           // +0xcc
     uint8_t m_unkCD;                           // +0xcd
     uint8_t m_padCE[2];
-    uint32_t m_unkD0;                          // +0xd0
+    uint32_t m_ui32GemReward;                          // +0xd0
 };
 DOTD_ASSERT_SIZE(CKHkS08CrumblyZoneMultiState, 0xd4);
-DOTD_ASSERT_OFFSET(CKHkS08CrumblyZoneMultiState, m_pUnk8C, 0x8c);
-DOTD_ASSERT_OFFSET(CKHkS08CrumblyZoneMultiState, m_vUnk90, 0x90);
-DOTD_ASSERT_OFFSET(CKHkS08CrumblyZoneMultiState, m_unk9C, 0x9c);
-DOTD_ASSERT_OFFSET(CKHkS08CrumblyZoneMultiState, m_fUnkA0, 0xa0);
-DOTD_ASSERT_OFFSET(CKHkS08CrumblyZoneMultiState, m_fUnkA4, 0xa4);
+DOTD_ASSERT_OFFSET(CKHkS08CrumblyZoneMultiState, m_pDamage, 0x8c);
+DOTD_ASSERT_OFFSET(CKHkS08CrumblyZoneMultiState, m_vDamageFilters, 0x90);
+DOTD_ASSERT_OFFSET(CKHkS08CrumblyZoneMultiState, m_bManaFeedEnabled, 0x9c);
+DOTD_ASSERT_OFFSET(CKHkS08CrumblyZoneMultiState, m_fManaFeedRadius, 0xa0);
+DOTD_ASSERT_OFFSET(CKHkS08CrumblyZoneMultiState, m_fManaFeedInterval, 0xa4);
 DOTD_ASSERT_OFFSET(CKHkS08CrumblyZoneMultiState, m_pUnkAC, 0xac);
-DOTD_ASSERT_OFFSET(CKHkS08CrumblyZoneMultiState, m_vUnkB0, 0xb0);
-DOTD_ASSERT_OFFSET(CKHkS08CrumblyZoneMultiState, m_pUnkBC, 0xbc);
+DOTD_ASSERT_OFFSET(CKHkS08CrumblyZoneMultiState, m_vManaFeedStateFlags, 0xb0);
+DOTD_ASSERT_OFFSET(CKHkS08CrumblyZoneMultiState, m_pSoundDico, 0xbc);
 DOTD_ASSERT_OFFSET(CKHkS08CrumblyZoneMultiState, m_vUnkC0, 0xc0);
 DOTD_ASSERT_OFFSET(CKHkS08CrumblyZoneMultiState, m_unkCC, 0xcc);
 DOTD_ASSERT_OFFSET(CKHkS08CrumblyZoneMultiState, m_unkCD, 0xcd);
-DOTD_ASSERT_OFFSET(CKHkS08CrumblyZoneMultiState, m_unkD0, 0xd0);
+DOTD_ASSERT_OFFSET(CKHkS08CrumblyZoneMultiState, m_ui32GemReward, 0xd0);

@@ -127,7 +127,7 @@ public:
     uint16_t* m_unk20;                            // +0x20 count byte, raw u16s
     uint16_t* m_unk24;                            // +0x24 count byte, raw u16s
     uint16_t* m_unk28;                            // +0x28 count byte, raw u16s
-    IKSerializable** m_unk2C;                     // +0x2c count byte, references (_maybe XXL2 m_apBV)
+    IKSerializable** m_apBV;                     // +0x2c count byte, references (_maybe XXL2 m_apBV)
     uint8_t m_ui8NumberOfBoundingTypes;           // +0x30 XXL2
     uint8_t m_pad31[3];
     uint8_t* m_aui8BoundingNumberByType;          // +0x34 XXL2 (m_ui8NumberOfBoundingTypes bytes)
@@ -159,22 +159,22 @@ public:
     float m_unk148;  // +0x148  (C2.2 strict3)
     uint8_t m_unk14c;  // +0x14c  (C2.2 strict3)
     uint8_t m_pad14d[3];
-    CMatrix34* m_unk150;  // +0x150 PostLoad: RwMatrixCreate
-    float m_unk154;  // +0x154 the yaw (the steering, ResolveGroundAndApplyTransform's Mat4_SetRotationAboutAxis)
-    CVector3 m_unk158;                            // +0x158 Load copies the zero vector (0xc50d64); _maybe m_v3Speed
-    SEnemyAnimLayerSlot** m_unk164;               // +0x164 constructor 0; AllocAnimLayerSlots: one block of slots per layer
+    CMatrix34* m_pDynGroundInvMatrix;  // +0x150 PostLoad: RwMatrixCreate
+    float m_fYaw;  // +0x154 the yaw (the steering, ResolveGroundAndApplyTransform's Mat4_SetRotationAboutAxis)
+    CVector3 m_v3Speed;                            // +0x158 Load copies the zero vector (0xc50d64); _maybe m_v3Speed
+    SEnemyAnimLayerSlot** m_apAnimLayerSlots;               // +0x164 constructor 0; AllocAnimLayerSlots: one block of slots per layer
     IKSerializable* m_pGroupSquad;                // +0x168 _maybe XXL2 CKGrpSquad* m_pGroupSquad (reference)
     // +0x16c the avoidance agent the avoidance service lists while the enemy is active (RegisterActive /
     // UnregisterActive): radius (Load, then the component's m_afParams[1]), a Load word, the node (Load 0;
     // ResetMovementState: the scene node +0x1c), a vector and a word AddAgent sets.
     CKAvoidanceAgent m_avoidance;                 // +0x16c
-    CKS08EnemyCpnt* m_unk188;                     // +0x188 reference: the enemy's tuning component (Activate copies it to +0x884)
-    CKEnemySectorCpnt** m_unk18C;                 // +0x18c read first (count byte, references): one CKEnemySectorCpnt per
+    CKS08EnemyCpnt* m_pEnemyCpnt;                     // +0x188 reference: the enemy's tuning component (Activate copies it to +0x884)
+    CKEnemySectorCpnt** m_apEnemySectorCpnt;                 // +0x18c read first (count byte, references): one CKEnemySectorCpnt per
                                                   //        fight-zone variant (GetSectorIndex)
     // +0x190 the shadow caster's ground (a CKShadowGround for CKSrvShadow: point, normal, word, flags byte +0x1ac, used
     // byte +0x1ad).
-    CVector3 m_unk190;                            // +0x190 the ground point
-    CVector3 m_unk19C;                            // +0x19c the ground normal
+    CVector3 m_v3ShadowGroundPosition;                            // +0x190 the ground point
+    CVector3 m_v3ShadowGroundNormal;                            // +0x19c the ground normal
     float m_unk1a8;                               // +0x1a8
     uint8_t m_unk1AC;                             // +0x1ac constructor 0 (bit 4: the ground is not a shadow receiver)
     uint8_t m_unk1ad;                             // +0x1ad the shadow service's used byte (registered)
@@ -183,7 +183,7 @@ public:
 };
 DOTD_ASSERT_SIZE(IKHkEnemy, 0x1b4);
 DOTD_ASSERT_OFFSET(IKHkEnemy, m_unk20, 0x20);
-DOTD_ASSERT_OFFSET(IKHkEnemy, m_unk2C, 0x2c);
+DOTD_ASSERT_OFFSET(IKHkEnemy, m_apBV, 0x2c);
 DOTD_ASSERT_OFFSET(IKHkEnemy, m_ui8NumberOfBoundingTypes, 0x30);
 DOTD_ASSERT_OFFSET(IKHkEnemy, m_aui8BoundingNumberByType, 0x34);
 DOTD_ASSERT_OFFSET(IKHkEnemy, m_unk3C, 0x3c);
@@ -199,14 +199,14 @@ DOTD_ASSERT_OFFSET(IKHkEnemy, m_GrdContDatasInOut, 0x80);
 DOTD_ASSERT_OFFSET(IKHkEnemy, m_unkB8, 0xb8);
 DOTD_ASSERT_OFFSET(IKHkEnemy, m_PFCpnt, 0xbc);
 DOTD_ASSERT_OFFSET(IKHkEnemy, m_v3Position, 0x134);
-DOTD_ASSERT_OFFSET(IKHkEnemy, m_unk158, 0x158);
-DOTD_ASSERT_OFFSET(IKHkEnemy, m_unk164, 0x164);
+DOTD_ASSERT_OFFSET(IKHkEnemy, m_v3Speed, 0x158);
+DOTD_ASSERT_OFFSET(IKHkEnemy, m_apAnimLayerSlots, 0x164);
 DOTD_ASSERT_OFFSET(IKHkEnemy, m_pGroupSquad, 0x168);
 DOTD_ASSERT_OFFSET(IKHkEnemy, m_avoidance, 0x16c);
-DOTD_ASSERT_OFFSET(IKHkEnemy, m_unk190, 0x190);
+DOTD_ASSERT_OFFSET(IKHkEnemy, m_v3ShadowGroundPosition, 0x190);
 DOTD_ASSERT_OFFSET(IKHkEnemy, m_unk1a8, 0x1a8);
-DOTD_ASSERT_OFFSET(IKHkEnemy, m_unk188, 0x188);
-DOTD_ASSERT_OFFSET(IKHkEnemy, m_unk18C, 0x18c);
+DOTD_ASSERT_OFFSET(IKHkEnemy, m_pEnemyCpnt, 0x188);
+DOTD_ASSERT_OFFSET(IKHkEnemy, m_apEnemySectorCpnt, 0x18c);
 DOTD_ASSERT_OFFSET(IKHkEnemy, m_unk1AC, 0x1ac);
 DOTD_ASSERT_OFFSET(IKHkEnemy, m_pShadowCpnt, 0x1b0);
 DOTD_ASSERT_OFFSET(IKHkEnemy, m_unkac, 0xac);
@@ -216,5 +216,5 @@ DOTD_ASSERT_OFFSET(IKHkEnemy, m_unk140, 0x140);
 DOTD_ASSERT_OFFSET(IKHkEnemy, m_unk144, 0x144);
 DOTD_ASSERT_OFFSET(IKHkEnemy, m_unk148, 0x148);
 DOTD_ASSERT_OFFSET(IKHkEnemy, m_unk14c, 0x14c);
-DOTD_ASSERT_OFFSET(IKHkEnemy, m_unk150, 0x150);
+DOTD_ASSERT_OFFSET(IKHkEnemy, m_pDynGroundInvMatrix, 0x150);
 DOTD_ASSERT_OFFSET(IKHkEnemy, m_unk1ad, 0x1ad);

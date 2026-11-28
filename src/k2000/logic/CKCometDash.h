@@ -41,50 +41,50 @@ public:
     uint8_t IsGroundTrailActive() override;           // vt+0x8c 0x00385b88 CKCometDash_IsGroundTrailActive_maybe
     void SteerTowardsTarget(const CVector3* direction) override;  // vt+0x90 0x00386220 CKCometDash_SteerTowardsTarget_maybe
 
-    float m_unk1a8[3];               // +0x1a8
-    int32_t m_unk1b4[3];             // +0x1b4 (file: 100 150 254)
-    int32_t m_unk1c0[3];             // +0x1c0 (file: 0; int assumed, as +0x1b4)
-    int32_t m_unk1cc[3];             // +0x1cc (file: 0)
-    float m_unk1d8[3];               // +0x1d8
-    CKAttackMoveVec3 m_unk1e4[3];    // +0x1e4
-    float m_unk208;                  // +0x208
-    float m_unk20c;                  // +0x20c
-    float m_unk210[3];               // +0x210
-    IKSerializable* m_unk21c;        // +0x21c (live: CKAimCamembert)
-    IKSerializable* m_unk220;        // +0x220 (live: CKExplosionFxData)
-    IKSerializable* m_unk224;        // +0x224 (live: CKExplosionFxData)
-    IKSerializable* m_unk228;        // +0x228 (live: CKExplosionFxData)
-    IKSerializable* m_unk22c;        // +0x22c (live: CKExplosionFxData)
+    float m_afHitSphereRadius[3];               // +0x1a8
+    int32_t m_ai32MeshHoldAlpha[3];             // +0x1b4 (file: 100 150 254)
+    int32_t m_ai32MeshStartAlpha[3];             // +0x1c0 (file: 0; int assumed, as +0x1b4)
+    int32_t m_ai32MeshEndAlpha[3];             // +0x1cc (file: 0)
+    float m_afMeshSpinDegPerSec[3];               // +0x1d8
+    CKAttackMoveVec3 m_avMeshScale[3];    // +0x1e4
+    float m_fFadeInTime;                  // +0x208
+    float m_fFadeOutTime;                  // +0x20c
+    float m_afSteerConeDeg[3];               // +0x210
+    IKSerializable* m_pAimCamembert;        // +0x21c (live: CKAimCamembert)
+    IKSerializable* m_pStartExplosionLow;        // +0x220 (live: CKExplosionFxData)
+    IKSerializable* m_pStartExplosionMax;        // +0x224 (live: CKExplosionFxData)
+    IKSerializable* m_pHitExplosionMax;        // +0x228 (live: CKExplosionFxData)
+    IKSerializable* m_pHitExplosionLow;        // +0x22c (live: CKExplosionFxData)
     IKSerializable* m_unk230;        // +0x230
     IKSerializable* m_unk234;        // +0x234
     IKSerializable* m_unk238;        // +0x238
-    IKSerializable* m_unk23c;        // +0x23c (not loaded; live 0) runtime: the running particles (SetFxActive)
-    IKSerializable* m_unk240;        // +0x240 (live: CKAnimatedFxCollection)
-    IKSerializable* m_unk244;        // +0x244 (live: CKSparkFxData)
-    IKSerializable* m_unk248;        // +0x248 (not loaded; live 0) runtime: the running sparks (SetFxActive)
-    IKSerializable* m_unk24c;        // +0x24c (live: CNode)
-    IKSerializable* m_unk250;        // +0x250 (live: CTrailNodeFx)
+    IKSerializable* m_pActiveParticles;        // +0x23c (not loaded; live 0) runtime: the running particles (SetFxActive)
+    IKSerializable* m_pAnimFxCollection;        // +0x240 (live: CKAnimatedFxCollection)
+    IKSerializable* m_pSparkFxData;        // +0x244 (live: CKSparkFxData)
+    IKSerializable* m_pActiveSparks;        // +0x248 (not loaded; live 0) runtime: the running sparks (SetFxActive)
+    IKSerializable* m_pDashMesh;        // +0x24c (live: CNode)
+    IKSerializable* m_pTrailNode;        // +0x250 (live: CTrailNodeFx)
     // Runtime (not loaded).
-    uint32_t m_unk254;               // +0x254 the mesh's alpha when the fade-out last ran (a word store of the byte)
-    uint8_t m_unk258;                // +0x258 the mesh has faded in
+    uint32_t m_ui32FadeOutStartAlpha;               // _maybe: +0x254 the mesh's alpha when the fade-out last ran (a word store of the byte)
+    uint8_t m_bMeshFadedIn;                // +0x258 the mesh has faded in
     uint8_t m_pad259[3];
-    float m_unk25c;                  // +0x25c level index 2: the time left of the hit's slow-down
-    uint8_t m_unk260;                // +0x260 level index 2: a hit is being held
+    float m_fHitSlowdownTimer;                  // +0x25c level index 2: the time left of the hit's slow-down
+    uint8_t m_bHitHeld;                // +0x260 level index 2: a hit is being held
     uint8_t m_pad261[3];
 };
 DOTD_ASSERT_SIZE(CKCometDash, 0x264);
-DOTD_ASSERT_OFFSET(CKCometDash, m_unk1a8, 0x1a8);
-DOTD_ASSERT_OFFSET(CKCometDash, m_unk1b4, 0x1b4);
-DOTD_ASSERT_OFFSET(CKCometDash, m_unk1c0, 0x1c0);
-DOTD_ASSERT_OFFSET(CKCometDash, m_unk1cc, 0x1cc);
-DOTD_ASSERT_OFFSET(CKCometDash, m_unk1d8, 0x1d8);
-DOTD_ASSERT_OFFSET(CKCometDash, m_unk1e4, 0x1e4);
-DOTD_ASSERT_OFFSET(CKCometDash, m_unk208, 0x208);
-DOTD_ASSERT_OFFSET(CKCometDash, m_unk20c, 0x20c);
-DOTD_ASSERT_OFFSET(CKCometDash, m_unk210, 0x210);
-DOTD_ASSERT_OFFSET(CKCometDash, m_unk21c, 0x21c);
+DOTD_ASSERT_OFFSET(CKCometDash, m_afHitSphereRadius, 0x1a8);
+DOTD_ASSERT_OFFSET(CKCometDash, m_ai32MeshHoldAlpha, 0x1b4);
+DOTD_ASSERT_OFFSET(CKCometDash, m_ai32MeshStartAlpha, 0x1c0);
+DOTD_ASSERT_OFFSET(CKCometDash, m_ai32MeshEndAlpha, 0x1cc);
+DOTD_ASSERT_OFFSET(CKCometDash, m_afMeshSpinDegPerSec, 0x1d8);
+DOTD_ASSERT_OFFSET(CKCometDash, m_avMeshScale, 0x1e4);
+DOTD_ASSERT_OFFSET(CKCometDash, m_fFadeInTime, 0x208);
+DOTD_ASSERT_OFFSET(CKCometDash, m_fFadeOutTime, 0x20c);
+DOTD_ASSERT_OFFSET(CKCometDash, m_afSteerConeDeg, 0x210);
+DOTD_ASSERT_OFFSET(CKCometDash, m_pAimCamembert, 0x21c);
 DOTD_ASSERT_OFFSET(CKCometDash, m_unk238, 0x238);
-DOTD_ASSERT_OFFSET(CKCometDash, m_unk240, 0x240);
-DOTD_ASSERT_OFFSET(CKCometDash, m_unk244, 0x244);
-DOTD_ASSERT_OFFSET(CKCometDash, m_unk24c, 0x24c);
-DOTD_ASSERT_OFFSET(CKCometDash, m_unk250, 0x250);
+DOTD_ASSERT_OFFSET(CKCometDash, m_pAnimFxCollection, 0x240);
+DOTD_ASSERT_OFFSET(CKCometDash, m_pSparkFxData, 0x244);
+DOTD_ASSERT_OFFSET(CKCometDash, m_pDashMesh, 0x24c);
+DOTD_ASSERT_OFFSET(CKCometDash, m_pTrailNode, 0x250);

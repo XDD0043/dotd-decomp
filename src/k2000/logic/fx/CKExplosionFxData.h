@@ -84,18 +84,18 @@ public:
     // 0x001b3510 CKExplosionFxData_CreateElementByType_maybe
     Part* CreatePart(uint32_t type);
 
-    float m_unk08;                          // +0x08
-    float m_unk0c;                          // +0x0c
-    float m_unk10;                          // +0x10
-    float m_unk14;                          // +0x14
-    uint8_t m_unk18;                        // +0x18
+    float m_fDuration;                          // +0x08
+    float m_fWaveFinalRadiusPrec;                          // +0x0c
+    float m_fWaveGrowth;                          // +0x10
+    float m_fWaveRadius;                          // +0x14
+    uint8_t m_baExpInfos;                        // +0x18
     uint8_t m_pad19[3];
     IKSerializable* m_pSoundDico;           // +0x1c CKSoundDictionaryID
-    uint32_t m_unk20;                       // +0x20 PostLoad: the number of loaded sounds
+    uint32_t m_ui32LoadedSoundCount;                       // +0x20 PostLoad: the number of loaded sounds
     CKVibrationData* m_pVibrationPadData;   // +0x24
     CKQuakeCameraLauncher* m_pQuakeLauncher;  // +0x28 (Ghidra draft: CKQuakeCameraLauncher*)
     TVector<Part*, 10> m_parts;             // +0x2c the constructor: null, 10, 0
-    uint8_t m_unk38[4];                     // +0x38 read without a swap: the file's bytes
+    uint8_t m_cColor[4];                     // +0x38 read without a swap: the file's bytes
 };
 DOTD_ASSERT_SIZE(CKExplosionFxData::Part, 0xc);
 DOTD_ASSERT_SIZE(CKExplosionFxData::PartType0, 0x70);
@@ -107,11 +107,11 @@ DOTD_ASSERT_OFFSET(CKExplosionFxData::PartType1, m_unk1c, 0x1c);
 DOTD_ASSERT_OFFSET(CKExplosionFxData::PartType1, m_unk34, 0x34);
 DOTD_ASSERT_OFFSET(CKExplosionFxData::PartObject, m_pObject, 0x0c);
 DOTD_ASSERT_SIZE(CKExplosionFxData, 0x3c);
-DOTD_ASSERT_OFFSET(CKExplosionFxData, m_unk08, 0x08);
-DOTD_ASSERT_OFFSET(CKExplosionFxData, m_unk14, 0x14);
-DOTD_ASSERT_OFFSET(CKExplosionFxData, m_unk18, 0x18);
+DOTD_ASSERT_OFFSET(CKExplosionFxData, m_fDuration, 0x08);
+DOTD_ASSERT_OFFSET(CKExplosionFxData, m_fWaveRadius, 0x14);
+DOTD_ASSERT_OFFSET(CKExplosionFxData, m_baExpInfos, 0x18);
 DOTD_ASSERT_OFFSET(CKExplosionFxData, m_pSoundDico, 0x1c);
 DOTD_ASSERT_OFFSET(CKExplosionFxData, m_pVibrationPadData, 0x24);
 DOTD_ASSERT_OFFSET(CKExplosionFxData, m_pQuakeLauncher, 0x28);
 DOTD_ASSERT_OFFSET(CKExplosionFxData, m_parts, 0x2c);
-DOTD_ASSERT_OFFSET(CKExplosionFxData, m_unk38, 0x38);
+DOTD_ASSERT_OFFSET(CKExplosionFxData, m_cColor, 0x38);

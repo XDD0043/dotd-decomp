@@ -301,10 +301,10 @@ void CKHkPlatform::SetNavBlocking(uint8_t blocked) {
     // The point +0x184 with its graph node index +0x190 is a CPFPoint (the lookup reads and updates the index).
     CPFPoint point;
     point.m_position = m_pfPoint;
-    point.m_unk0c = m_pfPointIndex;
+    point.m_i16GraphNodeIndex = m_pfPointIndex;
     const uint32_t found = pathFinding->FindSectorForPoint(&point);  // 0x001e5ca0
     m_pfPoint = point.m_position;
-    m_pfPointIndex = point.m_unk0c;
+    m_pfPointIndex = point.m_i16GraphNodeIndex;
     if ((found & 0xffu) != 0) {
         const float a = m_unk5C[5];  // +0x70
         const float b = m_unk5C[6];  // +0x74
@@ -337,9 +337,9 @@ void CKHkPlatform::SetNavBlocking(uint8_t blocked) {
         const CVector3 low = {minX, c0.y, minZ};
         const CVector3 high = {maxX, c0.y, maxZ};
         if ((m_bitArray & 0x20000u) != 0) {
-            pathFinding->SetBoxBlocked(point.m_unk0c, &low, &high, blocked);  // 0x001e5f60
-        } else if (point.m_unk0c < pathFinding->m_Graph.m_ui32GraphNodesSize) {
-            static_cast<CKPFGraphNode*>(pathFinding->m_Graph.m_apGraphNodes[point.m_unk0c])
+            pathFinding->SetBoxBlocked(point.m_i16GraphNodeIndex, &low, &high, blocked);  // 0x001e5f60
+        } else if (point.m_i16GraphNodeIndex < pathFinding->m_Graph.m_ui32GraphNodesSize) {
+            static_cast<CKPFGraphNode*>(pathFinding->m_Graph.m_apGraphNodes[point.m_i16GraphNodeIndex])
                 ->m_Sector.SetBoxBlocked(&low, &high, blocked);  // 0x001ed3c0
         }
     }

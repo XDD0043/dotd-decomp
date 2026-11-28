@@ -31,10 +31,10 @@ const uint8_t kPoisonHotSpotCount[9] = {7, 10, 14, 13, 14, 17, 25, 17, 12};
 // marks them spreading too. Every +0x53c seconds (+0x84c) a hit is counted for the second dragon at hot spot 1.
 void CKHkS08Enemy::UpdatePoisonStatus(IKTime* clock) {
     const float zero = 0.0f;  // TOC 0x1600
-    if (m_unk6c0 <= zero) return;
-    CVector3& speed = m_unk158;
+    if (m_fPoisonGauge <= zero) return;
+    CVector3& speed = m_v3Speed;
     const float length = std::sqrt(ppc::fmadds(speed.z, speed.z, ppc::fmadds(speed.x, speed.x, speed.y * speed.y)));
-    if (m_unk884->m_unk2ac < length) {
+    if (m_pActiveEnemyCpnt->m_unk2ac < length) {
         // The original stores a word at +0x394: the four bytes +0x394..+0x397 cleared.
         m_unk394 = 0;
         m_unk395 = 0;
@@ -47,18 +47,18 @@ void CKHkS08Enemy::UpdatePoisonStatus(IKTime* clock) {
             speed.x = k * speed.x;
             speed.y = k * speed.y;
         }
-        const float cap = m_unk884->m_unk2ac;
+        const float cap = m_pActiveEnemyCpnt->m_unk2ac;
         speed.z = cap * speed.z;
         speed.x = cap * speed.x;
         speed.y = cap * speed.y;
     }
     if (!PendingElementDamageIs(4)) {
         const float dt = clock->m_afDeltaTime[0];
-        const float gauge = m_unk6c0;
-        m_unk6c0 = gauge - dt * HeroStatusDecayRate(1);  // 0x0032a3d0
+        const float gauge = m_fPoisonGauge;
+        m_fPoisonGauge = gauge - dt * HeroStatusDecayRate(1);  // 0x0032a3d0
     }
-    if (m_unk6c0 <= zero) {
-        m_unk6c0 = zero;
+    if (m_fPoisonGauge <= zero) {
+        m_fPoisonGauge = zero;
         m_unk7b5 = 0;
         StopSound(0x20);  // 0x002794f0
         return;
@@ -77,10 +77,10 @@ void CKHkS08Enemy::UpdatePoisonStatus(IKTime* clock) {
         const CVector3 c = hotSpot;
         EmitParticleAt(0xf, &c, nullptr, 0);
     }
-    const float health = m_unk258 - m_unk188->m_unk2a0 * m_unk1fc;
-    m_unk258 = health;
+    const float health = m_fHealth - m_pEnemyCpnt->m_unk2a0 * m_fScaledDt;
+    m_fHealth = health;
     if (health <= zero) {
-        m_unk258 = zero;
+        m_fHealth = zero;
         if (static_cast<uint32_t>(m_ui8EnemyClassType) - 5u <= 1u) {
             if (m_mainState != 0x15 && m_mainState != 2) {
                 SwitchReactState(0xf, nullptr);
@@ -91,8 +91,8 @@ void CKHkS08Enemy::UpdatePoisonStatus(IKTime* clock) {
         }
     }
     if (m_unk7b5 != 0) {
-        const float amount = m_unk6c0 * m_unk1fc;
-        const float range = m_unk188->m_unk298;
+        const float amount = m_fPoisonGauge * m_fScaledDt;
+        const float range = m_pEnemyCpnt->m_unk298;
         IKGrpEnemy* group = static_cast<IKGrpEnemy*>(g_pEngine->m_gameManager->m_unk04[0]);  // GetEnemyGroup 0x276f58
         const uint32_t active = group->m_ui32NbActiveEnemies;
         for (uint32_t i = 0; i < active; ++i) {
@@ -107,7 +107,7 @@ void CKHkS08Enemy::UpdatePoisonStatus(IKTime* clock) {
         }
     }
     m_unk84c = m_unk84c + clock->m_afDeltaTime[0];
-    if (m_unk188->m_unk53c <= m_unk84c) {  // cror lt|eq
+    if (m_pEnemyCpnt->m_unk53c <= m_unk84c) {  // cror lt|eq
         m_unk84c = 0.0f;
         CVector3 at;
         GetHotSpot(1)->GetWorldPosition(&at);

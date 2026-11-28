@@ -188,7 +188,7 @@ void CKS08MenuPause::OnItemState(uint8_t item, uint8_t state, uint8_t arg) {
         manager->RequestState(7);  // 0x4ec420
     } else if (item == 5) {
         if (state != 4 || arg != 2) return;
-        const CKLocText* text = manager->VfC4() != 0 ? AccessorText(manager->m_unk144, 15) : AccessorText(manager->m_unk144, 14);
+        const CKLocText* text = manager->VfC4() != 0 ? AccessorText(manager->m_pPromptTextAccessor, 15) : AccessorText(manager->m_pPromptTextAccessor, 14);
         MessageBox_Show(1.0f, -1.0f, this, text, 3, 6, nullptr);  // 0x695d0; TOC2 -0x7c94 / -0x7cb4
     } else if (item == 6) {
         if (state != 4 || arg != 1) return;

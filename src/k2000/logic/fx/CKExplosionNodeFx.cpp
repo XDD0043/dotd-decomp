@@ -167,8 +167,8 @@ void CKExplosionNodeFx::Vf64() {
     m_pDamageOwner = nullptr;
     m_pDamage = nullptr;
     m_baFxData = static_cast<uint8_t>(m_baFxData & 0xfb);
-    m_fDuration = DataOf(this)->m_unk08;
-    std::memcpy(m_aColor, DataOf(this)->m_unk38, 4);
+    m_fDuration = DataOf(this)->m_fDuration;
+    std::memcpy(m_aColor, DataOf(this)->m_cColor, 4);
 }
 
 // 0x001b6740 CKExplosionNodeFx_Stop
@@ -290,7 +290,7 @@ void CKExplosionNodeFx::Trigger(const IKSerializable* owner, const void* launch)
     CKExplosionFxData* data = DataOf(this);
     const uint32_t r = static_cast<uint32_t>(Rand_Int());
     const uint32_t pick = static_cast<uint32_t>(
-        (static_cast<int64_t>(static_cast<int32_t>(r & 0xffffu)) * static_cast<int32_t>(data->m_unk20)) >> 16);
+        (static_cast<int64_t>(static_cast<int32_t>(r & 0xffffu)) * static_cast<int32_t>(data->m_ui32LoadedSoundCount)) >> 16);
     CKSound* sound = static_cast<CKSoundDictionaryID*>(data->m_pSoundDico)->GetSound(pick & 0xffffu);  // 0x00112bc0
     if (sound != nullptr) {
         const CVector3 position = {m_pMatrix->pos.x, m_pMatrix->pos.y, m_pMatrix->pos.z};
@@ -374,17 +374,17 @@ void CKExplosionNodeFx::UpdateActive(IKTime* frameClock) {
     if (m_pDamageOwner == nullptr || m_pDamageSphere == nullptr) return;
     data = DataOf(this);
     const float radius = m_fDamageRadius;
-    if (data->m_unk14 - data->m_unk0c < radius) {
+    if (data->m_fWaveRadius - data->m_fWaveFinalRadiusPrec < radius) {
         m_pDamageSphere->m_ba8Infos = static_cast<uint8_t>(m_pDamageSphere->m_ba8Infos & 0xfb);
         return;
     }
-    const float grown = ppc::fmadds(data->m_unk10 * dt, data->m_unk14 - radius, radius);
+    const float grown = ppc::fmadds(data->m_fWaveGrowth * dt, data->m_fWaveRadius - radius, radius);
     m_pDamageSphere->m_fRadius = grown <= kZero ? kMinimumRadius : grown;
     RwFrame* frame = m_pDamageSphere->m_pRwFrame;
     frame->modelling.pos = m_pMatrix->pos;
     frame->modelling.flags &= 0xfffdffffu;
     RwFrame_MarkDirty(frame);  // 0x00010698
-    m_fDamageRadius = data->m_unk14 < grown ? data->m_unk14 : grown;
+    m_fDamageRadius = data->m_fWaveRadius < grown ? data->m_fWaveRadius : grown;
 }
 
 // 0x001b6c20 CKExplosionNodeFx_FireSubEffect: the jump table at TOC1 -0x210c, types 0..8 (others: nothing).
@@ -434,7 +434,7 @@ void CKExplosionNodeFx::FireSubEffect(SubEffect* effect, CKExplosionFxData::Part
                 dir.y = dir.y * inverse;
             }
             CVector3 along = dir;
-            if ((DataOf(this)->m_unk18 & 2u) != 0) {
+            if ((DataOf(this)->m_baExpInfos & 2u) != 0) {
                 Mat4_TransformVectors(reinterpret_cast<const CMatrix34*>(m_pMatrix), &along, &dir, 1);  // 0x0023f7b0
             }
             pos.y = pos.y + 0.1f;  // TOC -0x2104

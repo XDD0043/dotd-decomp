@@ -1019,7 +1019,7 @@ void WriteReplayHud(std::FILE* file) {
     CKS08GameManager* manager = M();
     IKSerializable** huds = manager->GetHudInterfaces();
     std::fputs(",\"hud\":{\"combo\":", file);
-    std::fprintf(file, "[%u,%u]", manager->m_unkC34, manager->m_unkC38);
+    std::fprintf(file, "[%u,%u]", manager->m_ui32SpyroComboHits, manager->m_ui32CynderComboHits);
     ReplayHudSide(file, "L", static_cast<CKS08InGameInterfaceLeft*>(huds[0]));
     ReplayHudSide(file, "R", static_cast<CKS08InGameInterfaceRight*>(huds[2]));
     std::fputs(",\"C\":", file);
@@ -1080,7 +1080,7 @@ void WriteReplayFrame(int32_t f) {
     CKGrpS08Hero* group = static_cast<CKGrpS08Hero*>(M()->m_unk04[1]);
     std::fprintf(file, "\"sector\":%d,", g_pEngine->m_level->m_currentSector);
     if (group != nullptr) {
-        std::fprintf(file, "\"focus\":%d,\"blocked\":%u,", static_cast<int8_t>(group->m_unk66), (group->m_unkf8 >> 3) & 1u);
+        std::fprintf(file, "\"focus\":%d,\"blocked\":%u,", static_cast<int8_t>(group->m_ui8FocusedDragon), (group->m_baWorkFlags >> 3) & 1u);
     } else {
         std::fputs("\"focus\":null,\"blocked\":null,", file);
     }
@@ -1190,11 +1190,11 @@ void WriteReplayFrame(int32_t f) {
                         std::fputs("null", file);
                     }
                     std::fputs(",\"vel\":", file);
-                    const float vel[3] = {bonus->m_unk44.x, bonus->m_unk44.y, bonus->m_unk44.z};
+                    const float vel[3] = {bonus->m_v3Velocity.x, bonus->m_v3Velocity.y, bonus->m_v3Velocity.z};
                     ReplayFloatList(file, vel, 3);
-                    std::fprintf(file, ",\"n\":%u,\"st\":%u,\"fly\":%d}", bonus->m_unk50, bonus->m_GContactInOut.m_eContactStatus,
-                                 bonus->m_pUnk30 != nullptr ? 1 : 0);
-                    item = bonus->m_pUnk20;
+                    std::fprintf(file, ",\"n\":%u,\"st\":%u,\"fly\":%d}", bonus->m_ui32BounceCount, bonus->m_GContactInOut.m_eContactStatus,
+                                 bonus->m_pCatcher != nullptr ? 1 : 0);
+                    item = bonus->m_pNextBonus;
                 }
                 std::fputs("]}", file);
             }
@@ -1297,15 +1297,15 @@ void WriteReplayFrame(int32_t f) {
             ReplayFloat(file, hero->m_unk12d0);
             std::fputc('}', file);
         }
-        std::fprintf(file, ",\"move_mode\":%u,\"flags\":%u,\"states\":{", hero->m_unk1808, hero->m_unk358);
-        ReplayState(file, "control", hero->m_unka0, hero->m_unkAD, hero->m_unkAC, 24, true);
-        ReplayState(file, "anim", hero->m_unk140, hero->m_unk14d, hero->m_unk14c, 8, false);
-        ReplayState(file, "loco", hero->m_unk520, hero->m_unk52d, hero->m_unk52c, 24, false);
-        ReplayState(file, "action", hero->m_unkc0, hero->m_unkCD, hero->m_unkCC, 24, false);
+        std::fprintf(file, ",\"move_mode\":%u,\"flags\":%u,\"states\":{", hero->m_ui8MovementMode, hero->m_ui32HeroFlags358);
+        ReplayState(file, "control", hero->m_unka0, hero->m_ui8IANbStates, hero->m_ui8IACurrentState, 24, true);
+        ReplayState(file, "anim", hero->m_unk140, hero->m_ui8AnimNbStates, hero->m_ui8AnimCurrentState, 8, false);
+        ReplayState(file, "loco", hero->m_unk520, hero->m_ui8DynamicNbStates, hero->m_ui8DynamicCurrentState, 24, false);
+        ReplayState(file, "action", hero->m_unkc0, hero->m_ui8FightNbStates, hero->m_ui8FightCurrentState, 24, false);
         std::fputs("},\"layers\":[", file);
-        const uint32_t layers = hero->m_unk138 != nullptr ? static_cast<IKGrpHero*>(hero->m_pGrpHero)->GetNbAnimBlendSlots(hero->m_ui8Hero) : 0;
+        const uint32_t layers = hero->m_pAnimBlendSlots != nullptr ? static_cast<IKGrpHero*>(hero->m_pGrpHero)->GetNbAnimBlendSlots(hero->m_ui8Hero) : 0;
         for (uint32_t k = 0; k < layers && k < 8; ++k) {
-            const AnimBlendSlot& slot = hero->m_unk138[k];
+            const AnimBlendSlot& slot = hero->m_pAnimBlendSlots[k];
             std::fputs(k == 0 ? "{\"len\":" : ",{\"len\":", file);
             ReplayFloat(file, slot.m_unk08);
             std::fputs(",\"left\":", file);
@@ -1317,7 +1317,7 @@ void WriteReplayFrame(int32_t f) {
         // C2.7 the partner link (the recorder's "link"): the alphas, +0x177c, +0xed4, the two bolts' state.
         std::fprintf(file, "],\"link\":{\"a\":[%u,%u],\"t\":", hero->m_unk1194, hero->m_unk1195);
         ReplayFloat(file, hero->m_unk177c);
-        std::fprintf(file, ",\"ed4\":%u,\"bolts\":[", hero->m_unked4);
+        std::fprintf(file, ",\"ed4\":%u,\"bolts\":[", hero->m_ui32StatusFlagsED4);
         const IKSerializable* boltSlots[2] = {hero->m_unk19c8, hero->m_unk19d0};
         for (int k = 0; k < 2; ++k) {
             if (k != 0) std::fputc(',', file);
@@ -1366,13 +1366,13 @@ void WriteReplayFrame(int32_t f) {
         }
         std::fputs("]},\"idle_t\":", file);
         ReplayFloat(file, hero->m_unk19ac);
-        std::fprintf(file, ",\"f354\":%u", hero->m_unk354);
+        std::fprintf(file, ",\"f354\":%u", hero->m_ui32HeroFlags354);
         // dotd only (diagnostics): the AI's target (+0x124: its KP3 id and health) and the partner attack credits (+0x1a20).
         {
-            const CKHkS08Enemy* target = static_cast<const CKHkS08Enemy*>(hero->m_unk124);
+            const CKHkS08Enemy* target = static_cast<const CKHkS08Enemy*>(hero->m_pTargetedEnemy);
             const uint32_t targetId = target != nullptr ? Kp3ObjectId(target, CKHkS08Enemy::kClassKey) : 0;
             std::fprintf(file, ",\"ai\":[%u,%u,", targetId, hero->m_unk1a20);
-            ReplayFloat(file, target != nullptr ? target->m_unk258 : 0.0f);
+            ReplayFloat(file, target != nullptr ? target->m_fHealth : 0.0f);
             std::fputs("]", file);
         }
         std::fputs("}", file);
@@ -1428,7 +1428,7 @@ void WriteReplayFrame(int32_t f) {
         ReplayFloatList(file, pos, 3);
         std::fprintf(file, ",\"state\":%u,\"aware\":%u,\"react\":%u,\"health\":", enemy->m_mainState, enemy->m_awareState,
                      enemy->m_reactState);
-        ReplayFloat(file, enemy->m_unk258);
+        ReplayFloat(file, enemy->m_fHealth);
         std::fputc('}', file);
     }
     std::fputs("],\"zones\":[", file);
@@ -1577,10 +1577,10 @@ void ReplayTeleport() {
                 const bool first = hero->m_ui8Hero == 0;
                 const CVector3 position = first ? CVector3{x, y, z} : fields == 7 ? CVector3{px, py, pz} : CVector3{x + 1.5f, y, z};
                 const CVector3 facing = {hero->m_unk540, hero->m_unk544, hero->m_unk548};
-                const uint32_t saved = hero->m_unk35c;
-                hero->m_unk35c |= 0x20000u;
+                const uint32_t saved = hero->m_ui32HeroFlags35C;
+                hero->m_ui32HeroFlags35C |= 0x20000u;
                 const uint8_t done = hero->TeleportTo(&position, &facing, 0, 0, 0, 0);
-                hero->m_unk35c = saved;
+                hero->m_ui32HeroFlags35C = saved;
                 std::printf("replay: frame +%d: hero %u teleported to %.3f %.3f %.3f (%s)\n", g_replayCurrent, hero->m_ui8Hero,
                             static_cast<double>(position.x), static_cast<double>(position.y), static_cast<double>(position.z),
                             done != 0 ? "done" : "refused");
@@ -1638,19 +1638,19 @@ void ReplayGroundLog() {
     Kp3_ForEachLoadedObject(CollectReplayObjects, &objects);
     for (const auto& h : objects.heroes) {
         const CKHkS08Hero* hero = static_cast<const CKHkS08Hero*>(h.second);
-        if ((hero->m_unk354 & 1u) != 0 || (hero->m_unk35c & 0x100u) != 0) continue;
+        if ((hero->m_ui32HeroFlags354 & 1u) != 0 || (hero->m_ui32HeroFlags35C & 0x100u) != 0) continue;
         IKSerializable* ground = hero->m_gcCurDatasInOut.m_pGround;
         if (ground == nullptr) continue;
         const float dy = hero->m_unk550 - hero->m_gcCurDatasInOut.m_ProjectionOnGround.y;
         static int detail = 0;
-        if (hero->m_unk1808 == 0 && dy > 0.5f && detail < 80) {
+        if (hero->m_ui8MovementMode == 0 && dy > 0.5f && detail < 80) {
             ++detail;
             std::printf("groundlog: +%d hero %u mode %u pos %.3f %.3f %.3f ground %p face %d status %u proj y %.3f dy %.3f f354 0x%08x f35c 0x%08x vy %.3f\n",
-                        g_replayCurrent, hero->m_ui8Hero, static_cast<unsigned>(hero->m_unk1808), static_cast<double>(hero->m_unk54c),
+                        g_replayCurrent, hero->m_ui8Hero, static_cast<unsigned>(hero->m_ui8MovementMode), static_cast<double>(hero->m_unk54c),
                         static_cast<double>(hero->m_unk550), static_cast<double>(hero->m_unk554), static_cast<void*>(ground),
                         hero->m_gcCurDatasInOut.m_i32FaceIndex, hero->m_gcCurDatasInOut.m_eContactStatus,
-                        static_cast<double>(hero->m_gcCurDatasInOut.m_ProjectionOnGround.y), static_cast<double>(dy), hero->m_unk354,
-                        hero->m_unk35c, static_cast<double>(hero->m_unk1280));
+                        static_cast<double>(hero->m_gcCurDatasInOut.m_ProjectionOnGround.y), static_cast<double>(dy), hero->m_ui32HeroFlags354,
+                        hero->m_ui32HeroFlags35C, static_cast<double>(hero->m_unk1280));
         }
         GroundLogEntry* entry = nullptr;
         for (GroundLogEntry& e : g_groundLog)
@@ -1800,7 +1800,7 @@ void InjectReplayAnimation(const ReplayObjects& objects, const char* line) {
         const char* p = std::strstr(line, key);
         if (p == nullptr) continue;
         const char* layers = std::strstr(p, "\"layers\":[");
-        if (layers != nullptr && hero->m_unk138 != nullptr) {
+        if (layers != nullptr && hero->m_pAnimBlendSlots != nullptr) {
             const uint32_t n = static_cast<IKGrpHero*>(hero->m_pGrpHero)->GetNbAnimBlendSlots(hero->m_ui8Hero);
             const char* q = layers + 10;
             for (uint32_t k = 0; k < n && k < 8; ++k) {
@@ -1809,12 +1809,12 @@ void InjectReplayAnimation(const ReplayObjects& objects, const char* line) {
                 c += 7;
                 ReplayCtrl rec;
                 if (!ReplayParseCtrl(c, rec)) break;
-                set += ReplayApplyCtrl(hero->m_unk138[k].m_pController, rec, 0);
+                set += ReplayApplyCtrl(hero->m_pAnimBlendSlots[k].m_pController, rec, 0);
                 q = c;
             }
         }
         if (const char* idle = std::strstr(p, "\"idle_t\":")) hero->m_unk19ac = static_cast<float>(std::strtod(idle + 9, nullptr));
-        if (const char* f354 = std::strstr(p, "\"f354\":")) hero->m_unk354 = static_cast<uint32_t>(std::strtoul(f354 + 7, nullptr, 10));
+        if (const char* f354 = std::strstr(p, "\"f354\":")) hero->m_ui32HeroFlags354 = static_cast<uint32_t>(std::strtoul(f354 + 7, nullptr, 10));
     }
     const char* anim = std::strstr(line, "],\"anim\":[{\"id\":");
     for (const auto& nd : objects.nodes) {

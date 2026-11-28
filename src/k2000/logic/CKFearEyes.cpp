@@ -46,5 +46,5 @@
 // whatever the word holds; ResetRuntime of the level data creates it).
 void CKFearEyes::Destroy() {
     CKBreathElement::Destroy();
-    if (m_unk21c != nullptr) RwMatrixDestroy(m_unk21c);
+    if (m_pLocalMatrix != nullptr) RwMatrixDestroy(m_pLocalMatrix);
 }

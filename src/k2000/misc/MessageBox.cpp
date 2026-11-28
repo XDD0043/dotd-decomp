@@ -189,7 +189,7 @@ void CManager2d_DrawSystemMessageOverlay() {
     if (s_state.m_count != 0) {
         Draw2d_FullScreenColorQuad(kBlack);
         const SystemMessageEntry* entry = &s_state.m_entries[s_state.m_count - 1];
-        if (gameManager->m_unk290 == -1) {
+        if (gameManager->m_i32RequestedLanguage == -1) {
             // LocText_GetOrDefault_maybe 0x68920 inlined (the boot loc data is loaded here): the loc text of the
             // entry's id (CLocManager_GetText 0x37028, LocString_GetText 0x35d28), else " ".
             const uint16_t* text = kSpaceW;

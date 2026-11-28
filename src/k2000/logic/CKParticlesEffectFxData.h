@@ -67,25 +67,25 @@ public:
     // data keeps, else a free one (CKSrvFx::StartEffect). 0x1b02 releases the reserved effect. 0 when handled, else 1.
     int32_t MessageProc(uint16_t message, void* data) override;
 
-    uint8_t m_unk08;                                 // +0x08
+    uint8_t m_ui8Flags;                                 // _maybe: +0x08
     uint8_t m_pad09[3];
     uint32_t m_unk0c;                                // +0x0c
     // +0x10 PostLoad sets 0; the effect's start sets the scene node the effect is attached to (Ghidra
     // pAttachOwner_maybe): its GetSectorIndex (vt+0x6c) tells which sector the effect belongs to.
     CSGLeaf* m_pAttachOwner;
     IKSerializable* m_pAttachHotSpot;                // +0x14 PostLoad: 0; the hot spot the effect follows (else the node +0x10)
-    CVector3 m_unk18;                                // +0x18 PostLoad
-    RwMatrix* m_unk24;                               // +0x24 PostLoad: RwMatrixCreate; the nodes' local matrix at start
+    CVector3 m_vPosition;                                // +0x18 PostLoad
+    RwMatrix* m_pLocalMatrix;                               // +0x24 PostLoad: RwMatrixCreate; the nodes' local matrix at start
     TVector<ParameterBlock*, 1> m_parameterBlocks;   // +0x28 (Ghidra ppParameterBlocks_maybe); the
                                                      // constructor: null, 1, 0
     class IKFx* m_pReservedFx;                       // +0x34 PostLoad: 0; the effect MessageProc reserved
-    uint8_t m_unk38;                                 // +0x38 the constructor sets 0
+    uint8_t m_bScreenSpace;                                 // +0x38 the constructor sets 0
     uint8_t m_pad39[3];
 };
 DOTD_ASSERT_SIZE(CKParticlesEffectFxData::ParameterBlock, 0x6c);
 DOTD_ASSERT_SIZE(CKParticlesEffectFxData, 0x3c);
-DOTD_ASSERT_OFFSET(CKParticlesEffectFxData, m_unk08, 0x08);
+DOTD_ASSERT_OFFSET(CKParticlesEffectFxData, m_ui8Flags, 0x08);
 DOTD_ASSERT_OFFSET(CKParticlesEffectFxData, m_unk0c, 0x0c);
-DOTD_ASSERT_OFFSET(CKParticlesEffectFxData, m_unk24, 0x24);
+DOTD_ASSERT_OFFSET(CKParticlesEffectFxData, m_pLocalMatrix, 0x24);
 DOTD_ASSERT_OFFSET(CKParticlesEffectFxData, m_parameterBlocks, 0x28);
-DOTD_ASSERT_OFFSET(CKParticlesEffectFxData, m_unk38, 0x38);
+DOTD_ASSERT_OFFSET(CKParticlesEffectFxData, m_bScreenSpace, 0x38);

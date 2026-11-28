@@ -46,22 +46,22 @@ void CKS08GameManager::Vf334() {
 void CKS08GameManager::RestoreDragonMana(int32_t dragon, int32_t amount, int32_t quiet) {
     CKS08GameStructure* stats = static_cast<CKS08GameStructure*>(m_gameStructure);
     if (dragon == 0) {
-        const uint32_t sum = static_cast<uint32_t>(amount) + stats->m_unk64;
+        const uint32_t sum = static_cast<uint32_t>(amount) + stats->m_dwSpyroMana;
         if (sum < static_cast<uint32_t>(ComputeSpyroManaCapacity(stats, 0))) {  // 0x00511710
-            stats->m_unk64 = static_cast<uint32_t>(amount) + stats->m_unk64;
+            stats->m_dwSpyroMana = static_cast<uint32_t>(amount) + stats->m_dwSpyroMana;
         } else {
-            stats->m_unk64 = static_cast<uint32_t>(ComputeSpyroManaCapacity(stats, 0));
+            stats->m_dwSpyroMana = static_cast<uint32_t>(ComputeSpyroManaCapacity(stats, 0));
         }
         RefreshDragonStatDisplays(0, 0, 1);  // 0x005022b0
         if (GetHudInterfaces()[0] != nullptr && quiet == 0) {
             static_cast<CKS08InGameInterfaceLeft*>(GetHudInterfaces()[0])->QueueManaRestoredClip();  // 0x5395a8
         }
     } else if (dragon == 1) {
-        const uint32_t sum = static_cast<uint32_t>(amount) + stats->m_unk6c;
+        const uint32_t sum = static_cast<uint32_t>(amount) + stats->m_dwCynderMana;
         if (sum < static_cast<uint32_t>(ComputeCynderManaCapacity(stats, 0))) {  // 0x005115d0
-            stats->m_unk6c = static_cast<uint32_t>(amount) + stats->m_unk6c;
+            stats->m_dwCynderMana = static_cast<uint32_t>(amount) + stats->m_dwCynderMana;
         } else {
-            stats->m_unk6c = static_cast<uint32_t>(ComputeCynderManaCapacity(stats, 0));
+            stats->m_dwCynderMana = static_cast<uint32_t>(ComputeCynderManaCapacity(stats, 0));
         }
         RefreshDragonStatDisplays(1, 0, 1);
         if (GetHudInterfaces()[2] != nullptr && quiet == 0) {
@@ -74,22 +74,22 @@ void CKS08GameManager::RestoreDragonMana(int32_t dragon, int32_t amount, int32_t
 void CKS08GameManager::RestoreDragonHealth(int32_t dragon, int32_t amount, int32_t quiet) {
     CKS08GameStructure* stats = static_cast<CKS08GameStructure*>(m_gameStructure);
     if (dragon == 0) {
-        const uint32_t sum = static_cast<uint32_t>(amount) + stats->m_unk4c;
+        const uint32_t sum = static_cast<uint32_t>(amount) + stats->m_dwSpyroHealth;
         if (sum < static_cast<uint32_t>(ComputeSpyroHealthCapacity(stats, 0))) {  // 0x005111a0
-            stats->m_unk4c = static_cast<uint32_t>(amount) + stats->m_unk4c;
+            stats->m_dwSpyroHealth = static_cast<uint32_t>(amount) + stats->m_dwSpyroHealth;
         } else {
-            stats->m_unk4c = static_cast<uint32_t>(ComputeSpyroHealthCapacity(stats, 0));
+            stats->m_dwSpyroHealth = static_cast<uint32_t>(ComputeSpyroHealthCapacity(stats, 0));
         }
         RefreshDragonStatDisplays(0, 1, 0);  // 0x005022b0
         if (GetHudInterfaces()[0] != nullptr && quiet == 0) {
             static_cast<CKS08InGameInterfaceLeft*>(GetHudInterfaces()[0])->QueueHealthRestoredClip();  // 0x539780
         }
     } else if (dragon == 1) {
-        const uint32_t sum = static_cast<uint32_t>(amount) + stats->m_unk54;
+        const uint32_t sum = static_cast<uint32_t>(amount) + stats->m_dwCynderHealth;
         if (sum < static_cast<uint32_t>(ComputeCynderHealthCapacity(stats, 0))) {  // 0x00511060
-            stats->m_unk54 = static_cast<uint32_t>(amount) + stats->m_unk54;
+            stats->m_dwCynderHealth = static_cast<uint32_t>(amount) + stats->m_dwCynderHealth;
         } else {
-            stats->m_unk54 = static_cast<uint32_t>(ComputeCynderHealthCapacity(stats, 0));
+            stats->m_dwCynderHealth = static_cast<uint32_t>(ComputeCynderHealthCapacity(stats, 0));
         }
         RefreshDragonStatDisplays(1, 1, 0);
         if (GetHudInterfaces()[2] != nullptr && quiet == 0) {
@@ -101,20 +101,20 @@ void CKS08GameManager::RestoreDragonHealth(int32_t dragon, int32_t amount, int32
 // 0x004fe1a0 AddDragonFuryFromAttack_maybe
 void CKS08GameManager::AddDragonFuryFromAttack(uint8_t dragon, uint32_t hits) {
     const float amount = static_cast<float>(static_cast<double>(static_cast<int64_t>(hits)));  // fcfid of the word
-    const float scale = static_cast<const CKCurve2DCpnt*>(m_unkAEC)->Evaluate(amount);  // 0x00249ea8
+    const float scale = static_cast<const CKCurve2DCpnt*>(m_pFuryComboCurve)->Evaluate(amount);  // 0x00249ea8
     const uint32_t gain = static_cast<uint32_t>(static_cast<int64_t>(amount * scale));  // fctidz
     CKS08GameStructure* structure = static_cast<CKS08GameStructure*>(m_gameStructure);
     if (dragon == 0) {
-        if (structure->m_unk74 + structure->m_unk78 + gain < structure->m_unk7c) {
-            structure->m_unk74 = structure->m_unk74 + gain;
+        if (structure->m_dwSpyroFury + structure->m_dwCynderFury + gain < structure->m_dwMaxTotalFury) {
+            structure->m_dwSpyroFury = structure->m_dwSpyroFury + gain;
         } else {
-            structure->m_unk74 = structure->m_unk7c - structure->m_unk78;
+            structure->m_dwSpyroFury = structure->m_dwMaxTotalFury - structure->m_dwCynderFury;
         }
     } else if (dragon == 1) {
-        if (structure->m_unk78 + structure->m_unk74 + gain < structure->m_unk7c) {
-            structure->m_unk78 = structure->m_unk78 + gain;
+        if (structure->m_dwCynderFury + structure->m_dwSpyroFury + gain < structure->m_dwMaxTotalFury) {
+            structure->m_dwCynderFury = structure->m_dwCynderFury + gain;
         } else {
-            structure->m_unk78 = structure->m_unk7c - structure->m_unk74;
+            structure->m_dwCynderFury = structure->m_dwMaxTotalFury - structure->m_dwSpyroFury;
         }
     }
     RefreshFuryGaugeHud();  // 0x004fec98
@@ -126,39 +126,39 @@ void CKS08GameManager::AddDragonFuryFromAttack(uint8_t dragon, uint32_t hits) {
 void CKS08GameManager::DrainDragonFury(int32_t dragon, uint32_t amount, int32_t shared) {
     CKS08GameStructure* structure = static_cast<CKS08GameStructure*>(m_gameStructure);  // +0x6c
     if (shared != 0) {
-        const uint32_t total = structure->m_unk74 + structure->m_unk78;
+        const uint32_t total = structure->m_dwSpyroFury + structure->m_dwCynderFury;
         if (!(amount < total)) {  // bge
-            structure->m_unk74 = 0;
-            structure->m_unk78 = 0;
+            structure->m_dwSpyroFury = 0;
+            structure->m_dwCynderFury = 0;
             return;
         }
         const float half = static_cast<float>(static_cast<double>(amount)) * 0.5f;  // TOC +0x72c8
         const float totalHalf = static_cast<float>(static_cast<double>(total)) * 0.5f;
         const uint32_t halfWord = static_cast<uint32_t>(ppc::fctidz(half));
         const float rest = totalHalf - static_cast<float>(static_cast<double>(halfWord));
-        structure->m_unk74 = static_cast<uint32_t>(ppc::fctidz(rest));
-        structure->m_unk78 = structure->m_unk74;
+        structure->m_dwSpyroFury = static_cast<uint32_t>(ppc::fctidz(rest));
+        structure->m_dwCynderFury = structure->m_dwSpyroFury;
         return;
     }
     if (dragon == 0) {
-        structure->m_unk74 = amount < structure->m_unk74 ? structure->m_unk74 - amount : 0;
+        structure->m_dwSpyroFury = amount < structure->m_dwSpyroFury ? structure->m_dwSpyroFury - amount : 0;
     } else if (dragon == 1) {
-        structure->m_unk78 = amount < structure->m_unk78 ? structure->m_unk78 - amount : 0;
+        structure->m_dwCynderFury = amount < structure->m_dwCynderFury ? structure->m_dwCynderFury - amount : 0;
     }
 }
 
 // 0x004fd680 GetDragonFury_maybe
 uint32_t CKS08GameManager::GetDragonFury(int32_t dragon) {
     const CKS08GameStructure* structure = static_cast<const CKS08GameStructure*>(m_gameStructure);
-    if (dragon == 0) return structure->m_unk74;
+    if (dragon == 0) return structure->m_dwSpyroFury;
     if (dragon != 1) return 0;
-    return structure->m_unk78;
+    return structure->m_dwCynderFury;
 }
 
 // 0x004fd420 GetTotalFury_maybe
 uint32_t CKS08GameManager::GetTotalFury() {
     const CKS08GameStructure* structure = static_cast<const CKS08GameStructure*>(m_gameStructure);
-    return structure->m_unk74 + structure->m_unk78;
+    return structure->m_dwSpyroFury + structure->m_dwCynderFury;
 }
 
 // 0x004fec98 RefreshFuryGaugeHud_maybe: the centre interface (the HUD list's [1], vt+0x34c, read three times) shows its
@@ -172,10 +172,10 @@ void CKS08GameManager::RefreshFuryGaugeHud() {
 // 0x004fe148 IsFuryGaugeFull_maybe
 uint8_t CKS08GameManager::IsFuryGaugeFull(uint32_t* capacity) {
     const CKS08GameStructure* stats = static_cast<const CKS08GameStructure*>(m_gameStructure);  // +0x6c
-    *capacity = stats->m_unk7c;
+    *capacity = stats->m_dwMaxTotalFury;
     if ((m_flags64 & 0x1000000u) != 0) return 1;
     // (|sum ^ cap| - 1) >> 31: the sum equal to the cap.
-    return stats->m_unk74 + stats->m_unk78 == stats->m_unk7c ? 1 : 0;
+    return stats->m_dwSpyroFury + stats->m_dwCynderFury == stats->m_dwMaxTotalFury ? 1 : 0;
 }
 
 // 0x004fe330 CKS08GameManager_RegisterBossGaugeZone_maybe

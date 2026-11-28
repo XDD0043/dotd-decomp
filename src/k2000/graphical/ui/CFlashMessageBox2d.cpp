@@ -314,13 +314,13 @@ void CKMenuMessageBox_SetButtonLayout(CKMenuMessageBox* menu, uint32_t type, int
     }
     CDefaultGameManager* manager = static_cast<CDefaultGameManager*>(menu->m_pGameManager);
     if (manager->IsPlayerActive(0) != 0) {  // vt+0x180
-        menu->SetItemState(menu->m_unk6c[0], 0, 0);
-        menu->m_unk6c[0] = selection;
+        menu->SetItemState(menu->m_aui8FocusedItem[0], 0, 0);
+        menu->m_aui8FocusedItem[0] = selection;
         menu->SetItemState(selection, 2, 0);
     }
     if (manager->IsPlayerActive(1) != 0) {
-        menu->SetItemState(menu->m_unk6c[1], 0, 0);
-        menu->m_unk6c[1] = selection;
+        menu->SetItemState(menu->m_aui8FocusedItem[1], 0, 0);
+        menu->m_aui8FocusedItem[1] = selection;
         menu->SetItemState(selection, 2, 0);
     }
     menu->m_iUnkd4 = static_cast<int32_t>(type);

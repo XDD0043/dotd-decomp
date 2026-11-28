@@ -174,9 +174,9 @@ void StopSound(CKSoundDictionaryID* sounds, uint32_t index) {
 
 // The hero group's focused hero node (0x002ca128 CKGrpS08Hero_GetFocusedHeroNode_maybe): +0x66 the index (-1 none).
 CSGMovable* FocusedHeroNode(IKGrpHero* group) {
-    const int8_t index = static_cast<int8_t>(group->m_unk66);
+    const int8_t index = static_cast<int8_t>(group->m_ui8FocusedDragon);
     if (index == -1) return nullptr;
-    return static_cast<CSGMovable*>(group->m_apUnk44[index]);
+    return static_cast<CSGMovable*>(group->m_apCameraTargets[index]);
 }
 IKGrpHero* HeroGroup() { return static_cast<IKGrpHero*>(g_pEngine->m_gameManager->m_unk04[1]); }
 
@@ -421,9 +421,9 @@ void CKHkMovableCharacter::InitMovementFields() {
     m_unk24 = 0;
     m_unk25 = 0;
     m_PFCpnt.m_CharacterType.m_bits = 0x809;
-    m_PFCpnt.m_CharacterType.m_unk04 = 0.5f;
-    m_PFCpnt.m_CharacterType.m_unk08 = 0.2f;   // TOC2 -0x6aac (0x3e4ccccd)
-    m_PFCpnt.m_CharacterType.m_unk0c = 1.0f;
+    m_PFCpnt.m_CharacterType.m_fRadius = 0.5f;
+    m_PFCpnt.m_CharacterType.m_fMaxStepHeight = 0.2f;   // TOC2 -0x6aac (0x3e4ccccd)
+    m_PFCpnt.m_CharacterType.m_fMaxStepRise = 1.0f;
     const float half = g_pfGridScale.m_halfCellSize;  // 0x00c40260
     m_PFCpnt.m_fPointValidationDistanceSquared = half <= 0.25f ? half * half : 0.0625f;
     m_unk6c = 0xffff;
@@ -1732,10 +1732,10 @@ void CKHkMovableCharacter::ClampToMoveBounds(CVector3* position, CVector3* direc
 void CKHkMovableCharacter::CheckNavCellBlocked(CVector3* position, CVector3* direction) {
     CKSrvPathFinding* service = static_cast<CKSrvPathFinding*>(g_pEngine->m_srvPathFinding);
     CPFPoint point;
-    point.m_unk0c = m_unk6c;
+    point.m_i16GraphNodeIndex = m_unk6c;
     point.m_position = *position;
     if (static_cast<uint8_t>(service->FindSectorForPoint(&point)) == 0) return;  // 0x001e5ca0
-    m_unk6c = point.m_unk0c;
+    m_unk6c = point.m_i16GraphNodeIndex;
     float fracX;
     float fracZ;
     uint8_t cell[4];

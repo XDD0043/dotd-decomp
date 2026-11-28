@@ -20,20 +20,20 @@ const uint8_t kWindHotSpotCount[9] = {7, 10, 14, 13, 14, 17, 25, 17, 12};
 // in 0x1e); the gauge drains by dt x the second dragon's status decay rate unless a wind (element 7) damage is pending;
 // empty: 0. Else the wind particles (6) at the kind's hot spots (the kind 1 skips 6..9).
 void CKHkS08Enemy::UpdateWindStatus(IKTime* clock) {
-    if (m_unk6d0 <= 0.0f) return;  // TOC 0x1654 (ble: a NaN goes on)
+    if (m_fWindGauge <= 0.0f) return;  // TOC 0x1654 (ble: a NaN goes on)
     if (m_mainState == 7) return;
     const uint8_t state = m_mainState;
-    if (m_unk188->m_unk25c <= m_unk6d0 && state != 0x1e && state != 0x1d) {  // fcmpu + cror lt|eq
+    if (m_pEnemyCpnt->m_unk25c <= m_fWindGauge && state != 0x1e && state != 0x1d) {  // fcmpu + cror lt|eq
         // The original inlines the switch twice (the main state 2 with +0x558 == 8 apart); both are this one.
         SwitchMainState(0x1d, clock);
     }
     if (!PendingElementDamageIs(7)) {
         const float dt = clock->m_afDeltaTime[0];
-        const float gauge = m_unk6d0;
-        m_unk6d0 = gauge - dt * HeroStatusDecayRate(1);  // 0x0032a3d0
+        const float gauge = m_fWindGauge;
+        m_fWindGauge = gauge - dt * HeroStatusDecayRate(1);  // 0x0032a3d0
     }
-    if (m_unk6d0 <= 0.0f) {  // fcmpu + cror lt|eq
-        m_unk6d0 = 0.0f;
+    if (m_fWindGauge <= 0.0f) {  // fcmpu + cror lt|eq
+        m_fWindGauge = 0.0f;
         return;
     }
     CVector3 unused;

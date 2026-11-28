@@ -117,7 +117,7 @@ uint8_t OptionByte(const CDefaultGameManager* gm, uint32_t offset) {
     const SGameOptions& o = gm->m_editedOptions;
     switch (offset) {
     case 0xf0: return o.m_bSubtitles;
-    case 0xf1: return o.m_unk05;
+    case 0xf1: return o.m_bTutorialInfoPopups;
     case 0x108: return o.m_abVibration[0];
     case 0x109: return o.m_abVibration[1];
     case 0x10a: return o.m_abUnk1E[0];
@@ -158,7 +158,7 @@ const int32_t kSoundOutputTextIndex[5] = {0, 1, 3, 4, 5};
 // The sound output's text (mode 8): the game manager's +0x144 accessor, its list's entry
 // kSoundOutputTextIndex[+0xf4] + 6, else its single text.
 IKSerializable* SoundOutputText(CDefaultGameManager* gm) {
-    CKLocTextAccessor* texts = static_cast<CKLocTextAccessor*>(gm->m_unk144);
+    CKLocTextAccessor* texts = static_cast<CKLocTextAccessor*>(gm->m_pPromptTextAccessor);
     const uint32_t mode = OptionWord(gm, 0xf4);  // CycleSoundOutputOption keeps it in [0, 4]
     if (texts->m_texts.m_pBlock == nullptr) return texts->m_pText;
     return texts->m_texts.m_pBlock[kSoundOutputTextIndex[mode] + 6];

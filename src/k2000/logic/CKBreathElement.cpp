@@ -113,66 +113,66 @@ CKBreathElement::CKBreathElement() {
 int32_t CKBreathElement::Load(IKFile* file, int32_t type) {
     if (type == 0) {
         for (int32_t i = 0; i < 3; ++i) {
-            ReadS32LE(file, &m_unk08[i]);
-            ReadF32LE(file, &m_unk20[i]);
-            ReadS32LE(file, &m_unk38[i]);
-            ReadF32LE(file, &m_unk44[i]);
+            ReadS32LE(file, &m_ai32Damage[i]);
+            ReadF32LE(file, &m_afCooldown[i]);
+            ReadS32LE(file, &m_ai32ManaPerSecond[i]);
+            ReadF32LE(file, &m_afConeAngleDeg[i]);
             ReadF32LE(file, &m_unk50[i]);
-            ReadF32LE(file, &m_unk5c[i]);
-            ReadF32LE(file, &m_unk68[i]);
-            ReadF32LE(file, &m_unk74[i]);
-            ReadF32LE(file, &m_unk80[i]);
-            ReadF32LE(file, &m_unk8c[i]);
-            ReadF32LE(file, &m_unk98[i]);
-            ReadF32LE(file, &m_unkA4[i]);
-            ReadF32LE(file, &m_unkB0[i]);
-            ReadF32LE(file, &m_unkBc[i]);
-            ReadU8(file, &m_unkD4[i]);
-            ReadU8(file, &m_unkD7[i]);
+            ReadF32LE(file, &m_afDisarmAmount[i]);
+            ReadF32LE(file, &m_afStunAmount[i]);
+            ReadF32LE(file, &m_afElementEffect0[i]);
+            ReadF32LE(file, &m_afElementEffect1[i]);
+            ReadF32LE(file, &m_afElementEffect2[i]);
+            ReadF32LE(file, &m_afElementEffect4[i]);
+            ReadF32LE(file, &m_afElementEffect6[i]);
+            ReadF32LE(file, &m_afElementEffect5[i]);
+            ReadF32LE(file, &m_afElementEffect7[i]);
+            ReadU8(file, &m_abDamageFlag34[i]);
+            ReadU8(file, &m_abDamageFlag35[i]);
         }
-        ReadU8(file, &m_unkDa);
-        ReadU8(file, &m_unkDb);
-        ReadU8(file, &m_unkDc);
-        ReadF32LE(file, &m_unkE0);
-        ReadF32LE(file, &m_unkE4);
-        ReadF32LE(file, &m_unkF4);
-        ReadU8(file, &m_unkE8);
-        ReadU8(file, &m_unkE9);
-        ReadU8(file, &m_unkEa);
-        ReadF32LE(file, &m_unkEc);
-        ReadF32LE(file, &m_unkF0);
-        ReadF32LE(file, &m_unkF8);
-        ReadF32LE(file, &m_unk130);
-        ReadF32LE(file, &m_unk134);
-        ReadF32LE(file, &m_unk138);
-        ReadU8(file, &m_unkFc);
-        ReadU8(file, &m_unkFd);
-        ReadF32LE(file, &m_unk100);
-        ReadF32LE(file, &m_unk104);
-        ReadF32LE(file, &m_unkC8[0]);
-        ReadF32LE(file, &m_unkC8[1]);
-        ReadF32LE(file, &m_unkC8[2]);
-        IKFile_ReadRef(file, &m_unk170);
-        ReadU8(file, &m_unk108);
-        ReadU8(file, &m_unk109);
-        ReadU8(file, &m_unk10a);
-        ReadF32LE(file, &m_unk10c);
-        ReadF32LE(file, &m_unk110);
-        ReadF32LE(file, &m_unk114);
-        ReadU8(file, &m_unk118);
-        ReadF32LE(file, &m_unk11c);
-        ReadF32LE(file, &m_unk13c);
-        ReadF32LE(file, &m_unk140);
-        ReadF32LE(file, &m_unk144);
-        ReadF32LE(file, &m_unk148);
-        ReadF32LE(file, &m_unk2c[0]);
-        ReadF32LE(file, &m_unk2c[1]);
-        ReadF32LE(file, &m_unk2c[2]);
-        IKFile_ReadRef(file, &m_unk120);
-        ReadF32LE(file, &m_unk14[0]);
-        ReadF32LE(file, &m_unk14[1]);
-        ReadF32LE(file, &m_unk14[2]);
-        ReadU8(file, &m_unk14c);
+        ReadU8(file, &m_bGroundPerm1);
+        ReadU8(file, &m_bGroundPerm0);
+        ReadU8(file, &m_bGroundTurnEnable);
+        ReadF32LE(file, &m_fGroundTurnA);
+        ReadF32LE(file, &m_fGroundTurnB);
+        ReadF32LE(file, &m_fGroundMoveSpeed);
+        ReadU8(file, &m_bFlyPerm1);
+        ReadU8(file, &m_bFlyPerm0);
+        ReadU8(file, &m_bFlyTurnEnable);
+        ReadF32LE(file, &m_fFlyTurnA);
+        ReadF32LE(file, &m_fFlyTurnB);
+        ReadF32LE(file, &m_fFlyMoveSpeed);
+        ReadF32LE(file, &m_fSphereLifetime);
+        ReadF32LE(file, &m_fSphereSpacing);
+        ReadF32LE(file, &m_fSphereSpeed);
+        ReadU8(file, &m_bGroundParam11f8Enable);
+        ReadU8(file, &m_bFlyParam11f8Enable);
+        ReadF32LE(file, &m_fGroundParam11f8);
+        ReadF32LE(file, &m_fFlyParam11f8);
+        ReadF32LE(file, &m_afElementEffect3[0]);
+        ReadF32LE(file, &m_afElementEffect3[1]);
+        ReadF32LE(file, &m_afElementEffect3[2]);
+        IKFile_ReadRef(file, &m_pElementDamage);
+        ReadU8(file, &m_bAirPerm1);
+        ReadU8(file, &m_bAirPerm0);
+        ReadU8(file, &m_bAirTurnEnable);
+        ReadF32LE(file, &m_fAirTurnA);
+        ReadF32LE(file, &m_fAirTurnB);
+        ReadF32LE(file, &m_fAirMoveSpeed);
+        ReadU8(file, &m_bAirParam11f8Enable);
+        ReadF32LE(file, &m_fAirParam11f8);
+        ReadF32LE(file, &m_fGroundScorchPeriod);
+        ReadF32LE(file, &m_fGroundScorchPeriodSpread);
+        ReadF32LE(file, &m_fGroundScorchHeight);
+        ReadF32LE(file, &m_fGroundScorchHeightSpread);
+        ReadF32LE(file, &m_afCooldownForced[0]);
+        ReadF32LE(file, &m_afCooldownForced[1]);
+        ReadF32LE(file, &m_afCooldownForced[2]);
+        IKFile_ReadRef(file, &m_pFizzleExplosionFxData);
+        ReadF32LE(file, &m_afKnockbackDist[0]);
+        ReadF32LE(file, &m_afKnockbackDist[1]);
+        ReadF32LE(file, &m_afKnockbackDist[2]);
+        ReadU8(file, &m_bScorchesGround);
     }
     return 1;
 }
@@ -181,23 +181,23 @@ int32_t CKBreathElement::Load(IKFile* file, int32_t type) {
 void CKBreathElement::Start(CKS08AbilityHostBase* host) {
     if (m_bRunning != 0 || host == nullptr) return;
     m_pHost = host;
-    m_unk155 = 0;
-    m_unk156 = 0;
-    m_unk157 = 0;
-    m_unk174 = 0;
+    m_bBreathing = 0;
+    m_bInStartAnim = 0;
+    m_bInEndAnim = 0;
+    m_bForcedEnd = 0;
     m_bRunning = 1;
-    m_unk04 = host->GetAbilityLevelIndex(this);  // vt+0xf4
+    m_dwLevelIndex = host->GetAbilityLevelIndex(this);  // vt+0xf4
     ApplyHeroControl(1);                          // vt+0x68
-    m_unk15e = m_pHost->CanUseAltLoopAnim();      // vt+0x38
-    m_unk168 = 0;
-    m_unk16c = 0.0f;
-    m_unk158 = 0.0f;
-    m_unk164 = 0.0f;
+    m_bAltLoopAnim = m_pHost->CanUseAltLoopAnim();      // vt+0x38
+    m_dwScorchSegmentIndex = 0;
+    m_fBreathElapsedTime = 0.0f;
+    m_fManaRemainder = 0.0f;
+    m_fGroundScorchTimer = 0.0f;
     if (m_pHost->PlayAbilityAnim(this, 0) != 0) {  // vt+0x7c
-        m_unk156 = 1;
+        m_bInStartAnim = 1;
     } else {
-        if (m_unk15e == 0 || m_pHost->PlayAbilityAnim(this, 2) == 0) m_pHost->PlayAbilityAnim(this, 1);
-        m_unk155 = 1;
+        if (m_bAltLoopAnim == 0 || m_pHost->PlayAbilityAnim(this, 2) == 0) m_pHost->PlayAbilityAnim(this, 1);
+        m_bBreathing = 1;
         if (m_pHost->GetAbilityMana() != 0) SetFxActive(1);  // vt+0xbc, vt+0x70
     }
     m_fStartTime = GameClockNow();
@@ -215,7 +215,7 @@ void CKBreathElement::End(int32_t forced) {
     UpdateDamageSpheres(0.0f, 1);  // vt+0x80 (TOC +0x3308)
     ApplyHeroControl(0);           // vt+0x68
     m_bRunning = 0;
-    const float cooldown = forced != 0 ? m_unk2c[m_unk04] : m_unk20[m_unk04];
+    const float cooldown = forced != 0 ? m_afCooldownForced[m_dwLevelIndex] : m_afCooldown[m_dwLevelIndex];
     m_pHost->SetAbilityCooldown(cooldown, this, static_cast<uint8_t>(forced ^ 1));  // vt+0x9c
     m_pHost = nullptr;
 }
@@ -225,23 +225,23 @@ void CKBreathElement::End(int32_t forced) {
 void CKBreathElement::ApplyHeroControl(uint8_t on) {
     CKS08AbilityHostBase* host = m_pHost;
     if (on != 0) {
-        host->SetHeroActionPermission(0, m_unkDb, m_unkE9, m_unk109);  // vt+0x44
-        host->SetHeroActionPermission(1, m_unkDa, m_unkE8, m_unk108);
+        host->SetHeroActionPermission(0, m_bGroundPerm0, m_bFlyPerm0, m_bAirPerm0);  // vt+0x44
+        host->SetHeroActionPermission(1, m_bGroundPerm1, m_bFlyPerm1, m_bAirPerm1);
         host->SetHeroActionPermission(3, 0, 1, 1);
         host->SetHeroActionPermission(4, 1, 1, 1);
         host->SetHeroActionPermission(5, 0, 0, 0);
         host->SetHeroActionPermission(8, 1, 1, 1);
-        host->SetAbilityTurnParams(m_unkE0, m_unkE4, m_unkEc, m_unkF0, m_unk10c, m_unk110, m_unkDc, m_unkEa,
-                                   m_unk10a);  // vt+0x64
-        const uint8_t gateAir = m_unkDb == 0 ? static_cast<uint8_t>(m_unkFc != 0) : 0;
-        const uint8_t gateFly = m_unkE9 == 0 ? static_cast<uint8_t>(m_unkFd != 0) : 0;
-        const uint8_t gateGround = m_unk109 == 0 ? static_cast<uint8_t>(m_unk118 != 0) : 0;
-        host->SetAbilityParam11f8(m_unk100, m_unk104, m_unk11c, gateAir, gateFly, gateGround);  // vt+0x68
-        host->SetAbilityMoveSpeed(m_unkF4, m_unkF8, m_unk114);                                 // vt+0x50
+        host->SetAbilityTurnParams(m_fGroundTurnA, m_fGroundTurnB, m_fFlyTurnA, m_fFlyTurnB, m_fAirTurnA, m_fAirTurnB, m_bGroundTurnEnable, m_bFlyTurnEnable,
+                                   m_bAirTurnEnable);  // vt+0x64
+        const uint8_t gateAir = m_bGroundPerm0 == 0 ? static_cast<uint8_t>(m_bGroundParam11f8Enable != 0) : 0;
+        const uint8_t gateFly = m_bFlyPerm0 == 0 ? static_cast<uint8_t>(m_bFlyParam11f8Enable != 0) : 0;
+        const uint8_t gateGround = m_bAirPerm0 == 0 ? static_cast<uint8_t>(m_bAirParam11f8Enable != 0) : 0;
+        host->SetAbilityParam11f8(m_fGroundParam11f8, m_fFlyParam11f8, m_fAirParam11f8, gateAir, gateFly, gateGround);  // vt+0x68
+        host->SetAbilityMoveSpeed(m_fGroundMoveSpeed, m_fFlyMoveSpeed, m_fAirMoveSpeed);                                 // vt+0x50
         host->SetAbilityMoveSpeedEnabled(1);                                                   // vt+0x54
-        const uint8_t grounded = static_cast<uint8_t>(host->IsAirborne() ^ 1);                 // vt+0x30
-        m_unk15f = grounded;
-        host->SetAbilityHeroMode(this, grounded);  // vt+0x70
+        const uint8_t inAir = static_cast<uint8_t>(host->IsOnGround() ^ 1);                 // vt+0x30
+        m_bInAir = inAir;
+        host->SetAbilityHeroMode(this, inAir);  // vt+0x70
         return;
     }
     host->SetHeroActionPermission(0, 0, 0, 0);
@@ -251,8 +251,8 @@ void CKBreathElement::ApplyHeroControl(uint8_t on) {
     host->SetHeroActionPermission(5, 0, 0, 0);
     host->SetHeroActionPermission(8, 0, 0, 0);
     host->SetHeroActionPermission(9, 0, 0, 0);
-    host->SetAbilityTurnParams(m_unkE0, m_unkE4, m_unkEc, m_unkF0, m_unk10c, m_unk110, 0, 0, 0);
-    host->SetAbilityParam11f8(m_unk100, m_unk104, m_unk11c, 0, 0, 0);
+    host->SetAbilityTurnParams(m_fGroundTurnA, m_fGroundTurnB, m_fFlyTurnA, m_fFlyTurnB, m_fAirTurnA, m_fAirTurnB, 0, 0, 0);
+    host->SetAbilityParam11f8(m_fGroundParam11f8, m_fFlyParam11f8, m_fAirParam11f8, 0, 0, 0);
     host->SetAbilityMoveSpeedEnabled(0);
     host->SetAbilityHeroMode(this, 0);
 }
@@ -260,66 +260,66 @@ void CKBreathElement::ApplyHeroControl(uint8_t on) {
 // 0x00381928 CKBreathElement_StopBreathing
 void CKBreathElement::StopBreathing() {
     SetFxActive(0);  // vt+0x70
-    m_unk155 = 0;
+    m_bBreathing = 0;
 }
 
 // 0x00381980 CKBreathElement_ApplyDamageParams
 void CKBreathElement::ApplyDamageParams(uint8_t continuous) {
     const float damageScale = m_pHost->GetDamageScale();  // vt+0xc0
     const float effectScale = m_pHost->GetEffectScale();  // vt+0xc4
-    const uint32_t level = m_unk04;
-    CKS08ElementDamage* damage = static_cast<CKS08ElementDamage*>(m_unk170);
-    damage->SetAmount(damageScale * static_cast<float>(static_cast<double>(m_unk08[level])));  // vt+0x50
-    damage->SetStun(m_unk68[level]);                    // vt+0x5c
-    damage->SetStunDuration(m_unk5c[level]);            // vt+0x60
-    damage->SetElementValue(effectScale * m_unk74[level], 0);  // vt+0x58
-    damage->SetElementValue(effectScale * m_unk80[level], 1);
-    damage->SetElementValue(effectScale * m_unk8c[level], 2);
-    damage->SetElementValue(effectScale * m_unkA4[level], 6);
-    damage->SetElementValue(effectScale * m_unk98[level], 4);
-    damage->SetElementValue(effectScale * m_unkBc[level], 7);
-    damage->SetElementValue(effectScale * m_unkC8[level], 3);
-    damage->SetElementValue(effectScale * m_unkB0[level], 5);
-    damage->SetUnk34(m_unkD4[level]);  // vt+0x6c
-    damage->SetUnk35(m_unkD7[level]);  // vt+0x70
+    const uint32_t level = m_dwLevelIndex;
+    CKS08ElementDamage* damage = static_cast<CKS08ElementDamage*>(m_pElementDamage);
+    damage->SetAmount(damageScale * static_cast<float>(static_cast<double>(m_ai32Damage[level])));  // vt+0x50
+    damage->SetStun(m_afStunAmount[level]);                    // vt+0x5c
+    damage->SetDisarmAmount(m_afDisarmAmount[level]);            // vt+0x60
+    damage->SetElementValue(effectScale * m_afElementEffect0[level], 0);  // vt+0x58
+    damage->SetElementValue(effectScale * m_afElementEffect1[level], 1);
+    damage->SetElementValue(effectScale * m_afElementEffect2[level], 2);
+    damage->SetElementValue(effectScale * m_afElementEffect6[level], 6);
+    damage->SetElementValue(effectScale * m_afElementEffect4[level], 4);
+    damage->SetElementValue(effectScale * m_afElementEffect7[level], 7);
+    damage->SetElementValue(effectScale * m_afElementEffect3[level], 3);
+    damage->SetElementValue(effectScale * m_afElementEffect5[level], 5);
+    damage->SetUnk34(m_abDamageFlag34[level]);  // vt+0x6c
+    damage->SetUnk35(m_abDamageFlag35[level]);  // vt+0x70
     damage->SetDamageType(kAbilityDamageTypes[GetAbilityId() & 0xffu]);  // vt+0x64 (TOC +0x330c)
     damage->SetAbilityId(GetAbilityId());                                 // vt+0x68
-    damage->m_unk10 = m_unk14[level] / 0.2f;  // TOC +0x3310
-    damage->m_unk14 = 0.2f;
+    damage->m_fKnockbackForce = m_afKnockbackDist[level] / 0.2f;  // TOC +0x3310
+    damage->m_fKnockbackTime = 0.2f;
     damage->SetContinuous(continuous);  // vt+0x54
 }
 
 // 0x00381ed8 CKBreathElement_ResetRuntime
 void CKBreathElement::ResetRuntime(int32_t type) {
-    m_unk15c = 0xff;
-    m_unk15d = 1;
+    m_ui8HotspotIndex = 0xff;
+    m_ui8ButtonIndex = 1;
     m_pHost = nullptr;
-    m_unk04 = 0;
+    m_dwLevelIndex = 0;
     m_bRunning = 0;
-    m_unk155 = 0;
-    m_unk156 = 0;
-    m_unk157 = 0;
-    m_unk15e = 0;
-    m_unk158 = 0.0f;
+    m_bBreathing = 0;
+    m_bInStartAnim = 0;
+    m_bInEndAnim = 0;
+    m_bAltLoopAnim = 0;
+    m_fManaRemainder = 0.0f;
     if (type == 0) {
         m_ui32SegmentCapacity = 1;
         m_pSegments = static_cast<Segment*>(Mem_AllocAligned16(static_cast<uint32_t>(sizeof(Segment))));  // 0x00053198
     }
-    m_unk16c = 0.0f;
-    m_unk168 = 0;
-    m_unk164 = 0.0f;
+    m_fBreathElapsedTime = 0.0f;
+    m_dwScorchSegmentIndex = 0;
+    m_fGroundScorchTimer = 0.0f;
     m_fStartTime = -1.0f;  // TOC +0x3320 (0xbf800000)
 }
 
 // 0x00382028 CKBreathElement_StartEmitterFx: the inlined pooled lookup (CKSrvFx::AcquireFx) of the explosion data's
 // effect, owned by this element.
 void CKBreathElement::StartEmitterFx() {
-    IKFxData* data = reinterpret_cast<IKFxData*>(m_unk120);
+    IKFxData* data = reinterpret_cast<IKFxData*>(m_pFizzleExplosionFxData);
     CKSrvFx* fxService = static_cast<CKSrvFx*>(g_pEngine->m_srvFx);
     if (fxService->m_ui32EltNb == 0) return;
     CKExplosionNodeFx* fx = static_cast<CKExplosionNodeFx*>(fxService->AcquireFx(data, this));
     if (fx == nullptr) return;
-    const CVector3 position = m_pHost->GetHotspotPosition(m_unk15c);  // vt+0xd0
+    const CVector3 position = m_pHost->GetHotspotPosition(m_ui8HotspotIndex);  // vt+0xd0
     fx->SetTranslation(&position, this);  // 0x001b66e8
     fx->Trigger(this, 0);                 // 0x001b82a8
     fx->ReleaseReservation(this);         // vt+0x54
@@ -337,79 +337,79 @@ CVector3 CKBreathElement::GetEmitterPosition(uint8_t raw) {
 uint8_t CKBreathElement::Update(float dt) {
     if (m_bRunning == 0) return 0;
     if (m_fStartTime == GameClockNow()) return 1;
-    if (m_unk157 != 0) {
+    if (m_bInEndAnim != 0) {
         UpdateDamageSpheres(dt, 0);  // vt+0x80
         if (m_pHost->IsAbilityAnimPhaseDone(this, 4) == 0) return 1;  // vt+0x80
-        End(m_unk174);
+        End(m_bForcedEnd);
         return 0;
     }
     float held = 0.0f;
-    if (m_pHost->IsAbilityButtonDown(m_unk15d) == 0 && m_pHost->GetAbilityButtonHoldTime(m_unk15d, &held) == 0) {  // vt+0x8c / +0x94
+    if (m_pHost->IsAbilityButtonDown(m_ui8ButtonIndex) == 0 && m_pHost->GetAbilityButtonHoldTime(m_ui8ButtonIndex, &held) == 0) {  // vt+0x8c / +0x94
         StopBreathing();  // vt+0x7c
-        if (m_unk156 == 0 && m_pHost->PlayAbilityAnim(this, 4) != 0) {
-            m_unk157 = 1;
+        if (m_bInStartAnim == 0 && m_pHost->PlayAbilityAnim(this, 4) != 0) {
+            m_bInEndAnim = 1;
             return 1;
         }
         End(0);
         return 0;
     }
-    if (m_unk156 != 0) {
+    if (m_bInStartAnim != 0) {
         // The start animation.
         if (m_pHost->IsAbilityAnimPhaseDone(this, 0) == 0) return 1;
-        m_unk15e = m_pHost->CanUseAltLoopAnim();  // vt+0x38
-        if (m_unk15e == 0 || m_pHost->PlayAbilityAnim(this, 2) == 0) m_pHost->PlayAbilityAnim(this, 1);
-        m_unk156 = 0;
-        m_unk155 = 1;
+        m_bAltLoopAnim = m_pHost->CanUseAltLoopAnim();  // vt+0x38
+        if (m_bAltLoopAnim == 0 || m_pHost->PlayAbilityAnim(this, 2) == 0) m_pHost->PlayAbilityAnim(this, 1);
+        m_bInStartAnim = 0;
+        m_bBreathing = 1;
         if (m_pHost->GetAbilityMana() != 0) SetFxActive(1);  // vt+0xbc, vt+0x70
         return 1;
     }
-    if (m_unk155 == 0) return 0;
+    if (m_bBreathing == 0) return 0;
 
-    m_unk16c = m_unk16c + dt;
-    const float spent = m_unk158;
+    m_fBreathElapsedTime = m_fBreathElapsedTime + dt;
+    const float spent = m_fManaRemainder;
     const float scale = m_pHost->GetManaCostScale();  // vt+0xc8
-    const float perSecond = scale * static_cast<float>(static_cast<double>(m_unk38[m_unk04]));
-    m_unk158 = ppc::fmadds(dt, perSecond, spent);
-    if (m_unk158 >= 1.0f) {  // TOC +0x3348 (cror gt|eq)
-        const uint32_t whole = static_cast<uint32_t>(ppc::fctidz(m_unk158));
+    const float perSecond = scale * static_cast<float>(static_cast<double>(m_ai32ManaPerSecond[m_dwLevelIndex]));
+    m_fManaRemainder = ppc::fmadds(dt, perSecond, spent);
+    if (m_fManaRemainder >= 1.0f) {  // TOC +0x3348 (cror gt|eq)
+        const uint32_t whole = static_cast<uint32_t>(ppc::fctidz(m_fManaRemainder));
         m_pHost->ConsumeAbilityMana(this, whole);  // vt+0xb8
-        const uint32_t taken = static_cast<uint32_t>(ppc::fctidz(m_unk158));
-        m_unk158 = m_unk158 - static_cast<float>(static_cast<double>(taken));
+        const uint32_t taken = static_cast<uint32_t>(ppc::fctidz(m_fManaRemainder));
+        m_fManaRemainder = m_fManaRemainder - static_cast<float>(static_cast<double>(taken));
     }
     const uint32_t mana = static_cast<uint32_t>(m_pHost->GetAbilityMana());  // vt+0xbc
-    if (!(static_cast<float>(static_cast<double>(mana)) > m_unk158)) {
+    if (!(static_cast<float>(static_cast<double>(mana)) > m_fManaRemainder)) {
         // Out of mana: the fizzle and the end animation.
         StopBreathing();   // vt+0x7c
         StartEmitterFx();  // vt+0x74
-        m_unk174 = 1;
+        m_bForcedEnd = 1;
         if (m_pHost->PlayAbilityAnim(this, 4) != 0) {
-            m_unk157 = 1;
+            m_bInEndAnim = 1;
             return 1;
         }
-        End(m_unk174);
+        End(m_bForcedEnd);
         return 0;
     }
     UpdateDamageSpheres(dt, 0);  // vt+0x80
     UpdateFx(dt);                // vt+0x78
-    // The hero control follows the grounded state.
-    const bool wasGrounded = m_unk15f != 0;
-    const uint8_t airborne = m_pHost->IsAirborne();  // vt+0x30
-    if (wasGrounded == (airborne != 0)) {
-        m_unk15f = wasGrounded ? 0 : 1;
-        m_unk15e = m_pHost->CanUseAltLoopAnim();
+    // The hero control follows the in-air state.
+    const bool wasInAir = m_bInAir != 0;
+    const uint8_t onGround = m_pHost->IsOnGround();  // vt+0x30
+    if (wasInAir == (onGround != 0)) {
+        m_bInAir = wasInAir ? 0 : 1;
+        m_bAltLoopAnim = m_pHost->CanUseAltLoopAnim();
         ApplyHeroControl(1);
-        if (m_unk15e == 0 || m_pHost->PlayAbilityAnim(this, 2) == 0) m_pHost->PlayAbilityAnim(this, 1);
+        if (m_bAltLoopAnim == 0 || m_pHost->PlayAbilityAnim(this, 2) == 0) m_pHost->PlayAbilityAnim(this, 1);
     }
     // The loop's animation follows the alternative loop's test.
-    if (m_unk15e != 0) {
+    if (m_bAltLoopAnim != 0) {
         if (m_pHost->CanUseAltLoopAnim() == 0) {
             m_pHost->PlayAbilityAnim(this, 1);
-            m_unk15e = 0;
-        } else if (m_unk15e != 0) {
+            m_bAltLoopAnim = 0;
+        } else if (m_bAltLoopAnim != 0) {
             return 1;
         }
     }
-    if (m_pHost->CanUseAltLoopAnim() != 0 && m_pHost->PlayAbilityAnim(this, 2) != 0) m_unk15e = 1;
+    if (m_pHost->CanUseAltLoopAnim() != 0 && m_pHost->PlayAbilityAnim(this, 2) != 0) m_bAltLoopAnim = 1;
     return 1;
 }
 
@@ -430,7 +430,7 @@ void CKBreathElement::UpdateDamageSpheres(float dt, uint8_t releaseAll) {
         return;
     }
 
-    m_unk164 = m_unk164 - dt;
+    m_fGroundScorchTimer = m_fGroundScorchTimer - dt;
     CGroundContactDatasIn in;  // the masks 1 / 8 once
     CGroundContactDatasInOut contact;
     CKS08GameManager* manager = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager);
@@ -438,7 +438,7 @@ void CKBreathElement::UpdateDamageSpheres(float dt, uint8_t releaseAll) {
     uint32_t i = 0;
     while (i < count) {
         Segment* segment = &m_pSegments[i];
-        if (m_unk130 <= segment->m_fTime) {
+        if (m_fSphereLifetime <= segment->m_fTime) {
             // Its life is over: the sphere freed and the later ones moved down.
             CKDynamicBoundingSphere* sphere = segment->m_pSphere;
             if (sphere->m_pParent != nullptr) sphere->m_pParent->RemoveChild(sphere);  // vt+0x78
@@ -452,12 +452,12 @@ void CKBreathElement::UpdateDamageSpheres(float dt, uint8_t releaseAll) {
         float time = dt + segment->m_fTime;
         segment->m_fTime = time;
         float step = dt;
-        if (time >= m_unk130) {
+        if (time >= m_fSphereLifetime) {
             const float before = time - dt;
-            segment->m_fTime = m_unk130;
-            step = m_unk130 - before;
+            segment->m_fTime = m_fSphereLifetime;
+            step = m_fSphereLifetime - before;
         }
-        const uint32_t level = m_unk04;
+        const uint32_t level = m_dwLevelIndex;
         const float speed = segment->m_fSpeed;
         step = step * speed;
         const float distance = speed * segment->m_fTime;
@@ -465,7 +465,7 @@ void CKBreathElement::UpdateDamageSpheres(float dt, uint8_t releaseAll) {
         const float z = ppc::fmadds(step, segment->m_v3Direction.z, frame->modelling.pos.z);
         const float x = ppc::fmadds(step, segment->m_v3Direction.x, frame->modelling.pos.x);
         const float y = ppc::fmadds(step, segment->m_v3Direction.y, frame->modelling.pos.y);
-        const float tangent = crt::Tanf(m_unk44[level] * kDegToRad * 0.5f);  // TOC +0x3380
+        const float tangent = crt::Tanf(m_afConeAngleDeg[level] * kDegToRad * 0.5f);  // TOC +0x3380
         const float radius = ppc::fmadds(distance, std::fabs(tangent), m_unk50[level]);
         frame->modelling.pos.z = z;
         frame->modelling.pos.x = x;
@@ -474,11 +474,11 @@ void CKBreathElement::UpdateDamageSpheres(float dt, uint8_t releaseAll) {
         RwFrame_MarkDirty(frame);  // 0x00010698
         segment->m_pSphere->m_fRadius = radius > 0.0f ? radius : kMinRadius;
         ++i;
-        if (m_unk14c == 0) continue;
+        if (m_bScorchesGround == 0) continue;
         // The ground scorch of the fire / ice elements, at most once per sphere index until the timer runs out.
         const uint32_t element = kAbilityGroundElements[GetAbilityId() & 0xffu];  // vt+0x50
         if (element > 1) continue;
-        if (!(m_unk164 <= 0.0f)) continue;
+        if (!(m_fGroundScorchTimer <= 0.0f)) continue;
         in.m_fDeltaMax = 0.0f;
         in.m_fObjectHeight = radius + radius;
         contact.m_eContactStatus = 3;
@@ -490,10 +490,10 @@ void CKBreathElement::UpdateDamageSpheres(float dt, uint8_t releaseAll) {
         if (contact.m_pGround == nullptr || contact.m_eContactStatus != 2) continue;
         const ICollisionMesh* ground = static_cast<const ICollisionMesh*>(contact.m_pGround);
         if (((ground->m_ui16PropertiesFlags >> 9) & 1u) != 0 || ((ground->m_ba16EngineFlags >> 1) & 1u) != 0) continue;
-        if (m_unk168 > i - 1) continue;
-        m_unk168 = i;
-        const float period = m_unk13c + m_unk140;
-        m_unk164 = ppc::fmadds(RandUnit16() / kRandMax * -2.0f, m_unk140, period);  // 0x00011500; TOC +0x338c
+        if (m_dwScorchSegmentIndex > i - 1) continue;
+        m_dwScorchSegmentIndex = i;
+        const float period = m_fGroundScorchPeriod + m_fGroundScorchPeriodSpread;
+        m_fGroundScorchTimer = ppc::fmadds(RandUnit16() / kRandMax * -2.0f, m_fGroundScorchPeriodSpread, period);  // 0x00011500; TOC +0x338c
         CVector3 world;
         GroundContact_GetWorldPoint(&contact, &world);  // 0x001a70e0
         float cosine = std::fabs(world.y - y) / radius;
@@ -515,24 +515,24 @@ void CKBreathElement::UpdateDamageSpheres(float dt, uint8_t releaseAll) {
             dy = inverse * 0.0f;
         }
         const float scatter = sine * radius * (RandUnit16() / kRandMax);
-        const float height = m_unk144 + m_unk148;
+        const float height = m_fGroundScorchHeight + m_fGroundScorchHeightSpread;
         CVector3 at;
         // BUG(original): the scattered point is overwritten by the next one (both from the world point); the draws stay.
         at.z = ppc::fmadds(dz, scatter, world.z);
         at.x = ppc::fmadds(dx, scatter, world.x);
         at.y = ppc::fmadds(dy, scatter, world.y);
-        const float lift = ppc::fmadds(RandUnit16() / kRandMax * -2.0f, m_unk148, height);
+        const float lift = ppc::fmadds(RandUnit16() / kRandMax * -2.0f, m_fGroundScorchHeightSpread, height);
         at.z = ppc::fmadds(lift, kAxisY.z, world.z);
         at.x = ppc::fmadds(lift, kAxisY.x, world.x);
         at.y = ppc::fmadds(lift, kAxisY.y, world.y);
         manager->SpawnElementGroundFx(this, element, &at);  // 0x004fb848
     }
 
-    if (m_unk164 <= 0.0f) m_unk168 = 0;
-    if (m_unk155 == 0) return;
+    if (m_fGroundScorchTimer <= 0.0f) m_dwScorchSegmentIndex = 0;
+    if (m_bBreathing == 0) return;
     if (m_ui32SegmentCount == 0) {
-        if (!(m_unk130 > 0.0f)) return;
-    } else if (!(m_pSegments[0].m_fTime * m_pSegments[0].m_fSpeed > m_unk134)) {
+        if (!(m_fSphereLifetime > 0.0f)) return;
+    } else if (!(m_pSegments[0].m_fTime * m_pSegments[0].m_fSpeed > m_fSphereSpacing)) {
         return;
     }
     // A new sphere leaves the hot spot 2.
@@ -547,7 +547,7 @@ void CKBreathElement::UpdateDamageSpheres(float dt, uint8_t releaseAll) {
     frame->modelling.pos.y = start.y;
     frame->modelling.flags &= 0xfffdffffu;
     RwFrame_MarkDirty(frame);
-    const float radius = m_unk50[m_unk04] + kMinRadius;
+    const float radius = m_unk50[m_dwLevelIndex] + kMinRadius;
     sphere->m_fRadius = radius > 0.0f ? radius : kMinRadius;
     sphere->m_ba8Infos = static_cast<uint8_t>(sphere->m_ba8Infos | 0x08);  // three bit inserts in turn
     sphere->m_ba8Infos = static_cast<uint8_t>(sphere->m_ba8Infos | 0x20);
@@ -562,9 +562,9 @@ void CKBreathElement::UpdateDamageSpheres(float dt, uint8_t releaseAll) {
     sphere->m_ui8OwnerType = m_pHost->GetCollisionGroup();  // vt+0xb0
     sphere->m_ui16PropertiesFlags = static_cast<uint16_t>(m_pHost->GetCollisionMask() | sphere->m_ui16PropertiesFlags);  // vt+0xb4
     ApplyDamageParams(1);  // vt+0x88
-    sphere->m_unk1c = m_unk170;
+    sphere->m_unk1c = m_pElementDamage;
     sphere->m_ba8Infos = static_cast<uint8_t>((sphere->m_ba8Infos & 0x7f) | 0x80);
-    const float speed = m_pHost->GetHeroSpeedForAbility() + m_unk138;  // vt+0x48
+    const float speed = m_pHost->GetHeroSpeedForAbility() + m_fSphereSpeed;  // vt+0x48
     const CVector3 direction = GetEmitterPosition(0);                  // vt+0x84
     // The new sphere goes first (the K array grows by one).
     uint32_t used = m_ui32SegmentCount;

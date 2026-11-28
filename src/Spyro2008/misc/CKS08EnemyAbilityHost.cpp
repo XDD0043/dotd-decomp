@@ -100,7 +100,7 @@ RwFrame* NodeFrame(const IKSerializable* hook) {
 }
 // The weapon's (+0x520) first reference (+0xac, its +0x04: the muzzle hot spot of kinds 4 / 5).
 CSGHotSpot* WeaponHotSpot(CKHkS08Enemy* enemy) {
-    return static_cast<CSGHotSpot*>(static_cast<CKHkS08Weapon*>(enemy->m_unk520)->m_apUnkAC[1]);
+    return static_cast<CSGHotSpot*>(static_cast<CKHkS08Weapon*>(enemy->m_pHeldWeapon)->m_apUnkAC[1]);
 }
 
 // 0x002c62d8 StaticInitAndDestruction_2c62d8 (_GLOBAL__I_2c6318): two file statics (0x00cead9c, 0x00ceada0) set to
@@ -165,7 +165,7 @@ CVector3 CKS08EnemyAbilityHost::GetOwnerUp() {
 }
 
 // 0x002c60e0 CKS08EnemyAbilityHost_maybe_IsOnGround_maybe
-uint8_t CKS08EnemyAbilityHost::IsAirborne() { return m_pEnemy->IsOnGround(); }  // 0x00289a98
+uint8_t CKS08EnemyAbilityHost::IsOnGround() { return m_pEnemy->IsOnGround(); }  // 0x00289a98
 
 // 0x002c6250 CKS08EnemyAbilityHost_maybe_vf4C: the null vector (TOC +0x1984 0x00c50d64).
 CVector3 CKS08EnemyAbilityHost::GetOwnerVelocity() { return CVector3{0.0f, 0.0f, 0.0f}; }
@@ -177,7 +177,7 @@ CVector3 CKS08EnemyAbilityHost::ComputeAimDirection(float /*cone*/, CKAbilityEle
 }
 
 // 0x002c5f88 CKS08EnemyAbilityHost_maybe_GetOwnerConfigValue1D4_maybe: IKHkEnemy's kind component (+0x188), its +0x1d4.
-float CKS08EnemyAbilityHost::GetOwnerConfig74() { return m_pEnemy->m_unk188->m_unk1d4; }
+float CKS08EnemyAbilityHost::GetOwnerConfig74() { return m_pEnemy->m_pEnemyCpnt->m_unk1d4; }
 
 // 0x002c68f0 CKS08EnemyAbilityHost_maybe_PlayAbilityAnim (a jump table on the phase, unsigned: above 4 answers 1)
 uint8_t CKS08EnemyAbilityHost::PlayAbilityAnim(CKAbilityElement* /*ability*/, uint32_t phase) {
@@ -222,8 +222,8 @@ uint8_t CKS08EnemyAbilityHost::IsAbilityAnimPhaseDone(CKAbilityElement* /*abilit
 uint8_t CKS08EnemyAbilityHost::IsAbilityButtonDown(int32_t /*button*/) {
     CKHkS08Enemy* enemy = m_pEnemy;
     const uint8_t kind = enemy->m_ui8EnemyClassType;
-    if (kind == 5 || kind == 2 || enemy->m_unk73c == nullptr) return 1;
-    if (enemy->m_unk73c->m_unk08 == 2 && (kind == 3 || kind == 8)) return enemy->m_unk7cc;
+    if (kind == 5 || kind == 2 || enemy->m_pCurrentAttack == nullptr) return 1;
+    if (enemy->m_pCurrentAttack->m_unk08 == 2 && (kind == 3 || kind == 8)) return enemy->m_unk7cc;
     if (kind != 4) return 1;
     // srawi / xor / subf / srwi 31: the flags are not zero.
     return enemy->GetAbilityInputFlags() != 0 ? 1 : 0;  // 0x00288fc8
@@ -297,18 +297,18 @@ CVector3 CKS08EnemyAbilityHost::GetHotspotPosition(uint32_t index) {
     if (kind == 6) {
         CVector3 a{};
         CVector3 b{};
-        static_cast<CSGHotSpot*>(enemy->m_unk18C[enemy->GetSectorIndex()]->GetHotSpot(9))->GetWorldPosition(&a);
-        static_cast<CSGHotSpot*>(m_pEnemy->m_unk18C[m_pEnemy->GetSectorIndex()]->GetHotSpot(10))->GetWorldPosition(&b);
+        static_cast<CSGHotSpot*>(enemy->m_apEnemySectorCpnt[enemy->GetSectorIndex()]->GetHotSpot(9))->GetWorldPosition(&a);
+        static_cast<CSGHotSpot*>(m_pEnemy->m_apEnemySectorCpnt[m_pEnemy->GetSectorIndex()]->GetHotSpot(10))->GetWorldPosition(&b);
         const float x = (a.x + b.x) * 0.5f;
         const float z = (a.z + b.z) * 0.5f;
-        const CVector3 ground = m_pEnemy->ComputeGroundPoint();  // 0x00289e60
-        return CVector3{x, ground.y + 0.3f, z};
+        const CVector3 air = m_pEnemy->ComputeGroundPoint();  // 0x00289e60
+        return CVector3{x, air.y + 0.3f, z};
     }
     if (kind == 4) {
         CVector3 at{};
         WeaponHotSpot(enemy)->GetWorldPosition(&at);
-        const CVector3 ground = m_pEnemy->ComputeGroundPoint();
-        return CVector3{at.x, ground.y + 0.3f, at.z};
+        const CVector3 air = m_pEnemy->ComputeGroundPoint();
+        return CVector3{at.x, air.y + 0.3f, at.z};
     }
     if (kind == 5) {
         CVector3 at{};
@@ -325,14 +325,14 @@ CVector3 CKS08EnemyAbilityHost::GetHotspotPosition(uint32_t index) {
 // 0x002c61f8 CKS08EnemyAbilityHost_maybe_GetLockedTarget
 IKSerializable* CKS08EnemyAbilityHost::GetLockedTarget() {
     const uint8_t kind = m_pEnemy->m_ui8EnemyClassType;
-    if (kind == 4 || kind == 3 || kind == 7 || kind == 0) return m_pEnemy->m_unk330;
+    if (kind == 4 || kind == 3 || kind == 7 || kind == 0) return m_pEnemy->m_pTarget;
     return nullptr;
 }
 
 // 0x002c6758 CKS08EnemyAbilityHost_maybe_GetTargetAimPoint_maybe: the target's node frame, its stored LTM position.
 CVector3 CKS08EnemyAbilityHost::GetTargetAimPoint(int32_t /*fromHotSpot*/, uint8_t /*clampHeight*/) {
-    if (m_pEnemy->m_unk330 == nullptr) return CVector3{0.0f, 0.0f, 0.0f};
-    const RwV3d& pos = FrameLtm(NodeFrame(m_pEnemy->m_unk330))->pos;
+    if (m_pEnemy->m_pTarget == nullptr) return CVector3{0.0f, 0.0f, 0.0f};
+    const RwV3d& pos = FrameLtm(NodeFrame(m_pEnemy->m_pTarget))->pos;
     return CVector3{pos.x, pos.y, pos.z};
 }
 

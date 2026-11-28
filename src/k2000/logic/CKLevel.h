@@ -88,7 +88,7 @@ public:
     void ResetSectorState();                         // 0x0002f128 CKLevel_ResetSectorState_maybe
 
     TVector<IKSerializable*, 1> m_vpSectors;  // +0x04 XXL2 m_vpSectors: CKSector* (key 0x10c), one per sector
-    uint32_t m_unk10;                // +0x10 XXL2 m_kAsyncFlagsMutex_maybe (between the vector and the level number); not set
+    uint32_t m_kAsyncFlagsMutex;                // +0x10 XXL2 m_kAsyncFlagsMutex_maybe (between the vector and the level number); not set
     uint32_t m_ui32NbSectors;        // +0x14 (CKSrvBeacon's memory-card branch reads it)
     int32_t m_currentSector;         // +0x18 (live-verified) XXL2 m_i32NumPlayingSector, 0 = none; not set by the constructor
     int32_t m_defaultSector;         // +0x1c XXL2 m_ai32NumEntrySector[0]
@@ -100,7 +100,7 @@ public:
     uint8_t m_bCommunNeedWarning;      // +0x2e not set
     uint8_t m_ba8GroundStateFlags;     // +0x2f not set
     uint32_t m_ui32ProjectVersionNumber;  // +0x30
-    IKSerializable* m_unk34;         // +0x34 DotD only: a reference (LVL000: CKTriggerSynchro 0x56cc); read first
+    IKSerializable* m_pTriggerSynchro;         // +0x34 DotD only: a reference (LVL000: CKTriggerSynchro 0x56cc); read first
     uint32_t m_KGuidIdentifier[4];   // +0x38 CGuid (Uuid_Read)
 };
 DOTD_ASSERT_SIZE(CKLevel, 0x48);
@@ -111,5 +111,5 @@ DOTD_ASSERT_OFFSET(CKLevel, m_defaultSector, 0x1c);
 DOTD_ASSERT_OFFSET(CKLevel, m_requestedSector, 0x28);
 DOTD_ASSERT_OFFSET(CKLevel, m_i8NumFirstStream, 0x2c);
 DOTD_ASSERT_OFFSET(CKLevel, m_ui32ProjectVersionNumber, 0x30);
-DOTD_ASSERT_OFFSET(CKLevel, m_unk34, 0x34);
+DOTD_ASSERT_OFFSET(CKLevel, m_pTriggerSynchro, 0x34);
 DOTD_ASSERT_OFFSET(CKLevel, m_KGuidIdentifier, 0x38);

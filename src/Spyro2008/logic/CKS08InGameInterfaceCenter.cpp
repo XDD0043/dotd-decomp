@@ -355,7 +355,7 @@ uint8_t CKS08InGameInterfaceCenter::OnMenuState(int32_t phase, uint8_t /*other*/
             GaugeSamples_ApplyToElements2d(updater, samples, this, static_cast<int32_t>(first), -1,
                                            static_cast<int32_t>(first + 1));
         }
-        const uint32_t heroFlags = static_cast<CKGrpS08Hero*>(manager->m_unk04[1])->m_unk2c8;  // +0x08 the hero group
+        const uint32_t heroFlags = static_cast<CKGrpS08Hero*>(manager->m_unk04[1])->m_ui32PairStateFlags;  // +0x08 the hero group
         if ((heroFlags & 0x200u) != 0 || (heroFlags & 0x100u) != 0) {
             RebuildFuryMarks();
         } else {

@@ -53,7 +53,7 @@ void ReadWordsLE(IKFile* file, void* dst, uint32_t count) {
 int32_t CKTimeScalingFxData::Load(IKFile* file, int32_t type) {
     IKFxData::Load(file, type);
     if (type != K_LEVEL_PLATEFORMS) return 1;
-    ReadF32LE(file, &m_unk0c);
+    ReadF32LE(file, &m_fDuration);
     ReadU32LE(file, &m_unk10);
     ReadU8(file, &m_unk08);
     ReadU8(file, &m_nbKeys);

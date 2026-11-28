@@ -104,22 +104,22 @@ void LoadRefVector(IKFile* file, TVector<IKSerializable*, 1>& v) {
 int32_t CKHkCrumblyZoneMultiState::Load(IKFile* file, int32_t type) {
     CKHkActorBase::Load(file, type);
     if (type != K_LEVEL_PLATEFORMS) return 1;
-    ReadU32LE(file, &m_unk20);
-    ReadU32LE(file, &m_unk24);
+    ReadU32LE(file, &m_ui32DefaultState);
+    ReadU32LE(file, &m_ui32DoneState);
     LoadRefVector(file, m_vUnk2C);
     LoadRefVector(file, m_vUnk38);
-    IKFile_ReadRef(file, &m_pUnk44);
-    IKFile_ReadRef(file, &m_pUnk48);
-    IKFile_ReadRef(file, &m_pUnk4C);
+    IKFile_ReadRef(file, &m_pCrumbleFx);
+    IKFile_ReadRef(file, &m_pBreakFx);
+    IKFile_ReadRef(file, &m_pHitFx);
     IKFile_ReadRef(file, &m_pUnk68);
-    IKFile_ReadRef(file, &m_pUnk6C);
-    ReadU16LE(file, &m_unk78);
+    IKFile_ReadRef(file, &m_pHitQuake);
+    ReadU16LE(file, &m_i16PathFindingNodeIndex);
     m_tsUnk7C.Load(file, K_LEVEL_PLATEFORMS);
-    m_tsUnk84.Load(file, K_LEVEL_PLATEFORMS);
-    for (float& f : m_afUnk50) ReadF32LE(file, &f);
-    for (float& f : m_afUnk5C) ReadF32LE(file, &f);
+    m_tsOnStateChange.Load(file, K_LEVEL_PLATEFORMS);
+    for (float& f : m_v3CrumbleFxOffset) ReadF32LE(file, &f);
+    for (float& f : m_v3BreakFxOffset) ReadF32LE(file, &f);
     IKFile_ReadRef(file, &m_pUnk70);
-    IKFile_ReadRef(file, &m_pUnk74);
+    IKFile_ReadRef(file, &m_pStateChangeQuake);
     return 1;
 }
 
@@ -129,7 +129,7 @@ void CKHkCrumblyZoneMultiState::Start() {
     CKHkActorBase::Start();
     for (uint32_t i = m_vUnk38.m_ui32NbUsedElt; i != 0; --i) {
         CKCrumblyZoneState* state = static_cast<CKCrumblyZoneState*>(m_vUnk38.m_pBlock[i - 1]);
-        state->m_unk08 = (i - 1) < m_unk28 ? 0.0f : state->m_unk0c;
+        state->m_unk08 = (i - 1) < m_ui32CurrentState ? 0.0f : state->m_unk0c;
     }
 }
 
@@ -142,18 +142,18 @@ void CKHkCrumblyZoneMultiState::Start() {
 // answer (3 wins, then 2, then 0 when the base answered 0).
 int32_t CKHkCrumblyZoneMultiState::MessageProc(uint16_t message, void* data) {
     const int32_t base = CKHkActorBase::MessageProc(message, data);
-    CKCrumblyZoneState* current = static_cast<CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_unk28]);
+    CKCrumblyZoneState* current = static_cast<CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_ui32CurrentState]);
     const uint32_t count = m_vUnk38.m_ui32NbUsedElt;  // +0x40
     // The state after / before the current one (the jump of its +0x48 / +0x44, a signed index, when below the count).
     auto next = [&]() -> uint32_t {
         const int32_t jump = current->m_unk48;
         if (jump >= 0 && count > static_cast<uint32_t>(jump)) return static_cast<uint32_t>(jump);
-        return count - 1 > m_unk28 ? m_unk28 + 1 : m_unk28;
+        return count - 1 > m_ui32CurrentState ? m_ui32CurrentState + 1 : m_ui32CurrentState;
     };
     auto previous = [&]() -> uint32_t {
         const int32_t jump = current->m_unk44;
         if (jump >= 0 && count > static_cast<uint32_t>(jump)) return static_cast<uint32_t>(jump);
-        return m_unk28 != 0 ? m_unk28 - 1 : m_unk28;
+        return m_ui32CurrentState != 0 ? m_ui32CurrentState - 1 : m_ui32CurrentState;
     };
     int32_t own = 0;
     switch (message) {
@@ -181,7 +181,7 @@ int32_t CKHkCrumblyZoneMultiState::MessageProc(uint16_t message, void* data) {
         const RwFrame* frame = static_cast<CSGMovable*>(m_pKGLObject)->m_pRwFrame;
         CVector3 center = {frame->ltm.pos.x, frame->ltm.pos.y, frame->ltm.pos.z};
         current->ComputeCenter(&center);
-        static_cast<CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_unk28])->ApplyDamage(damage, &center);  // 0x004047d0
+        static_cast<CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_ui32CurrentState])->ApplyDamage(damage, &center);  // 0x004047d0
         break;
     }
     case 0x99d: {
@@ -201,7 +201,7 @@ int32_t CKHkCrumblyZoneMultiState::MessageProc(uint16_t message, void* data) {
 
 // 0x00414040 CKHkCrumblyZoneMultiState_CurrentStateHasPieces_maybe
 uint8_t CKHkCrumblyZoneMultiState::CurrentStateHasPieces() const {
-    const CKCrumblyZoneState* state = static_cast<const CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_unk28]);
+    const CKCrumblyZoneState* state = static_cast<const CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_ui32CurrentState]);
     return static_cast<const CKBoundingCpnt*>(state->m_pBoundingCpnt)->GetVolumeCount() != 0 ? 1 : 0;  // 0x00190408
 }
 
@@ -213,7 +213,7 @@ void CKHkCrumblyZoneMultiState::VfA0() {
         state->SetEnabled(0, 1);       // 0x00404050
         state->UpdateNavBlocking(0);   // 0x00404378
     }
-    SetState(m_unk28, 1, 0);  // vt+0xf0
+    SetState(m_ui32CurrentState, 1, 0);  // vt+0xf0
     for (uint32_t i = m_vUnk2C.m_ui32NbUsedElt; i != 0; --i) {
         static_cast<CKCrumblyZoneElement*>(m_vUnk2C.m_pBlock[i - 1])->ResetMeshMatrixA();  // 0x00402710
         static_cast<CKCrumblyZoneElement*>(m_vUnk2C.m_pBlock[i - 1])->ResetMeshMatrixB();  // 0x004026d0
@@ -230,17 +230,17 @@ void CKHkCrumblyZoneMultiState::Restart() {
         state->SetEnabled(0, 1);       // 0x00404050
         state->UpdateNavBlocking(0);   // 0x00404378
     }
-    SetState(m_unk28, 1, 0);  // vt+0xf0
+    SetState(m_ui32CurrentState, 1, 0);  // vt+0xf0
 }
 
 // 0x004120a0 CKHkCrumblyZoneMultiState_SetState_maybe
 void CKHkCrumblyZoneMultiState::SetState(uint32_t state, uint8_t force, uint8_t sound) {
     if (force == 0) {
-        if (m_unk28 == state) return;
-        QueueTriggerSignals(&m_tsUnk84);  // 0x00236338
+        if (m_ui32CurrentState == state) return;
+        QueueTriggerSignals(&m_tsOnStateChange);  // 0x00236338
     }
     CKCrumblyZoneState* next = static_cast<CKCrumblyZoneState*>(m_vUnk38.m_pBlock[state]);
-    CKCrumblyZoneState* current = static_cast<CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_unk28]);
+    CKCrumblyZoneState* current = static_cast<CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_ui32CurrentState]);
     if (next->m_pBoundingCpnt != nullptr && current->m_pBoundingCpnt != nullptr) next->CopyContactList(current);  // 0x00403c20
     current->SetEnabled(0, sound);
     current->UpdateNavBlocking(0);
@@ -249,16 +249,16 @@ void CKHkCrumblyZoneMultiState::SetState(uint32_t state, uint8_t force, uint8_t 
     next->SetEnabled(1, sound);
     next->UpdateNavBlocking(1);
     if (sound != 0) {
-        if (m_unk28 < state) {
+        if (m_ui32CurrentState < state) {
             PlayCrumbleFx();  // vt+0xf8
         } else {
             PlayBreakFx();    // vt+0xfc
         }
     }
-    m_unk28 = state;
+    m_ui32CurrentState = state;
     for (uint32_t i = m_vUnk38.m_ui32NbUsedElt; i != 0; --i) {
         CKCrumblyZoneState* s = static_cast<CKCrumblyZoneState*>(m_vUnk38.m_pBlock[i - 1]);
-        if (m_unk28 > i - 1) {
+        if (m_ui32CurrentState > i - 1) {
             s->m_unk08 = 0.0f;
         } else {
             s->m_unk08 = s->m_unk0c;
@@ -272,7 +272,7 @@ int32_t CKHkCrumblyZoneMultiState::GetInfo(IKInfo* info, int32_t request) {
     if (request != kGetInfoValueAccessor) return 1;
     if (info->m_ui32Id == 0x15e) {
         return AnswerInfo(info, [](IKSerializable* o, uint32_t state) {
-            return static_cast<CKHkCrumblyZoneMultiState*>(o)->m_unk28 == state ? 1u : 0u;
+            return static_cast<CKHkCrumblyZoneMultiState*>(o)->m_ui32CurrentState == state ? 1u : 0u;
         }, 0);
     }
     if (info->m_ui32Id == 0x15f) {
@@ -285,7 +285,7 @@ int32_t CKHkCrumblyZoneMultiState::GetInfo(IKInfo* info, int32_t request) {
 
 // 0x00412020 CKHkCrumblyZoneMultiState_SetVisible_maybe
 void CKHkCrumblyZoneMultiState::SetVisible(int32_t visible) {
-    static_cast<CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_unk28])->SetEnabled(static_cast<uint8_t>(visible), 1);  // 0x00404050
+    static_cast<CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_ui32CurrentState])->SetEnabled(static_cast<uint8_t>(visible), 1);  // 0x00404050
     CKGrpMeca* meca = static_cast<CKGrpMeca*>(g_pEngine->m_gameManager->m_unk04[2]);  // the game manager's +0x0c
     meca->m_unk32 = meca->m_unk32 == 2 ? 3 : 1;
 }
@@ -293,7 +293,7 @@ void CKHkCrumblyZoneMultiState::SetVisible(int32_t visible) {
 // 0x00411250 CKHkCrumblyZoneMultiState_AdvanceToNextState_maybe: the current state's next one (+0x48, a signed index,
 // when below the count; else the following state, the last one keeping itself) set (vt+0xf0, not forced).
 void CKHkCrumblyZoneMultiState::AdvanceToNextState(uint8_t sound) {
-    const uint32_t current = m_unk28;
+    const uint32_t current = m_ui32CurrentState;
     const int32_t jump = static_cast<CKCrumblyZoneState*>(m_vUnk38.m_pBlock[current])->m_unk48;
     const uint32_t count = m_vUnk38.m_ui32NbUsedElt;
     if (jump >= 0 && static_cast<uint32_t>(jump) < count) {
@@ -306,7 +306,7 @@ void CKHkCrumblyZoneMultiState::AdvanceToNextState(uint8_t sound) {
 // 0x00411338 CKHkCrumblyZoneMultiState_GoToPreviousState: the previous one (+0x44, else the one before, the first
 // keeping itself).
 void CKHkCrumblyZoneMultiState::GoToPreviousState(uint8_t sound) {
-    const uint32_t current = m_unk28;
+    const uint32_t current = m_ui32CurrentState;
     const int32_t jump = static_cast<CKCrumblyZoneState*>(m_vUnk38.m_pBlock[current])->m_unk44;
     if (jump >= 0 && static_cast<uint32_t>(jump) < m_vUnk38.m_ui32NbUsedElt) {
         SetState(static_cast<uint32_t>(jump), 0, sound);  // vt+0xf0
@@ -330,9 +330,9 @@ namespace {
 // The pieces of the current state whose entry has its +0x02 byte reset to their loaded matrices (last first; the crumble
 // and break effects' tail).
 void ResetMarkedPieces(CKHkCrumblyZoneMultiState* zone) {
-    const CKCrumblyZoneState* state = static_cast<const CKCrumblyZoneState*>(zone->m_vUnk38.m_pBlock[zone->m_unk28]);
+    const CKCrumblyZoneState* state = static_cast<const CKCrumblyZoneState*>(zone->m_vUnk38.m_pBlock[zone->m_ui32CurrentState]);
     for (uint32_t i = state->m_vEntries.m_ui32NbUsedElt; i != 0; --i) {
-        const CKCrumblyZoneState* now = static_cast<const CKCrumblyZoneState*>(zone->m_vUnk38.m_pBlock[zone->m_unk28]);
+        const CKCrumblyZoneState* now = static_cast<const CKCrumblyZoneState*>(zone->m_vUnk38.m_pBlock[zone->m_ui32CurrentState]);
         if (now->m_vEntries.m_pBlock[i - 1].m_unk02 == 0) continue;
         static_cast<CKCrumblyZoneElement*>(zone->m_vUnk2C.m_pBlock[i - 1])->ResetMeshMatrixA();  // 0x00402710
         static_cast<CKCrumblyZoneElement*>(zone->m_vUnk2C.m_pBlock[i - 1])->ResetMeshMatrixB();  // 0x004026d0
@@ -345,14 +345,14 @@ void ResetMarkedPieces(CKHkCrumblyZoneMultiState* zone) {
 // rotation (the position the null vector) as its launch matrix; then the marked pieces reset and the quake (+0x74)
 // started.
 void CKHkCrumblyZoneMultiState::PlayCrumbleFx() {
-    IKFx* fx = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(static_cast<IKFxData*>(m_pUnk44), this);
+    IKFx* fx = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(static_cast<IKFxData*>(m_pCrumbleFx), this);
     if (fx != nullptr) {
         CKExplosionNodeFx* explosion = static_cast<CKExplosionNodeFx*>(fx);
         const RwFrame* frame = static_cast<CSGMovable*>(m_pKGLObject)->m_pRwFrame;
         CVector3 at;
-        at.x = frame->ltm.pos.x + m_afUnk50[0];
-        at.z = frame->ltm.pos.z + m_afUnk50[2];
-        at.y = frame->ltm.pos.y + m_afUnk50[1];
+        at.x = frame->ltm.pos.x + m_v3CrumbleFxOffset[0];
+        at.z = frame->ltm.pos.z + m_v3CrumbleFxOffset[2];
+        at.y = frame->ltm.pos.y + m_v3CrumbleFxOffset[1];
         frame = static_cast<CSGMovable*>(m_pKGLObject)->m_pRwFrame;
         const CVector3 direction = {frame->ltm.at.x, frame->ltm.at.y, frame->ltm.at.z};
         // The launch matrix (the LTM's rows, the null position, flag 0x20000 cleared) is built on the stack and passed as
@@ -365,27 +365,27 @@ void CKHkCrumblyZoneMultiState::PlayCrumbleFx() {
     }
     ResetMarkedPieces(this);
     // DOTD: without a quake (+0x74 null) the original reads the low address 4 (zero: nothing happens).
-    if (m_pUnk74 != nullptr) static_cast<CKQuakeCpntUpdater*>(m_pUnk74)->Start();  // 0x0024f770
+    if (m_pStateChangeQuake != nullptr) static_cast<CKQuakeCpntUpdater*>(m_pStateChangeQuake)->Start();  // 0x0024f770
 }
 
 // 0x00412bd8 CKHkCrumblyZoneMultiState_PlayBreakFx_maybe (vt+0xfc): the same with +0x48's data at the node's position
 // plus +0x5c (no direction, no launch matrix).
 void CKHkCrumblyZoneMultiState::PlayBreakFx() {
-    IKFx* fx = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(static_cast<IKFxData*>(m_pUnk48), this);
+    IKFx* fx = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(static_cast<IKFxData*>(m_pBreakFx), this);
     if (fx != nullptr) {
         CKExplosionNodeFx* explosion = static_cast<CKExplosionNodeFx*>(fx);
         const RwFrame* frame = static_cast<CSGMovable*>(m_pKGLObject)->m_pRwFrame;
         CVector3 at;
-        at.x = frame->ltm.pos.x + m_afUnk5C[0];
-        at.z = frame->ltm.pos.z + m_afUnk5C[2];
-        at.y = frame->ltm.pos.y + m_afUnk5C[1];
+        at.x = frame->ltm.pos.x + m_v3BreakFxOffset[0];
+        at.z = frame->ltm.pos.z + m_v3BreakFxOffset[2];
+        at.y = frame->ltm.pos.y + m_v3BreakFxOffset[1];
         explosion->SetTranslation(&at, this);  // 0x001b66e8
         explosion->Trigger(this, 0);           // 0x001b82a8
         explosion->ReleaseReservation(this);   // vt+0x54
     }
     ResetMarkedPieces(this);
     // DOTD: without a quake (+0x74 null) the original reads the low address 4 (zero: nothing happens).
-    if (m_pUnk74 != nullptr) static_cast<CKQuakeCpntUpdater*>(m_pUnk74)->Start();  // 0x0024f770
+    if (m_pStateChangeQuake != nullptr) static_cast<CKQuakeCpntUpdater*>(m_pStateChangeQuake)->Start();  // 0x0024f770
 }
 
 // 0x00411410 CKHkCrumblyZoneMultiState_GetHitDamage_maybe (vt+0xf4)
@@ -394,42 +394,42 @@ float CKHkCrumblyZoneMultiState::GetHitDamage(IKBoundingVolume* volume, uint8_t 
     // DOTD: the original calls the damage's IsKindOfClass without a null test.
     if (damage == nullptr || damage->IsKindOfClass(0x96cc) == 0) return 0.0f;  // vt+0x08
     const float dt = g_pEngine->m_timeManager->m_pTime->m_afDeltaTime[0];  // +0x48 -> +0x04 -> +0x1c
-    if (damage->m_unk0c != 0) return dt * damage->m_unk04;
-    return damage->m_unk04;
+    if (damage->m_bContinuous != 0) return dt * damage->m_fAmount;
+    return damage->m_fAmount;
 }
 
 // 0x00413c78 CKHkCrumblyZoneMultiState_PlayHitFxAt_maybe (vt+0x100)
 void CKHkCrumblyZoneMultiState::PlayHitFxAt(const CVector3* point) {
-    IKFx* fx = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(static_cast<IKFxData*>(m_pUnk4C), this);  // inlined
+    IKFx* fx = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(static_cast<IKFxData*>(m_pHitFx), this);  // inlined
     if (fx != nullptr) {
         CKExplosionNodeFx* explosion = static_cast<CKExplosionNodeFx*>(fx);
         explosion->SetTranslation(point, this);  // 0x001b66e8
         explosion->Trigger(this, 0);             // 0x001b82a8
         explosion->ReleaseReservation(this);     // vt+0x54
     }
-    const CKCrumblyZoneState* state = static_cast<const CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_unk28]);
+    const CKCrumblyZoneState* state = static_cast<const CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_ui32CurrentState]);
     for (uint32_t i = state->m_vEntries.m_ui32NbUsedElt; i != 0; --i) {
-        const CKCrumblyZoneState* now = static_cast<const CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_unk28]);
+        const CKCrumblyZoneState* now = static_cast<const CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_ui32CurrentState]);
         if (now->m_vEntries.m_pBlock[i - 1].m_unk01 == 0) continue;
         static_cast<CKCrumblyZoneElement*>(m_vUnk2C.m_pBlock[i - 1])->ResetMeshMatrixA();  // 0x00402710
         static_cast<CKCrumblyZoneElement*>(m_vUnk2C.m_pBlock[i - 1])->ResetMeshMatrixB();  // 0x004026d0
     }
     // DOTD: without a quake (+0x6c null) the original reads the low address 4 (zero: nothing happens).
-    if (m_pUnk6C != nullptr) static_cast<CKQuakeCpntUpdater*>(m_pUnk6C)->Start();  // 0x0024f770
+    if (m_pHitQuake != nullptr) static_cast<CKQuakeCpntUpdater*>(m_pHitQuake)->Start();  // 0x0024f770
 }
 
 // 0x00411598 CKHkCrumblyZoneMultiState_UpdateShakes_maybe
 void CKHkCrumblyZoneMultiState::UpdateShakes(IKTime* frameClock) {
     for (int pass = 0; pass < 2; ++pass) {
-        CKQuakeCpntUpdater* quake = static_cast<CKQuakeCpntUpdater*>(pass == 0 ? m_pUnk6C : m_pUnk74);
+        CKQuakeCpntUpdater* quake = static_cast<CKQuakeCpntUpdater*>(pass == 0 ? m_pHitQuake : m_pStateChangeQuake);
         if (quake->m_bRunning == 0) continue;
         float out[15];
         quake->EvaluateScaled(frameClock->m_afDeltaTime[0], 1.0f, out);  // 0x0024f5c8 (TOC +0x4a9c)
         CMatrix34 shake;
         ShakeSample_BuildMatrix(quake, out, &shake, nullptr);  // 0x0024ee90
-        const CKCrumblyZoneState* state = static_cast<const CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_unk28]);
+        const CKCrumblyZoneState* state = static_cast<const CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_ui32CurrentState]);
         for (uint32_t i = state->m_vEntries.m_ui32NbUsedElt; i != 0; --i) {
-            const CKCrumblyZoneState* now = static_cast<const CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_unk28]);
+            const CKCrumblyZoneState* now = static_cast<const CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_ui32CurrentState]);
             const CKCrumblyZoneState::Entry& entry = now->m_vEntries.m_pBlock[i - 1];
             if ((pass == 0 ? entry.m_unk01 : entry.m_unk02) == 0) continue;
             static_cast<CKCrumblyZoneElement*>(m_vUnk2C.m_pBlock[i - 1])->ApplyWorldMatrix(&shake);  // 0x00403138
@@ -439,14 +439,14 @@ void CKHkCrumblyZoneMultiState::UpdateShakes(IKTime* frameClock) {
 
 // 0x00411e78 CKHkCrumblyZoneMultiState_Update (vt+0x7c; WorldObjectBase_Update_Nop first)
 void CKHkCrumblyZoneMultiState::Update(IKTime* frameClock) {
-    static_cast<CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_unk28])->UpdateState(frameClock);  // 0x00403ec8
+    static_cast<CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_ui32CurrentState])->UpdateState(frameClock);  // 0x00403ec8
     UpdateShakes(frameClock);  // 0x00411598
     for (uint32_t i = 0; i < m_vUnk2C.m_ui32NbUsedElt; ++i) {
         static_cast<CKCrumblyZoneElement*>(m_vUnk2C.m_pBlock[i])->AdvancePieceAnim(frameClock);  // 0x00402990
     }
     CKGrpMeca* meca = static_cast<CKGrpMeca*>(g_pEngine->m_gameManager->m_unk04[2]);  // the game manager's +0x0c
     if (static_cast<int8_t>(meca->m_unk32) > 1) {
-        static_cast<CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_unk28])->UpdateNavBlocking(1);  // 0x00404378
+        static_cast<CKCrumblyZoneState*>(m_vUnk38.m_pBlock[m_ui32CurrentState])->UpdateNavBlocking(1);  // 0x00404378
     }
 }
 

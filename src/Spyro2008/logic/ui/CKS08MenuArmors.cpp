@@ -280,7 +280,7 @@ void CKS08MenuArmors::HandleSlotInput() {
     CKInputDico* dico = project == 0xff ? nullptr : &input->m_aaInputDico[project][1];  // null: the original reads at 0x10
     if (Gm(this)->IsPlayerActive(m_ui8Player) == 0) return;  // vt+0x180
     if (dico->GetButtonState(static_cast<uint8_t>((m_ui8Player * 0x14 + 4) & 0xfc)) == 0xff) {  // 0x0010e7d0
-        const uint8_t item = m_unk6c[m_ui8Player];
+        const uint8_t item = m_aui8FocusedItem[m_ui8Player];
         const Piece p = ItemPiece(item);
         uint8_t& chosen = m_aaui8Equipped[p.dragon][p.slot];
         if (chosen == p.armor) {
@@ -351,7 +351,7 @@ uint8_t CKS08MenuArmors::OnMenuState(int32_t phase, uint8_t /*other*/) {
             const uint8_t collected = structure->IsArmorPieceCollected(p.dragon, p.armor, p.slot);  // 0x00510078
             button->SetDisabled(static_cast<uint8_t>(collected == 0 && (gm->m_flags64 & 0x2000000u) == 0));  // vt+0x84
         }
-        m_ui32Selection = m_unk6c[m_ui8Player];
+        m_ui32Selection = m_aui8FocusedItem[m_ui8Player];
         m_aaui8Equipped[0][0] = gm->GetEquippedArmor(0, 0);  // 0x004fd658
         m_aaui8Equipped[1][0] = gm->GetEquippedArmor(1, 0);
         m_aaui8Equipped[0][1] = gm->GetEquippedArmor(0, 1);

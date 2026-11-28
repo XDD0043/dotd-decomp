@@ -92,26 +92,26 @@ void CKHkS08Hero::HandleHeroContactDamageAndImpulse(ICollision* collision, IKBou
         bool plain = true;  // the touch of a volume without a damage object (0x0030cebc)
         if (object != nullptr && object->IsKindOfClass(0x970c) != 0) {  // CKS08Damage
             const CKS08Damage* damage = static_cast<const CKS08Damage*>(object);
-            const uint8_t lasting = damage->m_unk0c;
+            const uint8_t lasting = damage->m_bContinuous;
             const uint8_t held = damage->m_unk26;
             const uint8_t golem = object->IsKindOfClass(0xad4c) != 0  // CKS08GolemDamage
                                       ? static_cast<const CKS08GolemDamage*>(object)->m_unk30
                                       : 0;
             if (lasting != 0) {
                 plain = false;
-                if (ContactHistory_Touch(-1000.0f, 0.0f, &m_unk10c, other, other->m_pOwner) != 0) hit();  // 0x005830f8
+                if (ContactHistory_Touch(-1000.0f, 0.0f, &m_pDamageContactHistory, other, other->m_pOwner) != 0) hit();  // 0x005830f8
             } else if (held != 0) {
                 plain = false;
-                if (ContactHistory_Touch(-1000.0f, 1.0f, &m_unk10c, other, nullptr) != 0) hit();
+                if (ContactHistory_Touch(-1000.0f, 1.0f, &m_pDamageContactHistory, other, nullptr) != 0) hit();
             } else if (golem != 0) {
                 plain = false;
-                if (m_unk1ac4 == 0 && ContactHistory_Touch(-1000.0f, -1000.0f, &m_unk10c, other, other->m_pOwner) != 0) {
+                if (m_unk1ac4 == 0 && ContactHistory_Touch(-1000.0f, -1000.0f, &m_pDamageContactHistory, other, other->m_pOwner) != 0) {
                     hit();
                 }
             }
         }
         if (plain && m_unk1ac4 == 0 &&
-            ContactHistory_Touch(-1000.0f, 1.0f, &m_unk10c, other, other->m_pOwner) != 0) {  // TOC +0x21cc / +0x21d0
+            ContactHistory_Touch(-1000.0f, 1.0f, &m_pDamageContactHistory, other, other->m_pOwner) != 0) {  // TOC +0x21cc / +0x21d0
             hit();
         }
     }
@@ -140,7 +140,7 @@ void CKHkS08Hero::HandleHeroContactDamageAndImpulse(ICollision* collision, IKBou
     if (ownerType == 3) {
         if (PartnerShouldStayClimbing() != 0 && m_ui8Hero == m_ui8TrackedLeader) {  // 0x002f8628
             if (other->m_ui8OwnerType == 3) {
-                if ((m_unk354 & 0x40u) != 0) return;
+                if ((m_ui32HeroFlags354 & 0x40u) != 0) return;
                 const float penetration = collision->GetdInterpenetration();  // vt+0x18
                 const CVector3* normal = collision->GetNormale12();           // vt+0x1c
                 const float nz = normal->z, nx = normal->x, ny = normal->y;
@@ -158,7 +158,7 @@ void CKHkS08Hero::HandleHeroContactDamageAndImpulse(ICollision* collision, IKBou
         ownerType = other->m_ui8OwnerType;
     }
     if (ownerType == 1 && (own->m_ui16PropertiesFlags & 1u) != 0 && other->m_pOwner->IsKindOfClass(0x3182) != 0) {
-        m_unked4 = (m_unked4 & 0xfffffffdu) | 2u;  // CKHkGolem
+        m_ui32StatusFlagsED4 = (m_ui32StatusFlagsED4 & 0xfffffffdu) | 2u;  // CKHkGolem
     }
 }
 
@@ -166,7 +166,7 @@ void CKHkS08Hero::HandleHeroContactDamageAndImpulse(ICollision* collision, IKBou
 // (+0x1b8c..+0x1b98) switched off; `enable`: the first one attached to the hot spot with the radius and the damage
 // (+0x1c), +0xec4 bit 0x20 set; else +0xec4 bits 0xe0 cleared and +0x1bb0 = 0.
 void CKHkS08Hero::SetupHitSphere(float radius, uint8_t enable, int8_t hotspot, IKSerializable* damage) {
-    m_unk1bac = 0;
+    m_ui32ActiveHitSphereCount = 0;
     IKBoundingVolume* volumes[4] = {static_cast<IKBoundingVolume*>(m_unk1b8c), static_cast<IKBoundingVolume*>(m_unk1b90),
                                     static_cast<IKBoundingVolume*>(m_unk1b94), static_cast<IKBoundingVolume*>(m_unk1b98)};
     for (IKBoundingVolume* volume : volumes) SetCollisionVolumeEnabled(volume, 0);  // 0x00352f10
@@ -195,7 +195,7 @@ void AttachTrailSphere(IKBoundingVolume* volume, CSGHotSpot* spot, float radius)
 
 // 0x0030ec40 CKHkS08Hero_SetupTrailHitSpheres2
 void CKHkS08Hero::SetupTrailHitSpheres2(float radius, CSGHotSpot* a, CSGHotSpot* b, IKSerializable* damage) {
-    m_unk1bac = 0;
+    m_ui32ActiveHitSphereCount = 0;
     IKBoundingVolume* volumes[4] = {static_cast<IKBoundingVolume*>(m_unk1b8c), static_cast<IKBoundingVolume*>(m_unk1b90),
                                     static_cast<IKBoundingVolume*>(m_unk1b94), static_cast<IKBoundingVolume*>(m_unk1b98)};
     for (IKBoundingVolume* volume : volumes) SetCollisionVolumeEnabled(volume, 0);  // 0x00352f10
@@ -209,7 +209,7 @@ void CKHkS08Hero::SetupTrailHitSpheres2(float radius, CSGHotSpot* a, CSGHotSpot*
 // 0x0030ee78 CKHkS08Hero_SetupTrailHitSpheres4_maybe
 void CKHkS08Hero::SetupTrailHitSpheres4(float radius, CSGHotSpot* a, CSGHotSpot* b, CSGHotSpot* c, CSGHotSpot* d,
                                         IKSerializable* damage) {
-    m_unk1bac = 0;
+    m_ui32ActiveHitSphereCount = 0;
     IKBoundingVolume* volumes[4] = {static_cast<IKBoundingVolume*>(m_unk1b8c), static_cast<IKBoundingVolume*>(m_unk1b90),
                                     static_cast<IKBoundingVolume*>(m_unk1b94), static_cast<IKBoundingVolume*>(m_unk1b98)};
     for (IKBoundingVolume* volume : volumes) SetCollisionVolumeEnabled(volume, 0);
@@ -224,19 +224,19 @@ namespace {
 // CKDamage_Assign 0x253a88): the fields copied, nothing for the same object.
 void AssignHeroDamage(CKS08HeroDamage* to, const CKS08HeroDamage* from) {
     if (to == from) return;
-    to->m_unk0c = from->m_unk0c;
-    to->m_unk04 = from->m_unk04;
-    to->m_unk08 = from->m_unk08;
+    to->m_bContinuous = from->m_bContinuous;
+    to->m_fAmount = from->m_fAmount;
+    to->m_i32DamageKind = from->m_i32DamageKind;
     to->m_unk26 = from->m_unk26;
-    to->m_unk10 = from->m_unk10;
-    to->m_unk14 = from->m_unk14;
+    to->m_fKnockbackForce = from->m_fKnockbackForce;
+    to->m_fKnockbackTime = from->m_fKnockbackTime;
     to->m_unk18 = from->m_unk18;
     to->m_unk1c = from->m_unk1c;
-    to->m_unk20 = from->m_unk20;
+    to->m_ui32DamageType = from->m_ui32DamageType;
     to->m_unk24 = from->m_unk24;
     to->m_unk25 = from->m_unk25;
-    to->m_unk2c = from->m_unk2c;
-    to->m_unk28 = from->m_unk28;
+    to->m_fDisarmAmount = from->m_fDisarmAmount;
+    to->m_fStunAmount = from->m_fStunAmount;
 }
 }  // namespace
 
@@ -262,8 +262,8 @@ void CKHkS08Hero::ArmPendingHitSpheres() {
     m_unk1bb0 = 1;
     for (uint32_t i = 0; i < count; ++i) {
         SetCollisionVolumeEnabled(static_cast<IKBoundingVolume*>(volumes[i]), 1);  // 0x00352f10
-        m_apActiveHitSpheres[m_unk1bac] = volumes[i];
-        m_unk1bac = m_unk1bac + 1;
+        m_apActiveHitSpheres[m_ui32ActiveHitSphereCount] = volumes[i];
+        m_ui32ActiveHitSphereCount = m_ui32ActiveHitSphereCount + 1;
     }
     m_unkec4 &= ~bit;
 }
@@ -274,7 +274,7 @@ void CKHkS08Hero::ArmPendingHitSpheres() {
 // the window closes the sphere cleared.
 void CKHkS08Hero::UpdateComboHitSpheres() {
     ArmPendingHitSpheres();  // 0x0030e990
-    CKS08HeroBlow* blow = static_cast<CKS08HeroCombo*>(m_unk1a88)->GetBlow();  // vt+0x54
+    CKS08HeroBlow* blow = static_cast<CKS08HeroCombo*>(m_pCurrentComboNode)->GetBlow();  // vt+0x54
     (void)blow->GetAnimId();  // vt+0x8c (the result is not used)
     if ((m_unkedc & 0x10u) == 0) {
         if (m_unk1bb0 != 0) SetupHitSphere(1.0f, 0, -1, nullptr);  // TOC +0x21d0
@@ -283,10 +283,10 @@ void CKHkS08Hero::UpdateComboHitSpheres() {
     if (m_unk1bb0 != 0) return;
     CKS08HeroDamage* damage = static_cast<CKS08HeroDamage*>(m_unk1dbc);
     AssignHeroDamage(damage, blow->GetDamage());  // 0x003c9c08
-    float scale = (m_unked0 & 0x40u) != 0 ? m_unke78 : 1.0f;
-    if ((m_unked0 & 0x10u) != 0) scale = scale * m_unkeb0;
-    damage->m_unk04 = scale * damage->m_unk04;
-    if ((m_unked0 & 0x200u) != 0) damage->m_unk2c = m_unke7c * damage->m_unk2c;
+    float scale = (m_ui32StatusFlagsED0 & 0x40u) != 0 ? m_unke78 : 1.0f;
+    if ((m_ui32StatusFlagsED0 & 0x10u) != 0) scale = scale * m_unkeb0;
+    damage->m_fAmount = scale * damage->m_fAmount;
+    if ((m_ui32StatusFlagsED0 & 0x200u) != 0) damage->m_fDisarmAmount = m_unke7c * damage->m_fDisarmAmount;
     if (m_unk1ad2 != 0 || m_unk1ad3 != 0) {
         // The trail spheres at the two hot spots of the swing trails' first ribbons (A: +0x5c[0], B: +0x5c[2]).
         auto ribbon = [this](int k) {
@@ -365,15 +365,15 @@ void CKHkS08Hero::HandleHeroDamageAndReaction(IKSerializable* source, const CVec
     bool heavy = false;
     if (m_ui8Hero == m_ui8TrackedLeader && source->IsKindOfClass(0xa40c) != 0 && volume != nullptr &&
         volume->m_unk1c != nullptr && volume->m_unk1c->IsKindOfClass(0x970c) != 0) {
-        heavy = static_cast<const CKS08Damage*>(volume->m_unk1c)->m_unk04 >= 10000.0f;  // TOC +0x21e4, cror gt / eq
+        heavy = static_cast<const CKS08Damage*>(volume->m_unk1c)->m_fAmount >= 10000.0f;  // TOC +0x21e4, cror gt / eq
     }
     if ((m_unkecc & 0x08000000u) != 0 && !heavy) return;
-    if ((m_unk354 & 0x04000000u) != 0) return;
-    if ((m_unk35c & 4u) != 0) return;
-    if ((m_unked0 & 0x00800000u) == 0 && (m_unked0 & 0x10u) == 0) m_unk1ac4 = 1;
-    QueueTriggerSignals(&m_unk1154);  // 0x00236338
+    if ((m_ui32HeroFlags354 & 0x04000000u) != 0) return;
+    if ((m_ui32HeroFlags35C & 4u) != 0) return;
+    if ((m_ui32StatusFlagsED0 & 0x00800000u) == 0 && (m_ui32StatusFlagsED0 & 0x10u) == 0) m_unk1ac4 = 1;
+    QueueTriggerSignals(&m_tsHit);  // 0x00236338
     if (m_ui8Hero != m_ui8TrackedLeader) return;
-    QueueTriggerSignals(&static_cast<CKGrpS08Hero*>(m_pGrpHero)->m_tsUnkac0);
+    QueueTriggerSignals(&static_cast<CKGrpS08Hero*>(m_pGrpHero)->m_tsOnPlayerHeroHurt);
     const CVector3& zero = kHeroZeroVector;  // TOC +0x21d4 -> 0x00c50d64
     m_unk1ae8 = 0;
     if (zero.x == point->x && point->y == zero.y && point->z == zero.z) {
@@ -387,28 +387,28 @@ void CKHkS08Hero::HandleHeroDamageAndReaction(IKSerializable* source, const CVec
     }
     CKS08GameManager* manager = static_cast<CKS08GameManager*>(g_pEngine->m_gameManager);  // TOC +0x21d8
     if (volume == nullptr) {
-        if ((m_unk35c & 0x10u) == 0) {
+        if ((m_ui32HeroFlags35C & 0x10u) == 0) {
             // BUG(original): without +0x35c bit 4 the original goes on with the null volume (its +0x1c and +0x19 read at
             // address 0, a fault on the PS3). No caller passes a null volume without the bit.
             return;
         }
         // 0x0030de04: the source answers the message 0xc32 (how hard it hits); a reply of kind 3 ends the hit.
-        m_unk12c = nullptr;
+        m_pTargetedMecaHook = nullptr;
         HazardHitQuery query = MakeHazardHitQuery(this, nullptr);
         source->MessageProc(0xc32, &query);  // vt+0x1c
         if (query.m_kind == 3) {
             m_unk1ac4 = 0;
             return;
         }
-        if (m_unk1acc != 0 && m_unk124 != nullptr && m_unk1ac4 != 0) DropGrabbedEnemy();  // 0x002fc600
+        if (m_unk1acc != 0 && m_pTargetedEnemy != nullptr && m_unk1ac4 != 0) DropGrabbedEnemy();  // 0x002fc600
         // The original also takes the arc cosine of the reply's direction (+0x94 over its length, clamped to -1..1;
         // TocBridge_Math_Acosf 0x98e1a0) here and drops the result.
         const float reduced = ComputeHeroDamageAfterReduction(static_cast<float>(static_cast<double>(query.m_damage)), 1);
         const uint32_t amount = static_cast<uint32_t>(ppc::fctidz(reduced));
         manager->DamageDragon(m_ui8Hero, amount);  // 0x004fda08
-        m_unk354 = (m_unk354 & 0xbfffffffu) | 0x40000000u;
+        m_ui32HeroFlags354 = (m_ui32HeroFlags354 & 0xbfffffffu) | 0x40000000u;
         bool leave = true;
-        if ((m_unk360 & 0x00100000u) != 0) leave = !(query.m_damage < manager->GetDragonHealth(m_ui8Hero));  // cmplw; blt
+        if ((m_ui32HeroFlags360 & 0x00100000u) != 0) leave = !(query.m_damage < manager->GetDragonHealth(m_ui8Hero));  // cmplw; blt
         if (leave) LeaveAttachedObject();  // 0x00344e88
         if (!(query.m_point.x == zero.x && query.m_point.y == zero.y && query.m_point.z == zero.z)) {
             m_unkf8 = query.m_point.x;
@@ -424,7 +424,7 @@ void CKHkS08Hero::HandleHeroDamageAndReaction(IKSerializable* source, const CVec
     if (source->IsKindOfClass(0x3182) != 0) {  // CKHkGolem
         m_unk1ae8 = 1;
     } else if (object != nullptr && object->IsKindOfClass(0x970c) != 0) {
-        m_unk1ae8 = static_cast<const CKS08Damage*>(object)->m_unk20;
+        m_unk1ae8 = static_cast<const CKS08Damage*>(object)->m_ui32DamageType;
         if (m_unk1ae8 == 0 && m_unk1b30 > 0.0f) {  // ble: a NaN goes on
             m_unk1ac4 = 0;
             return;
@@ -442,8 +442,8 @@ void CKHkS08Hero::HandleHeroDamageAndReaction(IKSerializable* source, const CVec
         std::memcpy(&word18, &damage->m_unk18, sizeof(word18));
         angleX = word18 * 57.29578f;  // TOC +0x21e8
         angleY = damage->m_unk1c * 57.29578f;
-        knock = damage->m_unk10;
-        knockUp = damage->m_unk14;
+        knock = damage->m_fKnockbackForce;
+        knockUp = damage->m_fKnockbackTime;
     };
     // The whole points of `raw` (a lasting damage by the frame through the fraction +0x1b40), kept as dealt (f30).
     auto wholeDamage = [&](float raw, uint8_t lasting) -> uint32_t {
@@ -464,10 +464,10 @@ void CKHkS08Hero::HandleHeroDamageAndReaction(IKSerializable* source, const CVec
     // 0x0030dd30: a volume's damage to the dragon; the hero leaves what it holds unless +0x360 bit 20 and its health is
     // above the raw damage (a float compare here, cror lt|eq).
     auto volumeDamage = [&](const CKDamage* raw) {
-        const float damage = raw->m_unk04;
-        const uint32_t amount = wholeDamage(damage, raw->m_unk0c);
+        const float damage = raw->m_fAmount;
+        const uint32_t amount = wholeDamage(damage, raw->m_bContinuous);
         bool leave = true;
-        if ((m_unk360 & 0x00100000u) != 0) {
+        if ((m_ui32HeroFlags360 & 0x00100000u) != 0) {
             leave = static_cast<float>(static_cast<double>(manager->GetDragonHealth(m_ui8Hero))) <= damage;  // 0x4fd9c8
         }
         if (leave) LeaveAttachedObject();          // 0x00344e88
@@ -484,13 +484,13 @@ void CKHkS08Hero::HandleHeroDamageAndReaction(IKSerializable* source, const CVec
         IKSerializable* owner = volume->m_pOwner;
         if (owner == nullptr) return;
         CKHkS08Enemy* enemy = static_cast<CKHkS08Enemy*>(owner);
-        if (m_unk1acc != 0 && m_unk124 != nullptr) {
+        if (m_unk1acc != 0 && m_pTargetedEnemy != nullptr) {
             if (m_unk1ac4 != 0) {
                 DropGrabbedEnemy();  // 0x002fc600
-                m_unk124 = owner;
+                m_pTargetedEnemy = owner;
             }
         } else {
-            m_unk124 = owner;
+            m_pTargetedEnemy = owner;
         }
         m_unkf8 = enemy->m_v3Position.x;
         m_unkfc = enemy->m_v3Position.y;
@@ -503,14 +503,14 @@ void CKHkS08Hero::HandleHeroDamageAndReaction(IKSerializable* source, const CVec
                 std::memcpy(&word18, &damage->m_unk18, sizeof(word18));
                 angleX = word18 * 57.29578f;           // TOC +0x21e8
                 angleY = damage->m_unk1c * 57.29578f;
-                knock = damage->m_unk10;
-                knockUp = damage->m_unk14;
+                knock = damage->m_fKnockbackForce;
+                knockUp = damage->m_fKnockbackTime;
             }
-            dealt = raw->m_unk04;
-            if (owner->IsKindOfClass(0x26c2) != 0) dealt = dealt * enemy->m_unk884->m_unk554;
+            dealt = raw->m_fAmount;
+            if (owner->IsKindOfClass(0x26c2) != 0) dealt = dealt * enemy->m_pActiveEnemyCpnt->m_unk554;
             uint32_t amount;
             int64_t whole;
-            if (raw->m_unk0c != 0) {
+            if (raw->m_bContinuous != 0) {
                 float fraction = AsF32(m_unk1b40) + ComputeHeroDamageAfterReduction(dealt * m_unk88c, 0);
                 SetF32(m_unk1b40, fraction);
                 whole = ppc::fctidz(fraction);
@@ -522,7 +522,7 @@ void CKHkS08Hero::HandleHeroDamageAndReaction(IKSerializable* source, const CVec
                 amount = static_cast<uint32_t>(whole);
             }
             bool leave = true;
-            if ((m_unk360 & 0x00100000u) != 0) {
+            if ((m_ui32HeroFlags360 & 0x00100000u) != 0) {
                 const uint32_t health = manager->GetDragonHealth(m_ui8Hero);  // 0x004fd9c8
                 whole = ppc::fctidz(dealt);
                 leave = !(static_cast<uint32_t>(whole) < health);  // cmplw
@@ -531,7 +531,7 @@ void CKHkS08Hero::HandleHeroDamageAndReaction(IKSerializable* source, const CVec
             manager->DamageDragon(m_ui8Hero, amount);  // 0x004fda08
             dealt = static_cast<float>(static_cast<double>(whole));  // the last word stored at sp+0xc0
         }
-        if ((m_unked0 & 0x00200000u) != 0 && enemy->IsValidCombatTarget() != 0) {  // 0x00289278
+        if ((m_ui32StatusFlagsED0 & 0x00200000u) != 0 && enemy->IsValidCombatTarget() != 0) {  // 0x00289278
             enemy->ReceiveDamage(m_unk1b50, this);                                 // 0x0028a6e0
         }
         if (dealt == 0.0f) m_unk1ae8 = 2;
@@ -573,7 +573,7 @@ void CKHkS08Hero::HandleHeroDamageAndReaction(IKSerializable* source, const CVec
             takeKnockData(object);
             m_unkfc = m_unk550;
             const CKDamage* raw = static_cast<const CKDamage*>(object);
-            const uint32_t amount = wholeDamage(raw->m_unk04, raw->m_unk0c);
+            const uint32_t amount = wholeDamage(raw->m_fAmount, raw->m_bContinuous);
             manager->DamageDragon(m_ui8Hero, amount);  // 0x004fda08
             if (dealt == 0.0f) m_unk1ae8 = 2;
         }
@@ -587,8 +587,8 @@ void CKHkS08Hero::HandleHeroDamageAndReaction(IKSerializable* source, const CVec
         }
         IKSerializable* owner = volume->m_pOwner;
         const RwV3d self = static_cast<CSGMovable*>(m_pKGLObject)->m_pRwFrame->ltm.pos;
-        if (m_unk1acc != 0 && m_unk124 != nullptr && m_unk1ac4 != 0) DropGrabbedEnemy();  // 0x002fc600
-        m_unk12c = owner;
+        if (m_unk1acc != 0 && m_pTargetedEnemy != nullptr && m_unk1ac4 != 0) DropGrabbedEnemy();  // 0x002fc600
+        m_pTargetedMecaHook = owner;
         const float length = std::sqrt(ppc::fmadds(query.m_dirX, query.m_dirX, query.m_dirZ * query.m_dirZ));  // fsqrts
         if (length != 0.0f) {
             float c = query.m_dirX / length;
@@ -600,12 +600,12 @@ void CKHkS08Hero::HandleHeroDamageAndReaction(IKSerializable* source, const CVec
             angleX = crt::Acosf(c) * 57.29578f;  // TocBridge_Math_Acosf 0x98e1a0; TOC +0x21e8
         }
         bool leave = true;
-        if ((m_unk360 & 0x00100000u) != 0) leave = !(query.m_damage < manager->GetDragonHealth(m_ui8Hero));  // cmplw; blt
+        if ((m_ui32HeroFlags360 & 0x00100000u) != 0) leave = !(query.m_damage < manager->GetDragonHealth(m_ui8Hero));  // cmplw; blt
         if (leave) LeaveAttachedObject();  // 0x00344e88
-        if (m_unk12c->IsKindOfClass(0x2f42) != 0) {
+        if (m_pTargetedMecaHook->IsKindOfClass(0x2f42) != 0) {
             // A hazardous jet: the origin below the hero's node along the jet's up axis, moved by 0.3 of the aim
             // direction; +0x11ec the jet's down axis.
-            const RwV3d& up = static_cast<CSGMovable*>(static_cast<IKHook*>(m_unk12c)->m_pKGLObject)->m_pRwFrame->ltm.up;
+            const RwV3d& up = static_cast<CSGMovable*>(static_cast<IKHook*>(m_pTargetedMecaHook)->m_pKGLObject)->m_pRwFrame->ltm.up;
             const float nx = -up.x;
             const float nz = -up.z;
             const float ny = -up.y;
@@ -623,7 +623,7 @@ void CKHkS08Hero::HandleHeroDamageAndReaction(IKSerializable* source, const CVec
             m_unk11f0 = ny;
         } else if (query.m_point.x == zero.x && query.m_point.y == zero.y && query.m_point.z == zero.z) {
             if (m_unk1ae8 == 0) {
-                const RwV3d& at = static_cast<CSGMovable*>(static_cast<IKHook*>(m_unk12c)->m_pKGLObject)->m_pRwFrame->ltm.pos;
+                const RwV3d& at = static_cast<CSGMovable*>(static_cast<IKHook*>(m_pTargetedMecaHook)->m_pKGLObject)->m_pRwFrame->ltm.pos;
                 m_unkf8 = at.x;
                 m_unkfc = at.y;
                 m_unk100 = at.z;
@@ -649,7 +649,7 @@ void CKHkS08Hero::HandleHeroDamageAndReaction(IKSerializable* source, const CVec
             const uint32_t amount = static_cast<uint32_t>(ppc::fctidz(ComputeHeroDamageAfterReduction(45.0f, 1)));  // TOC +0x21f4
             volumeOrigin();
             bool leave = true;
-            if ((m_unk360 & 0x00100000u) != 0) {
+            if ((m_ui32HeroFlags360 & 0x00100000u) != 0) {
                 leave = static_cast<float>(static_cast<double>(manager->GetDragonHealth(m_ui8Hero))) <= 45.0f;  // cror lt|eq
             }
             if (leave) LeaveAttachedObject();  // 0x00344e88
@@ -665,7 +665,7 @@ void CKHkS08Hero::HandleHeroDamageAndReaction(IKSerializable* source, const CVec
         m_unk1ae8 = 2;
     }
     // 0x0030da3c: the knock back away from the origin.
-    m_unk354 = (m_unk354 & 0xbfffffffu) | 0x40000000u;
+    m_ui32HeroFlags354 = (m_ui32HeroFlags354 & 0xbfffffffu) | 0x40000000u;
     float dx = m_unkf8 - m_unk54c;
     float dy = m_unkfc - m_unk550;
     float dz = m_unk100 - m_unk554;

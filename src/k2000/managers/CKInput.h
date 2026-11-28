@@ -214,7 +214,7 @@ public:
     CKFilterAnalog* m_aaFiltersAnalog;        // +0x2c m_aaFilters[2]
     CKMapping* m_aaMappings;            // +0x30 new[count] when the count is not 0
     CKComboManager* m_pComboManager;    // +0x34 made by InitializeModule
-    uint8_t m_unk38;                    // +0x38 constructor 0 (DotD)
+    uint8_t m_bRefreshVibrationRequest;                    // +0x38 constructor 0 (DotD)
     uint8_t m_ui8NbInputProjet;         // +0x39
     uint8_t m_ui8NbInputConfig;         // +0x3a
     uint8_t m_ui8NbAction;              // +0x3b
@@ -227,19 +227,19 @@ public:
     CKComboTransition* m_aComboTransition;  // +0x54
     CKCommand* m_aComboCommand;         // +0x58
     uint32_t* m_aProjectName;           // +0x5c name hashes (Str_HashXor4), one per project
-    uint32_t m_unk60;                   // +0x60
+    uint32_t m_bNoActivityBeforeDetection;                   // _maybe: +0x60
     uint32_t m_unk64;                   // +0x64
     uint32_t m_baActiveConfig;          // +0x68 CBitArray: bit c = configuration c enabled (CKInput_SetMappingEnabled)
     int32_t m_ECurCommandMappingType;   // +0x6c CKInput_SelectMappingSet_maybe stores it and passes it to every action
-    uint8_t m_unk70;                    // +0x70
-    uint8_t m_unk71;                    // +0x71 constructor 0; the Load sets the type (1); SetMotionSensorEnabled tests it
+    uint8_t m_bBlockedByTrc;                    // _maybe: +0x70
+    uint8_t m_bExportedInputLoaded;                    // +0x71 constructor 0; the Load sets the type (1); SetMotionSensorEnabled tests it
     uint8_t m_pad72[2];
     CKVibrationMotor** m_ppPadVibrationMotor;   // +0x74 [pad] new CKVibrationMotor[2]
     CKVibration* m_lpPadVibrationsActiveList;   // +0x78 TSNodeList head
     CKVibration* m_lpPadVibrationsWaitingList;  // +0x7c TSNodeList head; InitializeModule links m_aPadVibrations
     CKVibration m_aPadVibrations[5];            // +0x80
     CKVibration m_aSavedPadVibrations[5];       // +0xe4
-    uint8_t m_unk148;                   // +0x148 InitializeModule sets 0; CKInput_DetectButtonActivity_maybe (per frame) sets it
+    uint8_t m_ui8InputActivityFlags;                   // +0x148 InitializeModule sets 0; CKInput_DetectButtonActivity_maybe (per frame) sets it
     uint8_t m_pad149[3];
     TVector<InputSequenceData, 8> m_vSequenceData;  // +0x14c (DotD)
 };
@@ -252,7 +252,7 @@ DOTD_ASSERT_OFFSET(CKInput, m_pKParams, 0x20);
 DOTD_ASSERT_OFFSET(CKInput, m_aaFiltersBinary, 0x24);
 DOTD_ASSERT_OFFSET(CKInput, m_aaMappings, 0x30);
 DOTD_ASSERT_OFFSET(CKInput, m_pComboManager, 0x34);
-DOTD_ASSERT_OFFSET(CKInput, m_unk38, 0x38);
+DOTD_ASSERT_OFFSET(CKInput, m_bRefreshVibrationRequest, 0x38);
 DOTD_ASSERT_OFFSET(CKInput, m_ui8NbInputProjet, 0x39);
 DOTD_ASSERT_OFFSET(CKInput, m_ui8NbAction, 0x3b);
 DOTD_ASSERT_OFFSET(CKInput, m_aNbActionByConfig, 0x3c);
@@ -262,11 +262,11 @@ DOTD_ASSERT_OFFSET(CKInput, m_aCombo, 0x50);
 DOTD_ASSERT_OFFSET(CKInput, m_aProjectName, 0x5c);
 DOTD_ASSERT_OFFSET(CKInput, m_baActiveConfig, 0x68);
 DOTD_ASSERT_OFFSET(CKInput, m_ECurCommandMappingType, 0x6c);
-DOTD_ASSERT_OFFSET(CKInput, m_unk71, 0x71);
+DOTD_ASSERT_OFFSET(CKInput, m_bExportedInputLoaded, 0x71);
 DOTD_ASSERT_OFFSET(CKInput, m_ppPadVibrationMotor, 0x74);
 DOTD_ASSERT_OFFSET(CKInput, m_aPadVibrations, 0x80);
 DOTD_ASSERT_OFFSET(CKInput, m_aSavedPadVibrations, 0xe4);
-DOTD_ASSERT_OFFSET(CKInput, m_unk148, 0x148);
+DOTD_ASSERT_OFFSET(CKInput, m_ui8InputActivityFlags, 0x148);
 DOTD_ASSERT_OFFSET(CKInput, m_vSequenceData, 0x14c);
 
 // 0x00106fa0 Pad_Init: cellPadInit(7). Mode 0 step 0 calls it with the CKInput (unused).

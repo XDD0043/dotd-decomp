@@ -50,13 +50,13 @@ uint8_t CKS08GameManager::State6Common(int32_t phase, uint8_t /*other*/) {
         if (Vf310(0) == 0 || g_pEngine->m_gameLoop->m_unk5c != 0) {
             Vf314(0, 1);
             // vt+0x31c 0x4f6b48: player 0's position (+0x298) = (-1, -1), returned and stored again.
-            m_afUnk298[1] = -0x1p+0f;
-            m_afUnk298[0] = -0x1p+0f;
+            m_afPointerPos[1] = -0x1p+0f;
+            m_afPointerPos[0] = -0x1p+0f;
         }
         IKNode2d* billboard = static_cast<IKNode2d*>(m_unk2A8[0]);
         CVector2 position;
-        position.m_fX = m_afUnk298[0];
-        position.m_fY = m_afUnk298[1];
+        position.m_fX = m_afPointerPos[0];
+        position.m_fY = m_afPointerPos[1];
         billboard->SetPos(position);  // vt+0x74
         billboard->Enable();          // vt+0x64
     } else if (phase == 2) {
@@ -156,7 +156,7 @@ uint8_t CKS08GameManager::State1(int32_t phase, uint8_t /*other*/) {
                 if ((m_flags64 & 0x400000) == 0) m_flags64 = m_flags64 | 0x400000 | 0x20;
                 else if ((m_flags64 & 0x20) == 0) m_flags64 = (m_flags64 & ~0x8000000u) | 0x8000000;
             }
-        } else if (g_pEngine->m_gameManager->m_unk290 == -1) {
+        } else if (g_pEngine->m_gameManager->m_i32RequestedLanguage == -1) {
             return g_pEngine->m_gameLoop->m_mode != CKGameLoop::kModeLevel ? 1 : 0;
         }
         return 1;
@@ -230,13 +230,13 @@ uint8_t CKS08GameManager::StateMenuCommon(int32_t phase, uint8_t) {
     if (Vf310(player) == 0 || g_pEngine->m_gameLoop->m_unk5c != 0) {
         Vf314(player, 1);
         const CVector2 pointer = GetPointerPosition(player);  // vt+0x31c
-        m_afUnk298[player * 2] = pointer.m_fX;
-        m_afUnk298[player * 2 + 1] = pointer.m_fY;
+        m_afPointerPos[player * 2] = pointer.m_fX;
+        m_afPointerPos[player * 2 + 1] = pointer.m_fY;
     }
     IKNode2d* billboard = static_cast<IKNode2d*>(m_unk2A8[player]);
     CVector2 position;
-    position.m_fX = m_afUnk298[player * 2];
-    position.m_fY = m_afUnk298[player * 2 + 1];
+    position.m_fX = m_afPointerPos[player * 2];
+    position.m_fY = m_afPointerPos[player * 2 + 1];
     billboard->SetPos(position);  // vt+0x74
     billboard->Enable();          // vt+0x64
     return 8;

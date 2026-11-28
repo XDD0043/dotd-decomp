@@ -65,5 +65,5 @@ void LocLoadRequest::Execute() {
     }
     // Kind 3 (kChangeLanguage): the options menu's language change. The PS3 code leaves r5 (reload) as it
     // was; Engine_ReloadLocalizedData does not use it.
-    Engine_ChangeLanguage(g_pEngine->m_coreManager, g_pEngine->m_gameManager->m_unk290, 0);
+    Engine_ChangeLanguage(g_pEngine->m_coreManager, g_pEngine->m_gameManager->m_i32RequestedLanguage, 0);
 }

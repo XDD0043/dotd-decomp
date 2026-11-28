@@ -97,40 +97,40 @@ public:
     uint8_t& HealthDivisor1() { return m_aSubclassTail[1]; }
 
     uint32_t m_dwHealthMultiplier;  // +0x48 GAME.KP3 (live: 100)
-    uint32_t m_unk4c;               // +0x4c run time (live: 300)
+    uint32_t m_dwSpyroHealth;               // +0x4c run time (live: 300)
     uint32_t m_dwHealthBase;        // +0x50 GAME.KP3 (live: 300)
-    uint32_t m_unk54;               // +0x54 run time
-    uint32_t m_unk58;               // +0x58 GAME.KP3 (Ghidra field_0x58)
+    uint32_t m_dwCynderHealth;               // +0x54 run time
+    uint32_t m_dwCynderStartHealth;               // +0x58 GAME.KP3 (Ghidra field_0x58)
     uint8_t m_bManaDivisor0;        // +0x5c GAME.KP3
     uint8_t m_bManaDivisor1;        // +0x5d GAME.KP3
     uint8_t m_pad5e[2];
     uint32_t m_dwManaMultiplier;    // +0x60 GAME.KP3
-    uint32_t m_unk64;               // +0x64 run time
+    uint32_t m_dwSpyroMana;               // +0x64 run time
     uint32_t m_dwManaBase;          // +0x68 GAME.KP3
-    uint32_t m_unk6c;               // +0x6c run time
-    uint32_t m_unk70;               // +0x70 GAME.KP3 (Ghidra field_0x70)
-    uint32_t m_unk74;               // +0x74 run time
-    uint32_t m_unk78;               // +0x78 run time
-    uint32_t m_unk7c;               // +0x7c GAME.KP3, read after +0x80 (live: 4000)
-    uint32_t m_unk80;               // +0x80 GAME.KP3
+    uint32_t m_dwCynderMana;               // +0x6c run time
+    uint32_t m_dwCynderStartMana;               // +0x70 GAME.KP3 (Ghidra field_0x70)
+    uint32_t m_dwSpyroFury;               // +0x74 run time
+    uint32_t m_dwCynderFury;               // +0x78 run time
+    uint32_t m_dwMaxTotalFury;               // +0x7c GAME.KP3, read after +0x80 (live: 4000)
+    uint32_t m_dwSharedBonusPoints;               // +0x80 GAME.KP3
     uint8_t m_unk84[0xd0];          // +0x84..+0x153 run time
-    TVector<uint8_t, 8> m_avbUnk154[12];  // +0x154 sized by GAME.KP3 (contents not in the file)
+    TVector<uint8_t, 8> m_avObjectiveStates[12];  // +0x154 sized by GAME.KP3 (contents not in the file)
     uint8_t m_unk1e4[8];            // +0x1e4 run time
-    uint32_t m_unk1ec;              // +0x1ec GAME.KP3 (Ghidra field_0x1ec)
+    uint32_t m_dwCheckpointMinHealth;              // +0x1ec GAME.KP3 (Ghidra field_0x1ec)
     uint8_t m_unk1f0[0x64];         // +0x1f0..+0x253 run time
 };
 DOTD_ASSERT_SIZE(CKS08GameStructure, 0x254);
 DOTD_ASSERT_OFFSET(CKS08GameStructure, m_dwHealthMultiplier, 0x48);
 DOTD_ASSERT_OFFSET(CKS08GameStructure, m_dwHealthBase, 0x50);
-DOTD_ASSERT_OFFSET(CKS08GameStructure, m_unk58, 0x58);
+DOTD_ASSERT_OFFSET(CKS08GameStructure, m_dwCynderStartHealth, 0x58);
 DOTD_ASSERT_OFFSET(CKS08GameStructure, m_bManaDivisor0, 0x5c);
 DOTD_ASSERT_OFFSET(CKS08GameStructure, m_dwManaMultiplier, 0x60);
 DOTD_ASSERT_OFFSET(CKS08GameStructure, m_dwManaBase, 0x68);
-DOTD_ASSERT_OFFSET(CKS08GameStructure, m_unk70, 0x70);
-DOTD_ASSERT_OFFSET(CKS08GameStructure, m_unk7c, 0x7c);
-DOTD_ASSERT_OFFSET(CKS08GameStructure, m_unk80, 0x80);
-DOTD_ASSERT_OFFSET(CKS08GameStructure, m_avbUnk154, 0x154);
-DOTD_ASSERT_OFFSET(CKS08GameStructure, m_unk1ec, 0x1ec);
+DOTD_ASSERT_OFFSET(CKS08GameStructure, m_dwCynderStartMana, 0x70);
+DOTD_ASSERT_OFFSET(CKS08GameStructure, m_dwMaxTotalFury, 0x7c);
+DOTD_ASSERT_OFFSET(CKS08GameStructure, m_dwSharedBonusPoints, 0x80);
+DOTD_ASSERT_OFFSET(CKS08GameStructure, m_avObjectiveStates, 0x154);
+DOTD_ASSERT_OFFSET(CKS08GameStructure, m_dwCheckpointMinHealth, 0x1ec);
 
 // 0x00511060 / 0x005111a0 / 0x005115d0 / 0x00511710 (CKS08GameStructure.cpp): the health and mana capacities;
 // include != 0 counts every matching collectible, 0 only the flagged ones.

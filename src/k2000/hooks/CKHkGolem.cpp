@@ -113,8 +113,8 @@
 // 0x004bf6b8 CKHkGolem_Construct (the same body inlined in CKHkGolem_Create 0x4c0ce0): the four vectors
 // empty with capacity 1.
 CKHkGolem::CKHkGolem() {
-    m_unk2C = 0;
-    m_unk20 = 0;
+    m_pAttachedObjects = 0;
+    m_pContactHistory = 0;
     m_unk34.m_ui32NbElt = 1;
     m_unk34.m_pBlock = nullptr;
     m_unk34.m_ui32NbUsedElt = 0;
@@ -176,7 +176,7 @@ void CKHkGolem::LoadObjectVector(IKFile* file, int32_t /*type*/) {
 int32_t CKHkGolem::Load(IKFile* file, int32_t type) {
     CKHkActorBase::Load(file, type);
     if (type != K_LEVEL_PLATEFORMS) return 1;
-    IKFile_ReadRef(file, &m_unk30);
+    IKFile_ReadRef(file, &m_pPhaseManager);
     LoadObjectVector(file, K_LEVEL_PLATEFORMS);
 
     uint32_t count = 0;
@@ -258,13 +258,13 @@ int32_t CKHkGolem::Load(IKFile* file, int32_t type) {
         Push(m_unk70, node);
     }
 
-    IKFile_ReadRef(file, &m_unk7C);
-    IKFile_ReadRef(file, &m_unk80);
-    ReadS32LE(file, &m_unk88);
-    IKFile_ReadRef(file, &m_unk28);
-    IKFile_ReadRef(file, &m_unk24);
-    ReadU8(file, &m_unk90);
-    IKFile_ReadRef(file, &m_unkBC);
+    IKFile_ReadRef(file, &m_pHitExplosionFx);
+    IKFile_ReadRef(file, &m_pContactParticlesFx);
+    ReadS32LE(file, &m_i32MaxHealth);
+    IKFile_ReadRef(file, &m_pBonusTable);
+    IKFile_ReadRef(file, &m_pDefaultStepDamage);
+    ReadU8(file, &m_bShowBossGauge);
+    IKFile_ReadRef(file, &m_pMarkedFx);
     for (float& value : m_af94) ReadF32LE(file, &value);
     return 1;
 }
@@ -273,7 +273,7 @@ int32_t CKHkGolem::Load(IKFile* file, int32_t type) {
 // actor base's, then a new matrix at +0x84 whatever the type.
 int32_t CKHkGolem::PostLoad(int32_t type) {
     CKHkActorBase::PostLoad(type);
-    m_pUnk84 = reinterpret_cast<CMatrix34*>(RwMatrixCreate());  // RwMatrixCreate_Thunk 0x23fa68
+    m_pSavedMatrix = reinterpret_cast<CMatrix34*>(RwMatrixCreate());  // RwMatrixCreate_Thunk 0x23fa68
     return 1;
 }
 
@@ -282,12 +282,12 @@ int32_t CKHkGolem::PostLoad(int32_t type) {
 void CKHkGolem::Start() {
     CKHkActorBase::Start();
     const float now = g_pEngine->m_timeManager->m_pTime->m_afCurrentTime[IKTime::SCALABLE_GAME_TIME];
-    m_unk48 = 0;
-    m_unk40 = 0;
-    m_unk44 = 0;
-    m_fUnk54 = now;
-    m_fUnk50 = now;
-    m_unk45 = 1;
+    m_i32DamageMark = 0;
+    m_i32TotalDamageTaken = 0;
+    m_bBossFightRunning = 0;
+    m_fLastMarkGameTime = now;
+    m_fStartGameTime = now;
+    m_bEnabled = 1;
 }
 
 // ---- C2.8: the golem at run time ----
@@ -296,7 +296,7 @@ float GolemClockTime() {
     return g_pEngine->m_timeManager->m_pTime->m_afCurrentTime[IKTime::SCALABLE_GAME_TIME];
 }
 
-CKGolemPhaseManager* CKHkGolem::PhaseManager() const { return static_cast<CKGolemPhaseManager*>(m_unk30); }
+CKGolemPhaseManager* CKHkGolem::PhaseManager() const { return static_cast<CKGolemPhaseManager*>(m_pPhaseManager); }
 
 namespace {
 CSGLeaf* NodeOf(const CKHkGolem* golem) { return static_cast<CSGLeaf*>(golem->m_pKGLObject); }
@@ -310,30 +310,30 @@ void SetBossFightByte(uint8_t on) {
 }  // namespace
 
 // 0x004bf9f8 CKHkGolem_SetTime54ToNow_maybe
-void CKHkGolem::SetTime54ToNow() { m_fUnk54 = GolemClockTime(); }
+void CKHkGolem::SetTime54ToNow() { m_fLastMarkGameTime = GolemClockTime(); }
 
 // 0x004becc8 CKHkGolem_ApplyDamagePoints_maybe
 void CKHkGolem::ApplyDamagePoints(int32_t points) {
-    const int32_t health = m_unk8C - points;
-    m_unk40 = m_unk40 + points;
-    m_unk8C = health;
-    if (health < 0) m_unk8C = 0;
+    const int32_t health = m_i32Health - points;
+    m_i32TotalDamageTaken = m_i32TotalDamageTaken + points;
+    m_i32Health = health;
+    if (health < 0) m_i32Health = 0;
 }
 
 // 0x004bed00 CKHkGolem_GetHealthPercent_maybe: 0 without a maximum; else health / maximum x 100 (the integers as
 // floats: fcfid / frsp).
 float CKHkGolem::GetHealthPercent() const {
-    if (m_unk88 < 1) return 0.0f;
-    const float health = static_cast<float>(static_cast<double>(static_cast<int64_t>(m_unk8C)));
-    const float maximum = static_cast<float>(static_cast<double>(static_cast<int64_t>(m_unk88)));
+    if (m_i32MaxHealth < 1) return 0.0f;
+    const float health = static_cast<float>(static_cast<double>(static_cast<int64_t>(m_i32Health)));
+    const float maximum = static_cast<float>(static_cast<double>(static_cast<int64_t>(m_i32MaxHealth)));
     return health / maximum * 100.0f;
 }
 
 // 0x004c0c80 CKHkGolem_GetHealthPercentInt_maybe: the same truncated (fctiwz).
 int32_t CKHkGolem::GetHealthPercentInt() const {
-    if (m_unk88 < 1) return 0;
-    const float health = static_cast<float>(static_cast<double>(static_cast<int64_t>(m_unk8C)));
-    const float maximum = static_cast<float>(static_cast<double>(static_cast<int64_t>(m_unk88)));
+    if (m_i32MaxHealth < 1) return 0;
+    const float health = static_cast<float>(static_cast<double>(static_cast<int64_t>(m_i32Health)));
+    const float maximum = static_cast<float>(static_cast<double>(static_cast<int64_t>(m_i32MaxHealth)));
     return static_cast<int32_t>(health / maximum * 100.0f);
 }
 
@@ -346,8 +346,8 @@ GolemPhaseCond* CKHkGolem::CreatePhaseCondition(uint32_t id) { return GolemPhase
 // gets x + 1 first), then its reservation is released. (The hot spot's world position is read and not used.)
 void CKHkGolem::SpawnContactParticleFx(CSGHotSpot* hotSpot, const CVector3* point, CVector3* direction) {
     if (hotSpot == nullptr) return;
-    CKParticlesEffectFxData* data = static_cast<CKParticlesEffectFxData*>(m_unk80);
-    data->m_unk08 = static_cast<uint8_t>(data->m_unk08 & ~0x10u);
+    CKParticlesEffectFxData* data = static_cast<CKParticlesEffectFxData*>(m_pContactParticlesFx);
+    data->m_ui8Flags = static_cast<uint8_t>(data->m_ui8Flags & ~0x10u);
     IKFx* fx = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(data, this);
     if (fx == nullptr) return;
     const float one = 1.0f;    // TOC1 +0x6720
@@ -410,10 +410,10 @@ void CKHkGolem::ProcessContacts(IKTime* clock, CKGolemAttackCommon* attack) {
             }
             if ((other->m_ui16PropertiesFlags & 8u) == 0) continue;
             IKSerializable* attacker = other->m_pOwner;
-            if (ContactHistory_Touch(-1000.0f, -1000.0f, &m_unk20, other, attacker) == 0) continue;  // 0x0098f380
+            if (ContactHistory_Touch(-1000.0f, -1000.0f, &m_pContactHistory, other, attacker) == 0) continue;  // 0x0098f380
             if (entry == nullptr) continue;
             CKDamage* damage = static_cast<CKDamage*>(other->m_unk1c);
-            if (damage == nullptr || damage->m_unk08 != 0 || entry->m_unk0c == 0) continue;
+            if (damage == nullptr || damage->m_i32DamageKind != 0 || entry->m_unk0c == 0) continue;
             const CVector3 contact = *c->GetWorldContactPoint();  // vt+0x20
             const RwFrame* attackerFrame = static_cast<CSGMovable*>(static_cast<IKHook*>(attacker)->m_pKGLObject)->m_pRwFrame;
             const RwFrame* ownFrame = own->m_pRwFrame;
@@ -428,7 +428,7 @@ void CKHkGolem::ProcessContacts(IKTime* clock, CKGolemAttackCommon* attack) {
                 dy = dy * scale;
             }
             CVector3 direction = {dx, dy, dz};
-            IKFx* fx = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(static_cast<IKFxData*>(m_unk7C), this);
+            IKFx* fx = static_cast<CKSrvFx*>(g_pEngine->m_srvFx)->AcquireFx(static_cast<IKFxData*>(m_pHitExplosionFx), this);
             if (fx != nullptr) {
                 CKExplosionNodeFx* explosion = static_cast<CKExplosionNodeFx*>(fx);
                 explosion->SetPosition(&direction, &contact, this);  // 0x001b6438
@@ -453,32 +453,32 @@ void CKHkGolem::ProcessContacts(IKTime* clock, CKGolemAttackCommon* attack) {
                 const CVector3 hit = *c->GetWorldContactPoint();  // vt+0x20
                 OnNewHitW(manager, dragon, &hit);  // OnNewHitW_2 0x004fe5f8
             }
-            float amount = damage->m_unk0c != 0 ? clock->m_afDeltaTime[0] * damage->m_unk04 : damage->m_unk04;
+            float amount = damage->m_bContinuous != 0 ? clock->m_afDeltaTime[0] * damage->m_fAmount : damage->m_fAmount;
             // --fps N (not in the original): a per-second damage counts one 60 Hz frame per new contact, as at 60 fps.
-            if (dotd::fps::Unlocked() && damage->m_unk0c != 0) {
-                amount = dotd::fps::Dt60(clock->m_afDeltaTime[0]) * damage->m_unk04;
+            if (dotd::fps::Unlocked() && damage->m_bContinuous != 0) {
+                amount = dotd::fps::Dt60(clock->m_afDeltaTime[0]) * damage->m_fAmount;
             }
             const int32_t points = static_cast<int32_t>(ppc::fctidz(amount));  // fctidz, the low word
-            m_unk40 = points + m_unk40;
-            m_unk8C = m_unk8C - points;
-            if (m_unk8C < 0) m_unk8C = 0;
+            m_i32TotalDamageTaken = points + m_i32TotalDamageTaken;
+            m_i32Health = m_i32Health - points;
+            if (m_i32Health < 0) m_i32Health = 0;
         }
     }
-    ContactHistory_Update(&m_unk20, clock);  // 0x0098f430
+    ContactHistory_Update(&m_pContactHistory, clock);  // 0x0098f430
 }
 
 // 0x004bed58 CKHkGolem_SpawnBonuses_maybe: CKSrvBonus_SpawnBonusesArgSwap_maybe 0x1265b0 (the service's SpawnBonuses
 // with the position as the base too and every mode) with the golem's table (+0x28).
 void CKHkGolem::SpawnBonuses(const CVector3* position, const CVector3* direction) {
     static_cast<KBase201*>(g_pEngine->m_srvBonus)
-        ->SpawnBonuses(static_cast<CKBonusData*>(m_unk28), position, direction, position, 0);  // 0x00126278
+        ->SpawnBonuses(static_cast<CKBonusData*>(m_pBonusTable), position, direction, position, 0);  // 0x00126278
 }
 
 // 0x004c2758 CKHkGolem_SpawnFxAt_maybe: a pooled effect of the hit explosion's data (+0x7c; the inlined CKSrvFx lookup,
 // reserved, owned by the golem, started) placed at `position` turned to `direction`, triggered and released (vt+0x54).
 void CKHkGolem::SpawnFxAt(const CVector3* position, const CVector3* direction) {
     CKSrvFx* fx = static_cast<CKSrvFx*>(g_pEngine->m_srvFx);
-    IKFx* effect = fx->AcquireFx(static_cast<IKFxData*>(m_unk7C), this);
+    IKFx* effect = fx->AcquireFx(static_cast<IKFxData*>(m_pHitExplosionFx), this);
     if (effect == nullptr) return;
     CKExplosionNodeFx* explosion = static_cast<CKExplosionNodeFx*>(effect);
     explosion->SetPosition(direction, position, this);  // 0x001b6438
@@ -488,21 +488,21 @@ void CKHkGolem::SpawnFxAt(const CVector3* position, const CVector3* direction) {
 
 // 0x004bf8a0 CKHkGolem_AddObjectToList2C_maybe: `object` pushed at the head of the list unless it is there.
 void CKHkGolem::AddObject(IKSerializable* object) {
-    for (ObjectNode* node = m_unk2C; node != nullptr; node = node->m_pNext) {
+    for (ObjectNode* node = m_pAttachedObjects; node != nullptr; node = node->m_pNext) {
         if (node->m_pObject == object) return;
     }
     ObjectNode* node = new ObjectNode;  // FreeListPool 0x00ceaa30
     node->m_pObject = object;
-    node->m_pNext = m_unk2C;
-    m_unk2C = node;
+    node->m_pNext = m_pAttachedObjects;
+    m_pAttachedObjects = node;
 }
 
 // 0x004c07c0 CKHkGolem_RemoveObjectFromList2C_maybe: the first node of `object` unlinked and back to the pool.
 void CKHkGolem::RemoveObject(IKSerializable* object) {
-    ObjectNode* head = m_unk2C;
+    ObjectNode* head = m_pAttachedObjects;
     if (head == nullptr) return;
     if (head->m_pObject == object) {
-        m_unk2C = head->m_pNext;
+        m_pAttachedObjects = head->m_pNext;
         delete head;
         return;
     }
@@ -540,19 +540,19 @@ int32_t CKHkGolem::MessageProc(uint16_t message, void* data) {
     case 0x999: {
         int32_t health;
         if (message == 0x996) {
-            health = *value + m_unk8C;
+            health = *value + m_i32Health;
         } else if (message == 0x997) {
             health = *value;
         } else if (message == 0x998) {
-            health = (*value * m_unk88) / 100 + m_unk8C;
+            health = (*value * m_i32MaxHealth) / 100 + m_i32Health;
         } else {
-            health = (*value * m_unk88) / 100;
+            health = (*value * m_i32MaxHealth) / 100;
         }
-        m_unk8C = health;
+        m_i32Health = health;
         if (health < 0) {
-            m_unk8C = 0;
-        } else if (m_unk88 < health) {
-            m_unk8C = m_unk88;
+            m_i32Health = 0;
+        } else if (m_i32MaxHealth < health) {
+            m_i32Health = m_i32MaxHealth;
         }
         break;
     }
@@ -577,7 +577,7 @@ int32_t CKHkGolem::GetInfo(IKInfo* info, int32_t request) {
     switch (info->m_ui32Id) {
     case 2:
         return AnswerInfo(info, [](IKSerializable* o, uint32_t) {
-            return static_cast<uint32_t>(static_cast<CKHkGolem*>(o)->m_unk8C);
+            return static_cast<uint32_t>(static_cast<CKHkGolem*>(o)->m_i32Health);
         }, 1);
     case 5:
     case 6:
@@ -594,15 +594,15 @@ int32_t CKHkGolem::GetInfo(IKInfo* info, int32_t request) {
 // every phase restarted (vt+0x60) and reset (vt+0x5c); else only restarted.
 void CKHkGolem::Restart() {
     PhaseManager()->StopCurrentPhase();
-    m_unk40 = 0;
-    m_unk8C = m_unk88;
-    m_unk44 = 0;
+    m_i32TotalDamageTaken = 0;
+    m_i32Health = m_i32MaxHealth;
+    m_bBossFightRunning = 0;
     NodeOf(this)->m_sgProperties = (NodeOf(this)->m_sgProperties & 0xfffffffbu) | 4u;
-    m_unk48 = 0;
-    m_fUnk54 = GolemClockTime();
-    m_fUnk50 = GolemClockTime();
+    m_i32DamageMark = 0;
+    m_fLastMarkGameTime = GolemClockTime();
+    m_fStartGameTime = GolemClockTime();
     if ((m_bitArray & 4u) == 0) {
-        static_cast<CSGMovable*>(m_pKGLObject)->SetLocalMatrix(reinterpret_cast<const RwMatrix*>(m_pUnk84));  // 0x000d0be8
+        static_cast<CSGMovable*>(m_pKGLObject)->SetLocalMatrix(reinterpret_cast<const RwMatrix*>(m_pSavedMatrix));  // 0x000d0be8
         PhaseManager()->Vf60();
         PhaseManager()->ResetAllPhases();
         return;
@@ -613,7 +613,7 @@ void CKHkGolem::Restart() {
 // 0x004bf298 CKHkGolem_Stop: the actor base's, the damage 0, the current phase stopped; KStub_Nop_5cebf8(+0xbc).
 void CKHkGolem::Stop() {
     CKHkActorBase::Stop();
-    m_unk40 = 0;
+    m_i32TotalDamageTaken = 0;
     PhaseManager()->StopCurrentPhase();
 }
 
@@ -622,10 +622,10 @@ void CKHkGolem::Stop() {
 // effects' channels reset.
 void CKHkGolem::VfA0() {
     CKHkActorBase::VfA0();
-    m_unk8C = m_unk88;
+    m_i32Health = m_i32MaxHealth;
     PhaseManager()->ResetAllPhases();
     NodeOf(this)->m_sgProperties = (NodeOf(this)->m_sgProperties & 0xfffffffbu) | 4u;
-    std::memcpy(m_pUnk84, &static_cast<CSGMovable*>(m_pKGLObject)->m_pRwFrame->modelling, sizeof(CMatrix34));
+    std::memcpy(m_pSavedMatrix, &static_cast<CSGMovable*>(m_pKGLObject)->m_pRwFrame->modelling, sizeof(CMatrix34));
     for (uint32_t i = 0; i < m_unk64.m_ui32NbUsedElt; ++i) {
         for (uint32_t j = 0; j < m_unk64.m_pBlock[i]->m_records.m_ui32NbUsedElt; ++j) {
             m_unk64.m_pBlock[i]->m_records.m_pBlock[j]->m_unk8 = nullptr;
@@ -639,14 +639,14 @@ void CKHkGolem::VfA0() {
             record->m_unk14 = 0.0f;
         }
     }
-    static_cast<CKMarkedFX*>(m_unkBC)->ResetChannels();  // 0x005cf1c0
+    static_cast<CKMarkedFX*>(m_pMarkedFx)->ResetChannels();  // 0x005cf1c0
 }
 
 // 0x004bfc88 CKHkGolem_OnDeactivate: the actor base's, the node back to its matrix, the running particle effects
 // stopped (StopOwnedParticleEffect), every phase restarted (vt+0x60), the node shown, the marked effects stopped.
 void CKHkGolem::VfA4() {
     CKHkActorBase::VfA4();
-    static_cast<CSGMovable*>(m_pKGLObject)->SetLocalMatrix(reinterpret_cast<const RwMatrix*>(m_pUnk84));
+    static_cast<CSGMovable*>(m_pKGLObject)->SetLocalMatrix(reinterpret_cast<const RwMatrix*>(m_pSavedMatrix));
     for (uint32_t i = 0; i < m_unk64.m_ui32NbUsedElt; ++i) {
         for (uint32_t j = 0; j < m_unk64.m_pBlock[i]->m_records.m_ui32NbUsedElt; ++j) {
             IKFx* effect = m_unk64.m_pBlock[i]->m_records.m_pBlock[j]->m_unk8;
@@ -655,7 +655,7 @@ void CKHkGolem::VfA4() {
     }
     PhaseManager()->Vf60();
     NodeOf(this)->m_sgProperties &= 0xfffffffbu;
-    static_cast<CKMarkedFX*>(m_unkBC)->StopAllChannelNodes2();  // 0x005cfb70
+    static_cast<CKMarkedFX*>(m_pMarkedFx)->StopAllChannelNodes2();  // 0x005cfb70
 }
 
 // 0x004bfdf0 CKHkGolem_SetActiveWithBossGauge_maybe (vt+0xd4): off, a running boss fight stops its phase, hides the
@@ -664,16 +664,16 @@ void CKHkGolem::VfA4() {
 // maxima, then refreshed) and, with a maximum health, sets the boss byte.
 void CKHkGolem::VfD4(int32_t on, int32_t /*mode*/) {
     if (on == 0) {
-        if (m_unk44 == 0) return;
+        if (m_bBossFightRunning == 0) return;
         PhaseManager()->StopCurrentPhase();
-        m_unk44 = 0;
+        m_bBossFightRunning = 0;
         NodeOf(this)->m_sgProperties = (NodeOf(this)->m_sgProperties & 0xfffffffbu) | 4u;
-        if (m_unk88 > 0) SetBossFightByte(0);
+        if (m_i32MaxHealth > 0) SetBossFightByte(0);
         return;
     }
-    if (m_unk44 != 0) return;
+    if (m_bBossFightRunning != 0) return;
     PhaseManager()->StartCurrentPhase();
-    m_unk44 = 1;
+    m_bBossFightRunning = 1;
     NodeOf(this)->m_sgProperties &= 0xfffffffbu;
     for (uint32_t i = 0; i < m_unk70.m_ui32NbUsedElt; ++i) {
         for (uint32_t j = 0; j < m_unk70.m_pBlock[i]->m_records.m_ui32NbUsedElt; ++j) {
@@ -683,15 +683,15 @@ void CKHkGolem::VfD4(int32_t on, int32_t /*mode*/) {
             record->m_unk18 = 0.0f;
         }
     }
-    if (m_unk90 != 0) {
+    if (m_bShowBossGauge != 0) {
         CKS08GameManager* manager = GameManager();
-        const float maximum = static_cast<float>(static_cast<double>(static_cast<int64_t>(m_unk88)));
+        const float maximum = static_cast<float>(static_cast<double>(static_cast<int64_t>(m_i32MaxHealth)));
         manager->SetBossGaugeHealth(maximum);       // 0x004feb00
         manager->SetEnemyGaugeMaxHealth(maximum);   // 0x004fea60
         manager->SetEnemyGaugeMaxHealth2(maximum);  // 0x004fe9c0
         manager->RefreshBossGauge();                // 0x00501ea0
     }
-    if (m_unk88 > 0) SetBossFightByte(1);
+    if (m_i32MaxHealth > 0) SetBossFightByte(1);
 }
 
 // 0x004befc0 CKHkGolem_UpdateProjectileLaunchers_maybe: each switched-on launcher record (+0x1c) without an interval
@@ -756,7 +756,7 @@ void CKHkGolem::TriggerStepExplosions(uint32_t value) {
             explosion->SetDamageCategory(1, this);    // 0x001b6318
             explosion->SetDamageFlags(0x200, this);   // 0x001b62f0
             IKSerializable* damage = m_unk58.m_pBlock[i]->m_pObject14;
-            if (damage == nullptr) damage = m_unk24;
+            if (damage == nullptr) damage = m_pDefaultStepDamage;
             explosion->SetDamage(damage, this);       // 0x001b62c8
             explosion->Trigger(this, 0);              // 0x001b82a8
             explosion->ReleaseReservation(this);      // vt+0x54
@@ -890,21 +890,21 @@ void CKHkGolem::UpdateAnimMarkEvents() {
 // kept, the phase manager updated (vt+0x50), the boss gauge set to the health (fight running and +0x90), the launchers,
 // the attached objects (vt+0x64) and, outside a QTE phase (0xa10c), the marked effects and the animation marks.
 void CKHkGolem::Update(IKTime* clock) {
-    if (m_unk45 == 0) return;
-    m_unk4C = m_unk40;
+    if (m_bEnabled == 0) return;
+    m_i32FrameStartDamage = m_i32TotalDamageTaken;
     PhaseManager()->UpdateCurrentPhase(clock);
-    if (m_unk44 != 0 && m_unk90 != 0) {
+    if (m_bBossFightRunning != 0 && m_bShowBossGauge != 0) {
         CKS08GameManager* manager = GameManager();
-        manager->SetBossGaugeHealth(static_cast<float>(static_cast<double>(static_cast<int64_t>(m_unk8C))));  // 0x004feb00
+        manager->SetBossGaugeHealth(static_cast<float>(static_cast<double>(static_cast<int64_t>(m_i32Health))));  // 0x004feb00
         manager->RefreshBossGauge();  // 0x00501ea0
     }
     UpdateProjectileLaunchers(clock);
-    for (ObjectNode* node = m_unk2C; node != nullptr; node = node->m_pNext) {
+    for (ObjectNode* node = m_pAttachedObjects; node != nullptr; node = node->m_pNext) {
         static_cast<CKGolemAttackCommon*>(node->m_pObject)->Vf64();  // vt+0x64 (KBaseC_vf64_3: empty)
     }
     IKSerializable* phase = PhaseManager()->GetCurrentPhase();  // 0x004bd330
     if (phase != nullptr && phase->IsKindOfClass(0xa10c) == 0) {
-        static_cast<CKMarkedFX*>(m_unkBC)->UpdateFromAnimMarks(clock);  // 0x005d0640
+        static_cast<CKMarkedFX*>(m_pMarkedFx)->UpdateFromAnimMarks(clock);  // 0x005d0640
         UpdateAnimMarkEvents();
     }
 }
@@ -941,7 +941,7 @@ void CKHkGolem::Destroy() {
     DeleteNodes(m_unk58);
     DeleteNodes(m_unk64);
     DeleteNodes(m_unk70);
-    RwMatrixDestroy(reinterpret_cast<RwMatrix*>(m_pUnk84));  // 0x00758890
+    RwMatrixDestroy(reinterpret_cast<RwMatrix*>(m_pSavedMatrix));  // 0x00758890
 }
 
 // 0x004c09b0 CKHkGolem_BaseDestructor (0x4c0850 CKHkGolem_Destructor calls it): the four vector blocks freed, the
@@ -952,11 +952,11 @@ CKHkGolem::~CKHkGolem() {
     FreeVector(m_unk64);
     FreeVector(m_unk58);
     FreeVector(m_unk34);
-    for (ObjectNode* node = m_unk2C; node != nullptr;) {
+    for (ObjectNode* node = m_pAttachedObjects; node != nullptr;) {
         ObjectNode* next = node->m_pNext;
         delete node;
         node = next;
     }
-    m_unk2C = nullptr;
-    m_unk20 = nullptr;
+    m_pAttachedObjects = nullptr;
+    m_pContactHistory = nullptr;
 }

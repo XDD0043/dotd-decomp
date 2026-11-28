@@ -1141,7 +1141,7 @@ int main() {
                             const CKInterfaceButton* button = static_cast<const CKInterfaceButton*>(page->m_apButtons.m_pBlock[i]);
                             if ((button->m_baFlags & 2) == 0) ++armorsEnabled;
                         }
-                        armorsFocus = page->m_unk6c[0];
+                        armorsFocus = page->m_aui8FocusedItem[0];
                         armorsBefore = page->m_aaui8Equipped[0][0];
                         g_d2 = CELL_PAD_CTRL_CROSS;
                         armorStep = 2;

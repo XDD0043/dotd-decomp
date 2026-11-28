@@ -71,8 +71,8 @@ uint32_t CountUncollectedOfType(CKS08GameLevel* level, uint8_t type) {
     uint32_t count = 0;
     for (uint32_t i = 0; i < level->m_vpCollectibles.m_ui32NbUsedElt; ++i) {
         CKS08GameLevelCollectible* collectible = level->m_vpCollectibles.m_pBlock[i];
-        if (collectible->m_unk1d != type) continue;
-        count += (static_cast<uint32_t>(collectible->m_unk1c) - 1u) >> 31;
+        if (collectible->m_ui8Category != type) continue;
+        count += (static_cast<uint32_t>(collectible->m_bCollected) - 1u) >> 31;
     }
     return count;
 }
@@ -126,7 +126,7 @@ uint8_t CKS08MenuChapter::OnMenuState(int32_t phase, uint8_t /*other*/) {
     if (phase == 0) {
         // The focused chapter (+0x6c) to its main level index (chapter 4 is level 5, chapter 10 level 4, ...).
         static const uint8_t kLevels[11] = {0, 1, 2, 3, 5, 7, 8, 9, 10, 0xb, 4};
-        if (m_unk6c[0] <= 10) RefreshChapterTexts(kLevels[m_unk6c[0]]);
+        if (m_aui8FocusedItem[0] <= 10) RefreshChapterTexts(kLevels[m_aui8FocusedItem[0]]);
     } else if (phase == 1) {
         CKS08GameManager* manager = static_cast<CKS08GameManager*>(m_pGameManager);
         static_cast<CKS08MenuMain*>(manager->Vf344()[9])->PlayLoopSounds();   // inlined in the original
