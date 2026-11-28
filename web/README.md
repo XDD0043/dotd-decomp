@@ -35,8 +35,8 @@ run_wasm.bat            (repo root)                          ->  serves it on ht
   one picture per refresh; the others are made and dropped. Kept in the browser like the cap. Not measured on a
   phone (a 120 Hz one should show 120 with vsync on and more with it off).
 - **Resolution** (2026-11-27; a drop-down list on a desktop, < > in a touch screen's menu; 1280x720 by default):
-  the game's pixels and the canvas's, from 16:9 sizes (1280x720, 1600x900, 1920x1080, 2560x1440, 3200x1800, 3840x2160,
-  5120x2880, 7680x4320) up to what the screen has (`screen` size times `devicePixelRatio`; Chrome's page zoom above
+  the game's pixels and the canvas's, from 16:9 sizes (640x360 and 960x540 always, for a slow GPU: fewer pixels drawn,
+  2026-11-28; 1280x720, 1600x900, 1920x1080, 2560x1440, 3200x1800, 3840x2160, 5120x2880, 7680x4320) up to what the screen has (`screen` size times `devicePixelRatio`; Chrome's page zoom above
   100 % inflates that), plus the largest 16:9 picture the screen holds when it is none of them (marked "screen"). At
   16:9 the game keeps its 1280x720 frame buffer (the native `--resolution`, top README), so a choice switches while
   the game runs (`dotd_web_set_resolution` -> `gfx::SetPixelSize` + `sdl::SetWindowSize`) and play is unchanged.

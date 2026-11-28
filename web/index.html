@@ -330,7 +330,8 @@ if (!pageParams.has('fps') && storedFps() !== '60') gameArgs.push('--fps', '0');
 // added when no preset is it. A desktop has a drop-down list, a touch screen < >
 // in its menu. The choice is kept for the next visit (brought down to the largest that fits a smaller screen, the
 // stored one kept); ?resolution=WxH in the address goes first and is not changed by the page.
-const RESOLUTIONS = [[1280, 720], [1600, 900], [1920, 1080], [2560, 1440], [3200, 1800], [3840, 2160], [5120, 2880], [7680, 4320]];
+// (Two tiers below the PS3's: fewer pixels drawn for a slow GPU, the game's frame buffer still 1280x720.)
+const RESOLUTIONS = [[640, 360], [960, 540], [1280, 720], [1600, 900], [1920, 1080], [2560, 1440], [3200, 1800], [3840, 2160], [5120, 2880], [7680, 4320]];
 const resolutionFromAddress = pageParams.has('resolution');
 function parseResolution(text) {
   const m = /^\s*(\d+)\s*[x*,]\s*(\d+)\s*$/i.exec(text || '');
@@ -360,10 +361,12 @@ function screenPixels() {  // [long side, short side] in device pixels
   const a = Math.round(screen.width * ratio), b = Math.round(screen.height * ratio);
   return [Math.max(a, b), Math.min(a, b)];
 }
-// [{w, h, note}], smallest first: the 1280x720 of the PS3 always, the presets that fit the screen, the screen's own.
+// [{w, h, note}], smallest first: the two lower tiers and the 1280x720 of the PS3 always, the presets that fit the
+// screen, the screen's own.
 function resolutionChoices() {
   const [long, short] = screenPixels();
-  const list = RESOLUTIONS.filter(([w, h], i) => i === 0 || (w <= long && h <= short)).map(([w, h], i) => ({w, h, note: i === 0 ? 'PS3' : ''}));
+  const list = RESOLUTIONS.filter(([w, h]) => w <= 1280 || (w <= long && h <= short))
+    .map(([w, h]) => ({w, h, note: w === 1280 && h === 720 ? 'PS3' : ''}));
   const w = Math.min(long, Math.round(short * 16 / 9)), h = Math.round(w * 9 / 16);  // the largest 16:9 on the screen
   const same = list.find((c) => c.w === w && c.h === h);
   if (same) same.note = same.note ? same.note + ', screen' : 'screen';
